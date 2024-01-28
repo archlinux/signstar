@@ -1,0 +1,44 @@
+# SPDX-FileCopyrightText: 2024 David Runge <dvzrv@archlinux.org>
+# SPDX-License-Identifier: CC0-1.0
+
+[package]
+authors = ["David Runge <dvzrv@archlinux.org>"]
+description = "A high-level library to interact with the API of a Nitrokey NetHSM"
+edition = "2021"
+keywords = ["encryption", "hsm", "nethsm", "signing"]
+license = "Apache-2.0 OR MIT"
+name = "nethsm"
+repository = "https://gitlab.archlinux.org/archlinux/signstar"
+version = "0.0.0"
+
+[dependencies]
+base64ct = { version = "1.6.0", features = ["alloc"] }
+chrono = { version = "0.4.33", features = ["alloc"] }
+log = "0.4.20"
+md-5 = "0.10.6"
+nethsm-sdk-rs = "1"
+rustls = { version = "0.22.2", features = ["aws_lc_rs"] }
+rustls-native-certs = "0.7.0"
+serde = { version = "1.0.197", features = ["derive"] }
+serde_json = "1.0.112"
+sha1 = "0.10.6"
+sha2 = { version = "0.10.8", features = ["oid"] }
+strum = { version = "0.25.0", features = ["derive"] }
+strum_macros = "0.26.2"
+thiserror = "1.0.56"
+ureq = { version = "2.9.6", features = ["json"] }
+
+[dev-dependencies]
+ed25519-compact = { version = "2.0.6", features = ["pem", "traits"] }
+futures-util = "0.3.30"
+nix = { version = "0.27.1", features = ["user"] }
+podman-api = "0.10.0"
+rand = "0.8.5"
+reqwest = "0.11.24"
+rsa = { version = "0.9.6", features = ["getrandom", "sha2", "pem"] }
+rstest = "0.18.2"
+testdir = "0.9.1"
+testresult = "0.4.0"
+tokio = { version = "1.35.1", features = ["macros"] }
+uuid = { version = "1.7.0", features = ["v7"] }
+

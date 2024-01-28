@@ -1,0 +1,9 @@
+# SPDX-FileCopyrightText: 2024 David Runge <dvzrv@archlinux.org>
+# SPDX-License-Identifier: CC0-1.0
+
+comment_width = 160
+format_code_in_doc_comments = true
+group_imports = "StdExternalCrate"
+imports_layout = "HorizontalVertical"
+reorder_imports = true
+wrap_comments = true

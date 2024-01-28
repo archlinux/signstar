@@ -1,0 +1,13 @@
+# SPDX-FileCopyrightText: 2024 David Runge <dvzrv@archlinux.org>
+# SPDX-License-Identifier: CC0-1.0
+
+[workspace]
+resolver = "2"
+members = [
+  "nethsm",
+]
+
+[profile.release]
+lto = true
+codegen-units = 1
+opt-level = "z"
