@@ -1,0 +1,39 @@
+# SPDX-FileCopyrightText: 2024 David Runge <dvzrv@archlinux.org>
+# SPDX-License-Identifier: CC0-1.0
+
+[advisories]
+version = 2
+yanked = "deny"
+ignore = [
+  "RUSTSEC-2023-0071",  # side-channel attacks are not relevant for our use-case (only used in tests)
+]
+
+[bans]
+deny = [
+]
+
+[licenses]
+version = 2
+allow = [
+  "Apache-2.0",
+  "BSD-3-Clause",
+  "BSL-1.0",
+  "ISC",
+  "LicenseRef-ring",
+  "MIT",
+  "MPL-2.0",
+  "Unicode-DFS-2016",
+]
+
+[[licenses.clarify]]
+name = "ring"
+expression = "LicenseRef-ring"
+license-files = [
+    { path = "LICENSE", hash = 0xbd0eed23 },
+]
+
+
+[sources]
+allow-git = [
+  "https://github.com/algesten/ureq",
+]
