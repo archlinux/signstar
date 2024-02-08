@@ -1,0 +1,8 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: signstar
+Upstream-Contact: David Runge <dvzrv@archlinux.org>
+Source: https://gitlab.archlinux.org/archlinux/signstar
+
+Files: README.md Cargo.lock nethsm/README.md nethsm/CHANGELOG.md
+Copyright: 2024 David Runge <dvzrv@archlinux.org>
+License: CC0-1.0
