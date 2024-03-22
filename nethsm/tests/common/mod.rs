@@ -60,6 +60,8 @@ pub static ENC_OPERATOR_USER_ID: &str = "encoperator1";
 pub static ENC_OPERATOR_USER_REAL_NAME: &str = "Some Encryption Operator";
 pub static ENC_OPERATOR_USER_PASSPHRASE: &str = "just-an-encryption-passphrase";
 pub static DEFAULT_AES_BITS: i32 = 128;
+static START_INVERVAL: u64 = 300;
+static MAX_START_TIME: u64 = 3000;
 
 #[fixture]
 fn podman() -> Podman {
@@ -183,8 +185,8 @@ pub async fn start_container(
     interval: Option<u64>,
     max_start_time: Option<u64>,
 ) -> TestResult<u64> {
-    let interval = interval.unwrap_or(300);
-    let max_start_time = max_start_time.unwrap_or(2000);
+    let interval = interval.unwrap_or(START_INVERVAL);
+    let max_start_time = max_start_time.unwrap_or(MAX_START_TIME);
 
     let container_host_port = get_container_host_port(container).await?;
     println!("Starting container {}", container.id());
