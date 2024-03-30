@@ -1,23 +1,51 @@
 // SPDX-FileCopyrightText: 2024 David Runge <dvzrv@archlinux.org>
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
+use std::str::FromStr;
+
 use log::trace;
 use rustls::client::danger::{HandshakeSignatureValid, ServerCertVerified, ServerCertVerifier};
 use rustls::crypto::CryptoProvider;
 use rustls::pki_types::{CertificateDer, ServerName, UnixTime};
 use rustls::{DigitallySignedStruct, SignatureScheme};
+use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
+
+use crate::Error;
+
+/// The fingerprint of a TLS certificate (as hex)
+#[derive(Clone, Debug, Deserialize, PartialEq, Eq, Serialize)]
+pub struct CertFingerprint(
+    #[serde(
+        deserialize_with = "hex::serde::deserialize",
+        serialize_with = "hex::serde::serialize"
+    )]
+    Vec<u8>,
+);
+
+impl FromStr for CertFingerprint {
+    type Err = Error;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(Self(s.as_bytes().to_vec()))
+    }
+}
+
+impl From<Vec<u8>> for CertFingerprint {
+    fn from(value: Vec<u8>) -> Self {
+        Self(value)
+    }
+}
 
 /// Certificate fingerprints to use for matching against a host's TLS
 /// certificate
-#[derive(Debug)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Eq, Serialize)]
 pub struct HostCertificateFingerprints {
     /// An optional list of SHA-256 checksums
-    sha256: Option<Vec<Vec<u8>>>,
+    sha256: Option<Vec<CertFingerprint>>,
 }
 
 /// The security model chosen for a [`crate::NetHsm`]'s TLS connection
-#[derive(Debug)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Eq, Serialize)]
 pub enum ConnectionSecurity {
     /// Always trust the TLS certificate associated with a host
     Unsafe,
@@ -25,6 +53,67 @@ pub enum ConnectionSecurity {
     Native,
     /// Use a list of checksums (fingerprints) to verify a host's TLS certificate
     Fingerprints(HostCertificateFingerprints),
+}
+
+impl FromStr for ConnectionSecurity {
+    type Err = Error;
+
+    /// Create a ConnectionSecurity from string
+    ///
+    /// Valid inputs are either "unsafe", "native" or "sha256:checksum" where "checksum" denotes
+    /// 64 ASCII hexadecimal chars.
+    ///
+    /// # Errors
+    ///
+    /// Returns an [`Error`] if the input is neither "unsafe" nor "native" and also no valid
+    /// certificate fingerprint can be derived from the input.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use std::str::FromStr;
+    ///
+    /// use nethsm::ConnectionSecurity;
+    ///
+    /// assert!(ConnectionSecurity::from_str("unsafe").is_ok());
+    /// assert!(ConnectionSecurity::from_str("native").is_ok());
+    /// assert!(ConnectionSecurity::from_str(
+    ///     "sha256:324f7bd1530c55cf6812ca6865445de21dfc74cf7a3bb5fae7585e849e3553b7"
+    /// )
+    /// .is_ok());
+    /// assert!(ConnectionSecurity::from_str("something").is_err());
+    /// ```
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "unsafe" => Ok(Self::Unsafe),
+            "native" => Ok(Self::Native),
+            _ => {
+                let sha256_fingerprints: Vec<Vec<u8>> = s
+                    .split(',')
+                    .filter_map(|checksum| {
+                        checksum
+                            .strip_prefix("sha256:")
+                            .filter(|x| x.len() == 64 && x.chars().all(|x| x.is_ascii_hexdigit()))
+                            .map(|checksum| checksum.as_bytes().to_vec())
+                    })
+                    .collect();
+                if sha256_fingerprints.is_empty() {
+                    Err(Error::Default(
+                        "No valid TLS certificate fingerprints detected.".to_string(),
+                    ))
+                } else {
+                    Ok(Self::Fingerprints(HostCertificateFingerprints {
+                        sha256: Some(
+                            sha256_fingerprints
+                                .iter()
+                                .map(|checksum| checksum.clone().into())
+                                .collect(),
+                        ),
+                    }))
+                }
+            }
+        }
+    }
 }
 
 /// A verifier for server certificates that always accepts them
@@ -109,7 +198,7 @@ impl ServerCertVerifier for FingerprintVerifier {
             hasher.update(end_entity.as_ref());
             let result = hasher.finalize();
             for fingerprint in sha256_fingerprints.iter() {
-                if fingerprint == &result[..] {
+                if fingerprint.0 == result[..] {
                     trace!("Certificate fingerprint matches");
                     return Ok(ServerCertVerified::assertion());
                 }
@@ -156,5 +245,41 @@ impl ServerCertVerifier for FingerprintVerifier {
         self.provider
             .signature_verification_algorithms
             .supported_schemes()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use rstest::rstest;
+    use testresult::TestResult;
+
+    use super::*;
+
+    #[rstest]
+    #[case("native", Some(ConnectionSecurity::Native))]
+    #[case("unsafe", Some(ConnectionSecurity::Unsafe))]
+    #[case("sha256:324f7bd1530c55cf6812ca6865445de21dfc74cf7a3bb5fae7585e849e3553b7", Some(ConnectionSecurity::Fingerprints(HostCertificateFingerprints { sha256: Some(vec![CertFingerprint::from_str("324f7bd1530c55cf6812ca6865445de21dfc74cf7a3bb5fae7585e849e3553b7")?]) })))]
+    #[case(
+        "324f7bd1530c55cf6812ca6865445de21dfc74cf7a3bb5fae7585e849e3553b7",
+        None
+    )]
+    #[case(
+        "sha256:324f7bd1530c55cf6812ca6865445de21dfc74cf7a3bb5fae7585e849e",
+        None
+    )]
+    #[case(
+        "sha256:324f7bd1530c55cf6812ca6865445de21dfc74cf7a3bb5fae7585e849e3553b73553b7",
+        None
+    )]
+    fn connection_security_fromstr(
+        #[case] input: &str,
+        #[case] expected: Option<ConnectionSecurity>,
+    ) -> TestResult {
+        if let Some(expected) = expected {
+            assert_eq!(ConnectionSecurity::from_str(input)?, expected);
+        } else {
+            assert!(ConnectionSecurity::from_str(input).is_err());
+        }
+        Ok(())
     }
 }

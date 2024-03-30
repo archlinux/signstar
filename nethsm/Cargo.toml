@@ -14,6 +14,7 @@ version = "0.1.0"
 [dependencies]
 base64ct = { version = "1.6.0", features = ["alloc"] }
 chrono = { version = "0.4.33", features = ["alloc"] }
+hex = { version = "0.4.3", features = ["serde"] }
 log = "0.4.20"
 md-5 = "0.10.6"
 nethsm-sdk-rs = "1"
