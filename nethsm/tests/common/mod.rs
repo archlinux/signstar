@@ -1,38 +1,20 @@
 // SPDX-FileCopyrightText: 2024 David Runge <dvzrv@archlinux.org>
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
-use std::env::var;
-use std::future::Future;
 use std::path::PathBuf;
-use std::str::FromStr;
-use std::time::Duration;
 
 use chrono::Utc;
-use futures_util::StreamExt;
-use futures_util::TryStreamExt;
 use nethsm::ConnectionSecurity;
 use nethsm::NetHsm;
 use nethsm_sdk_rs::models::KeyMechanism;
 use nethsm_sdk_rs::models::KeyType;
 use nethsm_sdk_rs::models::UserRole;
-use nix::unistd::geteuid;
-use podman_api::api::Container;
-use podman_api::api::Image;
-use podman_api::opts::ContainerCreateOpts;
-use podman_api::opts::ImageListOpts;
-use podman_api::opts::PullOpts;
-use podman_api::Podman;
 use reqwest::get;
 use rstest::fixture;
-use testresult::TestError;
+use rustainers::runner::Runner;
+use rustainers::Container;
 use testresult::TestResult;
-use tokio::time::sleep;
-use uuid::timestamp::Timestamp;
-use uuid::NoContext;
-use uuid::Uuid;
 
-pub static IMAGE_NAME: &str = "docker.io/nitrokey/nethsm:testing";
-pub static DEFAULT_PORT: &str = "8443";
 pub static ADMIN_USER_ID: &str = "admin";
 pub static ADMIN_USER_PASSPHRASE: &str = "just-an-admin-passphrase";
 pub static BACKUP_PASSPHRASE: &str = "just-a-backup-passphrase";
@@ -60,91 +42,28 @@ pub static ENC_OPERATOR_USER_ID: &str = "encoperator1";
 pub static ENC_OPERATOR_USER_REAL_NAME: &str = "Some Encryption Operator";
 pub static ENC_OPERATOR_USER_PASSPHRASE: &str = "just-an-encryption-passphrase";
 pub static DEFAULT_AES_BITS: i32 = 128;
-static START_INVERVAL: u64 = 300;
-static MAX_START_TIME: u64 = 3000;
+
+mod container;
+pub use container::NetHsmImage;
 
 #[fixture]
-fn podman() -> Podman {
-    let uid = geteuid();
-    if uid.is_root() {
-        Podman::unix("/run/podman/podman.sock")
-    } else {
-        Podman::unix(format!("/run/user/{}/podman/podman.sock", geteuid()))
-    }
-}
-
-#[fixture]
-async fn nethsm_image(podman: Podman) -> TestResult<(Podman, Image)> {
-    let events = podman
-        .images()
-        .pull(&PullOpts::builder().reference(IMAGE_NAME).build())
-        .map(|report| {
-            report.and_then(|report| {
-                if let Some(error) = report.error {
-                    Err(podman_api::Error::InvalidResponse(error))
-                } else {
-                    Ok(report)
-                }
-            })
-        })
-        .try_collect::<Vec<_>>()
-        .await;
-
-    if let Err(e) = events {
-        eprintln!("event errors: {}", e);
-    };
-
-    let images = podman
-        .images()
-        .list(&ImageListOpts::builder().all(true).build())
-        .await?;
-
-    let image_id = if let Some(summary) = images.iter().find(|x| {
-        x.names
-            .as_ref()
-            .is_some_and(|names| names.contains(&IMAGE_NAME.to_string()))
-    }) {
-        if let Some(id) = summary.id.as_ref() {
-            id
-        } else {
-            return Err(TestError::from("Container image has no ID"));
-        }
-    } else {
-        return Err(TestError::from("No container image found"));
-    };
-    println!("Container image \"{}\": {}", IMAGE_NAME, image_id);
-
-    Ok((podman.clone(), Image::new(podman, image_id)))
+pub async fn new_container() -> TestResult<Container<NetHsmImage>> {
+    let runner = Runner::podman()?;
+    let image = NetHsmImage::default();
+    println!("image: {:#?}", image.image);
+    let container = runner.start(image).await?;
+    println!("serving URL: {}", container.url().await?.to_string());
+    Ok(container)
 }
 
 #[fixture]
 pub async fn nethsm_container(
-    #[future] nethsm_image: TestResult<(Podman, Image)>,
-) -> TestResult<(NetHsm, Container)> {
-    let (podman, _) = nethsm_image.await?;
-    let container_create = podman
-        .containers()
-        .create(
-            &ContainerCreateOpts::builder()
-                .image(IMAGE_NAME)
-                .name(format!(
-                    "nethsm-test-{}",
-                    Uuid::new_v7(Timestamp::now(NoContext))
-                ))
-                .publish_image_ports(true)
-                .build(),
-        )
-        .await?;
-    println!(
-        "Container created based on \"{}\": {}",
-        IMAGE_NAME, container_create.id
-    );
-    let container = Container::new(podman.clone(), container_create.id);
-
-    let container_host_port = start_container(&container, None, None).await?;
+    #[future] new_container: TestResult<Container<NetHsmImage>>,
+) -> TestResult<(NetHsm, rustainers::Container<NetHsmImage>)> {
+    let container = new_container.await?;
 
     let nethsm = NetHsm::new(
-        format!("https://localhost:{}/api/v1", container_host_port).try_into()?,
+        container.url().await?,
         ConnectionSecurity::Unsafe,
         Some((
             ADMIN_USER_ID.to_string(),
@@ -155,152 +74,6 @@ pub async fn nethsm_container(
     )?;
 
     Ok((nethsm, container))
-}
-
-/// Get the host port forwarded to the container port [`DEFAULT_PORT`]
-async fn get_container_host_port(container: &Container) -> TestResult<u64> {
-    let container_data = container.inspect().await?;
-    let network_settings = container_data
-        .network_settings
-        .expect("container has network settings");
-    let ports = network_settings.ports.expect("container has network ports");
-    let host_ports = ports
-        .get(&format!("{}/tcp", DEFAULT_PORT))
-        .expect("container has default port")
-        .as_ref()
-        .expect("container has default port");
-    let host_port = host_ports
-        .iter()
-        .last()
-        .expect("container has default port")
-        .clone()
-        .host_port
-        .expect("container has host port");
-
-    Ok(u64::from_str(&host_port)?)
-}
-
-pub async fn start_container(
-    container: &Container,
-    interval: Option<u64>,
-    max_start_time: Option<u64>,
-) -> TestResult<u64> {
-    let interval = interval.unwrap_or(START_INVERVAL);
-    let max_start_time = max_start_time.unwrap_or(MAX_START_TIME);
-
-    let container_host_port = get_container_host_port(container).await?;
-    println!("Starting container {}", container.id());
-    println!(
-        "Host port {} forwarded to container port {}",
-        container_host_port, DEFAULT_PORT
-    );
-
-    container.start(None).await?;
-
-    let nethsm = NetHsm::new(
-        format!("https://localhost:{}/api/v1", container_host_port).try_into()?,
-        ConnectionSecurity::Unsafe,
-        Some((
-            ADMIN_USER_ID.to_string(),
-            Some(ADMIN_USER_PASSPHRASE.to_string()),
-        )),
-        None,
-        None,
-    )?;
-
-    let mut elapsed = 0;
-    while elapsed <= max_start_time {
-        if nethsm.state().is_ok() {
-            println!(
-                "Waited at least {}ms until container exposed NetHSM API.",
-                elapsed
-            );
-            return Ok(container_host_port);
-        }
-        sleep(Duration::from_millis(interval)).await;
-        elapsed += interval;
-    }
-
-    Err(TestError::from(format!(
-        "Container failed to fully start within {0}ms",
-        max_start_time
-    )))
-}
-
-/// Stop a container
-///
-/// If the environment variable `KEEP_NETHSM_CONTAINER_ALIVE` is set, the
-/// container is not stopped!
-#[allow(dead_code)]
-async fn stop_container(container: &Container) -> TestResult {
-    if var("KEEP_NETHSM_CONTAINER_ALIVE").is_ok() {
-        println!(
-            "Keeping container {:?} alive.",
-            container
-                .inspect()
-                .await?
-                .id
-                .unwrap_or("unknown".to_string())
-        );
-        Ok(())
-    } else {
-        println!(
-            "Stopping container {:?}.",
-            container
-                .inspect()
-                .await?
-                .id
-                .unwrap_or("unknown".to_string())
-        );
-        Ok(container.stop(&Default::default()).await?)
-    }
-}
-
-/// Await a [`Future`] and maybe stop the [`Container`] associated with it
-///
-/// When the [`Future`] returns a [`Result::Error`], [`stop_container`] is
-/// always called, then the [`Result::Error`] is returned. When the [`Future`]
-/// returns a [`Result::Ok`] [`stop_container`] is called if `force_stop_on_ok`
-/// is `true`, before the [`Result::Ok`] is returned.
-#[allow(dead_code)]
-pub async fn future_maybe_stop_container(
-    future: impl Future<Output = TestResult>,
-    force_stop_on_ok: bool,
-    container: &Container,
-) -> TestResult {
-    if let Err(error) = future.await {
-        stop_container(container).await?;
-        Err(error)
-    } else {
-        if force_stop_on_ok {
-            stop_container(container).await?;
-        }
-        Ok(())
-    }
-}
-
-/// Based on a [`Result`] maybe stop the [`Container`] associated with it
-///
-/// When providing [`Result::Error`], [`stop_container`] is always called, then
-/// the [`Result::Error`] is returned. When providing [`Result::Ok`]
-/// [`stop_container`] is called if `force_stop_on_ok` is `true`, before the
-/// [`Result::Ok`] is returned.
-#[allow(dead_code)]
-pub async fn result_maybe_stop_container(
-    result: TestResult,
-    force_stop_on_ok: bool,
-    container: &Container,
-) -> TestResult {
-    println!("maybe stop container: {:?}", result);
-    if let Err(error) = result {
-        stop_container(container).await?;
-        Err(error)
-    } else {
-        if force_stop_on_ok {
-            stop_container(container).await?;
-        }
-        Ok(())
-    }
 }
 
 fn provision_nethsm(nethsm: &NetHsm) -> TestResult {
@@ -347,6 +120,7 @@ fn add_users_to_nethsm(nethsm: &NetHsm) -> TestResult {
         ),
     ];
 
+    println!("Adding users to NetHSM...");
     for (role, user_id, passphrase, real_name) in users.into_iter() {
         nethsm.add_user(
             real_name.to_string(),
@@ -355,6 +129,7 @@ fn add_users_to_nethsm(nethsm: &NetHsm) -> TestResult {
             Some(user_id.to_string()),
         )?;
     }
+    println!("users: {:?}", nethsm.get_users()?);
     Ok(())
 }
 
@@ -392,6 +167,7 @@ fn add_keys_to_nethsm(nethsm: &NetHsm) -> TestResult {
         ),
     ];
 
+    println!("Adding keys to NetHSM...");
     for (mechanisms, key_type, length, key_id, tag, user_id) in keys {
         nethsm.generate_key(key_type, mechanisms, length, Some(key_id.to_string()), None)?;
         nethsm.add_key_tag(key_id, tag)?;
@@ -401,13 +177,16 @@ fn add_keys_to_nethsm(nethsm: &NetHsm) -> TestResult {
             nethsm.import_key_certificate(key_id, nethsm.get_public_key(key_id)?.into_bytes())?;
         }
     }
+
+    println!("users: {:?}", nethsm.get_users()?);
+    println!("keys: {:?}", nethsm.get_keys(None)?);
     Ok(())
 }
 
 #[fixture]
 pub async fn provisioned_nethsm(
-    #[future] nethsm_container: TestResult<(NetHsm, Container)>,
-) -> TestResult<(NetHsm, Container)> {
+    #[future] nethsm_container: TestResult<(NetHsm, Container<NetHsmImage>)>,
+) -> TestResult<(NetHsm, Container<NetHsmImage>)> {
     let (nethsm, container) = nethsm_container.await?;
 
     println!("Provisioning container...");
@@ -418,8 +197,8 @@ pub async fn provisioned_nethsm(
 
 #[fixture]
 pub async fn nethsm_with_users(
-    #[future] provisioned_nethsm: TestResult<(NetHsm, Container)>,
-) -> TestResult<(NetHsm, Container)> {
+    #[future] provisioned_nethsm: TestResult<(NetHsm, Container<NetHsmImage>)>,
+) -> TestResult<(NetHsm, Container<NetHsmImage>)> {
     let (nethsm, container) = provisioned_nethsm.await?;
 
     println!("Adding users to container...");
@@ -430,8 +209,8 @@ pub async fn nethsm_with_users(
 
 #[fixture]
 pub async fn nethsm_with_keys(
-    #[future] provisioned_nethsm: TestResult<(NetHsm, Container)>,
-) -> TestResult<(NetHsm, Container)> {
+    #[future] provisioned_nethsm: TestResult<(NetHsm, Container<NetHsmImage>)>,
+) -> TestResult<(NetHsm, Container<NetHsmImage>)> {
     let (nethsm, container) = provisioned_nethsm.await?;
 
     println!("Adding users and keys to container...");

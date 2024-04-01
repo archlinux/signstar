@@ -3,6 +3,7 @@
 
 mod common;
 use common::nethsm_with_keys;
+use common::NetHsmImage;
 use common::ENC_KEY_ID;
 use common::ENC_OPERATOR_USER_ID;
 use common::ENC_OPERATOR_USER_PASSPHRASE;
@@ -12,11 +13,11 @@ use common::OTHER_OPERATOR_USER_PASSPHRASE;
 use nethsm::NetHsm;
 use nethsm_sdk_rs::models::DecryptMode;
 use nethsm_sdk_rs::models::EncryptMode;
-use podman_api::api::Container;
 use rsa::pkcs8::DecodePublicKey;
 use rsa::Pkcs1v15Encrypt;
 use rsa::RsaPublicKey;
 use rstest::rstest;
+use rustainers::Container;
 use testresult::TestResult;
 
 // we have an AES128 encryption key. the message must be a multiple of 32 bytes
@@ -26,13 +27,13 @@ pub static MESSAGE: &str = "Hello World! This is a message!!";
 // multiple of 16 bytes long
 pub static IV: &str = "This is unsafe!!";
 
-#[ignore = "requires running Podman API service"]
+#[ignore = "requires Podman"]
 #[rstest]
 #[tokio::test]
 async fn symmetric_encryption_decryption(
-    #[future] nethsm_with_keys: TestResult<(NetHsm, Container)>,
+    #[future] nethsm_with_keys: TestResult<(NetHsm, Container<NetHsmImage>)>,
 ) -> TestResult {
-    let (nethsm, container) = nethsm_with_keys.await?;
+    let (nethsm, _container) = nethsm_with_keys.await?;
     nethsm.add_credentials((
         ENC_OPERATOR_USER_ID.to_string(),
         Some(ENC_OPERATOR_USER_PASSPHRASE.to_string()),
@@ -66,17 +67,16 @@ async fn symmetric_encryption_decryption(
 
     assert_eq!(decrypted_message, MESSAGE.as_bytes());
 
-    container.stop(&Default::default()).await?;
     Ok(())
 }
 
-#[ignore = "requires running Podman API service"]
+#[ignore = "requires Podman"]
 #[rstest]
 #[tokio::test]
 async fn asymmetric_decryption(
-    #[future] nethsm_with_keys: TestResult<(NetHsm, Container)>,
+    #[future] nethsm_with_keys: TestResult<(NetHsm, Container<NetHsmImage>)>,
 ) -> TestResult {
-    let (nethsm, container) = nethsm_with_keys.await?;
+    let (nethsm, _container) = nethsm_with_keys.await?;
     nethsm.add_credentials((
         OTHER_OPERATOR_USER_ID.to_string(),
         Some(OTHER_OPERATOR_USER_PASSPHRASE.to_string()),
@@ -94,6 +94,5 @@ async fn asymmetric_decryption(
 
     assert_eq!(&decrypted_message, MESSAGE.as_bytes(),);
 
-    container.stop(&Default::default()).await?;
     Ok(())
 }

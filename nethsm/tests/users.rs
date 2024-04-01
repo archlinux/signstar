@@ -3,6 +3,7 @@
 
 mod common;
 use common::provisioned_nethsm;
+use common::NetHsmImage;
 use common::DEFAULT_OPERATOR_USER_PASSPHRASE;
 use common::DEFAULT_OPERATOR_USER_REAL_NAME;
 use common::OTHER_OPERATOR_USER_ID;
@@ -10,15 +11,17 @@ use common::OTHER_OPERATOR_USER_PASSPHRASE;
 use common::OTHER_OPERATOR_USER_REAL_NAME;
 use nethsm::NetHsm;
 use nethsm_sdk_rs::models::UserRole;
-use podman_api::api::Container;
 use rstest::rstest;
+use rustainers::Container;
 use testresult::TestResult;
 
-#[ignore = "requires running Podman API service"]
+#[ignore = "requires Podman"]
 #[rstest]
 #[tokio::test]
-async fn create_users(#[future] provisioned_nethsm: TestResult<(NetHsm, Container)>) -> TestResult {
-    let (nethsm, container) = provisioned_nethsm.await?;
+async fn create_users(
+    #[future] provisioned_nethsm: TestResult<(NetHsm, Container<NetHsmImage>)>,
+) -> TestResult {
+    let (nethsm, _container) = provisioned_nethsm.await?;
 
     assert!(nethsm.get_users()?.len() == 1);
     let operator_user = nethsm.add_user(
@@ -51,6 +54,5 @@ async fn create_users(#[future] provisioned_nethsm: TestResult<(NetHsm, Containe
     nethsm.delete_user(&other_operator_user)?;
     assert!(nethsm.get_users()?.len() == 1);
 
-    container.stop(&Default::default()).await?;
     Ok(())
 }

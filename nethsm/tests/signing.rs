@@ -3,6 +3,7 @@
 
 mod common;
 use common::nethsm_with_keys;
+use common::NetHsmImage;
 use common::DEFAULT_KEY_ID;
 use common::DEFAULT_OPERATOR_USER_ID;
 use common::DEFAULT_OPERATOR_USER_PASSPHRASE;
@@ -10,22 +11,24 @@ use common::OTHER_KEY_ID;
 use common::OTHER_OPERATOR_USER_ID;
 use common::OTHER_OPERATOR_USER_PASSPHRASE;
 use nethsm::{NetHsm, SignatureType};
-use podman_api::api::Container;
 use rsa::pkcs1v15::VerifyingKey;
 use rsa::pkcs8::DecodePublicKey;
 use rsa::signature::Verifier;
 use rsa::RsaPublicKey;
 use rstest::rstest;
+use rustainers::Container;
 use sha2::Sha256;
 use testresult::TestResult;
 
 pub static MESSAGE: &[u8] = b"Hello World!";
 
-#[ignore = "requires running Podman API service"]
+#[ignore = "requires Podman"]
 #[rstest]
 #[tokio::test]
-async fn signing(#[future] nethsm_with_keys: TestResult<(NetHsm, Container)>) -> TestResult {
-    let (nethsm, container) = nethsm_with_keys.await?;
+async fn signing(
+    #[future] nethsm_with_keys: TestResult<(NetHsm, Container<NetHsmImage>)>,
+) -> TestResult {
+    let (nethsm, _container) = nethsm_with_keys.await?;
     // use nethsm as operator user
     nethsm.add_credentials((
         DEFAULT_OPERATOR_USER_ID.to_string(),
@@ -72,6 +75,5 @@ async fn signing(#[future] nethsm_with_keys: TestResult<(NetHsm, Container)>) ->
     println!("A signature created using an RSA pubkey for which the NetHSM provides the private key: {:?}", signature_parsed);
     verifying_key.verify(MESSAGE, &signature_parsed)?;
 
-    container.stop(&Default::default()).await?;
     Ok(())
 }

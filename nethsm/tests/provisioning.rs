@@ -6,23 +6,24 @@ use std::time::Duration;
 mod common;
 use chrono::Utc;
 use common::nethsm_container;
+use common::NetHsmImage;
 use common::ADMIN_USER_ID;
 use common::ADMIN_USER_PASSPHRASE;
 use common::UNLOCK_PASSPHRASE;
 use nethsm::NetHsm;
 use nethsm_sdk_rs::models::SystemState;
-use podman_api::api::Container;
 use rstest::rstest;
+use rustainers::Container;
 use testresult::TestResult;
 use tokio::time::sleep;
 
-#[ignore = "requires running Podman API service"]
+#[ignore = "requires Podman"]
 #[rstest]
 #[tokio::test]
 async fn initial_provisioning(
-    #[future] nethsm_container: TestResult<(NetHsm, Container)>,
+    #[future] nethsm_container: TestResult<(NetHsm, Container<NetHsmImage>)>,
 ) -> TestResult {
-    let (nethsm, container) = nethsm_container.await?;
+    let (nethsm, _container) = nethsm_container.await?;
 
     nethsm.remove_credentials("admin");
 
@@ -74,8 +75,6 @@ async fn initial_provisioning(
     assert!(nethsm.state()? == SystemState::Locked);
     nethsm.unlock(new_unlock_passphrase.to_string())?;
     assert!(nethsm.state()? == SystemState::Operational);
-
-    container.stop(&Default::default()).await?;
 
     if elapsed > timeout {
         panic!("NetHSM did not become operational within {}ms", timeout);

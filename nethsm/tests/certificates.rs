@@ -2,8 +2,8 @@
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
 mod common;
-use common::future_maybe_stop_container;
 use common::nethsm_with_users;
+use common::NetHsmImage;
 use common::DEFAULT_KEY_ID;
 use common::DEFAULT_OPERATOR_USER_ID;
 use common::DEFAULT_RSA_BITS;
@@ -17,15 +17,16 @@ use nethsm::NetHsm;
 use nethsm_sdk_rs::models::DistinguishedName;
 use nethsm_sdk_rs::models::KeyMechanism;
 use nethsm_sdk_rs::models::KeyType;
-use podman_api::api::Container;
 use rsa::traits::PrivateKeyParts;
 use rsa::traits::PublicKeyParts;
 use rsa::RsaPrivateKey;
 use rstest::rstest;
+use rustainers::Container;
 use testresult::TestResult;
 
 /// Generate a key and create a CSR with it
 async fn generate_signing_key(nethsm: &NetHsm) -> TestResult {
+    println!("Generate signing key...");
     assert!(nethsm.get_keys(None)?.is_empty());
     nethsm.generate_key(
         KeyType::Curve25519,
@@ -66,6 +67,7 @@ async fn generate_signing_key(nethsm: &NetHsm) -> TestResult {
             }
         )?
     );
+    println!("keys: {:?}", nethsm.get_keys(None)?);
 
     Ok(())
 }
@@ -145,6 +147,9 @@ async fn generate_symmetric_encryption_key(nethsm: &NetHsm) -> TestResult {
 /// Add user tags
 async fn user_tags(nethsm: &NetHsm) -> TestResult {
     // NOTE: tags on users need to be created after attaching tags to keys
+    println!("Adding user tags...");
+    println!("users: {:?}", nethsm.get_users()?);
+    println!("keys: {:?}", nethsm.get_keys(None)?);
     nethsm.add_user_tag(DEFAULT_OPERATOR_USER_ID, DEFAULT_TAG)?;
     assert!(nethsm.get_user_tags(DEFAULT_OPERATOR_USER_ID)?.len() == 1);
     nethsm.delete_user_tag(DEFAULT_OPERATOR_USER_ID, DEFAULT_TAG)?;
@@ -163,21 +168,18 @@ async fn user_tags(nethsm: &NetHsm) -> TestResult {
     Ok(())
 }
 
-#[ignore = "requires running Podman API service"]
+#[ignore = "requires Podman"]
 #[rstest]
 #[tokio::test]
-async fn certificates(#[future] nethsm_with_users: TestResult<(NetHsm, Container)>) -> TestResult {
-    let (nethsm, container) = nethsm_with_users.await?;
+async fn certificates(
+    #[future] nethsm_with_users: TestResult<(NetHsm, Container<NetHsmImage>)>,
+) -> TestResult {
+    let (nethsm, _container) = nethsm_with_users.await?;
 
-    future_maybe_stop_container(generate_signing_key(&nethsm), false, &container).await?;
-    future_maybe_stop_container(import_key(&nethsm), false, &container).await?;
-    future_maybe_stop_container(
-        generate_symmetric_encryption_key(&nethsm),
-        false,
-        &container,
-    )
-    .await?;
-    future_maybe_stop_container(user_tags(&nethsm), true, &container).await?;
+    generate_signing_key(&nethsm).await?;
+    import_key(&nethsm).await?;
+    generate_symmetric_encryption_key(&nethsm).await?;
+    user_tags(&nethsm).await?;
 
     Ok(())
 }
