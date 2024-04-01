@@ -1004,6 +1004,7 @@ dependencies = [
  "thiserror",
  "tokio",
  "ureq",
+ "url",
  "uuid",
 ]
 
@@ -2128,6 +2129,7 @@ dependencies = [
  "form_urlencoded",
  "idna",
  "percent-encoding",
+ "serde",
 ]
 
 [[package]]

@@ -28,6 +28,7 @@ strum = { version = "0.25.0", features = ["derive"] }
 strum_macros = "0.26.2"
 thiserror = "1.0.56"
 ureq = { version = "2.9.6", features = ["json"] }
+url = { version = "2.5.0", features = ["serde"] }
 
 [dev-dependencies]
 ed25519-compact = { version = "2.0.6", features = ["pem", "traits"] }

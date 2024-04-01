@@ -144,7 +144,7 @@ pub async fn nethsm_container(
     let container_host_port = start_container(&container, None, None).await?;
 
     let nethsm = NetHsm::new(
-        format!("https://localhost:{}/api/v1", container_host_port),
+        format!("https://localhost:{}/api/v1", container_host_port).try_into()?,
         ConnectionSecurity::Unsafe,
         Some((
             ADMIN_USER_ID.to_string(),
@@ -198,7 +198,7 @@ pub async fn start_container(
     container.start(None).await?;
 
     let nethsm = NetHsm::new(
-        format!("https://localhost:{}/api/v1", container_host_port),
+        format!("https://localhost:{}/api/v1", container_host_port).try_into()?,
         ConnectionSecurity::Unsafe,
         Some((
             ADMIN_USER_ID.to_string(),
