@@ -15,7 +15,8 @@ This leads to a broad API surface with sparse documentation, that this crate att
 ## Testing
 
 This library is integration tested against [Nitrokey]'s official [nethsm container].
-To run these long running tests a [podman] installation with running [systemd] user socket (`podman.socket`) is required, as the tests handle the creation and teardown of containers as needed.
+To run these long running tests a [podman] installation is required.
+The tests handle the creation and teardown of containers as needed.
 
 ```shell
 cargo test --all -- --ignored
