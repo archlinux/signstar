@@ -5,6 +5,7 @@
 resolver = "2"
 members = [
   "nethsm",
+  "nethsm-cli",
 ]
 
 [profile.release]

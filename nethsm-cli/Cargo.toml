@@ -1,0 +1,34 @@
+# SPDX-FileCopyrightText: 2024 David Runge <dvzrv@archlinux.org>
+# SPDX-License-Identifier: CC0-1.0
+
+[package]
+authors = ["David Runge <dvzrv@archlinux.org>"]
+description = "A CLI for the Nitrokey NetHSM"
+edition = "2021"
+keywords = ["encryption", "hsm", "nethsm", "signing", "cli"]
+license = "Apache-2.0 OR MIT"
+name = "nethsm-cli"
+repository = "https://gitlab.archlinux.org/archlinux/signstar"
+version = "0.1.0"
+
+[dependencies]
+chrono = "0.4.37"
+clap = { version = "4.5.4", features = ["derive", "env"] }
+confy = "0.6.1"
+nethsm = { path = "../nethsm", version = "0.3.0" }
+rpassword = "7.3.1"
+rprompt = "2.1.1"
+serde = { version = "1.0.197", features = ["derive"] }
+strum = { version = "0.25.0", features = ["derive"] }
+thiserror = "1.0.58"
+zeroize = { version = "1.7.0", features = ["zeroize_derive", "serde"] }
+
+[[bin]]
+name = "nethsm"
+path = "src/main.rs"
+
+[dev-dependencies]
+rand = "0.8.5"
+rstest = "0.21.0"
+testdir = "0.9.1"
+testresult = "0.4.0"
