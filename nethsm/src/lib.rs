@@ -28,7 +28,6 @@
 //! * [`nethsm_sdk_rs::models::NetworkConfig`]
 //! * [`nethsm_sdk_rs::models::SystemState`]
 //! * [`nethsm_sdk_rs::models::TlsKeyType`]
-//! * [`nethsm_sdk_rs::models::UserRole`]
 //!
 //! Using the [`NetHsm`] struct it is possible to establish a TLS connection for multiple users.
 //! TLS validation can be configured based on a variant of the [`ConnectionSecurity`] enum:
@@ -178,7 +177,6 @@ pub use nethsm_sdk_rs::models::{
     SystemInfo,
     SystemState,
     TlsKeyType,
-    UserRole,
 };
 use nethsm_sdk_rs::ureq::AgentBuilder;
 use rustls::crypto::{aws_lc_rs as tls_provider, CryptoProvider};
@@ -190,7 +188,7 @@ use sha2::{Digest, Sha224, Sha256, Sha384, Sha512};
 
 mod nethsm_sdk;
 use nethsm_sdk::{match_key_type_and_mechanisms, NetHsmApiError};
-pub use nethsm_sdk::{BootMode, KeyImportData, SignatureType};
+pub use nethsm_sdk::{BootMode, KeyImportData, SignatureType, UserRole};
 mod tls;
 pub use tls::{ConnectionSecurity, HostCertificateFingerprints};
 use tls::{DangerIgnoreVerifier, FingerprintVerifier};
@@ -2266,7 +2264,7 @@ impl NetHsm {
             users_user_id_put(
                 &self.config.borrow(),
                 &user_id,
-                UserPostData::new(real_name, role, passphrase.clone()),
+                UserPostData::new(real_name, role.into(), passphrase.clone()),
             )
             .map_err(|error| {
                 Error::Api(format!(
@@ -2278,7 +2276,7 @@ impl NetHsm {
         } else {
             users_post(
                 &self.config.borrow(),
-                UserPostData::new(real_name, role, passphrase.clone()),
+                UserPostData::new(real_name, role.into(), passphrase.clone()),
             )
             .map_err(|error| {
                 Error::Api(format!(

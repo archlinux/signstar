@@ -12,6 +12,7 @@ use nethsm_sdk_rs::models::{
     Switch,
     UnattendedBootConfig,
 };
+use serde::{Deserialize, Serialize};
 use ureq::Response;
 
 use crate::Error;
@@ -332,5 +333,69 @@ impl From<BootMode> for UnattendedBootConfig {
                 status: Switch::Off,
             },
         }
+    }
+}
+
+/// The role of a user on a NetHSM device
+#[derive(
+    Clone,
+    Debug,
+    Default,
+    Deserialize,
+    strum::Display,
+    strum::EnumString,
+    Eq,
+    PartialEq,
+    Ord,
+    PartialOrd,
+    Hash,
+    Serialize,
+)]
+#[strum(ascii_case_insensitive)]
+pub enum UserRole {
+    /// A role for administrating a device, its users and keys
+    Administrator,
+    /// A role for creating backups of a device
+    Backup,
+    /// A role for reading metrics of a device
+    Metrics,
+    /// A role for using one or more keys of a device
+    #[default]
+    Operator,
+}
+
+impl From<UserRole> for nethsm_sdk_rs::models::UserRole {
+    fn from(value: UserRole) -> Self {
+        match value {
+            UserRole::Administrator => Self::Administrator,
+            UserRole::Backup => Self::Backup,
+            UserRole::Metrics => Self::Metrics,
+            UserRole::Operator => Self::Operator,
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::str::FromStr;
+
+    use rstest::rstest;
+    use testresult::TestResult;
+
+    use super::*;
+
+    #[rstest]
+    #[case("administrator", Some(UserRole::Administrator))]
+    #[case("backup", Some(UserRole::Backup))]
+    #[case("metrics", Some(UserRole::Metrics))]
+    #[case("operator", Some(UserRole::Operator))]
+    #[case("foo", None)]
+    fn userrole_fromstr(#[case] input: &str, #[case] expected: Option<UserRole>) -> TestResult {
+        if let Some(expected) = expected {
+            assert_eq!(UserRole::from_str(input)?, expected);
+        } else {
+            assert!(UserRole::from_str(input).is_err());
+        }
+        Ok(())
     }
 }
