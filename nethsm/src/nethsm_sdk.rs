@@ -4,14 +4,7 @@
 use std::fmt::Display;
 
 use base64ct::{Base64, Encoding};
-use nethsm_sdk_rs::models::{
-    KeyMechanism,
-    KeyPrivateData,
-    KeyType,
-    SignMode,
-    Switch,
-    UnattendedBootConfig,
-};
+use nethsm_sdk_rs::models::{KeyMechanism, KeyPrivateData, SignMode, Switch, UnattendedBootConfig};
 use serde::{Deserialize, Serialize};
 use ureq::Response;
 
@@ -336,6 +329,61 @@ impl From<BootMode> for UnattendedBootConfig {
     }
 }
 
+/// The algorithm type of a key
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    Default,
+    Deserialize,
+    strum::Display,
+    strum::EnumString,
+    Eq,
+    Hash,
+    Ord,
+    PartialEq,
+    PartialOrd,
+    Serialize,
+)]
+#[strum(ascii_case_insensitive)]
+pub enum KeyType {
+    /// A Montgomery curve key over a prime field for the prime number 2^255-19
+    #[default]
+    Curve25519,
+
+    /// An elliptic-curve key over a prime field for a prime of size 224 bit
+    EcP224,
+
+    /// An elliptic-curve key over a prime field for a prime of size 256 bit
+    EcP256,
+
+    /// An elliptic-curve key over a prime field for a prime of size 384 bit
+    EcP384,
+
+    /// An elliptic-curve key over a prime field for a prime of size 521 bit
+    EcP521,
+
+    /// A generic key used for block ciphers
+    Generic,
+
+    /// An RSA key
+    Rsa,
+}
+
+impl From<KeyType> for nethsm_sdk_rs::models::KeyType {
+    fn from(value: KeyType) -> Self {
+        match value {
+            KeyType::Curve25519 => Self::Curve25519,
+            KeyType::EcP224 => Self::EcP224,
+            KeyType::EcP256 => Self::EcP256,
+            KeyType::EcP384 => Self::EcP384,
+            KeyType::EcP521 => Self::EcP521,
+            KeyType::Generic => Self::Generic,
+            KeyType::Rsa => Self::Rsa,
+        }
+    }
+}
+
 /// The role of a user on a NetHSM device
 #[derive(
     Clone,
@@ -383,6 +431,24 @@ mod tests {
     use testresult::TestResult;
 
     use super::*;
+
+    #[rstest]
+    #[case("rsa", Some(KeyType::Rsa))]
+    #[case("curve25519", Some(KeyType::Curve25519))]
+    #[case("ecp224", Some(KeyType::EcP224))]
+    #[case("ecp256", Some(KeyType::EcP256))]
+    #[case("ecp384", Some(KeyType::EcP384))]
+    #[case("ecp521", Some(KeyType::EcP521))]
+    #[case("generic", Some(KeyType::Generic))]
+    #[case("foo", None)]
+    fn keytype_fromstr(#[case] input: &str, #[case] expected: Option<KeyType>) -> TestResult {
+        if let Some(expected) = expected {
+            assert_eq!(KeyType::from_str(input)?, expected);
+        } else {
+            assert!(KeyType::from_str(input).is_err());
+        }
+        Ok(())
+    }
 
     #[rstest]
     #[case("administrator", Some(UserRole::Administrator))]
