@@ -4,11 +4,7 @@
 use std::path::PathBuf;
 
 use chrono::Utc;
-use nethsm::ConnectionSecurity;
-use nethsm::NetHsm;
-use nethsm_sdk_rs::models::KeyMechanism;
-use nethsm_sdk_rs::models::KeyType;
-use nethsm_sdk_rs::models::UserRole;
+use nethsm::{ConnectionSecurity, KeyMechanism, KeyType, NetHsm, UserRole};
 use reqwest::get;
 use rstest::fixture;
 use rustainers::runner::Runner;

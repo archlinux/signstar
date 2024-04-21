@@ -15,13 +15,15 @@ use common::BACKUP_USER_PASSPHRASE;
 use common::METRICS_USER_ID;
 use common::METRICS_USER_PASSPHRASE;
 use common::UNLOCK_PASSPHRASE;
-use nethsm::BootMode;
-use nethsm::NetHsm;
-use nethsm_sdk_rs::models::DistinguishedName;
-use nethsm_sdk_rs::models::LogLevel;
-use nethsm_sdk_rs::models::NetworkConfig;
-use nethsm_sdk_rs::models::SystemState;
-use nethsm_sdk_rs::models::TlsKeyType;
+use nethsm::{
+    BootMode,
+    DistinguishedName,
+    LogLevel,
+    NetHsm,
+    NetworkConfig,
+    SystemState,
+    TlsKeyType,
+};
 use rstest::rstest;
 use rustainers::Container;
 use testdir::testdir;
