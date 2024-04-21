@@ -306,7 +306,8 @@ impl From<SignatureType> for SignMode {
 /// Defines in which state the NetHSM is in during boot after provisioning (see
 /// [`crate::NetHsm::provision`]) and whether an unlock passphrase has to be provided for it to be
 /// of state [`crate::SystemState::Operational`].
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, strum::Display, strum::EnumString, Eq, PartialEq)]
+#[strum(ascii_case_insensitive)]
 pub enum BootMode {
     /// The device boots into state [`crate::SystemState::Locked`] and an unlock passphrase has to
     /// be provided
