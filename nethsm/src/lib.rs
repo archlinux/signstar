@@ -26,7 +26,6 @@
 //! * [`nethsm_sdk_rs::models::LogLevel`]
 //! * [`nethsm_sdk_rs::models::NetworkConfig`]
 //! * [`nethsm_sdk_rs::models::SystemState`]
-//! * [`nethsm_sdk_rs::models::TlsKeyType`]
 //!
 //! Using the [`NetHsm`] struct it is possible to establish a TLS connection for multiple users.
 //! TLS validation can be configured based on a variant of the [`ConnectionSecurity`] enum:
@@ -174,7 +173,6 @@ pub use nethsm_sdk_rs::models::{
     NetworkConfig,
     SystemInfo,
     SystemState,
-    TlsKeyType,
 };
 use nethsm_sdk_rs::ureq::AgentBuilder;
 use rustls::crypto::{aws_lc_rs as tls_provider, CryptoProvider};
@@ -186,7 +184,7 @@ use sha2::{Digest, Sha224, Sha256, Sha384, Sha512};
 
 mod nethsm_sdk;
 use nethsm_sdk::{match_key_type_and_mechanisms, NetHsmApiError};
-pub use nethsm_sdk::{BootMode, KeyImportData, KeyType, SignatureType, UserRole};
+pub use nethsm_sdk::{BootMode, KeyImportData, KeyType, SignatureType, TlsKeyType, UserRole};
 mod tls;
 pub use tls::{ConnectionSecurity, HostCertificateFingerprints};
 use tls::{DangerIgnoreVerifier, FingerprintVerifier};
@@ -1209,7 +1207,7 @@ impl NetHsm {
         config_tls_generate_post(
             &self.config.borrow(),
             TlsKeyGenerateRequestData {
-                r#type: tls_key_type,
+                r#type: tls_key_type.into(),
                 length,
             },
         )

@@ -384,6 +384,57 @@ impl From<KeyType> for nethsm_sdk_rs::models::KeyType {
     }
 }
 
+/// The algorithm type of a key used for TLS
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    Default,
+    Deserialize,
+    strum::Display,
+    strum::EnumString,
+    Eq,
+    Hash,
+    Ord,
+    PartialEq,
+    PartialOrd,
+    Serialize,
+)]
+#[strum(ascii_case_insensitive)]
+pub enum TlsKeyType {
+    /// A Montgomery curve key over a prime field for the prime number 2^255-19
+    Curve25519,
+
+    /// An elliptic-curve key over a prime field for a prime of size 224 bit
+    EcP224,
+
+    /// An elliptic-curve key over a prime field for a prime of size 256 bit
+    EcP256,
+
+    /// An elliptic-curve key over a prime field for a prime of size 384 bit
+    EcP384,
+
+    /// An elliptic-curve key over a prime field for a prime of size 521 bit
+    EcP521,
+
+    /// An RSA key
+    #[default]
+    Rsa,
+}
+
+impl From<TlsKeyType> for nethsm_sdk_rs::models::TlsKeyType {
+    fn from(value: TlsKeyType) -> Self {
+        match value {
+            TlsKeyType::Curve25519 => Self::Curve25519,
+            TlsKeyType::EcP224 => Self::EcP224,
+            TlsKeyType::EcP256 => Self::EcP256,
+            TlsKeyType::EcP384 => Self::EcP384,
+            TlsKeyType::EcP521 => Self::EcP521,
+            TlsKeyType::Rsa => Self::Rsa,
+        }
+    }
+}
+
 /// The role of a user on a NetHSM device
 #[derive(
     Clone,
@@ -446,6 +497,23 @@ mod tests {
             assert_eq!(KeyType::from_str(input)?, expected);
         } else {
             assert!(KeyType::from_str(input).is_err());
+        }
+        Ok(())
+    }
+
+    #[rstest]
+    #[case("rsa", Some(TlsKeyType::Rsa))]
+    #[case("curve25519", Some(TlsKeyType::Curve25519))]
+    #[case("ecp224", Some(TlsKeyType::EcP224))]
+    #[case("ecp256", Some(TlsKeyType::EcP256))]
+    #[case("ecp384", Some(TlsKeyType::EcP384))]
+    #[case("ecp521", Some(TlsKeyType::EcP521))]
+    #[case("foo", None)]
+    fn tlskeytype_fromstr(#[case] input: &str, #[case] expected: Option<TlsKeyType>) -> TestResult {
+        if let Some(expected) = expected {
+            assert_eq!(TlsKeyType::from_str(input)?, expected);
+        } else {
+            assert!(TlsKeyType::from_str(input).is_err());
         }
         Ok(())
     }
