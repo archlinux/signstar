@@ -20,7 +20,6 @@
 //! This crate re-exports the following [`nethsm_sdk_rs`] types so that the crate does not have to
 //! be relied on directly:
 //! * [`nethsm_sdk_rs::models::DistinguishedName`]
-//! * [`nethsm_sdk_rs::models::EncryptMode`]
 //! * [`nethsm_sdk_rs::models::LogLevel`]
 //! * [`nethsm_sdk_rs::models::NetworkConfig`]
 //! * [`nethsm_sdk_rs::models::SystemState`]
@@ -164,7 +163,6 @@ use nethsm_sdk_rs::models::{
 // Re-export some useful types so that users do not have to use nethsm-sdk-rs directly
 pub use nethsm_sdk_rs::models::{
     DistinguishedName,
-    EncryptMode,
     LogLevel,
     NetworkConfig,
     SystemInfo,
@@ -183,6 +181,7 @@ use nethsm_sdk::{match_key_type_and_mechanisms, NetHsmApiError};
 pub use nethsm_sdk::{
     BootMode,
     DecryptMode,
+    EncryptMode,
     KeyImportData,
     KeyMechanism,
     KeyType,
@@ -3656,7 +3655,11 @@ impl NetHsm {
             &keys_key_id_encrypt_post(
                 &self.config.borrow(),
                 key_id,
-                EncryptRequestData { mode, message, iv },
+                EncryptRequestData {
+                    mode: mode.into(),
+                    message,
+                    iv,
+                },
             )
             .map_err(|error| {
                 Error::Api(format!(

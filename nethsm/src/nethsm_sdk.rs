@@ -392,6 +392,37 @@ impl From<DecryptMode> for nethsm_sdk_rs::models::DecryptMode {
     }
 }
 
+/// A mode for encrypting a message
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    Default,
+    Deserialize,
+    strum::Display,
+    strum::EnumString,
+    Eq,
+    Hash,
+    Ord,
+    PartialEq,
+    PartialOrd,
+    Serialize,
+)]
+#[strum(ascii_case_insensitive)]
+pub enum EncryptMode {
+    /// Encryption using the Advanced Encryption Standard (AES) with Cipher Block Chaining (CBC)
+    #[default]
+    AesCbc,
+}
+
+impl From<EncryptMode> for nethsm_sdk_rs::models::EncryptMode {
+    fn from(value: EncryptMode) -> Self {
+        match value {
+            EncryptMode::AesCbc => Self::AesCbc,
+        }
+    }
+}
+
 /// A mechanism which can be used with a key
 #[derive(
     Clone,
@@ -668,6 +699,21 @@ mod tests {
             assert_eq!(DecryptMode::from_str(input)?, expected);
         } else {
             assert!(DecryptMode::from_str(input).is_err());
+        }
+        Ok(())
+    }
+
+    #[rstest]
+    #[case("aescbc", Some(EncryptMode::AesCbc))]
+    #[case("foo", None)]
+    fn encryptmode_fromstr(
+        #[case] input: &str,
+        #[case] expected: Option<EncryptMode>,
+    ) -> TestResult {
+        if let Some(expected) = expected {
+            assert_eq!(EncryptMode::from_str(input)?, expected);
+        } else {
+            assert!(EncryptMode::from_str(input).is_err());
         }
         Ok(())
     }
