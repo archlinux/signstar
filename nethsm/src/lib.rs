@@ -22,7 +22,6 @@
 //! * [`nethsm_sdk_rs::models::DecryptMode`]
 //! * [`nethsm_sdk_rs::models::DistinguishedName`]
 //! * [`nethsm_sdk_rs::models::EncryptMode`]
-//! * [`nethsm_sdk_rs::models::KeyMechanism`]
 //! * [`nethsm_sdk_rs::models::LogLevel`]
 //! * [`nethsm_sdk_rs::models::NetworkConfig`]
 //! * [`nethsm_sdk_rs::models::SystemState`]
@@ -168,7 +167,6 @@ pub use nethsm_sdk_rs::models::{
     DecryptMode,
     DistinguishedName,
     EncryptMode,
-    KeyMechanism,
     LogLevel,
     NetworkConfig,
     SystemInfo,
@@ -184,7 +182,15 @@ use sha2::{Digest, Sha224, Sha256, Sha384, Sha512};
 
 mod nethsm_sdk;
 use nethsm_sdk::{match_key_type_and_mechanisms, NetHsmApiError};
-pub use nethsm_sdk::{BootMode, KeyImportData, KeyType, SignatureType, TlsKeyType, UserRole};
+pub use nethsm_sdk::{
+    BootMode,
+    KeyImportData,
+    KeyMechanism,
+    KeyType,
+    SignatureType,
+    TlsKeyType,
+    UserRole,
+};
 mod tls;
 pub use tls::{ConnectionSecurity, HostCertificateFingerprints};
 use tls::{DangerIgnoreVerifier, FingerprintVerifier};
@@ -2776,7 +2782,10 @@ impl NetHsm {
         Ok(keys_generate_post(
             &self.config.borrow(),
             KeyGenerateRequestData {
-                mechanisms,
+                mechanisms: mechanisms
+                    .into_iter()
+                    .map(|mechanism| mechanism.into())
+                    .collect(),
                 r#type: key_type.into(),
                 length,
                 id: key_id,
@@ -2894,6 +2903,10 @@ impl NetHsm {
 
         let restrictions = tags.map(|tags| Box::new(KeyRestrictions { tags: Some(tags) }));
         let private = key_data.into();
+        let mechanisms = mechanisms
+            .into_iter()
+            .map(|mechanism| mechanism.into())
+            .collect();
 
         if let Some(key_id) = key_id {
             keys_key_id_put(

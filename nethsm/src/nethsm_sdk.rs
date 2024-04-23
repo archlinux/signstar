@@ -4,7 +4,7 @@
 use std::fmt::Display;
 
 use base64ct::{Base64, Encoding};
-use nethsm_sdk_rs::models::{KeyMechanism, KeyPrivateData, SignMode, Switch, UnattendedBootConfig};
+use nethsm_sdk_rs::models::{KeyPrivateData, SignMode, Switch, UnattendedBootConfig};
 use serde::{Deserialize, Serialize};
 use ureq::Response;
 
@@ -329,6 +329,109 @@ impl From<BootMode> for UnattendedBootConfig {
     }
 }
 
+/// A mechanism which can be used with a key
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    Default,
+    Deserialize,
+    strum::Display,
+    strum::EnumString,
+    Hash,
+    Eq,
+    Ord,
+    PartialEq,
+    PartialOrd,
+    Serialize,
+)]
+#[strum(ascii_case_insensitive)]
+pub enum KeyMechanism {
+    /// Decryption using the Advanced Encryption Standard (AES) with Cipher Block Chaining (CBC)
+    AesDecryptionCbc,
+
+    /// Encryption using the Advanced Encryption Standard (AES) with Cipher Block Chaining (CBC)
+    AesEncryptionCbc,
+
+    /// Signing following the Elliptic Curve Digital Signature Algorithm (ECDSA)
+    EcdsaSignature,
+
+    /// Signing following the Edwards-curve Digital Signature Algorithm (EdDSA)
+    #[default]
+    EdDsaSignature,
+
+    /// RSA decryption with Optimal Asymmetric Encryption Padding (OAEP) using an MD-5 hash
+    RsaDecryptionOaepMd5,
+
+    /// RSA decryption with Optimal Asymmetric Encryption Padding (OAEP) using a SHA-1 hash
+    RsaDecryptionOaepSha1,
+
+    /// RSA decryption with Optimal Asymmetric Encryption Padding (OAEP) using a SHA-224 hash
+    RsaDecryptionOaepSha224,
+
+    /// RSA decryption with Optimal Asymmetric Encryption Padding (OAEP) using a SHA-256 hash
+    RsaDecryptionOaepSha256,
+
+    /// RSA decryption with Optimal Asymmetric Encryption Padding (OAEP) using a SHA-384 hash
+    RsaDecryptionOaepSha384,
+
+    /// RSA decryption with Optimal Asymmetric Encryption Padding (OAEP) using a SHA-512 hash
+    RsaDecryptionOaepSha512,
+
+    /// RSA decryption following the PKCS#1 standard
+    RsaDecryptionPkcs1,
+
+    /// Raw RSA decryption
+    RsaDecryptionRaw,
+
+    /// RSA signing following the PKCS#1 standard
+    RsaSignaturePkcs1,
+
+    /// RSA signing following a "probabilistic signature scheme" (PSS) using an MD-5 hash
+    RsaSignaturePssMd5,
+
+    /// RSA signing following a "probabilistic signature scheme" (PSS) using a SHA-1 hash
+    RsaSignaturePssSha1,
+
+    /// RSA signing following a "probabilistic signature scheme" (PSS) using a SHA-224 hash
+    RsaSignaturePssSha224,
+
+    /// RSA signing following a "probabilistic signature scheme" (PSS) using a SHA-256 hash
+    RsaSignaturePssSha256,
+
+    /// RSA signing following a "probabilistic signature scheme" (PSS) using a SHA-384 hash
+    RsaSignaturePssSha384,
+
+    /// RSA signing following a "probabilistic signature scheme" (PSS) using a SHA-512 hash
+    RsaSignaturePssSha512,
+}
+
+impl From<KeyMechanism> for nethsm_sdk_rs::models::KeyMechanism {
+    fn from(value: KeyMechanism) -> Self {
+        match value {
+            KeyMechanism::AesDecryptionCbc => Self::AesDecryptionCbc,
+            KeyMechanism::AesEncryptionCbc => Self::AesEncryptionCbc,
+            KeyMechanism::EcdsaSignature => Self::EcdsaSignature,
+            KeyMechanism::EdDsaSignature => Self::EdDsaSignature,
+            KeyMechanism::RsaDecryptionOaepMd5 => Self::RsaDecryptionOaepMd5,
+            KeyMechanism::RsaDecryptionOaepSha1 => Self::RsaDecryptionOaepSha1,
+            KeyMechanism::RsaDecryptionOaepSha224 => Self::RsaDecryptionOaepSha224,
+            KeyMechanism::RsaDecryptionOaepSha256 => Self::RsaDecryptionOaepSha256,
+            KeyMechanism::RsaDecryptionOaepSha384 => Self::RsaDecryptionOaepSha384,
+            KeyMechanism::RsaDecryptionOaepSha512 => Self::RsaDecryptionOaepSha512,
+            KeyMechanism::RsaDecryptionPkcs1 => Self::RsaDecryptionPkcs1,
+            KeyMechanism::RsaDecryptionRaw => Self::RsaDecryptionRaw,
+            KeyMechanism::RsaSignaturePkcs1 => Self::RsaSignaturePkcs1,
+            KeyMechanism::RsaSignaturePssMd5 => Self::RsaSignaturePssMd5,
+            KeyMechanism::RsaSignaturePssSha1 => Self::RsaSignaturePssSha1,
+            KeyMechanism::RsaSignaturePssSha224 => Self::RsaSignaturePssSha224,
+            KeyMechanism::RsaSignaturePssSha256 => Self::RsaSignaturePssSha256,
+            KeyMechanism::RsaSignaturePssSha384 => Self::RsaSignaturePssSha384,
+            KeyMechanism::RsaSignaturePssSha512 => Self::RsaSignaturePssSha512,
+        }
+    }
+}
+
 /// The algorithm type of a key
 #[derive(
     Clone,
@@ -482,6 +585,40 @@ mod tests {
     use testresult::TestResult;
 
     use super::*;
+
+    #[rstest]
+    #[case("rsadecryptionraw", Some(KeyMechanism::RsaDecryptionRaw))]
+    #[case("rsadecryptionpkcs1", Some(KeyMechanism::RsaDecryptionPkcs1))]
+    #[case("rsadecryptionoaepmd5", Some(KeyMechanism::RsaDecryptionOaepMd5))]
+    #[case("rsadecryptionoaepsha1", Some(KeyMechanism::RsaDecryptionOaepSha1))]
+    #[case("rsadecryptionoaepsha224", Some(KeyMechanism::RsaDecryptionOaepSha224))]
+    #[case("rsadecryptionoaepsha256", Some(KeyMechanism::RsaDecryptionOaepSha256))]
+    #[case("rsadecryptionoaepsha384", Some(KeyMechanism::RsaDecryptionOaepSha384))]
+    #[case("rsadecryptionoaepsha512", Some(KeyMechanism::RsaDecryptionOaepSha512))]
+    #[case("rsadecryptionoaepsha512", Some(KeyMechanism::RsaDecryptionOaepSha512))]
+    #[case("rsasignaturepkcs1", Some(KeyMechanism::RsaSignaturePkcs1))]
+    #[case("rsasignaturepssmd5", Some(KeyMechanism::RsaSignaturePssMd5))]
+    #[case("rsasignaturepsssha1", Some(KeyMechanism::RsaSignaturePssSha1))]
+    #[case("rsasignaturepsssha224", Some(KeyMechanism::RsaSignaturePssSha224))]
+    #[case("rsasignaturepsssha256", Some(KeyMechanism::RsaSignaturePssSha256))]
+    #[case("rsasignaturepsssha384", Some(KeyMechanism::RsaSignaturePssSha384))]
+    #[case("rsasignaturepsssha512", Some(KeyMechanism::RsaSignaturePssSha512))]
+    #[case("eddsasignature", Some(KeyMechanism::EdDsaSignature))]
+    #[case("ecdsasignature", Some(KeyMechanism::EcdsaSignature))]
+    #[case("aesencryptioncbc", Some(KeyMechanism::AesEncryptionCbc))]
+    #[case("aesdecryptioncbc", Some(KeyMechanism::AesDecryptionCbc))]
+    #[case("foo", None)]
+    fn keymechanism_fromstr(
+        #[case] input: &str,
+        #[case] expected: Option<KeyMechanism>,
+    ) -> TestResult {
+        if let Some(expected) = expected {
+            assert_eq!(KeyMechanism::from_str(input)?, expected);
+        } else {
+            assert!(KeyMechanism::from_str(input).is_err());
+        }
+        Ok(())
+    }
 
     #[rstest]
     #[case("rsa", Some(KeyType::Rsa))]
