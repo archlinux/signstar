@@ -329,6 +329,69 @@ impl From<BootMode> for UnattendedBootConfig {
     }
 }
 
+/// A mode for decrypting a message
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    Default,
+    Deserialize,
+    strum::Display,
+    strum::EnumString,
+    Eq,
+    Hash,
+    Ord,
+    PartialEq,
+    PartialOrd,
+    Serialize,
+)]
+#[strum(ascii_case_insensitive)]
+pub enum DecryptMode {
+    /// Decryption using the Advanced Encryption Standard (AES) with Cipher Block Chaining (CBC)
+    AesCbc,
+
+    /// RSA decryption with Optimal Asymmetric Encryption Padding (OAEP) using an MD-5 hash
+    OaepMd5,
+
+    /// RSA decryption with Optimal Asymmetric Encryption Padding (OAEP) using a SHA-1 hash
+    OaepSha1,
+
+    /// RSA decryption with Optimal Asymmetric Encryption Padding (OAEP) using a SHA-224 hash
+    OaepSha224,
+
+    /// RSA decryption with Optimal Asymmetric Encryption Padding (OAEP) using a SHA-256 hash
+    OaepSha256,
+
+    /// RSA decryption with Optimal Asymmetric Encryption Padding (OAEP) using a SHA-384 hash
+    OaepSha384,
+
+    /// RSA decryption with Optimal Asymmetric Encryption Padding (OAEP) using a SHA-512 hash
+    OaepSha512,
+
+    /// RSA decryption following the PKCS#1 standard
+    Pkcs1,
+
+    /// Raw RSA decryption
+    #[default]
+    Raw,
+}
+
+impl From<DecryptMode> for nethsm_sdk_rs::models::DecryptMode {
+    fn from(value: DecryptMode) -> Self {
+        match value {
+            DecryptMode::AesCbc => Self::AesCbc,
+            DecryptMode::OaepMd5 => Self::OaepMd5,
+            DecryptMode::OaepSha1 => Self::OaepSha1,
+            DecryptMode::OaepSha224 => Self::OaepSha224,
+            DecryptMode::OaepSha256 => Self::OaepSha256,
+            DecryptMode::OaepSha384 => Self::OaepSha384,
+            DecryptMode::OaepSha512 => Self::OaepSha512,
+            DecryptMode::Pkcs1 => Self::Pkcs1,
+            DecryptMode::Raw => Self::Raw,
+        }
+    }
+}
+
 /// A mechanism which can be used with a key
 #[derive(
     Clone,
@@ -585,6 +648,29 @@ mod tests {
     use testresult::TestResult;
 
     use super::*;
+
+    #[rstest]
+    #[case("raw", Some(DecryptMode::Raw))]
+    #[case("pkcs1", Some(DecryptMode::Pkcs1))]
+    #[case("oaepmd5", Some(DecryptMode::OaepMd5))]
+    #[case("oaepsha1", Some(DecryptMode::OaepSha1))]
+    #[case("oaepsha224", Some(DecryptMode::OaepSha224))]
+    #[case("oaepsha256", Some(DecryptMode::OaepSha256))]
+    #[case("oaepsha384", Some(DecryptMode::OaepSha384))]
+    #[case("oaepsha512", Some(DecryptMode::OaepSha512))]
+    #[case("aescbc", Some(DecryptMode::AesCbc))]
+    #[case("foo", None)]
+    fn decryptmode_fromstr(
+        #[case] input: &str,
+        #[case] expected: Option<DecryptMode>,
+    ) -> TestResult {
+        if let Some(expected) = expected {
+            assert_eq!(DecryptMode::from_str(input)?, expected);
+        } else {
+            assert!(DecryptMode::from_str(input).is_err());
+        }
+        Ok(())
+    }
 
     #[rstest]
     #[case("rsadecryptionraw", Some(KeyMechanism::RsaDecryptionRaw))]
