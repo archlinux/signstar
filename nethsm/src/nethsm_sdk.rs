@@ -581,6 +581,49 @@ impl From<KeyType> for nethsm_sdk_rs::models::KeyType {
     }
 }
 
+/// A device log level
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    Default,
+    Deserialize,
+    strum::Display,
+    strum::EnumString,
+    Eq,
+    Hash,
+    Ord,
+    PartialEq,
+    PartialOrd,
+    Serialize,
+)]
+#[strum(ascii_case_insensitive)]
+pub enum LogLevel {
+    /// Show debug, error, warning and info messages
+    Debug,
+
+    /// Show error, warning and info messages
+    Error,
+
+    /// Show info messages
+    #[default]
+    Info,
+
+    /// Show warning and info messages
+    Warning,
+}
+
+impl From<LogLevel> for nethsm_sdk_rs::models::LogLevel {
+    fn from(value: LogLevel) -> Self {
+        match value {
+            LogLevel::Debug => Self::Debug,
+            LogLevel::Error => Self::Error,
+            LogLevel::Info => Self::Info,
+            LogLevel::Warning => Self::Warning,
+        }
+    }
+}
+
 /// The algorithm type of a key used for TLS
 #[derive(
     Clone,

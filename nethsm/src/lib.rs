@@ -20,7 +20,6 @@
 //! This crate re-exports the following [`nethsm_sdk_rs`] types so that the crate does not have to
 //! be relied on directly:
 //! * [`nethsm_sdk_rs::models::DistinguishedName`]
-//! * [`nethsm_sdk_rs::models::LogLevel`]
 //! * [`nethsm_sdk_rs::models::NetworkConfig`]
 //! * [`nethsm_sdk_rs::models::SystemState`]
 //!
@@ -161,13 +160,7 @@ use nethsm_sdk_rs::models::{
     UserPostData,
 };
 // Re-export some useful types so that users do not have to use nethsm-sdk-rs directly
-pub use nethsm_sdk_rs::models::{
-    DistinguishedName,
-    LogLevel,
-    NetworkConfig,
-    SystemInfo,
-    SystemState,
-};
+pub use nethsm_sdk_rs::models::{DistinguishedName, NetworkConfig, SystemInfo, SystemState};
 use nethsm_sdk_rs::ureq::AgentBuilder;
 use rustls::crypto::{aws_lc_rs as tls_provider, CryptoProvider};
 use rustls::ClientConfig;
@@ -185,6 +178,7 @@ pub use nethsm_sdk::{
     KeyImportData,
     KeyMechanism,
     KeyType,
+    LogLevel,
     SignatureType,
     TlsKeyType,
     UserRole,
@@ -1565,7 +1559,7 @@ impl NetHsm {
         let ip_address = ip_address.to_string();
         config_logging_put(
             &self.config.borrow(),
-            LoggingConfig::new(ip_address, port, log_level),
+            LoggingConfig::new(ip_address, port, log_level.into()),
         )
         .map_err(|error| {
             Error::Api(format!(
