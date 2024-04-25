@@ -3,8 +3,7 @@
 
 use std::fmt::Display;
 
-use base64ct::{Base64, Encoding};
-use nethsm_sdk_rs::models::{KeyPrivateData, SignMode, Switch, UnattendedBootConfig};
+use nethsm_sdk_rs::models::{SignMode, Switch, UnattendedBootConfig};
 use serde::{Deserialize, Serialize};
 use ureq::Response;
 
@@ -99,93 +98,6 @@ impl<T> Display for NetHsmApiError<T> {
             write!(f, "{}", error)?;
         }
         Ok(())
-    }
-}
-
-/// The key data required when importing a secret key
-///
-/// The `prime_p`, `prime_q` and `public_exponent` fields must be [`Option::Some`] for keys
-/// of type [`KeyType::Rsa`]. The `data` field must be  [`Option::Some`] for keys
-/// of type [`KeyType::Curve25519`], [`KeyType::EcP224`], [`KeyType::EcP256`], [`KeyType::EcP384`]
-/// and [`KeyType::EcP521`].
-pub struct KeyImportData {
-    pub prime_p: Option<Vec<u8>>,
-    pub prime_q: Option<Vec<u8>>,
-    pub public_exponent: Option<Vec<u8>>,
-    pub data: Option<Vec<u8>>,
-}
-
-impl KeyImportData {
-    /// Ensures the provided [`KeyType`] is compatible with the data
-    ///
-    /// Checks whether all needed data for a [`KeyType`] is present to be able to import it.
-    ///
-    /// # Errors
-    ///
-    /// Returns an [`Error::KeyImport`] if:
-    /// * `key_type` is [`KeyType::Rsa`] and [`KeyImportData::prime_p`], [`KeyImportData::prime_q`],
-    /// [`KeyImportData::public_exponent`] is [`None`]
-    /// * `key_type` is [`KeyType::Curve25519`], [`KeyType::EcP224`], [`KeyType::EcP256`],
-    ///   [`KeyType::EcP384`], or
-    /// [`KeyType::EcP521`] and [`KeyImportData::data`] is [`None`]
-    pub fn validate_key_type(&self, key_type: KeyType) -> Result<(), Error> {
-        match key_type {
-            KeyType::Rsa => {
-                if self.prime_p.is_none()
-                    || self.prime_q.is_none()
-                    || self.public_exponent.is_none()
-                {
-                    return Err(Error::KeyImport(format!(
-                        "prime p, prime q and public exponent must be set for {:?}",
-                        key_type
-                    )));
-                }
-
-                if self.data.is_some() {
-                    return Err(Error::KeyImport(format!(
-                        "data must not be provided for {:?}",
-                        key_type
-                    )));
-                }
-            }
-            KeyType::Curve25519
-            | KeyType::EcP224
-            | KeyType::EcP256
-            | KeyType::EcP384
-            | KeyType::EcP521 => {
-                if self.data.is_none() {
-                    return Err(Error::KeyImport(format!(
-                        "data must be provided for {:?}",
-                        key_type
-                    )));
-                }
-
-                if self.prime_p.is_some()
-                    || self.prime_q.is_some()
-                    || self.public_exponent.is_some()
-                {
-                    return Err(Error::KeyImport(format!(
-                        "prime p, prime q and public exponent must not be set for {:?}",
-                        key_type
-                    )));
-                }
-            }
-            // TODO: figure out what checks to do for KeyType::Generic
-            _ => {}
-        }
-        Ok(())
-    }
-}
-
-impl From<Box<KeyImportData>> for Box<KeyPrivateData> {
-    fn from(value: Box<KeyImportData>) -> Self {
-        // all KeyPrivateData fields need to be base64 encoded
-        Box::new(KeyPrivateData {
-            prime_p: value.prime_p.map(|x| Base64::encode_string(&x)),
-            prime_q: value.prime_q.map(|x| Base64::encode_string(&x)),
-            public_exponent: value.public_exponent.map(|x| Base64::encode_string(&x)),
-            data: value.data.map(|x| Base64::encode_string(&x)),
-        })
     }
 }
 

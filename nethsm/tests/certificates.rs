@@ -12,12 +12,12 @@ use common::ENC_KEY_ID;
 use common::OTHER_KEY_ID;
 use common::OTHER_OPERATOR_USER_ID;
 use common::OTHER_TAG;
-use nethsm::{DistinguishedName, KeyImportData, KeyMechanism, KeyType, NetHsm};
-use rsa::traits::PrivateKeyParts;
-use rsa::traits::PublicKeyParts;
+use nethsm::{DistinguishedName, KeyMechanism, KeyType, NetHsm, PrivateKeyImport};
+use rsa::pkcs8::EncodePrivateKey;
 use rsa::RsaPrivateKey;
 use rstest::rstest;
 use rustainers::Container;
+use testdir::testdir;
 use testresult::TestResult;
 
 /// Generate a key and create a CSR with it
@@ -70,32 +70,17 @@ async fn generate_signing_key(nethsm: &NetHsm) -> TestResult {
 
 /// Import a pre-generated RSA key
 async fn import_key(nethsm: &NetHsm) -> TestResult {
-    // create an RSA private key and only extract prime p, q and the public exponent
-    // (for import)
-    let (prime_p, prime_q, public_exponent) = {
+    let private_key = {
         let mut rng = rand::thread_rng();
         let private_key = RsaPrivateKey::new(&mut rng, DEFAULT_RSA_BITS.try_into()?)?;
-        let (prime_p, prime_q, public_exponent) = (
-            private_key.primes().first().unwrap(),
-            private_key.primes().get(1).unwrap(),
-            private_key.e(),
-        );
-        (
-            Some(prime_p.to_bytes_be()),
-            Some(prime_q.to_bytes_be()),
-            Some(public_exponent.to_bytes_be()),
-        )
+        let file = testdir!().join("rsa_private_key.pem");
+        private_key.write_pkcs8_der_file(file.clone())?;
+        private_key.to_pkcs8_der()?
     };
 
     nethsm.import_key(
-        KeyType::Rsa,
         vec![KeyMechanism::RsaSignaturePkcs1],
-        Box::new(KeyImportData {
-            prime_p,
-            prime_q,
-            public_exponent,
-            data: None,
-        }),
+        PrivateKeyImport::new(KeyType::Rsa, private_key.as_bytes())?,
         Some(OTHER_KEY_ID.to_string()),
         Some(vec![OTHER_TAG.to_string()]),
     )?;

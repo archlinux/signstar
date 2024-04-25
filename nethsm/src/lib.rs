@@ -169,13 +169,15 @@ use serde_json::Value;
 use sha1::Sha1;
 use sha2::{Digest, Sha224, Sha256, Sha384, Sha512};
 
+mod key;
+pub use key::PrivateKeyImport;
+
 mod nethsm_sdk;
 use nethsm_sdk::NetHsmApiError;
 pub use nethsm_sdk::{
     BootMode,
     DecryptMode,
     EncryptMode,
-    KeyImportData,
     KeyMechanism,
     KeyType,
     LogLevel,
@@ -215,9 +217,9 @@ pub enum Error {
     #[error("Key data invalid: {0}")]
     KeyData(String),
 
-    /// Importing a key failed because of insufficient or malformed data
-    #[error("Key import failed: {0}")]
-    KeyImport(String),
+    /// Importing a key failed because of malformed data
+    #[error("Key data is invalid: {0}")]
+    Key(#[from] key::Error),
 
     /// URL is invalid
     #[error("URL invalid: {0}")]
@@ -2798,8 +2800,9 @@ impl NetHsm {
     ///
     /// [Imports an existing key](https://docs.nitrokey.com/nethsm/operation#import-key)
     /// with custom features into the device.
-    /// The provided [`KeyType`] and list of [`KeyMechanism`]s have to match:
-    /// * [`KeyType::Rsa`] requires one of [`KeyMechanism::RsaDecryptionRaw`],
+    /// The [`KeyType`] implied by the provided [`PrivateKeyImport`] and list of [`KeyMechanism`]s
+    /// have to match:
+    /// * [`KeyType::Rsa`] must be used with [`KeyMechanism::RsaDecryptionRaw`],
     ///   [`KeyMechanism::RsaDecryptionPkcs1`], [`KeyMechanism::RsaDecryptionOaepMd5`],
     ///   [`KeyMechanism::RsaDecryptionOaepSha1`], [`KeyMechanism::RsaDecryptionOaepSha224`],
     ///   [`KeyMechanism::RsaDecryptionOaepSha256`], [`KeyMechanism::RsaDecryptionOaepSha384`],
@@ -2807,10 +2810,10 @@ impl NetHsm {
     ///   [`KeyMechanism::RsaSignaturePssMd5`], [`KeyMechanism::RsaSignaturePssSha1`],
     ///   [`KeyMechanism::RsaSignaturePssSha224`], [`KeyMechanism::RsaSignaturePssSha256`],
     ///   [`KeyMechanism::RsaSignaturePssSha384`] or [`KeyMechanism::RsaSignaturePssSha512`]
-    /// * [`KeyType::Curve25519`] requires [`KeyMechanism::EdDsaSignature`]
-    /// * [`KeyType::EcP224`], [`KeyType::EcP256`], [`KeyType::EcP384`] and [`KeyType::EcP521`]
-    ///   require [`KeyMechanism::EcdsaSignature`]
-    /// * [`KeyType::Generic`] requires one of [`KeyMechanism::AesDecryptionCbc`] or
+    /// * [`KeyType::Curve25519`] must be used with [`KeyMechanism::EdDsaSignature`]
+    /// * [`KeyType::EcP224`], [`KeyType::EcP256`], [`KeyType::EcP384`] and [`KeyType::EcP521`] must
+    ///   be used with [`KeyMechanism::EcdsaSignature`]
+    /// * [`KeyType::Generic`] must be used with [`KeyMechanism::AesDecryptionCbc`] or
     ///   [`KeyMechanism::AesEncryptionCbc`]
     ///
     /// Optionally a custom Key ID using `key_id` and a list of tags to be attached to the new key
@@ -2832,12 +2835,12 @@ impl NetHsm {
     /// # Examples
     ///
     /// ```no_run
-    /// use nethsm::{ConnectionSecurity, Error, KeyImportData, KeyMechanism, KeyType, NetHsm};
-    /// use rsa::traits::PrivateKeyParts;
-    /// use rsa::traits::PublicKeyParts;
+    /// # use testresult::TestResult;
+    /// use nethsm::{ConnectionSecurity, Error, PrivateKeyImport, KeyMechanism, KeyType, NetHsm};
+    /// use rsa::pkcs8::{DecodePrivateKey, EncodePrivateKey};
     /// use rsa::RsaPrivateKey;
     ///
-    /// # fn main() -> Result<(), Error> {
+    /// # fn main() -> TestResult {
     /// // create a connection with a user in the "admin" role
     /// let nethsm = NetHsm::new(
     ///     "https://example.org/api/v1".try_into()?,
@@ -2847,32 +2850,17 @@ impl NetHsm {
     ///     None,
     /// )?;
     ///
-    /// // create an RSA private key and only extract prime p, q and the public exponent
-    /// // (for import)
-    /// let (prime_p, prime_q, public_exponent) = {
+    /// // create a 4096 bit RSA private key and return it as PKCS#8 private key in ASN.1 DER-encoded format
+    /// let private_key = {
     ///     let mut rng = rand::thread_rng();
-    ///     let private_key = RsaPrivateKey::new(&mut rng, 4096).unwrap();
-    ///     let (prime_p, prime_q, public_exponent) = (
-    ///         private_key.primes().first().unwrap(),
-    ///         private_key.primes().get(1).unwrap(),
-    ///         private_key.e(),
-    ///     );
-    ///     (
-    ///         Some(prime_p.to_bytes_be()),
-    ///         Some(prime_q.to_bytes_be()),
-    ///         Some(public_exponent.to_bytes_be()),
-    ///     )
+    ///     let private_key = RsaPrivateKey::new(&mut rng, 4096)?;
+    ///     private_key.to_pkcs8_der()?
     /// };
+    ///
     /// // import an RSA key for PKCS1 signatures
     /// nethsm.import_key(
-    ///     KeyType::Rsa,
     ///     vec![KeyMechanism::RsaSignaturePkcs1],
-    ///     Box::new(KeyImportData {
-    ///         prime_p,
-    ///         prime_q,
-    ///         public_exponent,
-    ///         data: None,
-    ///     }),
+    ///     PrivateKeyImport::new(KeyType::Rsa, private_key.as_bytes())?,
     ///     Some("signing2".to_string()),
     ///     Some(vec!["signing_tag3".to_string()]),
     /// )?;
@@ -2881,20 +2869,17 @@ impl NetHsm {
     /// ```
     pub fn import_key(
         &self,
-        key_type: KeyType,
         mechanisms: Vec<KeyMechanism>,
-        key_data: Box<KeyImportData>,
+        key_data: PrivateKeyImport,
         key_id: Option<String>,
         tags: Option<Vec<String>>,
     ) -> Result<String, Error> {
         // ensure the key_type - mechanisms combinations are valid
+        let key_type = key_data.key_type();
         key_type.matches_mechanisms(&mechanisms)?;
 
-        // ensure the key_type - key_data combination is valid
-        key_data.validate_key_type(key_type)?;
-
         let restrictions = tags.map(|tags| Box::new(KeyRestrictions { tags: Some(tags) }));
-        let private = key_data.into();
+        let private = Box::new(key_data.into());
         let mechanisms = mechanisms
             .into_iter()
             .map(|mechanism| mechanism.into())
@@ -3210,7 +3195,7 @@ impl NetHsm {
     /// # Examples
     ///
     /// ```no_run
-    /// use nethsm::{ConnectionSecurity, Error, KeyImportData, NetHsm};
+    /// use nethsm::{ConnectionSecurity, Error, NetHsm};
     ///
     /// # fn main() -> Result<(), Error> {
     /// // create a connection with a user in the "admin" role
