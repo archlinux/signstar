@@ -252,9 +252,7 @@ pub fn match_key_type_and_mechanisms(
 ///
 /// This enum covers all variants of [`nethsm_sdk_rs::models::SignMode`], but instead of
 /// [`nethsm_sdk_rs::models::SignMode::Ecdsa`] covers hash-specific ECDSA modes.
-#[derive(
-    Debug, strum_macros::Display, strum_macros::EnumString, Eq, PartialEq, Ord, PartialOrd, Hash,
-)]
+#[derive(Clone, Debug, strum::Display, strum::EnumString, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub enum SignatureType {
     #[strum(to_string = "PKCS1")]
     Pkcs1,
