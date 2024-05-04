@@ -9,7 +9,7 @@ keywords = ["encryption", "hsm", "nethsm", "signing"]
 license = "Apache-2.0 OR MIT"
 name = "nethsm"
 repository = "https://gitlab.archlinux.org/archlinux/signstar"
-version = "0.1.0"
+version = "0.1.1"
 
 [dependencies]
 base64ct = { version = "1.6.0", features = ["alloc"] }
