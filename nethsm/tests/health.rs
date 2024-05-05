@@ -3,7 +3,7 @@
 
 mod common;
 use common::{nethsm_container, nethsm_with_users, NetHsmImage};
-use nethsm::NetHsm;
+use nethsm::{NetHsm, SystemState};
 use rstest::rstest;
 use rustainers::Container;
 use testresult::TestResult;
@@ -45,5 +45,25 @@ async fn ready(
     println!("Checking locked device...");
     nethsm.lock()?;
     assert!(nethsm.ready().is_err());
+    Ok(())
+}
+
+#[ignore = "requires Podman"]
+#[rstest]
+#[tokio::test]
+async fn state(
+    #[future] nethsm_container: TestResult<(NetHsm, Container<NetHsmImage>)>,
+    #[future] nethsm_with_users: TestResult<(NetHsm, Container<NetHsmImage>)>,
+) -> TestResult {
+    let (unprovisioned_nethsm, _container) = nethsm_container.await?;
+    let (nethsm, _container) = nethsm_with_users.await?;
+
+    println!("Checking unprovisioned device...");
+    assert!(unprovisioned_nethsm.state()? == SystemState::Unprovisioned);
+    println!("Checking operational device...");
+    assert!(nethsm.state()? == SystemState::Operational);
+    println!("Checking locked device...");
+    nethsm.lock()?;
+    assert!(nethsm.state()? == SystemState::Locked);
     Ok(())
 }
