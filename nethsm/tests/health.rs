@@ -27,3 +27,23 @@ async fn alive(
     assert!(nethsm.alive().is_ok());
     Ok(())
 }
+
+#[ignore = "requires Podman"]
+#[rstest]
+#[tokio::test]
+async fn ready(
+    #[future] nethsm_container: TestResult<(NetHsm, Container<NetHsmImage>)>,
+    #[future] nethsm_with_users: TestResult<(NetHsm, Container<NetHsmImage>)>,
+) -> TestResult {
+    let (unprovisioned_nethsm, _container) = nethsm_container.await?;
+    let (nethsm, _container) = nethsm_with_users.await?;
+
+    println!("Checking unprovisioned device...");
+    assert!(unprovisioned_nethsm.ready().is_err());
+    println!("Checking operational device...");
+    assert!(nethsm.ready().is_ok());
+    println!("Checking locked device...");
+    nethsm.lock()?;
+    assert!(nethsm.ready().is_err());
+    Ok(())
+}

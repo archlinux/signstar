@@ -99,6 +99,7 @@ use nethsm_sdk_rs::apis::default_api::{
     config_unattended_boot_put,
     config_unlock_passphrase_put,
     health_alive_get,
+    health_ready_get,
     health_state_get,
     info_get,
     keys_generate_post,
@@ -696,6 +697,46 @@ impl NetHsm {
         health_alive_get(&self.config.borrow()).map_err(|error| {
             Error::Api(format!(
                 "Retrieving alive status failed: {}",
+                NetHsmApiError::from(error)
+            ))
+        })?;
+        Ok(())
+    }
+
+    /// Returns whether the NetHSM is in [`SystemState::Operational`]
+    ///
+    /// For this call no credentials are required and if any are configured, they are ignored.
+    ///
+    /// # Errors
+    ///
+    /// Returns an [`Error::Api`] if the information can not be retrieved or the device is in
+    /// [`SystemState::Unprovisioned`] or [`SystemState::Locked`].
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # use testresult::TestResult;
+    /// use nethsm::{ConnectionSecurity, Error, NetHsm};
+    ///
+    /// # fn main() -> TestResult {
+    /// // no initial credentials are required
+    /// let nethsm = NetHsm::new(
+    ///     "https://example.org/api/v1".try_into()?,
+    ///     ConnectionSecurity::Unsafe,
+    ///     None,
+    ///     None,
+    ///     None,
+    /// )?;
+    ///
+    /// // check whether the device is operational
+    /// assert!(nethsm.ready().is_ok());
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn ready(&self) -> Result<(), Error> {
+        health_ready_get(&self.config.borrow()).map_err(|error| {
+            Error::Api(format!(
+                "Retrieving ready status failed: {}",
                 NetHsmApiError::from(error)
             ))
         })?;
