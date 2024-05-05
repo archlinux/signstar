@@ -6,15 +6,18 @@ use std::net::Ipv4Addr;
 use std::path::PathBuf;
 
 use chrono::Utc;
-use common::nethsm_with_users;
-use common::update_file;
-use common::NetHsmImage;
-use common::BACKUP_PASSPHRASE;
-use common::BACKUP_USER_ID;
-use common::BACKUP_USER_PASSPHRASE;
-use common::METRICS_USER_ID;
-use common::METRICS_USER_PASSPHRASE;
-use common::UNLOCK_PASSPHRASE;
+use common::{
+    nethsm_container,
+    nethsm_with_users,
+    update_file,
+    NetHsmImage,
+    BACKUP_PASSPHRASE,
+    BACKUP_USER_ID,
+    BACKUP_USER_PASSPHRASE,
+    METRICS_USER_ID,
+    METRICS_USER_PASSPHRASE,
+    UNLOCK_PASSPHRASE,
+};
 use nethsm::{
     BootMode,
     DistinguishedName,
@@ -353,6 +356,26 @@ async fn cancel_update(
 
     // NOTE: this shuts down the container!
     upload_and_cancel_update(&nethsm, file).await?;
+
+    Ok(())
+}
+
+#[ignore = "requires Podman"]
+#[rstest]
+#[tokio::test]
+async fn get_tls_public_key(
+    #[future] nethsm_container: TestResult<(NetHsm, Container<NetHsmImage>)>,
+    #[future] nethsm_with_users: TestResult<(NetHsm, Container<NetHsmImage>)>,
+) -> TestResult {
+    let (unprovisioned_nethsm, _container) = nethsm_container.await?;
+    let (nethsm, _container) = nethsm_with_users.await?;
+
+    println!("Get TLS certificate of unprovisioned device...");
+    assert!(unprovisioned_nethsm.get_tls_public_key().is_err());
+
+    println!("Get TLS certificate of provisioned device...");
+    println!("{}", nethsm.get_tls_public_key()?);
+    assert!(nethsm.get_tls_public_key().is_ok());
 
     Ok(())
 }

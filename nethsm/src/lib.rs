@@ -95,6 +95,7 @@ use nethsm_sdk_rs::apis::default_api::{
     config_tls_cert_pem_put,
     config_tls_csr_pem_post,
     config_tls_generate_post,
+    config_tls_public_pem_get,
     config_unattended_boot_get,
     config_unattended_boot_put,
     config_unlock_passphrase_put,
@@ -1016,6 +1017,52 @@ impl NetHsm {
             ))
         })?;
         Ok(())
+    }
+
+    /// Returns the TLS public key of the API
+    ///
+    /// Returns the device's public key part of its [TLS certificate](https://docs.nitrokey.com/nethsm/administration#tls-certificate)
+    /// which is used for communication with the API.
+    ///
+    /// This call requires using credentials of a user in the "admin" [role](https://docs.nitrokey.com/nethsm/administration#roles).
+    ///
+    /// # Errors
+    ///
+    /// Returns an [`Error::Api`] if the device's TLS public key can not be retrieved:
+    /// * the device is not in state [`SystemState::Operational`]
+    /// * the used credentials are not correct
+    /// * the used credentials are not that of a user in the "admin" role
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # use testresult::TestResult;
+    /// use nethsm::{ConnectionSecurity, Error, NetHsm};
+    ///
+    /// # fn main() -> TestResult {
+    /// // create a connection with a user in the "admin" role
+    /// let nethsm = NetHsm::new(
+    ///     "https://example.org/api/v1".try_into()?,
+    ///     ConnectionSecurity::Unsafe,
+    ///     Some(("admin".to_string(), Some("admin-passphrase".to_string()))),
+    ///     None,
+    ///     None,
+    /// )?;
+    ///
+    /// // get the TLS public key
+    /// println!("{}", nethsm.get_tls_public_key()?);
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn get_tls_public_key(&self) -> Result<String, Error> {
+        Ok(config_tls_public_pem_get(&self.config.borrow())
+            .map_err(|error| {
+                Error::Api(format!(
+                    "Retrieving API TLS public key failed: {}",
+                    NetHsmApiError::from(error)
+                ))
+            })?
+            .entity)
     }
 
     /// Returns the TLS certificate of the API
