@@ -126,6 +126,7 @@ use nethsm_sdk_rs::apis::default_api::{
     system_cancel_update_post,
     system_commit_update_post,
     system_factory_reset_post,
+    system_info_get,
     system_reboot_post,
     system_restore_post,
     system_shutdown_post,
@@ -173,6 +174,7 @@ pub use nethsm_sdk_rs::models::{
     KeyType,
     LogLevel,
     NetworkConfig,
+    SystemInfo,
     SystemState,
     TlsKeyType,
     UserRole,
@@ -1844,6 +1846,54 @@ impl NetHsm {
             ))
         })?;
         Ok(())
+    }
+
+    /// Retrieves system information of a device
+    ///
+    /// Returns a [`SystemInfo`] which contains various pieces of information such as software
+    /// version, software build, firmware version, hardware version, device ID and information on
+    /// TPM related components such as attestation key and relevant PCR values.
+    ///
+    /// This call requires using credentials of a user in the "admin" [role](https://docs.nitrokey.com/nethsm/administration#roles).
+    ///
+    /// # Errors
+    ///
+    /// Returns an [`Error::Api`] if retrieving the system information fails:
+    /// * the device is not in state [`SystemState::Operational`]
+    /// * the used credentials are not correct
+    /// * the used credentials are not that of a user in the "admin" role
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # use testresult::TestResult;
+    /// use nethsm::{ConnectionSecurity, Error, NetHsm, SystemState};
+    ///
+    /// # fn main() -> TestResult {
+    /// // create a connection with a user in the "admin" role
+    /// let nethsm = NetHsm::new(
+    ///     "https://example.org/api/v1".try_into()?,
+    ///     ConnectionSecurity::Unsafe,
+    ///     Some(("admin".to_string(), Some("admin-passphrase".to_string()))),
+    ///     None,
+    ///     None,
+    /// )?;
+    ///
+    /// assert_eq!(nethsm.state()?, SystemState::Operational);
+    /// // retrieve system information of the device
+    /// println!("{:?}", nethsm.system_info()?);
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn system_info(&self) -> Result<SystemInfo, Error> {
+        Ok(system_info_get(&self.config.borrow())
+            .map_err(|error| {
+                Error::Api(format!(
+                    "Retrieving system information failed: {}",
+                    NetHsmApiError::from(error)
+                ))
+            })?
+            .entity)
     }
 
     /// Reboots the device
