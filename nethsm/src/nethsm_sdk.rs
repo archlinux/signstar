@@ -189,59 +189,6 @@ impl From<Box<KeyImportData>> for Box<KeyPrivateData> {
     }
 }
 
-/// Ensures that the [`KeyType`] and [`KeyMechanism`] combinations are valid
-pub fn match_key_type_and_mechanisms(
-    key_type: KeyType,
-    mechanisms: &[KeyMechanism],
-) -> Result<(), Error> {
-    let valid_mechanisms = match key_type {
-        KeyType::Rsa => vec![
-            KeyMechanism::RsaDecryptionRaw,
-            KeyMechanism::RsaDecryptionPkcs1,
-            KeyMechanism::RsaDecryptionOaepMd5,
-            KeyMechanism::RsaDecryptionOaepSha1,
-            KeyMechanism::RsaDecryptionOaepSha224,
-            KeyMechanism::RsaDecryptionOaepSha256,
-            KeyMechanism::RsaDecryptionOaepSha384,
-            KeyMechanism::RsaDecryptionOaepSha512,
-            KeyMechanism::RsaSignaturePkcs1,
-            KeyMechanism::RsaSignaturePssMd5,
-            KeyMechanism::RsaSignaturePssSha1,
-            KeyMechanism::RsaSignaturePssSha224,
-            KeyMechanism::RsaSignaturePssSha256,
-            KeyMechanism::RsaSignaturePssSha384,
-            KeyMechanism::RsaSignaturePssSha512,
-        ],
-        KeyType::Curve25519 => vec![KeyMechanism::EdDsaSignature],
-        KeyType::EcP224 | KeyType::EcP256 | KeyType::EcP384 | KeyType::EcP521 => {
-            vec![KeyMechanism::EcdsaSignature]
-        }
-        KeyType::Generic => vec![
-            KeyMechanism::AesDecryptionCbc,
-            KeyMechanism::AesEncryptionCbc,
-        ],
-    };
-
-    let invalid_mechanisms = mechanisms
-        .iter()
-        .filter(|mechanism| !valid_mechanisms.contains(mechanism))
-        .collect::<Vec<&KeyMechanism>>();
-
-    if invalid_mechanisms.is_empty() {
-        Ok(())
-    } else {
-        Err(Error::KeyData(format!(
-            "{:?} is incompatible with {}",
-            key_type,
-            invalid_mechanisms
-                .iter()
-                .map(|x| x.to_string())
-                .collect::<Vec<_>>()
-                .join(",")
-        )))
-    }
-}
-
 /// The type of a signature
 ///
 /// This enum covers all variants of [`nethsm_sdk_rs::models::SignMode`], but instead of
@@ -448,6 +395,7 @@ impl From<EncryptMode> for nethsm_sdk_rs::models::EncryptMode {
     Deserialize,
     strum::Display,
     strum::EnumString,
+    strum::IntoStaticStr,
     Hash,
     Eq,
     Ord,
@@ -581,6 +529,108 @@ pub enum KeyType {
 
     /// An RSA key
     Rsa,
+}
+
+impl KeyType {
+    /// Ensures that the [`KeyType`] is compatible with a list of [`KeyMechanism`]s
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the [`KeyMechanism`] is incompatible with the [`KeyType`]
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use nethsm::{KeyMechanism, KeyType};
+    ///
+    /// assert!(KeyType::Curve25519
+    ///     .matches_mechanisms(&[KeyMechanism::EdDsaSignature])
+    ///     .is_ok());
+    ///
+    /// assert!(KeyType::Curve25519
+    ///     .matches_mechanisms(&[KeyMechanism::EcdsaSignature])
+    ///     .is_err());
+    ///
+    /// assert!(KeyType::EcP224
+    ///     .matches_mechanisms(&[KeyMechanism::EcdsaSignature])
+    ///     .is_ok());
+    ///
+    /// assert!(KeyType::Generic
+    ///     .matches_mechanisms(&[
+    ///         KeyMechanism::AesDecryptionCbc,
+    ///         KeyMechanism::AesEncryptionCbc,
+    ///     ])
+    ///     .is_ok());
+    ///
+    /// assert!(KeyType::Generic
+    ///     .matches_mechanisms(&[
+    ///         KeyMechanism::RsaDecryptionPkcs1,
+    ///         KeyMechanism::RsaSignaturePkcs1,
+    ///     ])
+    ///     .is_err());
+    ///
+    /// assert!(KeyType::Rsa
+    ///     .matches_mechanisms(&[
+    ///         KeyMechanism::RsaDecryptionPkcs1,
+    ///         KeyMechanism::RsaSignaturePkcs1,
+    ///     ])
+    ///     .is_ok());
+    ///
+    /// assert!(KeyType::Rsa
+    ///     .matches_mechanisms(&[
+    ///         KeyMechanism::AesDecryptionCbc,
+    ///         KeyMechanism::AesEncryptionCbc,
+    ///         KeyMechanism::EcdsaSignature
+    ///     ])
+    ///     .is_err());
+    /// ```
+    pub fn matches_mechanisms(&self, mechanisms: &[KeyMechanism]) -> Result<(), Error> {
+        let valid_mechanisms: &[KeyMechanism] = match self {
+            KeyType::Curve25519 => &[KeyMechanism::EdDsaSignature],
+            KeyType::EcP224 | KeyType::EcP256 | KeyType::EcP384 | KeyType::EcP521 => {
+                &[KeyMechanism::EcdsaSignature]
+            }
+            KeyType::Generic => &[
+                KeyMechanism::AesDecryptionCbc,
+                KeyMechanism::AesEncryptionCbc,
+            ],
+            KeyType::Rsa => &[
+                KeyMechanism::RsaDecryptionRaw,
+                KeyMechanism::RsaDecryptionPkcs1,
+                KeyMechanism::RsaDecryptionOaepMd5,
+                KeyMechanism::RsaDecryptionOaepSha1,
+                KeyMechanism::RsaDecryptionOaepSha224,
+                KeyMechanism::RsaDecryptionOaepSha256,
+                KeyMechanism::RsaDecryptionOaepSha384,
+                KeyMechanism::RsaDecryptionOaepSha512,
+                KeyMechanism::RsaSignaturePkcs1,
+                KeyMechanism::RsaSignaturePssMd5,
+                KeyMechanism::RsaSignaturePssSha1,
+                KeyMechanism::RsaSignaturePssSha224,
+                KeyMechanism::RsaSignaturePssSha256,
+                KeyMechanism::RsaSignaturePssSha384,
+                KeyMechanism::RsaSignaturePssSha512,
+            ],
+        };
+
+        let mut invalid_mechanisms = mechanisms
+            .iter()
+            .filter(|mechanism| !valid_mechanisms.contains(mechanism))
+            .peekable();
+
+        if invalid_mechanisms.peek().is_none() {
+            Ok(())
+        } else {
+            Err(Error::KeyData(format!(
+                "{:?} is incompatible with {}",
+                self,
+                invalid_mechanisms
+                    .map(Into::into)
+                    .collect::<Vec<&'static str>>()
+                    .join(",")
+            )))
+        }
+    }
 }
 
 impl From<KeyType> for nethsm_sdk_rs::models::KeyType {

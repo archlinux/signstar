@@ -170,7 +170,7 @@ use sha1::Sha1;
 use sha2::{Digest, Sha224, Sha256, Sha384, Sha512};
 
 mod nethsm_sdk;
-use nethsm_sdk::{match_key_type_and_mechanisms, NetHsmApiError};
+use nethsm_sdk::NetHsmApiError;
 pub use nethsm_sdk::{
     BootMode,
     DecryptMode,
@@ -2769,7 +2769,7 @@ impl NetHsm {
         tags: Option<Vec<String>>,
     ) -> Result<String, Error> {
         // ensure the key_type - mechanisms combinations are valid
-        match_key_type_and_mechanisms(key_type, &mechanisms)?;
+        key_type.matches_mechanisms(&mechanisms)?;
 
         Ok(keys_generate_post(
             &self.config.borrow(),
@@ -2888,7 +2888,7 @@ impl NetHsm {
         tags: Option<Vec<String>>,
     ) -> Result<String, Error> {
         // ensure the key_type - mechanisms combinations are valid
-        match_key_type_and_mechanisms(key_type, &mechanisms)?;
+        key_type.matches_mechanisms(&mechanisms)?;
 
         // ensure the key_type - key_data combination is valid
         key_data.validate_key_type(key_type)?;
