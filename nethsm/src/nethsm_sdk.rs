@@ -14,7 +14,7 @@ use crate::Error;
 ///
 /// This type allows us to deserialize the message body when the NetHSM API triggers the return of a
 /// [`nethsm_sdk_rs::models::Error::Ureq`].
-#[derive(Debug, serde::Deserialize)]
+#[derive(Debug, Deserialize)]
 pub struct Message {
     message: String,
 }
