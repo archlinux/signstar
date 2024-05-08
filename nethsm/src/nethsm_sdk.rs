@@ -245,33 +245,49 @@ pub fn match_key_type_and_mechanisms(
 /// The type of a signature
 ///
 /// This enum covers all variants of [`nethsm_sdk_rs::models::SignMode`], but instead of
-/// [`nethsm_sdk_rs::models::SignMode::Ecdsa`] covers hash-specific ECDSA modes.
+/// [`nethsm_sdk_rs::models::SignMode::Ecdsa`] covers prime size specific ECDSA modes.
 #[derive(Clone, Debug, strum::Display, strum::EnumString, Eq, PartialEq, Ord, PartialOrd, Hash)]
+#[strum(ascii_case_insensitive)]
 pub enum SignatureType {
-    #[strum(to_string = "PKCS1")]
-    Pkcs1,
-    #[strum(to_string = "PSS_MD5")]
-    PssMd5,
-    #[strum(to_string = "PSS_SHA1")]
-    PssSha1,
-    #[strum(to_string = "PSS_SHA224")]
-    PssSha224,
-    #[strum(to_string = "PSS_SHA256")]
-    PssSha256,
-    #[strum(to_string = "PSS_SHA384")]
-    PssSha384,
-    #[strum(to_string = "PSS_SHA512")]
-    PssSha512,
-    #[strum(to_string = "EdDSA")]
-    EdDsa,
-    #[strum(to_string = "ECDSA_P224")]
+    /// Elliptic Curve Digital Signature Algorithm (ECDSA) signing using a key over a prime field
+    /// for a prime of size 224 bit
     EcdsaP224,
-    #[strum(to_string = "ECDSA_P256")]
+
+    /// Elliptic Curve Digital Signature Algorithm (ECDSA) signing using a key over a prime field
+    /// for a prime of size 256 bit
     EcdsaP256,
-    #[strum(to_string = "ECDSA_P384")]
+
+    /// Elliptic Curve Digital Signature Algorithm (ECDSA) signing using a key over a prime field
+    /// for a prime of size 384 bit
     EcdsaP384,
-    #[strum(to_string = "ECDSA_P521")]
+
+    /// Elliptic Curve Digital Signature Algorithm (ECDSA) signing using a key over a prime field
+    /// for a prime of size 521 bit
     EcdsaP521,
+
+    /// Signing following the Edwards-curve Digital Signature Algorithm (EdDSA)
+    EdDsa,
+
+    /// RSA signing following the PKCS#1 standard
+    Pkcs1,
+
+    /// RSA signing following a "probabilistic signature scheme" (PSS) using an MD-5 hash
+    PssMd5,
+
+    /// RSA signing following a "probabilistic signature scheme" (PSS) using a SHA-1 hash
+    PssSha1,
+
+    /// RSA signing following a "probabilistic signature scheme" (PSS) using a SHA-224 hash
+    PssSha224,
+
+    /// RSA signing following a "probabilistic signature scheme" (PSS) using a SHA-256 hash
+    PssSha256,
+
+    /// RSA signing following a "probabilistic signature scheme" (PSS) using a SHA-384 hash
+    PssSha384,
+
+    /// RSA signing following a "probabilistic signature scheme" (PSS) using a SHA-512 hash
+    PssSha512,
 }
 
 impl From<SignatureType> for SignMode {
@@ -809,6 +825,32 @@ mod tests {
             assert_eq!(KeyType::from_str(input)?, expected);
         } else {
             assert!(KeyType::from_str(input).is_err());
+        }
+        Ok(())
+    }
+
+    #[rstest]
+    #[case("ecdsap224", Some(SignatureType::EcdsaP224))]
+    #[case("ecdsap256", Some(SignatureType::EcdsaP256))]
+    #[case("ecdsap384", Some(SignatureType::EcdsaP384))]
+    #[case("ecdsap521", Some(SignatureType::EcdsaP521))]
+    #[case("eddsa", Some(SignatureType::EdDsa))]
+    #[case("pkcs1", Some(SignatureType::Pkcs1))]
+    #[case("pssmd5", Some(SignatureType::PssMd5))]
+    #[case("psssha1", Some(SignatureType::PssSha1))]
+    #[case("psssha224", Some(SignatureType::PssSha224))]
+    #[case("psssha256", Some(SignatureType::PssSha256))]
+    #[case("psssha384", Some(SignatureType::PssSha384))]
+    #[case("psssha512", Some(SignatureType::PssSha512))]
+    #[case("foo", None)]
+    fn signaturetype_fromstr(
+        #[case] input: &str,
+        #[case] expected: Option<SignatureType>,
+    ) -> TestResult {
+        if let Some(expected) = expected {
+            assert_eq!(SignatureType::from_str(input)?, expected);
+        } else {
+            assert!(SignatureType::from_str(input).is_err());
         }
         Ok(())
     }
