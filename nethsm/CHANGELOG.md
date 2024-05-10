@@ -6,6 +6,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2024-05-10
+
+### Added
+- [**breaking**] Use PrivateKeyImport for import of private key material
+- Provide own LogLevel
+- Provide own EncryptMode
+- Provide own DecryptMode
+- Provide own KeyMechanism
+- Provide own TlsKeyType
+- Provide own KeyType
+- Provide own UserRole
+- Derive Clone for SignatureType
+- Derive strum::{Display,EnumString} for BootMode
+- Add handling of /config/tls/public.pem endpoint
+- Add handling of /system/info endpoint
+- Add handling of /health/ready endpoint
+- Add handling of /health/alive endpoint
+
+### Fixed
+- Simplify use of strum macros for SignatureType
+
+### Other
+- Rely on global use of serde for Message
+- Extend KeyType to validate a list of KeyMechanisms
+- Add dedicated tests for /health/state endpoint handling
+
 ## [0.1.1] - 2024-05-04
 
 ### Added
