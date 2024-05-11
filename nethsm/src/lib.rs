@@ -20,8 +20,14 @@
 //! This crate re-exports the following [`nethsm_sdk_rs`] types so that the crate does not have to
 //! be relied on directly:
 //! * [`nethsm_sdk_rs::models::DistinguishedName`]
+//! * [`nethsm_sdk_rs::models::InfoData`]
+//! * [`nethsm_sdk_rs::models::LoggingConfig`]
 //! * [`nethsm_sdk_rs::models::NetworkConfig`]
+//! * [`nethsm_sdk_rs::models::PublicKey`]
+//! * [`nethsm_sdk_rs::models::SystemInfo`]
 //! * [`nethsm_sdk_rs::models::SystemState`]
+//! * [`nethsm_sdk_rs::models::SystemUpdateData`]
+//! * [`nethsm_sdk_rs::models::UserData`]
 //!
 //! Using the [`NetHsm`] struct it is possible to establish a TLS connection for multiple users.
 //! TLS validation can be configured based on a variant of the [`ConnectionSecurity`] enum:
@@ -142,26 +148,31 @@ use nethsm_sdk_rs::models::{
     BackupPassphraseConfig,
     DecryptRequestData,
     EncryptRequestData,
-    InfoData,
     KeyGenerateRequestData,
     KeyRestrictions,
-    LoggingConfig,
     PrivateKey,
     ProvisionRequestData,
-    PublicKey,
     RandomRequestData,
     SignRequestData,
-    SystemUpdateData,
     TimeConfig,
     TlsKeyGenerateRequestData,
     UnlockPassphraseConfig,
     UnlockRequestData,
-    UserData,
     UserPassphrasePostData,
     UserPostData,
 };
 // Re-export some useful types so that users do not have to use nethsm-sdk-rs directly
-pub use nethsm_sdk_rs::models::{DistinguishedName, NetworkConfig, SystemInfo, SystemState};
+pub use nethsm_sdk_rs::models::{
+    DistinguishedName,
+    InfoData,
+    LoggingConfig,
+    NetworkConfig,
+    PublicKey,
+    SystemInfo,
+    SystemState,
+    SystemUpdateData,
+    UserData,
+};
 use nethsm_sdk_rs::ureq::AgentBuilder;
 use rustls::crypto::{aws_lc_rs as tls_provider, CryptoProvider};
 use rustls::ClientConfig;
