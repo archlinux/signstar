@@ -34,9 +34,10 @@
 //! # Examples
 //!
 //! ```
+//! # use testresult::TestResult;
 //! use nethsm::{ConnectionSecurity, Error, NetHsm};
 //!
-//! # fn main() -> Result<(), Error> {
+//! # fn main() -> TestResult {
 //! // Create a new connection to a NetHSM at "https://example.org" using admin credentials
 //! let nethsm = NetHsm::new(
 //!     "https://example.org/api/v1".try_into()?,
@@ -458,9 +459,10 @@ impl NetHsm {
     /// # Examples
     ///
     /// ```
+    /// # use testresult::TestResult;
     /// use nethsm::{ConnectionSecurity, Error, NetHsm};
     ///
-    /// # fn main() -> Result<(), Error> {
+    /// # fn main() -> TestResult {
     /// // Create a new connection for a NetHSM at "https://example.org"
     /// let nethsm = NetHsm::new(
     ///     "https://example.org/api/v1".try_into()?,
@@ -484,9 +486,10 @@ impl NetHsm {
     /// # Examples
     ///
     /// ```
+    /// # use testresult::TestResult;
     /// use nethsm::{ConnectionSecurity, Error, NetHsm};
     ///
-    /// # fn main() -> Result<(), Error> {
+    /// # fn main() -> TestResult {
     /// let nethsm = NetHsm::new(
     ///     "https://example.org/api/v1".try_into()?,
     ///     ConnectionSecurity::Unsafe,
@@ -516,9 +519,10 @@ impl NetHsm {
     /// # Examples
     ///
     /// ```
-    /// use nethsm::{ConnectionSecurity, Error, NetHsm};
+    /// # use testresult::TestResult;
+    /// use nethsm::{ConnectionSecurity, NetHsm};
     ///
-    /// # fn main() -> Result<(), Error> {
+    /// # fn main() -> TestResult {
     /// let nethsm = NetHsm::new(
     ///     "https://example.org/api/v1".try_into()?,
     ///     ConnectionSecurity::Unsafe,
@@ -554,9 +558,10 @@ impl NetHsm {
     /// # Examples
     ///
     /// ```
+    /// # use testresult::TestResult;
     /// use nethsm::{ConnectionSecurity, Error, NetHsm};
     ///
-    /// # fn main() -> Result<(), Error> {
+    /// # fn main() -> TestResult {
     /// let nethsm = NetHsm::new(
     ///     "https://example.org/api/v1".try_into()?,
     ///     ConnectionSecurity::Unsafe,
@@ -618,10 +623,11 @@ impl NetHsm {
     /// # Examples
     ///
     /// ```no_run
+    /// # use testresult::TestResult;
     /// use chrono::Utc;
     /// use nethsm::{ConnectionSecurity, Error, NetHsm};
     ///
-    /// # fn main() -> Result<(), Error> {
+    /// # fn main() -> TestResult {
     /// // no initial credentials are required
     /// let nethsm = NetHsm::new(
     ///     "https://example.org/api/v1".try_into()?,
@@ -753,9 +759,10 @@ impl NetHsm {
     /// # Examples
     ///
     /// ```no_run
+    /// # use testresult::TestResult;
     /// use nethsm::{ConnectionSecurity, Error, NetHsm};
     ///
-    /// # fn main() -> Result<(), Error> {
+    /// # fn main() -> TestResult {
     /// // no initial credentials are required
     /// let nethsm = NetHsm::new(
     ///     "https://example.org/api/v1".try_into()?,
@@ -793,9 +800,10 @@ impl NetHsm {
     /// # Examples
     ///
     /// ```no_run
+    /// # use testresult::TestResult;
     /// use nethsm::{ConnectionSecurity, Error, NetHsm};
     ///
-    /// # fn main() -> Result<(), Error> {
+    /// # fn main() -> TestResult {
     /// // no initial credentials are required
     /// let nethsm = NetHsm::new(
     ///     "https://example.org/api/v1".try_into()?,
@@ -836,9 +844,10 @@ impl NetHsm {
     /// # Examples
     ///
     /// ```no_run
+    /// # use testresult::TestResult;
     /// use nethsm::{ConnectionSecurity, Error, NetHsm};
     ///
-    /// # fn main() -> Result<(), Error> {
+    /// # fn main() -> TestResult {
     /// // create a connection with a user in the "metrics" role
     /// let nethsm = NetHsm::new(
     ///     "https://example.org/api/v1".try_into()?,
@@ -883,9 +892,10 @@ impl NetHsm {
     /// # Examples
     ///
     /// ```no_run
+    /// # use testresult::TestResult;
     /// use nethsm::{ConnectionSecurity, Error, NetHsm};
     ///
-    /// # fn main() -> Result<(), Error> {
+    /// # fn main() -> TestResult {
     /// // create a connection with a user in the "admin" role
     /// let nethsm = NetHsm::new(
     ///     "https://example.org/api/v1".try_into()?,
@@ -937,9 +947,10 @@ impl NetHsm {
     /// # Examples
     ///
     /// ```no_run
+    /// # use testresult::TestResult;
     /// use nethsm::{ConnectionSecurity, Error, NetHsm};
     ///
-    /// # fn main() -> Result<(), Error> {
+    /// # fn main() -> TestResult {
     /// // create a connection with a user in the "admin" role
     /// let nethsm = NetHsm::new(
     ///     "https://example.org/api/v1".try_into()?,
@@ -983,9 +994,10 @@ impl NetHsm {
     /// # Examples
     ///
     /// ```no_run
+    /// # use testresult::TestResult;
     /// use nethsm::{BootMode, ConnectionSecurity, Error, NetHsm};
     ///
-    /// # fn main() -> Result<(), Error> {
+    /// # fn main() -> TestResult {
     /// // create a connection with a user in the "admin" role
     /// let nethsm = NetHsm::new(
     ///     "https://example.org/api/v1".try_into()?,
@@ -1075,9 +1087,10 @@ impl NetHsm {
     /// # Examples
     ///
     /// ```no_run
+    /// # use testresult::TestResult;
     /// use nethsm::{ConnectionSecurity, Error, NetHsm};
     ///
-    /// # fn main() -> Result<(), Error> {
+    /// # fn main() -> TestResult {
     /// // create a connection with a user in the "admin" role
     /// let nethsm = NetHsm::new(
     ///     "https://example.org/api/v1".try_into()?,
@@ -1122,9 +1135,10 @@ impl NetHsm {
     /// # Examples
     ///
     /// ```no_run
+    /// # use testresult::TestResult;
     /// use nethsm::{ConnectionSecurity, DistinguishedName, Error, NetHsm};
     ///
-    /// # fn main() -> Result<(), Error> {
+    /// # fn main() -> TestResult {
     /// // create a connection with a user in the "admin" role
     /// let nethsm = NetHsm::new(
     ///     "https://example.org/api/v1".try_into()?,
@@ -1182,9 +1196,10 @@ impl NetHsm {
     /// # Examples
     ///
     /// ```no_run
+    /// # use testresult::TestResult;
     /// use nethsm::{ConnectionSecurity, Error, NetHsm, TlsKeyType};
     ///
-    /// # fn main() -> Result<(), Error> {
+    /// # fn main() -> TestResult {
     /// // create a connection with a user in the "admin" role
     /// let nethsm = NetHsm::new(
     ///     "https://example.org/api/v1".try_into()?,
@@ -1239,9 +1254,10 @@ impl NetHsm {
     /// # Examples
     ///
     /// ```no_run
+    /// # use testresult::TestResult;
     /// use nethsm::{ConnectionSecurity, Error, NetHsm};
     ///
-    /// # fn main() -> Result<(), Error> {
+    /// # fn main() -> TestResult {
     /// // create a connection with a user in the "admin" role
     /// let nethsm = NetHsm::new(
     ///     "https://example.org/api/v1".try_into()?,
@@ -1293,9 +1309,10 @@ impl NetHsm {
     /// # Examples
     ///
     /// ```no_run
+    /// # use testresult::TestResult;
     /// use nethsm::{ConnectionSecurity, Error, NetHsm};
     ///
-    /// # fn main() -> Result<(), Error> {
+    /// # fn main() -> TestResult {
     /// // create a connection with a user in the "admin" role
     /// let nethsm = NetHsm::new(
     ///     "https://example.org/api/v1".try_into()?,
@@ -1339,9 +1356,10 @@ impl NetHsm {
     /// # Examples
     ///
     /// ```no_run
+    /// # use testresult::TestResult;
     /// use nethsm::{ConnectionSecurity, Error, NetHsm, NetworkConfig};
     ///
-    /// # fn main() -> Result<(), Error> {
+    /// # fn main() -> TestResult {
     /// // create a connection with a user in the "admin" role
     /// let nethsm = NetHsm::new(
     ///     "https://example.org/api/v1".try_into()?,
@@ -1388,9 +1406,10 @@ impl NetHsm {
     /// # Examples
     ///
     /// ```no_run
+    /// # use testresult::TestResult;
     /// use nethsm::{ConnectionSecurity, Error, NetHsm};
     ///
-    /// # fn main() -> Result<(), Error> {
+    /// # fn main() -> TestResult {
     /// // create a connection with a user in the "admin" role
     /// let nethsm = NetHsm::new(
     ///     "https://example.org/api/v1".try_into()?,
@@ -1434,10 +1453,11 @@ impl NetHsm {
     /// # Examples
     ///
     /// ```no_run
+    /// # use testresult::TestResult;
     /// use chrono::Utc;
     /// use nethsm::{ConnectionSecurity, Error, NetHsm};
     ///
-    /// # fn main() -> Result<(), Error> {
+    /// # fn main() -> TestResult {
     /// // create a connection with a user in the "admin" role
     /// let nethsm = NetHsm::new(
     ///     "https://example.org/api/v1".try_into()?,
@@ -1483,9 +1503,10 @@ impl NetHsm {
     /// # Examples
     ///
     /// ```no_run
+    /// # use testresult::TestResult;
     /// use nethsm::{ConnectionSecurity, Error, NetHsm};
     ///
-    /// # fn main() -> Result<(), Error> {
+    /// # fn main() -> TestResult {
     /// // create a connection with a user in the "admin" role
     /// let nethsm = NetHsm::new(
     ///     "https://example.org/api/v1".try_into()?,
@@ -1530,11 +1551,12 @@ impl NetHsm {
     /// # Examples
     ///
     /// ```no_run
+    /// # use testresult::TestResult;
     /// use std::net::Ipv4Addr;
     ///
     /// use nethsm::{ConnectionSecurity, Error, LogLevel, NetHsm};
     ///
-    /// # fn main() -> Result<(), Error> {
+    /// # fn main() -> TestResult {
     /// // create a connection with a user in the "admin" role
     /// let nethsm = NetHsm::new(
     ///     "https://example.org/api/v1".try_into()?,
@@ -1589,9 +1611,10 @@ impl NetHsm {
     /// # Examples
     ///
     /// ```no_run
+    /// # use testresult::TestResult;
     /// use nethsm::{ConnectionSecurity, Error, NetHsm};
     ///
-    /// # fn main() -> Result<(), Error> {
+    /// # fn main() -> TestResult {
     /// // create a connection with a user in the "admin" role
     /// let nethsm = NetHsm::new(
     ///     "https://example.org/api/v1".try_into()?,
@@ -1645,11 +1668,12 @@ impl NetHsm {
     /// # Examples
     ///
     /// ```no_run
+    /// # use testresult::TestResult;
     /// use std::path::PathBuf;
     ///
     /// use nethsm::{ConnectionSecurity, Error, NetHsm};
     ///
-    /// # fn main() -> Result<(), Error> {
+    /// # fn main() -> TestResult {
     /// // create a connection with a user in the "admin" role
     /// let nethsm = NetHsm::new(
     ///     "https://example.org/api/v1".try_into()?,
@@ -1661,7 +1685,7 @@ impl NetHsm {
     ///
     /// // create a backup and write it to file
     /// let backup_file = PathBuf::from("nethsm.bkp");
-    /// std::fs::write(backup_file, nethsm.backup()?).unwrap();
+    /// std::fs::write(backup_file, nethsm.backup()?)?;
     /// # Ok(())
     /// # }
     /// ```
@@ -1694,9 +1718,10 @@ impl NetHsm {
     /// # Examples
     ///
     /// ```no_run
+    /// # use testresult::TestResult;
     /// use nethsm::{ConnectionSecurity, Error, NetHsm, SystemState};
     ///
-    /// # fn main() -> Result<(), Error> {
+    /// # fn main() -> TestResult {
     /// // create a connection with a user in the "admin" role
     /// let nethsm = NetHsm::new(
     ///     "https://example.org/api/v1".try_into()?,
@@ -1748,13 +1773,14 @@ impl NetHsm {
     /// # Examples
     ///
     /// ```no_run
+    /// # use testresult::TestResult;
     /// use std::path::PathBuf;
     ///
     /// use chrono::Utc;
     /// use nethsm::{ConnectionSecurity, Error, NetHsm, SystemState};
     ///
     /// #
-    /// # fn main() -> Result<(), Error> {
+    /// # fn main() -> TestResult {
     /// // create a connection with a user in the "admin" role
     /// let nethsm = NetHsm::new(
     ///     "https://example.org/api/v1".try_into()?,
@@ -1766,7 +1792,7 @@ impl NetHsm {
     ///
     /// // restore from backup
     /// let backup_file = PathBuf::from("nethsm.bkp");
-    /// let backup = std::fs::read(backup_file).unwrap();
+    /// let backup = std::fs::read(backup_file)?;
     /// nethsm.restore("backup-passphrase".to_string(), Utc::now(), backup)?;
     /// # Ok(())
     /// # }
@@ -1810,9 +1836,10 @@ impl NetHsm {
     /// # Examples
     ///
     /// ```no_run
+    /// # use testresult::TestResult;
     /// use nethsm::{ConnectionSecurity, Error, NetHsm, SystemState};
     ///
-    /// # fn main() -> Result<(), Error> {
+    /// # fn main() -> TestResult {
     /// // create a connection with a user in the "admin" role
     /// let nethsm = NetHsm::new(
     ///     "https://example.org/api/v1".try_into()?,
@@ -1856,9 +1883,10 @@ impl NetHsm {
     /// # Examples
     ///
     /// ```no_run
+    /// # use testresult::TestResult;
     /// use nethsm::{ConnectionSecurity, Error, NetHsm, SystemState};
     ///
-    /// # fn main() -> Result<(), Error> {
+    /// # fn main() -> TestResult {
     /// // create a connection with a user in the "admin" role
     /// let nethsm = NetHsm::new(
     ///     "https://example.org/api/v1".try_into()?,
@@ -1954,9 +1982,10 @@ impl NetHsm {
     /// # Examples
     ///
     /// ```no_run
+    /// # use testresult::TestResult;
     /// use nethsm::{ConnectionSecurity, Error, NetHsm, SystemState};
     ///
-    /// # fn main() -> Result<(), Error> {
+    /// # fn main() -> TestResult {
     /// // create a connection with a user in the "admin" role
     /// let nethsm = NetHsm::new(
     ///     "https://example.org/api/v1".try_into()?,
@@ -1999,9 +2028,10 @@ impl NetHsm {
     /// # Examples
     ///
     /// ```no_run
+    /// # use testresult::TestResult;
     /// use nethsm::{ConnectionSecurity, Error, NetHsm, SystemState};
     ///
-    /// # fn main() -> Result<(), Error> {
+    /// # fn main() -> TestResult {
     /// // create a connection with a user in the "admin" role
     /// let nethsm = NetHsm::new(
     ///     "https://example.org/api/v1".try_into()?,
@@ -2050,9 +2080,10 @@ impl NetHsm {
     /// # Examples
     ///
     /// ```no_run
+    /// # use testresult::TestResult;
     /// use nethsm::{ConnectionSecurity, Error, NetHsm, SystemState};
     ///
-    /// # fn main() -> Result<(), Error> {
+    /// # fn main() -> TestResult {
     /// // create a connection with a user in the "admin" role
     /// let nethsm = NetHsm::new(
     ///     "https://example.org/api/v1".try_into()?,
@@ -2063,7 +2094,7 @@ impl NetHsm {
     /// )?;
     ///
     /// let update_file = std::path::PathBuf::from("update.bin");
-    /// let update = std::fs::read(update_file).unwrap();
+    /// let update = std::fs::read(update_file)?;
     ///
     /// assert_eq!(nethsm.state()?, SystemState::Operational);
     /// // upload software update to device
@@ -2103,9 +2134,10 @@ impl NetHsm {
     /// # Examples
     ///
     /// ```no_run
+    /// # use testresult::TestResult;
     /// use nethsm::{ConnectionSecurity, Error, NetHsm, SystemState};
     ///
-    /// # fn main() -> Result<(), Error> {
+    /// # fn main() -> TestResult {
     /// // create a connection with a user in the "admin" role
     /// let nethsm = NetHsm::new(
     ///     "https://example.org/api/v1".try_into()?,
@@ -2116,7 +2148,7 @@ impl NetHsm {
     /// )?;
     ///
     /// let update_file = std::path::PathBuf::from("update.bin");
-    /// let update = std::fs::read(update_file).unwrap();
+    /// let update = std::fs::read(update_file)?;
     ///
     /// assert_eq!(nethsm.state()?, SystemState::Operational);
     /// // upload software update to device
@@ -2155,9 +2187,10 @@ impl NetHsm {
     /// # Examples
     ///
     /// ```no_run
+    /// # use testresult::TestResult;
     /// use nethsm::{ConnectionSecurity, Error, NetHsm, SystemState};
     ///
-    /// # fn main() -> Result<(), Error> {
+    /// # fn main() -> TestResult {
     /// // create a connection with a user in the "admin" role
     /// let nethsm = NetHsm::new(
     ///     "https://example.org/api/v1".try_into()?,
@@ -2168,7 +2201,7 @@ impl NetHsm {
     /// )?;
     ///
     /// let update_file = std::path::PathBuf::from("update.bin");
-    /// let update = std::fs::read(update_file).unwrap();
+    /// let update = std::fs::read(update_file)?;
     ///
     /// assert_eq!(nethsm.state()?, SystemState::Operational);
     /// // upload software update to device
@@ -2214,9 +2247,10 @@ impl NetHsm {
     /// # Examples
     ///
     /// ```no_run
+    /// # use testresult::TestResult;
     /// use nethsm::{ConnectionSecurity, Error, NetHsm, UserRole};
     ///
-    /// # fn main() -> Result<(), Error> {
+    /// # fn main() -> TestResult {
     /// // create a connection with a user in the "admin" role
     /// let nethsm = NetHsm::new(
     ///     "https://example.org/api/v1".try_into()?,
@@ -2313,9 +2347,10 @@ impl NetHsm {
     /// # Examples
     ///
     /// ```no_run
+    /// # use testresult::TestResult;
     /// use nethsm::{ConnectionSecurity, Error, NetHsm, UserRole};
     ///
-    /// # fn main() -> Result<(), Error> {
+    /// # fn main() -> TestResult {
     /// // create a connection with a user in the "admin" role
     /// let nethsm = NetHsm::new(
     ///     "https://example.org/api/v1".try_into()?,
@@ -2372,9 +2407,10 @@ impl NetHsm {
     /// # Examples
     ///
     /// ```no_run
+    /// # use testresult::TestResult;
     /// use nethsm::{ConnectionSecurity, Error, NetHsm};
     ///
-    /// # fn main() -> Result<(), Error> {
+    /// # fn main() -> TestResult {
     /// // create a connection with a user in the "admin" role
     /// let nethsm = NetHsm::new(
     ///     "https://example.org/api/v1".try_into()?,
@@ -2421,9 +2457,10 @@ impl NetHsm {
     /// # Examples
     ///
     /// ```no_run
+    /// # use testresult::TestResult;
     /// use nethsm::{ConnectionSecurity, Error, NetHsm};
     ///
-    /// # fn main() -> Result<(), Error> {
+    /// # fn main() -> TestResult {
     /// // create a connection with a user in the "admin" role
     /// let nethsm = NetHsm::new(
     ///     "https://example.org/api/v1".try_into()?,
@@ -2475,9 +2512,10 @@ impl NetHsm {
     /// # Examples
     ///
     /// ```no_run
+    /// # use testresult::TestResult;
     /// use nethsm::{ConnectionSecurity, Error, NetHsm};
     ///
-    /// # fn main() -> Result<(), Error> {
+    /// # fn main() -> TestResult {
     /// // create a connection with a user in the "admin" role
     /// let nethsm = NetHsm::new(
     ///     "https://example.org/api/v1".try_into()?,
@@ -2542,9 +2580,10 @@ impl NetHsm {
     /// # Examples
     ///
     /// ```no_run
+    /// # use testresult::TestResult;
     /// use nethsm::{ConnectionSecurity, Error, NetHsm, UserRole};
     ///
-    /// # fn main() -> Result<(), Error> {
+    /// # fn main() -> TestResult {
     /// // create a connection with a user in the "admin" role
     /// let nethsm = NetHsm::new(
     ///     "https://example.org/api/v1".try_into()?,
@@ -2601,9 +2640,10 @@ impl NetHsm {
     /// # Examples
     ///
     /// ```no_run
+    /// # use testresult::TestResult;
     /// use nethsm::{ConnectionSecurity, Error, NetHsm, UserRole};
     ///
-    /// # fn main() -> Result<(), Error> {
+    /// # fn main() -> TestResult {
     /// // create a connection with a user in the "admin" role
     /// let nethsm = NetHsm::new(
     ///     "https://example.org/api/v1".try_into()?,
@@ -2647,9 +2687,10 @@ impl NetHsm {
     /// # Examples
     ///
     /// ```no_run
+    /// # use testresult::TestResult;
     /// use nethsm::{ConnectionSecurity, Error, NetHsm, UserRole};
     ///
-    /// # fn main() -> Result<(), Error> {
+    /// # fn main() -> TestResult {
     /// // create a connection with a user in the "admin" role
     /// let nethsm = NetHsm::new(
     ///     "https://example.org/api/v1".try_into()?,
@@ -2727,9 +2768,10 @@ impl NetHsm {
     /// # Examples
     ///
     /// ```no_run
+    /// # use testresult::TestResult;
     /// use nethsm::{ConnectionSecurity, Error, KeyMechanism, KeyType, NetHsm};
     ///
-    /// # fn main() -> Result<(), Error> {
+    /// # fn main() -> TestResult {
     /// // create a connection with a user in the "admin" role
     /// let nethsm = NetHsm::new(
     ///     "https://example.org/api/v1".try_into()?,
@@ -2942,9 +2984,10 @@ impl NetHsm {
     /// # Examples
     ///
     /// ```no_run
+    /// # use testresult::TestResult;
     /// use nethsm::{ConnectionSecurity, Error, NetHsm};
     ///
-    /// # fn main() -> Result<(), Error> {
+    /// # fn main() -> TestResult {
     /// // create a connection with a user in the "admin" role
     /// let nethsm = NetHsm::new(
     ///     "https://example.org/api/v1".try_into()?,
@@ -2989,9 +3032,10 @@ impl NetHsm {
     /// # Examples
     ///
     /// ```no_run
+    /// # use testresult::TestResult;
     /// use nethsm::{ConnectionSecurity, Error, NetHsm};
     ///
-    /// # fn main() -> Result<(), Error> {
+    /// # fn main() -> TestResult {
     /// // create a connection with a user in the "admin" role
     /// let nethsm = NetHsm::new(
     ///     "https://example.org/api/v1".try_into()?,
@@ -3037,9 +3081,10 @@ impl NetHsm {
     /// # Examples
     ///
     /// ```no_run
+    /// # use testresult::TestResult;
     /// use nethsm::{ConnectionSecurity, Error, NetHsm};
     ///
-    /// # fn main() -> Result<(), Error> {
+    /// # fn main() -> TestResult {
     /// // create a connection with a user in the "admin" role
     /// let nethsm = NetHsm::new(
     ///     "https://example.org/api/v1".try_into()?,
@@ -3092,9 +3137,10 @@ impl NetHsm {
     /// # Examples
     ///
     /// ```no_run
+    /// # use testresult::TestResult;
     /// use nethsm::{ConnectionSecurity, Error, NetHsm};
     ///
-    /// # fn main() -> Result<(), Error> {
+    /// # fn main() -> TestResult {
     /// // create a connection with a user in the "admin" role
     /// let nethsm = NetHsm::new(
     ///     "https://example.org/api/v1".try_into()?,
@@ -3145,9 +3191,10 @@ impl NetHsm {
     /// # Examples
     ///
     /// ```no_run
+    /// # use testresult::TestResult;
     /// use nethsm::{ConnectionSecurity, Error, NetHsm};
     ///
-    /// # fn main() -> Result<(), Error> {
+    /// # fn main() -> TestResult {
     /// // create a connection with a user in the "admin" role
     /// let nethsm = NetHsm::new(
     ///     "https://example.org/api/v1".try_into()?,
@@ -3195,9 +3242,10 @@ impl NetHsm {
     /// # Examples
     ///
     /// ```no_run
+    /// # use testresult::TestResult;
     /// use nethsm::{ConnectionSecurity, Error, NetHsm};
     ///
-    /// # fn main() -> Result<(), Error> {
+    /// # fn main() -> TestResult {
     /// // create a connection with a user in the "admin" role
     /// let nethsm = NetHsm::new(
     ///     "https://example.org/api/v1".try_into()?,
@@ -3248,9 +3296,10 @@ impl NetHsm {
     /// # Examples
     ///
     /// ```no_run
+    /// # use testresult::TestResult;
     /// use nethsm::{ConnectionSecurity, Error, NetHsm};
     ///
-    /// # fn main() -> Result<(), Error> {
+    /// # fn main() -> TestResult {
     /// // create a connection with a user in the "admin" role
     /// let nethsm = NetHsm::new(
     ///     "https://example.org/api/v1".try_into()?,
@@ -3316,9 +3365,10 @@ impl NetHsm {
     /// # Examples
     ///
     /// ```no_run
+    /// # use testresult::TestResult;
     /// use nethsm::{ConnectionSecurity, Error, NetHsm};
     ///
-    /// # fn main() -> Result<(), Error> {
+    /// # fn main() -> TestResult {
     /// // create a connection with a user in the "admin" role
     /// let nethsm = NetHsm::new(
     ///     "https://example.org/api/v1".try_into()?,
@@ -3364,9 +3414,10 @@ impl NetHsm {
     /// # Examples
     ///
     /// ```no_run
+    /// # use testresult::TestResult;
     /// use nethsm::{ConnectionSecurity, Error, NetHsm};
     ///
-    /// # fn main() -> Result<(), Error> {
+    /// # fn main() -> TestResult {
     /// // create a connection with a user in the "admin" role
     /// let nethsm = NetHsm::new(
     ///     "https://example.org/api/v1".try_into()?,
@@ -3415,9 +3466,10 @@ impl NetHsm {
     /// # Examples
     ///
     /// ```no_run
+    /// # use testresult::TestResult;
     /// use nethsm::{ConnectionSecurity, DistinguishedName, Error, NetHsm};
     ///
-    /// # fn main() -> Result<(), Error> {
+    /// # fn main() -> TestResult {
     /// // create a connection with a user in the "admin" role
     /// let nethsm = NetHsm::new(
     ///     "https://example.org/api/v1".try_into()?,
@@ -3487,9 +3539,10 @@ impl NetHsm {
     /// # Examples
     ///
     /// ```no_run
+    /// # use testresult::TestResult;
     /// use nethsm::{ConnectionSecurity, Error, NetHsm, SignatureType};
     ///
-    /// # fn main() -> Result<(), Error> {
+    /// # fn main() -> TestResult {
     /// // create a connection with a user in the "admin" role
     /// let nethsm = NetHsm::new(
     ///     "https://example.org/api/v1".try_into()?,
@@ -3593,9 +3646,10 @@ impl NetHsm {
     /// # Examples
     ///
     /// ```no_run
+    /// # use testresult::TestResult;
     /// use nethsm::{ConnectionSecurity, EncryptMode, Error, NetHsm};
     ///
-    /// # fn main() -> Result<(), Error> {
+    /// # fn main() -> TestResult {
     /// // create a connection with a user in the "admin" role
     /// let nethsm = NetHsm::new(
     ///     "https://example.org/api/v1".try_into()?,
@@ -3683,12 +3737,13 @@ impl NetHsm {
     /// # Examples
     ///
     /// ```no_run
-    /// use nethsm::{ConnectionSecurity, DecryptMode, EncryptMode, Error, NetHsm};
+    /// # use testresult::TestResult;
+    /// use nethsm::{ConnectionSecurity, DecryptMode, EncryptMode, NetHsm};
     /// use rsa::pkcs8::DecodePublicKey;
     /// use rsa::Pkcs1v15Encrypt;
     /// use rsa::RsaPublicKey;
     ///
-    /// # fn main() -> Result<(), Error> {
+    /// # fn main() -> TestResult {
     /// // create a connection with a user in the "admin" role
     /// let nethsm = NetHsm::new(
     ///     "https://example.org/api/v1".try_into()?,
@@ -3713,9 +3768,9 @@ impl NetHsm {
     /// );
     ///
     /// // get the public key of an asymmetric key and encrypt the message with it
-    /// let pubkey = RsaPublicKey::from_public_key_pem(&nethsm.get_public_key("encryption2")?).unwrap();
+    /// let pubkey = RsaPublicKey::from_public_key_pem(&nethsm.get_public_key("encryption2")?)?;
     /// let mut rng = rand::thread_rng();
-    /// let encrypted_message = pubkey.encrypt(&mut rng, Pkcs1v15Encrypt, message.as_bytes()).unwrap();
+    /// let encrypted_message = pubkey.encrypt(&mut rng, Pkcs1v15Encrypt, message.as_bytes())?;
     /// println!("raw encrypted message: {:?}", encrypted_message);
     ///
     /// let decrypted_message =
@@ -3777,9 +3832,10 @@ impl NetHsm {
     /// # Examples
     ///
     /// ```no_run
-    /// use nethsm::{ConnectionSecurity, Error, NetHsm, SystemState};
+    /// # use testresult::TestResult;
+    /// use nethsm::{ConnectionSecurity, NetHsm, SystemState};
     ///
-    /// # fn main() -> Result<(), Error> {
+    /// # fn main() -> TestResult {
     /// // create a connection with a user in the "operator" role
     /// let nethsm = NetHsm::new(
     ///     "https://example.org/api/v1".try_into()?,
