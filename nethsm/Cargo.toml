@@ -26,6 +26,7 @@ p521 = { version = "0.13.3", features = ["pem", "pkcs8"] }
 rsa = { version = "0.9.6", features = ["pem"] }
 rustls = { version = "0.22.2", features = ["aws_lc_rs"] }
 rustls-native-certs = "0.7.0"
+secrecy = { version = "0.8.0", features = ["alloc", "serde"] }
 serde = { version = "1.0.197", features = ["derive"] }
 serde_json = "1.0.112"
 sha1 = "0.10.6"

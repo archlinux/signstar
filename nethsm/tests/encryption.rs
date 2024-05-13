@@ -10,6 +10,8 @@ use common::ENC_OPERATOR_USER_PASSPHRASE;
 use common::OTHER_KEY_ID;
 use common::OTHER_OPERATOR_USER_ID;
 use common::OTHER_OPERATOR_USER_PASSPHRASE;
+use nethsm::Credentials;
+use nethsm::Passphrase;
 use nethsm::{DecryptMode, EncryptMode, NetHsm};
 use rsa::pkcs8::DecodePublicKey;
 use rsa::Pkcs1v15Encrypt;
@@ -32,9 +34,9 @@ async fn symmetric_encryption_decryption(
     #[future] nethsm_with_keys: TestResult<(NetHsm, Container<NetHsmImage>)>,
 ) -> TestResult {
     let (nethsm, _container) = nethsm_with_keys.await?;
-    nethsm.add_credentials((
+    nethsm.add_credentials(Credentials::new(
         ENC_OPERATOR_USER_ID.to_string(),
-        Some(ENC_OPERATOR_USER_PASSPHRASE.to_string()),
+        Some(Passphrase::new(ENC_OPERATOR_USER_PASSPHRASE.to_string())),
     ));
     nethsm.use_credentials(ENC_OPERATOR_USER_ID)?;
 
@@ -75,9 +77,9 @@ async fn asymmetric_decryption(
     #[future] nethsm_with_keys: TestResult<(NetHsm, Container<NetHsmImage>)>,
 ) -> TestResult {
     let (nethsm, _container) = nethsm_with_keys.await?;
-    nethsm.add_credentials((
+    nethsm.add_credentials(Credentials::new(
         OTHER_OPERATOR_USER_ID.to_string(),
-        Some(OTHER_OPERATOR_USER_PASSPHRASE.to_string()),
+        Some(Passphrase::new(OTHER_OPERATOR_USER_PASSPHRASE.to_string())),
     ));
     nethsm.use_credentials(OTHER_OPERATOR_USER_ID)?;
 

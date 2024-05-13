@@ -41,14 +41,14 @@
 //!
 //! ```
 //! # use testresult::TestResult;
-//! use nethsm::{ConnectionSecurity, Error, NetHsm};
+//! use nethsm::{ConnectionSecurity, Credentials, Error, NetHsm, Passphrase};
 //!
 //! # fn main() -> TestResult {
 //! // Create a new connection to a NetHSM at "https://example.org" using admin credentials
 //! let nethsm = NetHsm::new(
 //!     "https://example.org/api/v1".try_into()?,
 //!     ConnectionSecurity::Unsafe,
-//!     Some(("admin".to_string(), Some("passphrase".to_string()))),
+//!     Some(Credentials::new("admin".to_string(), Some(Passphrase::new("passphrase".to_string())))),
 //!     None,
 //!     None,
 //! )?;
@@ -62,8 +62,8 @@
 //!     None,
 //! )?;
 //!
-//! nethsm.add_credentials(("admin".to_string(), Some("passphrase".to_string())));
-//! nethsm.add_credentials(("user1".to_string(), Some("other_passphrase".to_string())));
+//! nethsm.add_credentials(Credentials::new("admin".to_string(), Some(Passphrase::new("passphrase".to_string()))));
+//! nethsm.add_credentials(Credentials::new("user1".to_string(), Some(Passphrase::new("other_passphrase".to_string()))));
 //!
 //! // A set of credentials must be used before establishing a connection with the configured NetHSM
 //! nethsm.use_credentials("user1")?;
@@ -176,6 +176,7 @@ pub use nethsm_sdk_rs::models::{
 use nethsm_sdk_rs::ureq::AgentBuilder;
 use rustls::crypto::{aws_lc_rs as tls_provider, CryptoProvider};
 use rustls::ClientConfig;
+use secrecy::{ExposeSecret, SecretString};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use sha1::Sha1;
@@ -236,6 +237,93 @@ pub enum Error {
     /// URL is invalid
     #[error("URL invalid: {0}")]
     Url(String),
+
+    /// Unable to convert string slice to Passphrase
+    #[error("Unable to convert string to passphrase")]
+    Passphrase,
+}
+
+/// Credentials for a [`NetHsm`]
+///
+/// Holds a user ID and an accompanying [`Passphrase`].
+pub struct Credentials {
+    user_id: String,
+    passphrase: Option<Passphrase>,
+}
+
+impl Credentials {
+    /// Creates a new [`Credentials`]
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use nethsm::{Credentials, Passphrase};
+    ///
+    /// let creds = Credentials::new(
+    ///     "operator".to_string(),
+    ///     Some(Passphrase::new("passphrase".to_string())),
+    /// );
+    /// ```
+    pub fn new(user_id: String, passphrase: Option<Passphrase>) -> Self {
+        Self {
+            user_id,
+            passphrase,
+        }
+    }
+}
+
+impl From<Credentials> for BasicAuth {
+    fn from(value: Credentials) -> Self {
+        (value.user_id, value.passphrase.map(|x| x.expose_owned()))
+    }
+}
+
+impl From<&Credentials> for BasicAuth {
+    fn from(value: &Credentials) -> Self {
+        (
+            value.user_id.clone(),
+            value.passphrase.as_ref().map(|x| x.expose_owned()),
+        )
+    }
+}
+
+/// A secret passphrase
+///
+/// The passphrase is held by a [`SecretString`], which guarantees zeroing of memory on
+/// destruct.
+#[derive(Clone, Debug)]
+pub struct Passphrase(SecretString);
+
+impl Passphrase {
+    /// Creates a new [`Passphrase`] from owned [`String`]
+    ///
+    /// # Examples
+    /// ```
+    /// use nethsm::Passphrase;
+    ///
+    /// let passphrase = Passphrase::new("passphrase".to_string());
+    /// ```
+    pub fn new(passphrase: String) -> Self {
+        Self(SecretString::new(passphrase))
+    }
+
+    /// Exposes the secret passphrase as owned [`String`]
+    ///
+    /// This is a convenience function, as much of [`nethsm_sdk_rs`] exclusively deals with owned
+    /// strings.
+    pub fn expose_owned(&self) -> String {
+        self.0.expose_secret().to_owned()
+    }
+}
+
+impl FromStr for Passphrase {
+    type Err = Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(Self(
+            SecretString::from_str(s).map_err(|_| Error::Passphrase)?,
+        ))
+    }
 }
 
 /// The URL used for connecting to a NetHSM instance
@@ -356,7 +444,7 @@ pub struct NetHsm {
     /// The API configuration for a NetHSM
     config: RefCell<Configuration>,
     /// Credentials for interacting with the NetHSM using [`NetHsm::config`]
-    users: RefCell<Vec<BasicAuth>>,
+    users: RefCell<Vec<Credentials>>,
 }
 
 impl NetHsm {
@@ -376,7 +464,7 @@ impl NetHsm {
     pub fn new(
         url: Url,
         connection_security: ConnectionSecurity,
-        credentials: Option<BasicAuth>,
+        credentials: Option<Credentials>,
         max_idle_connections: Option<usize>,
         timeout_seconds: Option<u64>,
     ) -> Result<Self, Error> {
@@ -446,7 +534,7 @@ impl NetHsm {
         let api_config = RefCell::new(Configuration {
             client: agent,
             base_path: url.to_string(),
-            basic_auth: credentials.clone(),
+            basic_auth: credentials.as_ref().map(|x| x.into()),
             user_agent: Some(USER_AGENT.to_string()),
             ..Default::default()
         });
@@ -498,7 +586,7 @@ impl NetHsm {
     ///
     /// ```
     /// # use testresult::TestResult;
-    /// use nethsm::{ConnectionSecurity, Error, NetHsm};
+    /// use nethsm::{ConnectionSecurity, Credentials, Error, NetHsm, Passphrase};
     ///
     /// # fn main() -> TestResult {
     /// let nethsm = NetHsm::new(
@@ -510,15 +598,21 @@ impl NetHsm {
     /// )?;
     ///
     /// // add credentials
-    /// nethsm.add_credentials(("admin".to_string(), Some("passphrase".to_string())));
-    /// nethsm.add_credentials(("user1".to_string(), Some("other_passphrase".to_string())));
-    /// nethsm.add_credentials(("user2".to_string(), None));
+    /// nethsm.add_credentials(Credentials::new(
+    ///     "admin".to_string(),
+    ///     Some(Passphrase::new("passphrase".to_string())),
+    /// ));
+    /// nethsm.add_credentials(Credentials::new(
+    ///     "user1".to_string(),
+    ///     Some(Passphrase::new("other_passphrase".to_string())),
+    /// ));
+    /// nethsm.add_credentials(Credentials::new("user2".to_string(), None));
     /// # Ok(())
     /// # }
     /// ```
-    pub fn add_credentials(&self, credentials: BasicAuth) {
+    pub fn add_credentials(&self, credentials: Credentials) {
         // remove any previously existing credentials (User IDs are unique)
-        self.remove_credentials(&credentials.0);
+        self.remove_credentials(&credentials.user_id);
         self.users.borrow_mut().push(credentials)
     }
 
@@ -531,13 +625,16 @@ impl NetHsm {
     ///
     /// ```
     /// # use testresult::TestResult;
-    /// use nethsm::{ConnectionSecurity, NetHsm};
+    /// use nethsm::{ConnectionSecurity, Credentials, NetHsm, Passphrase};
     ///
     /// # fn main() -> TestResult {
     /// let nethsm = NetHsm::new(
     ///     "https://example.org/api/v1".try_into()?,
     ///     ConnectionSecurity::Unsafe,
-    ///     Some(("admin".to_string(), Some("passphrase".to_string()))),
+    ///     Some(Credentials::new(
+    ///         "admin".to_string(),
+    ///         Some(Passphrase::new("passphrase".to_string())),
+    ///     )),
     ///     None,
     ///     None,
     /// )?;
@@ -548,7 +645,9 @@ impl NetHsm {
     /// # }
     /// ```
     pub fn remove_credentials(&self, user_id: &str) {
-        self.users.borrow_mut().retain(|cred| cred.0 != user_id);
+        self.users
+            .borrow_mut()
+            .retain(|cred| cred.user_id != user_id);
         if self
             .config
             .borrow()
@@ -570,7 +669,7 @@ impl NetHsm {
     ///
     /// ```
     /// # use testresult::TestResult;
-    /// use nethsm::{ConnectionSecurity, Error, NetHsm};
+    /// use nethsm::{ConnectionSecurity, Credentials, Error, NetHsm, Passphrase};
     ///
     /// # fn main() -> TestResult {
     /// let nethsm = NetHsm::new(
@@ -582,8 +681,14 @@ impl NetHsm {
     /// )?;
     ///
     /// // add credentials
-    /// nethsm.add_credentials(("admin".to_string(), Some("passphrase".to_string())));
-    /// nethsm.add_credentials(("user1".to_string(), Some("other_passphrase".to_string())));
+    /// nethsm.add_credentials(Credentials::new(
+    ///     "admin".to_string(),
+    ///     Some(Passphrase::new("passphrase".to_string())),
+    /// ));
+    /// nethsm.add_credentials(Credentials::new(
+    ///     "user1".to_string(),
+    ///     Some(Passphrase::new("other_passphrase".to_string())),
+    /// ));
     ///
     /// // use admin credentials
     /// nethsm.use_credentials("admin")?;
@@ -597,14 +702,13 @@ impl NetHsm {
     /// # }
     /// ```
     pub fn use_credentials(&self, user_id: &str) -> Result<(), Error> {
-        if let Some(basic_auth) = self
+        if let Some(credentials) = self
             .users
             .borrow()
             .iter()
-            .find(|&basic_auth| basic_auth.0 == user_id)
+            .find(|&credentials| credentials.user_id == user_id)
         {
-            let passphrase = basic_auth.1.as_ref().cloned();
-            self.config.borrow_mut().basic_auth = Some((basic_auth.0.clone(), passphrase));
+            self.config.borrow_mut().basic_auth = Some(credentials.into());
             Ok(())
         } else {
             Err(Error::Default(format!(
@@ -636,7 +740,7 @@ impl NetHsm {
     /// ```no_run
     /// # use testresult::TestResult;
     /// use chrono::Utc;
-    /// use nethsm::{ConnectionSecurity, Error, NetHsm};
+    /// use nethsm::{ConnectionSecurity, Error, NetHsm, Passphrase};
     ///
     /// # fn main() -> TestResult {
     /// // no initial credentials are required
@@ -650,8 +754,8 @@ impl NetHsm {
     ///
     /// // provision the device
     /// nethsm.provision(
-    ///     "unlock-the-device".to_string(),
-    ///     "admin-passphrase".to_string(),
+    ///     Passphrase::new("unlock-the-device".to_string()),
+    ///     Passphrase::new("admin-passphrase".to_string()),
     ///     Utc::now(),
     /// )?;
     /// # Ok(())
@@ -659,13 +763,13 @@ impl NetHsm {
     /// ```
     pub fn provision(
         &self,
-        unlock_passphrase: String,
-        admin_passphrase: String,
+        unlock_passphrase: Passphrase,
+        admin_passphrase: Passphrase,
         system_time: DateTime<Utc>,
     ) -> Result<(), Error> {
         let provision_request_data = ProvisionRequestData::new(
-            unlock_passphrase,
-            admin_passphrase,
+            unlock_passphrase.expose_owned(),
+            admin_passphrase.expose_owned(),
             system_time.to_rfc3339_opts(chrono::SecondsFormat::Secs, true),
         );
         provision_post(&self.config.borrow(), provision_request_data).map_err(|error| {
@@ -856,16 +960,16 @@ impl NetHsm {
     ///
     /// ```no_run
     /// # use testresult::TestResult;
-    /// use nethsm::{ConnectionSecurity, Error, NetHsm};
+    /// use nethsm::{ConnectionSecurity, Credentials, Error, NetHsm, Passphrase};
     ///
     /// # fn main() -> TestResult {
     /// // create a connection with a user in the "metrics" role
     /// let nethsm = NetHsm::new(
     ///     "https://example.org/api/v1".try_into()?,
     ///     ConnectionSecurity::Unsafe,
-    ///     Some((
+    ///     Some(Credentials::new(
     ///         "metrics".to_string(),
-    ///         Some("metrics-passphrase".to_string()),
+    ///         Some(Passphrase::new("metrics-passphrase".to_string())),
     ///     )),
     ///     None,
     ///     None,
@@ -904,34 +1008,40 @@ impl NetHsm {
     ///
     /// ```no_run
     /// # use testresult::TestResult;
-    /// use nethsm::{ConnectionSecurity, Error, NetHsm};
+    /// use nethsm::{ConnectionSecurity, Credentials, Error, NetHsm, Passphrase};
     ///
     /// # fn main() -> TestResult {
     /// // create a connection with a user in the "admin" role
     /// let nethsm = NetHsm::new(
     ///     "https://example.org/api/v1".try_into()?,
     ///     ConnectionSecurity::Unsafe,
-    ///     Some(("admin".to_string(), Some("admin-passphrase".to_string()))),
+    ///     Some(Credentials::new(
+    ///         "admin".to_string(),
+    ///         Some(Passphrase::new("passphrase".to_string())),
+    ///     )),
     ///     None,
     ///     None,
     /// )?;
     ///
     /// // set the unlock passphrase
     /// nethsm.set_unlock_passphrase(
-    ///     "current-unlock-passphrase".to_string(),
-    ///     "new-unlock-passphrase".to_string(),
+    ///     Passphrase::new("current-unlock-passphrase".to_string()),
+    ///     Passphrase::new("new-unlock-passphrase".to_string()),
     /// )?;
     /// # Ok(())
     /// # }
     /// ```
     pub fn set_unlock_passphrase(
         &self,
-        current_passphrase: String,
-        new_passphrase: String,
+        current_passphrase: Passphrase,
+        new_passphrase: Passphrase,
     ) -> Result<(), Error> {
         config_unlock_passphrase_put(
             &self.config.borrow(),
-            UnlockPassphraseConfig::new(new_passphrase, current_passphrase),
+            UnlockPassphraseConfig::new(
+                new_passphrase.expose_owned(),
+                current_passphrase.expose_owned(),
+            ),
         )
         .map_err(|error| {
             Error::Api(format!(
@@ -959,14 +1069,17 @@ impl NetHsm {
     ///
     /// ```no_run
     /// # use testresult::TestResult;
-    /// use nethsm::{ConnectionSecurity, Error, NetHsm};
+    /// use nethsm::{ConnectionSecurity, Credentials, Error, NetHsm, Passphrase};
     ///
     /// # fn main() -> TestResult {
     /// // create a connection with a user in the "admin" role
     /// let nethsm = NetHsm::new(
     ///     "https://example.org/api/v1".try_into()?,
     ///     ConnectionSecurity::Unsafe,
-    ///     Some(("admin".to_string(), Some("admin-passphrase".to_string()))),
+    ///     Some(Credentials::new(
+    ///         "admin".to_string(),
+    ///         Some(Passphrase::new("passphrase".to_string())),
+    ///     )),
     ///     None,
     ///     None,
     /// )?;
@@ -1006,14 +1119,17 @@ impl NetHsm {
     ///
     /// ```no_run
     /// # use testresult::TestResult;
-    /// use nethsm::{BootMode, ConnectionSecurity, Error, NetHsm};
+    /// use nethsm::{BootMode, ConnectionSecurity, Credentials, Error, NetHsm, Passphrase};
     ///
     /// # fn main() -> TestResult {
     /// // create a connection with a user in the "admin" role
     /// let nethsm = NetHsm::new(
     ///     "https://example.org/api/v1".try_into()?,
     ///     ConnectionSecurity::Unsafe,
-    ///     Some(("admin".to_string(), Some("admin-passphrase".to_string()))),
+    ///     Some(Credentials::new(
+    ///         "admin".to_string(),
+    ///         Some(Passphrase::new("passphrase".to_string())),
+    ///     )),
     ///     None,
     ///     None,
     /// )?;
@@ -1054,14 +1170,17 @@ impl NetHsm {
     ///
     /// ```no_run
     /// # use testresult::TestResult;
-    /// use nethsm::{ConnectionSecurity, Error, NetHsm};
+    /// use nethsm::{ConnectionSecurity, Credentials, Error, NetHsm, Passphrase};
     ///
     /// # fn main() -> TestResult {
     /// // create a connection with a user in the "admin" role
     /// let nethsm = NetHsm::new(
     ///     "https://example.org/api/v1".try_into()?,
     ///     ConnectionSecurity::Unsafe,
-    ///     Some(("admin".to_string(), Some("admin-passphrase".to_string()))),
+    ///     Some(Credentials::new(
+    ///         "admin".to_string(),
+    ///         Some(Passphrase::new("passphrase".to_string())),
+    ///     )),
     ///     None,
     ///     None,
     /// )?;
@@ -1099,14 +1218,17 @@ impl NetHsm {
     ///
     /// ```no_run
     /// # use testresult::TestResult;
-    /// use nethsm::{ConnectionSecurity, Error, NetHsm};
+    /// use nethsm::{ConnectionSecurity, Credentials, Error, NetHsm, Passphrase};
     ///
     /// # fn main() -> TestResult {
     /// // create a connection with a user in the "admin" role
     /// let nethsm = NetHsm::new(
     ///     "https://example.org/api/v1".try_into()?,
     ///     ConnectionSecurity::Unsafe,
-    ///     Some(("admin".to_string(), Some("admin-passphrase".to_string()))),
+    ///     Some(Credentials::new(
+    ///         "admin".to_string(),
+    ///         Some(Passphrase::new("passphrase".to_string())),
+    ///     )),
     ///     None,
     ///     None,
     /// )?;
@@ -1147,14 +1269,17 @@ impl NetHsm {
     ///
     /// ```no_run
     /// # use testresult::TestResult;
-    /// use nethsm::{ConnectionSecurity, DistinguishedName, Error, NetHsm};
+    /// use nethsm::{ConnectionSecurity, Credentials, DistinguishedName, Error, NetHsm, Passphrase};
     ///
     /// # fn main() -> TestResult {
     /// // create a connection with a user in the "admin" role
     /// let nethsm = NetHsm::new(
     ///     "https://example.org/api/v1".try_into()?,
     ///     ConnectionSecurity::Unsafe,
-    ///     Some(("admin".to_string(), Some("admin-passphrase".to_string()))),
+    ///     Some(Credentials::new(
+    ///         "admin".to_string(),
+    ///         Some(Passphrase::new("passphrase".to_string())),
+    ///     )),
     ///     None,
     ///     None,
     /// )?;
@@ -1208,14 +1333,17 @@ impl NetHsm {
     ///
     /// ```no_run
     /// # use testresult::TestResult;
-    /// use nethsm::{ConnectionSecurity, Error, NetHsm, TlsKeyType};
+    /// use nethsm::{ConnectionSecurity, Credentials, Error, NetHsm, Passphrase, TlsKeyType};
     ///
     /// # fn main() -> TestResult {
     /// // create a connection with a user in the "admin" role
     /// let nethsm = NetHsm::new(
     ///     "https://example.org/api/v1".try_into()?,
     ///     ConnectionSecurity::Unsafe,
-    ///     Some(("admin".to_string(), Some("admin-passphrase".to_string()))),
+    ///     Some(Credentials::new(
+    ///         "admin".to_string(),
+    ///         Some(Passphrase::new("passphrase".to_string())),
+    ///     )),
     ///     None,
     ///     None,
     /// )?;
@@ -1266,14 +1394,17 @@ impl NetHsm {
     ///
     /// ```no_run
     /// # use testresult::TestResult;
-    /// use nethsm::{ConnectionSecurity, Error, NetHsm};
+    /// use nethsm::{ConnectionSecurity, Credentials, Error, NetHsm, Passphrase};
     ///
     /// # fn main() -> TestResult {
     /// // create a connection with a user in the "admin" role
     /// let nethsm = NetHsm::new(
     ///     "https://example.org/api/v1".try_into()?,
     ///     ConnectionSecurity::Unsafe,
-    ///     Some(("admin".to_string(), Some("admin-passphrase".to_string()))),
+    ///     Some(Credentials::new(
+    ///         "admin".to_string(),
+    ///         Some(Passphrase::new("passphrase".to_string())),
+    ///     )),
     ///     None,
     ///     None,
     /// )?;
@@ -1321,14 +1452,17 @@ impl NetHsm {
     ///
     /// ```no_run
     /// # use testresult::TestResult;
-    /// use nethsm::{ConnectionSecurity, Error, NetHsm};
+    /// use nethsm::{ConnectionSecurity, Credentials, Error, NetHsm, Passphrase};
     ///
     /// # fn main() -> TestResult {
     /// // create a connection with a user in the "admin" role
     /// let nethsm = NetHsm::new(
     ///     "https://example.org/api/v1".try_into()?,
     ///     ConnectionSecurity::Unsafe,
-    ///     Some(("admin".to_string(), Some("admin-passphrase".to_string()))),
+    ///     Some(Credentials::new(
+    ///         "admin".to_string(),
+    ///         Some(Passphrase::new("passphrase".to_string())),
+    ///     )),
     ///     None,
     ///     None,
     /// )?;
@@ -1368,14 +1502,17 @@ impl NetHsm {
     ///
     /// ```no_run
     /// # use testresult::TestResult;
-    /// use nethsm::{ConnectionSecurity, Error, NetHsm, NetworkConfig};
+    /// use nethsm::{ConnectionSecurity, Credentials, Error, NetHsm, NetworkConfig, Passphrase};
     ///
     /// # fn main() -> TestResult {
     /// // create a connection with a user in the "admin" role
     /// let nethsm = NetHsm::new(
     ///     "https://example.org/api/v1".try_into()?,
     ///     ConnectionSecurity::Unsafe,
-    ///     Some(("admin".to_string(), Some("admin-passphrase".to_string()))),
+    ///     Some(Credentials::new(
+    ///         "admin".to_string(),
+    ///         Some(Passphrase::new("passphrase".to_string())),
+    ///     )),
     ///     None,
     ///     None,
     /// )?;
@@ -1418,14 +1555,17 @@ impl NetHsm {
     ///
     /// ```no_run
     /// # use testresult::TestResult;
-    /// use nethsm::{ConnectionSecurity, Error, NetHsm};
+    /// use nethsm::{ConnectionSecurity, Credentials, Error, NetHsm, Passphrase};
     ///
     /// # fn main() -> TestResult {
     /// // create a connection with a user in the "admin" role
     /// let nethsm = NetHsm::new(
     ///     "https://example.org/api/v1".try_into()?,
     ///     ConnectionSecurity::Unsafe,
-    ///     Some(("admin".to_string(), Some("admin-passphrase".to_string()))),
+    ///     Some(Credentials::new(
+    ///         "admin".to_string(),
+    ///         Some(Passphrase::new("passphrase".to_string())),
+    ///     )),
     ///     None,
     ///     None,
     /// )?;
@@ -1466,14 +1606,17 @@ impl NetHsm {
     /// ```no_run
     /// # use testresult::TestResult;
     /// use chrono::Utc;
-    /// use nethsm::{ConnectionSecurity, Error, NetHsm};
+    /// use nethsm::{ConnectionSecurity, Credentials, Error, NetHsm, Passphrase};
     ///
     /// # fn main() -> TestResult {
     /// // create a connection with a user in the "admin" role
     /// let nethsm = NetHsm::new(
     ///     "https://example.org/api/v1".try_into()?,
     ///     ConnectionSecurity::Unsafe,
-    ///     Some(("admin".to_string(), Some("admin-passphrase".to_string()))),
+    ///     Some(Credentials::new(
+    ///         "admin".to_string(),
+    ///         Some(Passphrase::new("passphrase".to_string())),
+    ///     )),
     ///     None,
     ///     None,
     /// )?;
@@ -1515,14 +1658,17 @@ impl NetHsm {
     ///
     /// ```no_run
     /// # use testresult::TestResult;
-    /// use nethsm::{ConnectionSecurity, Error, NetHsm};
+    /// use nethsm::{ConnectionSecurity, Credentials, Error, NetHsm, Passphrase};
     ///
     /// # fn main() -> TestResult {
     /// // create a connection with a user in the "admin" role
     /// let nethsm = NetHsm::new(
     ///     "https://example.org/api/v1".try_into()?,
     ///     ConnectionSecurity::Unsafe,
-    ///     Some(("admin".to_string(), Some("admin-passphrase".to_string()))),
+    ///     Some(Credentials::new(
+    ///         "admin".to_string(),
+    ///         Some(Passphrase::new("passphrase".to_string())),
+    ///     )),
     ///     None,
     ///     None,
     /// )?;
@@ -1565,14 +1711,17 @@ impl NetHsm {
     /// # use testresult::TestResult;
     /// use std::net::Ipv4Addr;
     ///
-    /// use nethsm::{ConnectionSecurity, Error, LogLevel, NetHsm};
+    /// use nethsm::{ConnectionSecurity, Credentials, Error, LogLevel, NetHsm, Passphrase};
     ///
     /// # fn main() -> TestResult {
     /// // create a connection with a user in the "admin" role
     /// let nethsm = NetHsm::new(
     ///     "https://example.org/api/v1".try_into()?,
     ///     ConnectionSecurity::Unsafe,
-    ///     Some(("admin".to_string(), Some("admin-passphrase".to_string()))),
+    ///     Some(Credentials::new(
+    ///         "admin".to_string(),
+    ///         Some(Passphrase::new("passphrase".to_string())),
+    ///     )),
     ///     None,
     ///     None,
     /// )?;
@@ -1623,34 +1772,40 @@ impl NetHsm {
     ///
     /// ```no_run
     /// # use testresult::TestResult;
-    /// use nethsm::{ConnectionSecurity, Error, NetHsm};
+    /// use nethsm::{ConnectionSecurity, Credentials, Error, NetHsm, Passphrase};
     ///
     /// # fn main() -> TestResult {
     /// // create a connection with a user in the "admin" role
     /// let nethsm = NetHsm::new(
     ///     "https://example.org/api/v1".try_into()?,
     ///     ConnectionSecurity::Unsafe,
-    ///     Some(("admin".to_string(), Some("admin-passphrase".to_string()))),
+    ///     Some(Credentials::new(
+    ///         "admin".to_string(),
+    ///         Some(Passphrase::new("passphrase".to_string())),
+    ///     )),
     ///     None,
     ///     None,
     /// )?;
     ///
     /// // set the backup passphrase
     /// nethsm.set_backup_passphrase(
-    ///     "current-backup-passphrase".to_string(),
-    ///     "new-backup-passphrase".to_string(),
+    ///     Passphrase::new("current-backup-passphrase".to_string()),
+    ///     Passphrase::new("new-backup-passphrase".to_string()),
     /// )?;
     /// # Ok(())
     /// # }
     /// ```
     pub fn set_backup_passphrase(
         &self,
-        current_passphrase: String,
-        new_passphrase: String,
+        current_passphrase: Passphrase,
+        new_passphrase: Passphrase,
     ) -> Result<(), Error> {
         config_backup_passphrase_put(
             &self.config.borrow(),
-            BackupPassphraseConfig::new(new_passphrase, current_passphrase),
+            BackupPassphraseConfig::new(
+                new_passphrase.expose_owned(),
+                current_passphrase.expose_owned(),
+            ),
         )
         .map_err(|error| {
             Error::Api(format!(
@@ -1682,14 +1837,17 @@ impl NetHsm {
     /// # use testresult::TestResult;
     /// use std::path::PathBuf;
     ///
-    /// use nethsm::{ConnectionSecurity, Error, NetHsm};
+    /// use nethsm::{ConnectionSecurity, Credentials, Error, NetHsm, Passphrase};
     ///
     /// # fn main() -> TestResult {
     /// // create a connection with a user in the "admin" role
     /// let nethsm = NetHsm::new(
     ///     "https://example.org/api/v1".try_into()?,
     ///     ConnectionSecurity::Unsafe,
-    ///     Some(("admin".to_string(), Some("admin-passphrase".to_string()))),
+    ///     Some(Credentials::new(
+    ///         "admin".to_string(),
+    ///         Some(Passphrase::new("passphrase".to_string())),
+    ///     )),
     ///     None,
     ///     None,
     /// )?;
@@ -1730,14 +1888,17 @@ impl NetHsm {
     ///
     /// ```no_run
     /// # use testresult::TestResult;
-    /// use nethsm::{ConnectionSecurity, Error, NetHsm, SystemState};
+    /// use nethsm::{ConnectionSecurity, Credentials, Error, NetHsm, Passphrase, SystemState};
     ///
     /// # fn main() -> TestResult {
     /// // create a connection with a user in the "admin" role
     /// let nethsm = NetHsm::new(
     ///     "https://example.org/api/v1".try_into()?,
     ///     ConnectionSecurity::Unsafe,
-    ///     Some(("admin".to_string(), Some("admin-passphrase".to_string()))),
+    ///     Some(Credentials::new(
+    ///         "admin".to_string(),
+    ///         Some(Passphrase::new("passphrase".to_string())),
+    ///     )),
     ///     None,
     ///     None,
     /// )?;
@@ -1788,7 +1949,7 @@ impl NetHsm {
     /// use std::path::PathBuf;
     ///
     /// use chrono::Utc;
-    /// use nethsm::{ConnectionSecurity, Error, NetHsm, SystemState};
+    /// use nethsm::{ConnectionSecurity, Credentials, Error, NetHsm, Passphrase};
     ///
     /// #
     /// # fn main() -> TestResult {
@@ -1796,7 +1957,10 @@ impl NetHsm {
     /// let nethsm = NetHsm::new(
     ///     "https://example.org/api/v1".try_into()?,
     ///     ConnectionSecurity::Unsafe,
-    ///     Some(("admin".to_string(), Some("admin-passphrase".to_string()))),
+    ///     Some(Credentials::new(
+    ///         "admin".to_string(),
+    ///         Some(Passphrase::new("passphrase".to_string())),
+    ///     )),
     ///     None,
     ///     None,
     /// )?;
@@ -1804,20 +1968,24 @@ impl NetHsm {
     /// // restore from backup
     /// let backup_file = PathBuf::from("nethsm.bkp");
     /// let backup = std::fs::read(backup_file)?;
-    /// nethsm.restore("backup-passphrase".to_string(), Utc::now(), backup)?;
+    /// nethsm.restore(
+    ///     Passphrase::new("backup-passphrase".to_string()),
+    ///     Utc::now(),
+    ///     backup,
+    /// )?;
     /// # Ok(())
     /// # }
     /// ```
     pub fn restore(
         &self,
-        backup_passphrase: String,
+        backup_passphrase: Passphrase,
         system_time: DateTime<Utc>,
         backup: Vec<u8>,
     ) -> Result<(), Error> {
         system_restore_post(
             &self.config.borrow(),
             Some(nethsm_sdk_rs::models::RestoreRequestArguments {
-                backup_passphrase: Some(backup_passphrase),
+                backup_passphrase: Some(backup_passphrase.expose_owned()),
                 system_time: Some(system_time.to_rfc3339_opts(chrono::SecondsFormat::Secs, true)),
             }),
             Some(backup),
@@ -1848,14 +2016,17 @@ impl NetHsm {
     ///
     /// ```no_run
     /// # use testresult::TestResult;
-    /// use nethsm::{ConnectionSecurity, Error, NetHsm, SystemState};
+    /// use nethsm::{ConnectionSecurity, Credentials, Error, NetHsm, Passphrase, SystemState};
     ///
     /// # fn main() -> TestResult {
     /// // create a connection with a user in the "admin" role
     /// let nethsm = NetHsm::new(
     ///     "https://example.org/api/v1".try_into()?,
     ///     ConnectionSecurity::Unsafe,
-    ///     Some(("admin".to_string(), Some("admin-passphrase".to_string()))),
+    ///     Some(Credentials::new(
+    ///         "admin".to_string(),
+    ///         Some(Passphrase::new("passphrase".to_string())),
+    ///     )),
     ///     None,
     ///     None,
     /// )?;
@@ -1895,29 +2066,32 @@ impl NetHsm {
     ///
     /// ```no_run
     /// # use testresult::TestResult;
-    /// use nethsm::{ConnectionSecurity, Error, NetHsm, SystemState};
+    /// use nethsm::{ConnectionSecurity, Credentials, Error, NetHsm, Passphrase, SystemState};
     ///
     /// # fn main() -> TestResult {
     /// // create a connection with a user in the "admin" role
     /// let nethsm = NetHsm::new(
     ///     "https://example.org/api/v1".try_into()?,
     ///     ConnectionSecurity::Unsafe,
-    ///     Some(("admin".to_string(), Some("admin-passphrase".to_string()))),
+    ///     Some(Credentials::new(
+    ///         "admin".to_string(),
+    ///         Some(Passphrase::new("passphrase".to_string())),
+    ///     )),
     ///     None,
     ///     None,
     /// )?;
     ///
     /// assert_eq!(nethsm.state()?, SystemState::Locked);
     /// // unlock the device
-    /// nethsm.unlock("unlock-passphrase".to_string())?;
+    /// nethsm.unlock(Passphrase::new("unlock-passphrase".to_string()))?;
     /// assert_eq!(nethsm.state()?, SystemState::Operational);
     /// # Ok(())
     /// # }
     /// ```
-    pub fn unlock(&self, unlock_passphrase: String) -> Result<(), Error> {
+    pub fn unlock(&self, unlock_passphrase: Passphrase) -> Result<(), Error> {
         unlock_post(
             &self.config.borrow(),
-            UnlockRequestData::new(unlock_passphrase),
+            UnlockRequestData::new(unlock_passphrase.expose_owned()),
         )
         .map_err(|error| {
             Error::Api(format!(
@@ -1947,14 +2121,17 @@ impl NetHsm {
     ///
     /// ```no_run
     /// # use testresult::TestResult;
-    /// use nethsm::{ConnectionSecurity, Error, NetHsm, SystemState};
+    /// use nethsm::{ConnectionSecurity, Credentials, Error, NetHsm, Passphrase, SystemState};
     ///
     /// # fn main() -> TestResult {
     /// // create a connection with a user in the "admin" role
     /// let nethsm = NetHsm::new(
     ///     "https://example.org/api/v1".try_into()?,
     ///     ConnectionSecurity::Unsafe,
-    ///     Some(("admin".to_string(), Some("admin-passphrase".to_string()))),
+    ///     Some(Credentials::new(
+    ///         "admin".to_string(),
+    ///         Some(Passphrase::new("passphrase".to_string())),
+    ///     )),
     ///     None,
     ///     None,
     /// )?;
@@ -1994,14 +2171,17 @@ impl NetHsm {
     ///
     /// ```no_run
     /// # use testresult::TestResult;
-    /// use nethsm::{ConnectionSecurity, Error, NetHsm, SystemState};
+    /// use nethsm::{ConnectionSecurity, Credentials, Error, NetHsm, Passphrase, SystemState};
     ///
     /// # fn main() -> TestResult {
     /// // create a connection with a user in the "admin" role
     /// let nethsm = NetHsm::new(
     ///     "https://example.org/api/v1".try_into()?,
     ///     ConnectionSecurity::Unsafe,
-    ///     Some(("admin".to_string(), Some("admin-passphrase".to_string()))),
+    ///     Some(Credentials::new(
+    ///         "admin".to_string(),
+    ///         Some(Passphrase::new("passphrase".to_string())),
+    ///     )),
     ///     None,
     ///     None,
     /// )?;
@@ -2040,14 +2220,17 @@ impl NetHsm {
     ///
     /// ```no_run
     /// # use testresult::TestResult;
-    /// use nethsm::{ConnectionSecurity, Error, NetHsm, SystemState};
+    /// use nethsm::{ConnectionSecurity, Credentials, Error, NetHsm, Passphrase, SystemState};
     ///
     /// # fn main() -> TestResult {
     /// // create a connection with a user in the "admin" role
     /// let nethsm = NetHsm::new(
     ///     "https://example.org/api/v1".try_into()?,
     ///     ConnectionSecurity::Unsafe,
-    ///     Some(("admin".to_string(), Some("admin-passphrase".to_string()))),
+    ///     Some(Credentials::new(
+    ///         "admin".to_string(),
+    ///         Some(Passphrase::new("passphrase".to_string())),
+    ///     )),
     ///     None,
     ///     None,
     /// )?;
@@ -2092,14 +2275,17 @@ impl NetHsm {
     ///
     /// ```no_run
     /// # use testresult::TestResult;
-    /// use nethsm::{ConnectionSecurity, Error, NetHsm, SystemState};
+    /// use nethsm::{ConnectionSecurity, Credentials, Error, NetHsm, Passphrase, SystemState};
     ///
     /// # fn main() -> TestResult {
     /// // create a connection with a user in the "admin" role
     /// let nethsm = NetHsm::new(
     ///     "https://example.org/api/v1".try_into()?,
     ///     ConnectionSecurity::Unsafe,
-    ///     Some(("admin".to_string(), Some("admin-passphrase".to_string()))),
+    ///     Some(Credentials::new(
+    ///         "admin".to_string(),
+    ///         Some(Passphrase::new("passphrase".to_string())),
+    ///     )),
     ///     None,
     ///     None,
     /// )?;
@@ -2146,14 +2332,17 @@ impl NetHsm {
     ///
     /// ```no_run
     /// # use testresult::TestResult;
-    /// use nethsm::{ConnectionSecurity, Error, NetHsm, SystemState};
+    /// use nethsm::{ConnectionSecurity, Credentials, Error, NetHsm, Passphrase, SystemState};
     ///
     /// # fn main() -> TestResult {
     /// // create a connection with a user in the "admin" role
     /// let nethsm = NetHsm::new(
     ///     "https://example.org/api/v1".try_into()?,
     ///     ConnectionSecurity::Unsafe,
-    ///     Some(("admin".to_string(), Some("admin-passphrase".to_string()))),
+    ///     Some(Credentials::new(
+    ///         "admin".to_string(),
+    ///         Some(Passphrase::new("passphrase".to_string())),
+    ///     )),
     ///     None,
     ///     None,
     /// )?;
@@ -2199,14 +2388,17 @@ impl NetHsm {
     ///
     /// ```no_run
     /// # use testresult::TestResult;
-    /// use nethsm::{ConnectionSecurity, Error, NetHsm, SystemState};
+    /// use nethsm::{ConnectionSecurity, Credentials, Error, NetHsm, Passphrase, SystemState};
     ///
     /// # fn main() -> TestResult {
     /// // create a connection with a user in the "admin" role
     /// let nethsm = NetHsm::new(
     ///     "https://example.org/api/v1".try_into()?,
     ///     ConnectionSecurity::Unsafe,
-    ///     Some(("admin".to_string(), Some("admin-passphrase".to_string()))),
+    ///     Some(Credentials::new(
+    ///         "admin".to_string(),
+    ///         Some(Passphrase::new("passphrase".to_string())),
+    ///     )),
     ///     None,
     ///     None,
     /// )?;
@@ -2259,14 +2451,17 @@ impl NetHsm {
     ///
     /// ```no_run
     /// # use testresult::TestResult;
-    /// use nethsm::{ConnectionSecurity, Error, NetHsm, UserRole};
+    /// use nethsm::{ConnectionSecurity, Credentials, Error, NetHsm, Passphrase, UserRole};
     ///
     /// # fn main() -> TestResult {
     /// // create a connection with a user in the "admin" role
     /// let nethsm = NetHsm::new(
     ///     "https://example.org/api/v1".try_into()?,
     ///     ConnectionSecurity::Unsafe,
-    ///     Some(("admin".to_string(), Some("admin-passphrase".to_string()))),
+    ///     Some(Credentials::new(
+    ///         "admin".to_string(),
+    ///         Some(Passphrase::new("passphrase".to_string())),
+    ///     )),
     ///     None,
     ///     None,
     /// )?;
@@ -2277,7 +2472,7 @@ impl NetHsm {
     ///     nethsm.add_user(
     ///         "Operator One".to_string(),
     ///         UserRole::Operator,
-    ///         "operator1-passphrase".to_string(),
+    ///         Passphrase::new("operator1-passphrase".to_string()),
     ///         Some("user1".to_string()),
     ///     )?
     /// );
@@ -2287,7 +2482,7 @@ impl NetHsm {
     ///     .add_user(
     ///         "Operator One".to_string(),
     ///         UserRole::Operator,
-    ///         "operator1-passphrase".to_string(),
+    ///         Passphrase::new("operator1-passphrase".to_string()),
     ///         Some("user1".to_string()),
     ///     )
     ///     .is_err());
@@ -2298,14 +2493,14 @@ impl NetHsm {
         &self,
         real_name: String,
         role: UserRole,
-        passphrase: String,
+        passphrase: Passphrase,
         user_id: Option<String>,
     ) -> Result<String, Error> {
         let user_id = if let Some(user_id) = user_id {
             users_user_id_put(
                 &self.config.borrow(),
                 &user_id,
-                UserPostData::new(real_name, role.into(), passphrase.clone()),
+                UserPostData::new(real_name, role.into(), passphrase.expose_owned()),
             )
             .map_err(|error| {
                 Error::Api(format!(
@@ -2317,7 +2512,7 @@ impl NetHsm {
         } else {
             users_post(
                 &self.config.borrow(),
-                UserPostData::new(real_name, role.into(), passphrase.clone()),
+                UserPostData::new(real_name, role.into(), passphrase.expose_owned()),
             )
             .map_err(|error| {
                 Error::Api(format!(
@@ -2330,9 +2525,7 @@ impl NetHsm {
         };
 
         // add to list of users
-        self.users
-            .borrow_mut()
-            .push((user_id.clone(), Some(passphrase)));
+        self.add_credentials(Credentials::new(user_id.clone(), Some(passphrase)));
 
         Ok(user_id)
     }
@@ -2359,14 +2552,17 @@ impl NetHsm {
     ///
     /// ```no_run
     /// # use testresult::TestResult;
-    /// use nethsm::{ConnectionSecurity, Error, NetHsm, UserRole};
+    /// use nethsm::{ConnectionSecurity, Credentials, Error, NetHsm, Passphrase, UserRole};
     ///
     /// # fn main() -> TestResult {
     /// // create a connection with a user in the "admin" role
     /// let nethsm = NetHsm::new(
     ///     "https://example.org/api/v1".try_into()?,
     ///     ConnectionSecurity::Unsafe,
-    ///     Some(("admin".to_string(), Some("admin-passphrase".to_string()))),
+    ///     Some(Credentials::new(
+    ///         "admin".to_string(),
+    ///         Some(Passphrase::new("passphrase".to_string())),
+    ///     )),
     ///     None,
     ///     None,
     /// )?;
@@ -2377,7 +2573,7 @@ impl NetHsm {
     ///     nethsm.add_user(
     ///         "Operator One".to_string(),
     ///         UserRole::Operator,
-    ///         "operator1-passphrase".to_string(),
+    ///         Passphrase::new("operator1-passphrase".to_string()),
     ///         Some("user1".to_string()),
     ///     )?
     /// );
@@ -2419,14 +2615,17 @@ impl NetHsm {
     ///
     /// ```no_run
     /// # use testresult::TestResult;
-    /// use nethsm::{ConnectionSecurity, Error, NetHsm};
+    /// use nethsm::{ConnectionSecurity, Credentials, Error, NetHsm, Passphrase};
     ///
     /// # fn main() -> TestResult {
     /// // create a connection with a user in the "admin" role
     /// let nethsm = NetHsm::new(
     ///     "https://example.org/api/v1".try_into()?,
     ///     ConnectionSecurity::Unsafe,
-    ///     Some(("admin".to_string(), Some("admin-passphrase".to_string()))),
+    ///     Some(Credentials::new(
+    ///         "admin".to_string(),
+    ///         Some(Passphrase::new("passphrase".to_string())),
+    ///     )),
     ///     None,
     ///     None,
     /// )?;
@@ -2469,14 +2668,17 @@ impl NetHsm {
     ///
     /// ```no_run
     /// # use testresult::TestResult;
-    /// use nethsm::{ConnectionSecurity, Error, NetHsm};
+    /// use nethsm::{ConnectionSecurity, Credentials, Error, NetHsm, Passphrase};
     ///
     /// # fn main() -> TestResult {
     /// // create a connection with a user in the "admin" role
     /// let nethsm = NetHsm::new(
     ///     "https://example.org/api/v1".try_into()?,
     ///     ConnectionSecurity::Unsafe,
-    ///     Some(("admin".to_string(), Some("admin-passphrase".to_string()))),
+    ///     Some(Credentials::new(
+    ///         "admin".to_string(),
+    ///         Some(Passphrase::new("passphrase".to_string())),
+    ///     )),
     ///     None,
     ///     None,
     /// )?;
@@ -2524,28 +2726,31 @@ impl NetHsm {
     ///
     /// ```no_run
     /// # use testresult::TestResult;
-    /// use nethsm::{ConnectionSecurity, Error, NetHsm};
+    /// use nethsm::{ConnectionSecurity, Credentials, Error, NetHsm, Passphrase};
     ///
     /// # fn main() -> TestResult {
     /// // create a connection with a user in the "admin" role
     /// let nethsm = NetHsm::new(
     ///     "https://example.org/api/v1".try_into()?,
     ///     ConnectionSecurity::Unsafe,
-    ///     Some(("admin".to_string(), Some("admin-passphrase".to_string()))),
+    ///     Some(Credentials::new(
+    ///         "admin".to_string(),
+    ///         Some(Passphrase::new("passphrase".to_string())),
+    ///     )),
     ///     None,
     ///     None,
     /// )?;
     ///
     /// // set the admin user's passphrase
-    /// nethsm.set_user_passphrase("admin", "new-admin-passphrase".to_string())?;
+    /// nethsm.set_user_passphrase("admin", Passphrase::new("new-admin-passphrase".to_string()))?;
     /// # Ok(())
     /// # }
     /// ```
-    pub fn set_user_passphrase(&self, user_id: &str, passphrase: String) -> Result<(), Error> {
+    pub fn set_user_passphrase(&self, user_id: &str, passphrase: Passphrase) -> Result<(), Error> {
         users_user_id_passphrase_post(
             &self.config.borrow(),
             user_id,
-            UserPassphrasePostData::new(passphrase.clone()),
+            UserPassphrasePostData::new(passphrase.expose_owned()),
         )
         .map_err(|error| {
             Error::Api(format!(
@@ -2555,7 +2760,7 @@ impl NetHsm {
         })?;
 
         // add to list of available credentials
-        self.add_credentials((user_id.to_string(), Some(passphrase)));
+        self.add_credentials(Credentials::new(user_id.to_string(), Some(passphrase)));
         // if the caller changed their own passphrase, use it
         if self
             .config
@@ -2592,14 +2797,17 @@ impl NetHsm {
     ///
     /// ```no_run
     /// # use testresult::TestResult;
-    /// use nethsm::{ConnectionSecurity, Error, NetHsm, UserRole};
+    /// use nethsm::{ConnectionSecurity, Credentials, Error, NetHsm, Passphrase, UserRole};
     ///
     /// # fn main() -> TestResult {
     /// // create a connection with a user in the "admin" role
     /// let nethsm = NetHsm::new(
     ///     "https://example.org/api/v1".try_into()?,
     ///     ConnectionSecurity::Unsafe,
-    ///     Some(("admin".to_string(), Some("admin-passphrase".to_string()))),
+    ///     Some(Credentials::new(
+    ///         "admin".to_string(),
+    ///         Some(Passphrase::new("passphrase".to_string())),
+    ///     )),
     ///     None,
     ///     None,
     /// )?;
@@ -2610,7 +2818,7 @@ impl NetHsm {
     ///     nethsm.add_user(
     ///         "Operator One".to_string(),
     ///         UserRole::Operator,
-    ///         "operator1-passphrase".to_string(),
+    ///         Passphrase::new("operator1-passphrase".to_string()),
     ///         Some("user1".to_string()),
     ///     )?
     /// );
@@ -2652,14 +2860,17 @@ impl NetHsm {
     ///
     /// ```no_run
     /// # use testresult::TestResult;
-    /// use nethsm::{ConnectionSecurity, Error, NetHsm, UserRole};
+    /// use nethsm::{ConnectionSecurity, Credentials, Error, NetHsm, Passphrase, UserRole};
     ///
     /// # fn main() -> TestResult {
     /// // create a connection with a user in the "admin" role
     /// let nethsm = NetHsm::new(
     ///     "https://example.org/api/v1".try_into()?,
     ///     ConnectionSecurity::Unsafe,
-    ///     Some(("admin".to_string(), Some("admin-passphrase".to_string()))),
+    ///     Some(Credentials::new(
+    ///         "admin".to_string(),
+    ///         Some(Passphrase::new("passphrase".to_string())),
+    ///     )),
     ///     None,
     ///     None,
     /// )?;
@@ -2699,14 +2910,17 @@ impl NetHsm {
     ///
     /// ```no_run
     /// # use testresult::TestResult;
-    /// use nethsm::{ConnectionSecurity, Error, NetHsm, UserRole};
+    /// use nethsm::{ConnectionSecurity, Credentials, Error, NetHsm, Passphrase, UserRole};
     ///
     /// # fn main() -> TestResult {
     /// // create a connection with a user in the "admin" role
     /// let nethsm = NetHsm::new(
     ///     "https://example.org/api/v1".try_into()?,
     ///     ConnectionSecurity::Unsafe,
-    ///     Some(("admin".to_string(), Some("admin-passphrase".to_string()))),
+    ///     Some(Credentials::new(
+    ///         "admin".to_string(),
+    ///         Some(Passphrase::new("passphrase".to_string())),
+    ///     )),
     ///     None,
     ///     None,
     /// )?;
@@ -2717,7 +2931,7 @@ impl NetHsm {
     ///     nethsm.add_user(
     ///         "Operator One".to_string(),
     ///         UserRole::Operator,
-    ///         "operator1-passphrase".to_string(),
+    ///         Passphrase::new("operator1-passphrase".to_string()),
     ///         Some("user1".to_string()),
     ///     )?
     /// );
@@ -2780,14 +2994,25 @@ impl NetHsm {
     ///
     /// ```no_run
     /// # use testresult::TestResult;
-    /// use nethsm::{ConnectionSecurity, Error, KeyMechanism, KeyType, NetHsm};
+    /// use nethsm::{
+    ///     ConnectionSecurity,
+    ///     Credentials,
+    ///     Error,
+    ///     KeyMechanism,
+    ///     KeyType,
+    ///     NetHsm,
+    ///     Passphrase,
+    /// };
     ///
     /// # fn main() -> TestResult {
     /// // create a connection with a user in the "admin" role
     /// let nethsm = NetHsm::new(
     ///     "https://example.org/api/v1".try_into()?,
     ///     ConnectionSecurity::Unsafe,
-    ///     Some(("admin".to_string(), Some("admin-passphrase".to_string()))),
+    ///     Some(Credentials::new(
+    ///         "admin".to_string(),
+    ///         Some(Passphrase::new("passphrase".to_string())),
+    ///     )),
     ///     None,
     ///     None,
     /// )?;
@@ -2889,7 +3114,7 @@ impl NetHsm {
     ///
     /// ```no_run
     /// # use testresult::TestResult;
-    /// use nethsm::{ConnectionSecurity, Error, PrivateKeyImport, KeyMechanism, KeyType, NetHsm};
+    /// use nethsm::{ConnectionSecurity, Credentials, Error, PrivateKeyImport, KeyMechanism, KeyType, NetHsm, Passphrase};
     /// use rsa::pkcs8::{DecodePrivateKey, EncodePrivateKey};
     /// use rsa::RsaPrivateKey;
     ///
@@ -2898,7 +3123,10 @@ impl NetHsm {
     /// let nethsm = NetHsm::new(
     ///     "https://example.org/api/v1".try_into()?,
     ///     ConnectionSecurity::Unsafe,
-    ///     Some(("admin".to_string(), Some("admin-passphrase".to_string()))),
+    ///     Some(Credentials::new(
+    ///         "admin".to_string(),
+    ///         Some(Passphrase::new("passphrase".to_string())),
+    ///     )),
     ///     None,
     ///     None,
     /// )?;
@@ -2996,14 +3224,17 @@ impl NetHsm {
     ///
     /// ```no_run
     /// # use testresult::TestResult;
-    /// use nethsm::{ConnectionSecurity, Error, NetHsm};
+    /// use nethsm::{ConnectionSecurity, Credentials, Error, NetHsm, Passphrase};
     ///
     /// # fn main() -> TestResult {
     /// // create a connection with a user in the "admin" role
     /// let nethsm = NetHsm::new(
     ///     "https://example.org/api/v1".try_into()?,
     ///     ConnectionSecurity::Unsafe,
-    ///     Some(("admin".to_string(), Some("admin-passphrase".to_string()))),
+    ///     Some(Credentials::new(
+    ///         "admin".to_string(),
+    ///         Some(Passphrase::new("passphrase".to_string())),
+    ///     )),
     ///     None,
     ///     None,
     /// )?;
@@ -3044,14 +3275,17 @@ impl NetHsm {
     ///
     /// ```no_run
     /// # use testresult::TestResult;
-    /// use nethsm::{ConnectionSecurity, Error, NetHsm};
+    /// use nethsm::{ConnectionSecurity, Credentials, Error, NetHsm, Passphrase};
     ///
     /// # fn main() -> TestResult {
     /// // create a connection with a user in the "admin" role
     /// let nethsm = NetHsm::new(
     ///     "https://example.org/api/v1".try_into()?,
     ///     ConnectionSecurity::Unsafe,
-    ///     Some(("admin".to_string(), Some("admin-passphrase".to_string()))),
+    ///     Some(Credentials::new(
+    ///         "admin".to_string(),
+    ///         Some(Passphrase::new("passphrase".to_string())),
+    ///     )),
     ///     None,
     ///     None,
     /// )?;
@@ -3093,14 +3327,17 @@ impl NetHsm {
     ///
     /// ```no_run
     /// # use testresult::TestResult;
-    /// use nethsm::{ConnectionSecurity, Error, NetHsm};
+    /// use nethsm::{ConnectionSecurity, Credentials, Error, NetHsm, Passphrase};
     ///
     /// # fn main() -> TestResult {
     /// // create a connection with a user in the "admin" role
     /// let nethsm = NetHsm::new(
     ///     "https://example.org/api/v1".try_into()?,
     ///     ConnectionSecurity::Unsafe,
-    ///     Some(("admin".to_string(), Some("admin-passphrase".to_string()))),
+    ///     Some(Credentials::new(
+    ///         "admin".to_string(),
+    ///         Some(Passphrase::new("passphrase".to_string())),
+    ///     )),
     ///     None,
     ///     None,
     /// )?;
@@ -3149,14 +3386,17 @@ impl NetHsm {
     ///
     /// ```no_run
     /// # use testresult::TestResult;
-    /// use nethsm::{ConnectionSecurity, Error, NetHsm};
+    /// use nethsm::{ConnectionSecurity, Credentials, Error, NetHsm, Passphrase};
     ///
     /// # fn main() -> TestResult {
     /// // create a connection with a user in the "admin" role
     /// let nethsm = NetHsm::new(
     ///     "https://example.org/api/v1".try_into()?,
     ///     ConnectionSecurity::Unsafe,
-    ///     Some(("admin".to_string(), Some("admin-passphrase".to_string()))),
+    ///     Some(Credentials::new(
+    ///         "admin".to_string(),
+    ///         Some(Passphrase::new("passphrase".to_string())),
+    ///     )),
     ///     None,
     ///     None,
     /// )?;
@@ -3203,14 +3443,17 @@ impl NetHsm {
     ///
     /// ```no_run
     /// # use testresult::TestResult;
-    /// use nethsm::{ConnectionSecurity, Error, NetHsm};
+    /// use nethsm::{ConnectionSecurity, Credentials, Error, NetHsm, Passphrase};
     ///
     /// # fn main() -> TestResult {
     /// // create a connection with a user in the "admin" role
     /// let nethsm = NetHsm::new(
     ///     "https://example.org/api/v1".try_into()?,
     ///     ConnectionSecurity::Unsafe,
-    ///     Some(("admin".to_string(), Some("admin-passphrase".to_string()))),
+    ///     Some(Credentials::new(
+    ///         "admin".to_string(),
+    ///         Some(Passphrase::new("passphrase".to_string())),
+    ///     )),
     ///     None,
     ///     None,
     /// )?;
@@ -3254,14 +3497,17 @@ impl NetHsm {
     ///
     /// ```no_run
     /// # use testresult::TestResult;
-    /// use nethsm::{ConnectionSecurity, Error, NetHsm};
+    /// use nethsm::{ConnectionSecurity, Credentials, Error, NetHsm, Passphrase};
     ///
     /// # fn main() -> TestResult {
     /// // create a connection with a user in the "admin" role
     /// let nethsm = NetHsm::new(
     ///     "https://example.org/api/v1".try_into()?,
     ///     ConnectionSecurity::Unsafe,
-    ///     Some(("admin".to_string(), Some("admin-passphrase".to_string()))),
+    ///     Some(Credentials::new(
+    ///         "admin".to_string(),
+    ///         Some(Passphrase::new("passphrase".to_string())),
+    ///     )),
     ///     None,
     ///     None,
     /// )?;
@@ -3308,14 +3554,17 @@ impl NetHsm {
     ///
     /// ```no_run
     /// # use testresult::TestResult;
-    /// use nethsm::{ConnectionSecurity, Error, NetHsm};
+    /// use nethsm::{ConnectionSecurity, Credentials, Error, NetHsm, Passphrase};
     ///
     /// # fn main() -> TestResult {
     /// // create a connection with a user in the "admin" role
     /// let nethsm = NetHsm::new(
     ///     "https://example.org/api/v1".try_into()?,
     ///     ConnectionSecurity::Unsafe,
-    ///     Some(("admin".to_string(), Some("admin-passphrase".to_string()))),
+    ///     Some(Credentials::new(
+    ///         "admin".to_string(),
+    ///         Some(Passphrase::new("passphrase".to_string())),
+    ///     )),
     ///     None,
     ///     None,
     /// )?;
@@ -3377,14 +3626,17 @@ impl NetHsm {
     ///
     /// ```no_run
     /// # use testresult::TestResult;
-    /// use nethsm::{ConnectionSecurity, Error, NetHsm};
+    /// use nethsm::{ConnectionSecurity, Credentials, Error, NetHsm, Passphrase};
     ///
     /// # fn main() -> TestResult {
     /// // create a connection with a user in the "admin" role
     /// let nethsm = NetHsm::new(
     ///     "https://example.org/api/v1".try_into()?,
     ///     ConnectionSecurity::Unsafe,
-    ///     Some(("admin".to_string(), Some("admin-passphrase".to_string()))),
+    ///     Some(Credentials::new(
+    ///         "admin".to_string(),
+    ///         Some(Passphrase::new("passphrase".to_string())),
+    ///     )),
     ///     None,
     ///     None,
     /// )?;
@@ -3426,14 +3678,17 @@ impl NetHsm {
     ///
     /// ```no_run
     /// # use testresult::TestResult;
-    /// use nethsm::{ConnectionSecurity, Error, NetHsm};
+    /// use nethsm::{ConnectionSecurity, Credentials, Error, NetHsm, Passphrase};
     ///
     /// # fn main() -> TestResult {
     /// // create a connection with a user in the "admin" role
     /// let nethsm = NetHsm::new(
     ///     "https://example.org/api/v1".try_into()?,
     ///     ConnectionSecurity::Unsafe,
-    ///     Some(("admin".to_string(), Some("admin-passphrase".to_string()))),
+    ///     Some(Credentials::new(
+    ///         "admin".to_string(),
+    ///         Some(Passphrase::new("passphrase".to_string())),
+    ///     )),
     ///     None,
     ///     None,
     /// )?;
@@ -3478,14 +3733,17 @@ impl NetHsm {
     ///
     /// ```no_run
     /// # use testresult::TestResult;
-    /// use nethsm::{ConnectionSecurity, DistinguishedName, Error, NetHsm};
+    /// use nethsm::{ConnectionSecurity, Credentials, DistinguishedName, Error, NetHsm, Passphrase};
     ///
     /// # fn main() -> TestResult {
     /// // create a connection with a user in the "admin" role
     /// let nethsm = NetHsm::new(
     ///     "https://example.org/api/v1".try_into()?,
     ///     ConnectionSecurity::Unsafe,
-    ///     Some(("admin".to_string(), Some("admin-passphrase".to_string()))),
+    ///     Some(Credentials::new(
+    ///         "admin".to_string(),
+    ///         Some(Passphrase::new("passphrase".to_string())),
+    ///     )),
     ///     None,
     ///     None,
     /// )?;
@@ -3551,14 +3809,17 @@ impl NetHsm {
     ///
     /// ```no_run
     /// # use testresult::TestResult;
-    /// use nethsm::{ConnectionSecurity, Error, NetHsm, SignatureType};
+    /// use nethsm::{ConnectionSecurity, Credentials, Error, NetHsm, Passphrase, SignatureType};
     ///
     /// # fn main() -> TestResult {
-    /// // create a connection with a user in the "admin" role
+    /// // create a connection with a user in the "operator" role
     /// let nethsm = NetHsm::new(
     ///     "https://example.org/api/v1".try_into()?,
     ///     ConnectionSecurity::Unsafe,
-    ///     Some(("admin".to_string(), Some("admin-passphrase".to_string()))),
+    ///     Some(Credentials::new(
+    ///         "operator".to_string(),
+    ///         Some(Passphrase::new("passphrase".to_string())),
+    ///     )),
     ///     None,
     ///     None,
     /// )?;
@@ -3658,14 +3919,17 @@ impl NetHsm {
     ///
     /// ```no_run
     /// # use testresult::TestResult;
-    /// use nethsm::{ConnectionSecurity, EncryptMode, Error, NetHsm};
+    /// use nethsm::{ConnectionSecurity, Credentials, EncryptMode, Error, NetHsm, Passphrase};
     ///
     /// # fn main() -> TestResult {
-    /// // create a connection with a user in the "admin" role
+    /// // create a connection with a user in the "operator" role
     /// let nethsm = NetHsm::new(
     ///     "https://example.org/api/v1".try_into()?,
     ///     ConnectionSecurity::Unsafe,
-    ///     Some(("admin".to_string(), Some("admin-passphrase".to_string()))),
+    ///     Some(Credentials::new(
+    ///         "operator".to_string(),
+    ///         Some(Passphrase::new("passphrase".to_string())),
+    ///     )),
     ///     None,
     ///     None,
     /// )?;
@@ -3749,17 +4013,20 @@ impl NetHsm {
     ///
     /// ```no_run
     /// # use testresult::TestResult;
-    /// use nethsm::{ConnectionSecurity, DecryptMode, EncryptMode, NetHsm};
+    /// use nethsm::{ConnectionSecurity, Credentials, DecryptMode, EncryptMode, NetHsm, Passphrase};
     /// use rsa::pkcs8::DecodePublicKey;
     /// use rsa::Pkcs1v15Encrypt;
     /// use rsa::RsaPublicKey;
     ///
     /// # fn main() -> TestResult {
-    /// // create a connection with a user in the "admin" role
+    /// // create a connection with a user in the "operator" role
     /// let nethsm = NetHsm::new(
     ///     "https://example.org/api/v1".try_into()?,
     ///     ConnectionSecurity::Unsafe,
-    ///     Some(("admin".to_string(), Some("admin-passphrase".to_string()))),
+    ///     Some(Credentials::new(
+    ///         "operator".to_string(),
+    ///         Some(Passphrase::new("passphrase".to_string())),
+    ///     )),
     ///     None,
     ///     None,
     /// )?;
@@ -3844,14 +4111,17 @@ impl NetHsm {
     ///
     /// ```no_run
     /// # use testresult::TestResult;
-    /// use nethsm::{ConnectionSecurity, NetHsm, SystemState};
+    /// use nethsm::{ConnectionSecurity, Credentials, NetHsm, Passphrase, SystemState};
     ///
     /// # fn main() -> TestResult {
     /// // create a connection with a user in the "operator" role
     /// let nethsm = NetHsm::new(
     ///     "https://example.org/api/v1".try_into()?,
     ///     ConnectionSecurity::Unsafe,
-    ///     Some(("user1".to_string(), Some("user1-passphrase".to_string()))),
+    ///     Some(Credentials::new(
+    ///         "operator".to_string(),
+    ///         Some(Passphrase::new("passphrase".to_string())),
+    ///     )),
     ///     None,
     ///     None,
     /// )?;

@@ -4,7 +4,15 @@
 use std::path::PathBuf;
 
 use chrono::Utc;
-use nethsm::{ConnectionSecurity, KeyMechanism, KeyType, NetHsm, UserRole};
+use nethsm::{
+    ConnectionSecurity,
+    Credentials,
+    KeyMechanism,
+    KeyType,
+    NetHsm,
+    Passphrase,
+    UserRole,
+};
 use reqwest::get;
 use rstest::fixture;
 use rustainers::runner::Runner;
@@ -48,7 +56,7 @@ pub async fn new_container() -> TestResult<Container<NetHsmImage>> {
     let image = NetHsmImage::default();
     println!("image: {:#?}", image.image);
     let container = runner.start(image).await?;
-    println!("serving URL: {}", container.url().await?.to_string());
+    println!("serving URL: {}", container.url().await?);
     Ok(container)
 }
 
@@ -61,9 +69,9 @@ pub async fn nethsm_container(
     let nethsm = NetHsm::new(
         container.url().await?,
         ConnectionSecurity::Unsafe,
-        Some((
+        Some(Credentials::new(
             ADMIN_USER_ID.to_string(),
-            Some(ADMIN_USER_PASSPHRASE.to_string()),
+            Some(Passphrase::new(ADMIN_USER_PASSPHRASE.to_string())),
         )),
         None,
         None,
@@ -74,11 +82,14 @@ pub async fn nethsm_container(
 
 fn provision_nethsm(nethsm: &NetHsm) -> TestResult {
     nethsm.provision(
-        UNLOCK_PASSPHRASE.to_string(),
-        ADMIN_USER_PASSPHRASE.to_string(),
+        Passphrase::new(UNLOCK_PASSPHRASE.to_string()),
+        Passphrase::new(ADMIN_USER_PASSPHRASE.to_string()),
         Utc::now(),
     )?;
-    nethsm.set_backup_passphrase("".to_string(), BACKUP_PASSPHRASE.to_string())?;
+    nethsm.set_backup_passphrase(
+        Passphrase::new("".to_string()),
+        Passphrase::new(BACKUP_PASSPHRASE.to_string()),
+    )?;
     Ok(())
 }
 
@@ -121,7 +132,7 @@ fn add_users_to_nethsm(nethsm: &NetHsm) -> TestResult {
         nethsm.add_user(
             real_name.to_string(),
             role,
-            passphrase.to_string(),
+            Passphrase::new(passphrase.to_string()),
             Some(user_id.to_string()),
         )?;
     }

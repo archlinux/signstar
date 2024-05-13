@@ -10,6 +10,8 @@ use common::DEFAULT_OPERATOR_USER_PASSPHRASE;
 use common::OTHER_KEY_ID;
 use common::OTHER_OPERATOR_USER_ID;
 use common::OTHER_OPERATOR_USER_PASSPHRASE;
+use nethsm::Credentials;
+use nethsm::Passphrase;
 use nethsm::{NetHsm, SignatureType};
 use rsa::pkcs1v15::VerifyingKey;
 use rsa::pkcs8::DecodePublicKey;
@@ -30,9 +32,11 @@ async fn signing(
 ) -> TestResult {
     let (nethsm, _container) = nethsm_with_keys.await?;
     // use nethsm as operator user
-    nethsm.add_credentials((
+    nethsm.add_credentials(Credentials::new(
         DEFAULT_OPERATOR_USER_ID.to_string(),
-        Some(DEFAULT_OPERATOR_USER_PASSPHRASE.to_string()),
+        Some(Passphrase::new(
+            DEFAULT_OPERATOR_USER_PASSPHRASE.to_string(),
+        )),
     ));
     nethsm.use_credentials(DEFAULT_OPERATOR_USER_ID)?;
 
@@ -51,9 +55,9 @@ async fn signing(
     pubkey_verifier.verify(MESSAGE, &signature_parsed)?;
 
     // use nethsm as another operator user
-    nethsm.add_credentials((
+    nethsm.add_credentials(Credentials::new(
         OTHER_OPERATOR_USER_ID.to_string(),
-        Some(OTHER_OPERATOR_USER_PASSPHRASE.to_string()),
+        Some(Passphrase::new(OTHER_OPERATOR_USER_PASSPHRASE.to_string())),
     ));
     nethsm.use_credentials(OTHER_OPERATOR_USER_ID)?;
 

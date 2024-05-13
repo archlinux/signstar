@@ -20,10 +20,12 @@ use common::{
 };
 use nethsm::{
     BootMode,
+    Credentials,
     DistinguishedName,
     LogLevel,
     NetHsm,
     NetworkConfig,
+    Passphrase,
     SystemState,
     TlsKeyType,
 };
@@ -144,7 +146,7 @@ async fn lock(
     assert_eq!(SystemState::Operational, nethsm.state()?);
     nethsm.lock()?;
     assert_eq!(SystemState::Locked, nethsm.state()?);
-    nethsm.unlock(UNLOCK_PASSPHRASE.to_string())?;
+    nethsm.unlock(Passphrase::new(UNLOCK_PASSPHRASE.to_string()))?;
     assert_eq!(SystemState::Operational, nethsm.state()?);
     Ok(())
 }
@@ -156,9 +158,9 @@ async fn metrics(
     #[future] nethsm_with_users: TestResult<(NetHsm, Container<NetHsmImage>)>,
 ) -> TestResult {
     let (nethsm, _container) = nethsm_with_users.await?;
-    nethsm.add_credentials((
+    nethsm.add_credentials(Credentials::new(
         METRICS_USER_ID.to_string(),
-        Some(METRICS_USER_PASSPHRASE.to_string()),
+        Some(Passphrase::new(METRICS_USER_PASSPHRASE.to_string())),
     ));
     nethsm.use_credentials(METRICS_USER_ID)?;
 
@@ -192,12 +194,18 @@ async fn create_backup(
 
     // set backup passphrase
     let new_backup_passphrase = "totally-unsafe-passphrase".to_string();
-    nethsm.set_backup_passphrase(BACKUP_PASSPHRASE.to_string(), new_backup_passphrase.clone())?;
-    nethsm.set_backup_passphrase(new_backup_passphrase.clone(), BACKUP_PASSPHRASE.to_string())?;
+    nethsm.set_backup_passphrase(
+        Passphrase::new(BACKUP_PASSPHRASE.to_string()),
+        Passphrase::new(new_backup_passphrase.clone()),
+    )?;
+    nethsm.set_backup_passphrase(
+        Passphrase::new(new_backup_passphrase.clone()),
+        Passphrase::new(BACKUP_PASSPHRASE.to_string()),
+    )?;
 
-    nethsm.add_credentials((
+    nethsm.add_credentials(Credentials::new(
         BACKUP_USER_ID.to_string(),
-        Some(BACKUP_USER_PASSPHRASE.to_string()),
+        Some(Passphrase::new(BACKUP_USER_PASSPHRASE.to_string())),
     ));
     nethsm.use_credentials(BACKUP_USER_ID)?;
 
@@ -210,7 +218,7 @@ async fn create_backup(
     assert!(
         nethsm
             .restore(
-                BACKUP_PASSPHRASE.to_string(),
+                Passphrase::new(BACKUP_PASSPHRASE.to_string()),
                 Utc::now(),
                 std::fs::read(backup_file)?,
             )

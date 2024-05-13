@@ -6,7 +6,9 @@ use common::nethsm_with_users;
 use common::NetHsmImage;
 use common::DEFAULT_OPERATOR_USER_ID;
 use common::DEFAULT_OPERATOR_USER_PASSPHRASE;
+use nethsm::Credentials;
 use nethsm::NetHsm;
+use nethsm::Passphrase;
 use rstest::rstest;
 use rustainers::Container;
 use testresult::TestResult;
@@ -20,9 +22,11 @@ async fn get_random_bytes(
     #[future] nethsm_with_users: TestResult<(NetHsm, Container<NetHsmImage>)>,
 ) -> TestResult {
     let (nethsm, _container) = nethsm_with_users.await?;
-    nethsm.add_credentials((
+    nethsm.add_credentials(Credentials::new(
         DEFAULT_OPERATOR_USER_ID.to_string(),
-        Some(DEFAULT_OPERATOR_USER_PASSPHRASE.to_string()),
+        Some(Passphrase::new(
+            DEFAULT_OPERATOR_USER_PASSPHRASE.to_string(),
+        )),
     ));
     nethsm.use_credentials(DEFAULT_OPERATOR_USER_ID)?;
 

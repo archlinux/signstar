@@ -10,6 +10,8 @@ use common::NetHsmImage;
 use common::ADMIN_USER_ID;
 use common::ADMIN_USER_PASSPHRASE;
 use common::UNLOCK_PASSPHRASE;
+use nethsm::Credentials;
+use nethsm::Passphrase;
 use nethsm::{NetHsm, SystemState};
 use rstest::rstest;
 use rustainers::Container;
@@ -31,8 +33,8 @@ async fn initial_provisioning(
 
     assert!(nethsm.state()? == SystemState::Unprovisioned);
     nethsm.provision(
-        UNLOCK_PASSPHRASE.to_string(),
-        ADMIN_USER_PASSPHRASE.to_string(),
+        Passphrase::new(UNLOCK_PASSPHRASE.to_string()),
+        Passphrase::new(ADMIN_USER_PASSPHRASE.to_string()),
         Utc::now(),
     )?;
 
@@ -53,26 +55,26 @@ async fn initial_provisioning(
     }
 
     // now the admin credentials are needed
-    nethsm.add_credentials((
+    nethsm.add_credentials(Credentials::new(
         ADMIN_USER_ID.to_string(),
-        Some(ADMIN_USER_PASSPHRASE.to_string()),
+        Some(Passphrase::new(ADMIN_USER_PASSPHRASE.to_string())),
     ));
     nethsm.use_credentials(ADMIN_USER_ID)?;
 
     nethsm.lock()?;
     assert!(nethsm.state()? == SystemState::Locked);
-    nethsm.unlock(UNLOCK_PASSPHRASE.to_string())?;
+    nethsm.unlock(Passphrase::new(UNLOCK_PASSPHRASE.to_string()))?;
     assert!(nethsm.state()? == SystemState::Operational);
 
     let new_unlock_passphrase = "just-another-unlock-passphrase";
     nethsm.set_unlock_passphrase(
-        UNLOCK_PASSPHRASE.to_string(),
-        new_unlock_passphrase.to_string(),
+        Passphrase::new(UNLOCK_PASSPHRASE.to_string()),
+        Passphrase::new(new_unlock_passphrase.to_string()),
     )?;
 
     nethsm.lock()?;
     assert!(nethsm.state()? == SystemState::Locked);
-    nethsm.unlock(new_unlock_passphrase.to_string())?;
+    nethsm.unlock(Passphrase::new(new_unlock_passphrase.to_string()))?;
     assert!(nethsm.state()? == SystemState::Operational);
 
     if elapsed > timeout {

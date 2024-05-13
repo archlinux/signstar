@@ -9,6 +9,7 @@ use common::DEFAULT_OPERATOR_USER_REAL_NAME;
 use common::OTHER_OPERATOR_USER_ID;
 use common::OTHER_OPERATOR_USER_PASSPHRASE;
 use common::OTHER_OPERATOR_USER_REAL_NAME;
+use nethsm::Passphrase;
 use nethsm::{NetHsm, UserRole};
 use rstest::rstest;
 use rustainers::Container;
@@ -26,7 +27,7 @@ async fn create_users(
     let operator_user = nethsm.add_user(
         DEFAULT_OPERATOR_USER_REAL_NAME.to_string(),
         UserRole::Operator,
-        DEFAULT_OPERATOR_USER_PASSPHRASE.to_string(),
+        Passphrase::new(DEFAULT_OPERATOR_USER_PASSPHRASE.to_string()),
         None,
     )?;
     println!("Created Operator User: {}", operator_user);
@@ -34,12 +35,15 @@ async fn create_users(
     println!("Operator user data: {:?}", nethsm.get_user(&operator_user)?);
 
     // change passphrase
-    nethsm.set_user_passphrase(&operator_user, "some-other-operator-passphrase".to_string())?;
+    nethsm.set_user_passphrase(
+        &operator_user,
+        Passphrase::new("some-other-operator-passphrase".to_string()),
+    )?;
 
     let other_operator_user = nethsm.add_user(
         OTHER_OPERATOR_USER_REAL_NAME.to_string(),
         UserRole::Operator,
-        OTHER_OPERATOR_USER_PASSPHRASE.to_string(),
+        Passphrase::new(OTHER_OPERATOR_USER_PASSPHRASE.to_string()),
         Some(OTHER_OPERATOR_USER_ID.to_string()),
     )?;
     println!("Created Operator User: {}", other_operator_user);
