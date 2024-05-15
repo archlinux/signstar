@@ -71,6 +71,7 @@
 //! # }
 //! ```
 use std::cell::RefCell;
+use std::collections::HashMap;
 use std::fmt::Display;
 use std::net::Ipv4Addr;
 use std::str::FromStr;
@@ -173,7 +174,7 @@ pub use nethsm_sdk_rs::models::{
     SystemUpdateData,
     UserData,
 };
-use nethsm_sdk_rs::ureq::AgentBuilder;
+use nethsm_sdk_rs::ureq::{Agent, AgentBuilder};
 use rustls::crypto::{aws_lc_rs as tls_provider, CryptoProvider};
 use rustls::ClientConfig;
 use secrecy::{ExposeSecret, SecretString};
@@ -441,10 +442,14 @@ impl FromStr for Url {
 /// Defines a network configuration for the connection and a list of user credentials that can be
 /// used over this connection.
 pub struct NetHsm {
-    /// The API configuration for a NetHSM
-    config: RefCell<Configuration>,
-    /// Credentials for interacting with the NetHSM using [`NetHsm::config`]
-    users: RefCell<Vec<Credentials>>,
+    /// The agent for the requests
+    agent: RefCell<Agent>,
+    /// The URL path for the target API
+    url: RefCell<Url>,
+    /// The default credentials to use for requests
+    current_credentials: RefCell<Option<String>>,
+    /// The list of all available credentials
+    credentials: RefCell<HashMap<String, Credentials>>,
 }
 
 impl NetHsm {
@@ -523,34 +528,54 @@ impl NetHsm {
                 max_idle_connections, timeout_seconds
             );
 
-            AgentBuilder::new()
-                .tls_config(Arc::new(tls_conf))
-                .max_idle_connections(max_idle_connections)
-                .max_idle_connections_per_host(max_idle_connections)
-                .timeout_connect(Duration::from_secs(timeout_seconds))
-                .build()
+            RefCell::new(
+                AgentBuilder::new()
+                    .tls_config(Arc::new(tls_conf))
+                    .max_idle_connections(max_idle_connections)
+                    .max_idle_connections_per_host(max_idle_connections)
+                    .timeout_connect(Duration::from_secs(timeout_seconds))
+                    .build(),
+            )
         };
 
-        let api_config = RefCell::new(Configuration {
-            client: agent,
-            base_path: url.to_string(),
-            basic_auth: credentials.as_ref().map(|x| x.into()),
-            user_agent: Some(USER_AGENT.to_string()),
-            ..Default::default()
-        });
-
-        let users = {
-            let mut users = vec![];
-            if let Some(credentials) = credentials {
-                users.push(credentials)
-            }
-            RefCell::new(users)
+        let (current_credentials, credentials) = if let Some(credentials) = credentials {
+            (
+                RefCell::new(Some(credentials.user_id.clone())),
+                RefCell::new(HashMap::from([(credentials.user_id.clone(), credentials)])),
+            )
+        } else {
+            (Default::default(), Default::default())
         };
 
         Ok(Self {
-            config: api_config,
-            users,
+            agent,
+            url: RefCell::new(url),
+            current_credentials,
+            credentials,
         })
+    }
+
+    /// Creates a connection configuration
+    ///
+    /// Uses the [`Agent`] configured during creation of the [`NetHsm`], the current [`Url`] and
+    /// [`Credentials`] to create a [`Configuration`] for a connection to the API of a NetHSM
+    /// device.
+    fn create_connection_config(&self) -> Configuration {
+        let current_credentials = self.current_credentials.borrow().to_owned();
+        Configuration {
+            client: self.agent.borrow().to_owned(),
+            base_path: self.url.borrow().to_string(),
+            basic_auth: if let Some(current_credentials) = current_credentials {
+                self.credentials
+                    .borrow()
+                    .get(&current_credentials)
+                    .map(Into::into)
+            } else {
+                None
+            },
+            user_agent: Some(USER_AGENT.to_string()),
+            ..Default::default()
+        }
     }
 
     /// Sets the URL for the NetHSM connection
@@ -559,7 +584,7 @@ impl NetHsm {
     ///
     /// ```
     /// # use testresult::TestResult;
-    /// use nethsm::{ConnectionSecurity, Error, NetHsm};
+    /// use nethsm::{ConnectionSecurity, Error, NetHsm, Url};
     ///
     /// # fn main() -> TestResult {
     /// // Create a new connection for a NetHSM at "https://example.org"
@@ -572,12 +597,12 @@ impl NetHsm {
     /// )?;
     ///
     /// // change the url to something else
-    /// nethsm.set_url("https://other.org/api/v1".to_string());
+    /// nethsm.set_url(Url::new("https://other.org/api/v1")?);
     /// # Ok(())
     /// # }
     /// ```
-    pub fn set_url(&self, url: String) {
-        self.config.borrow_mut().base_path = url;
+    pub fn set_url(&self, url: Url) {
+        *self.url.borrow_mut() = url;
     }
 
     /// Adds credentials to the list of available credentials
@@ -613,7 +638,9 @@ impl NetHsm {
     pub fn add_credentials(&self, credentials: Credentials) {
         // remove any previously existing credentials (User IDs are unique)
         self.remove_credentials(&credentials.user_id);
-        self.users.borrow_mut().push(credentials)
+        self.credentials
+            .borrow_mut()
+            .insert(credentials.user_id.clone(), credentials);
     }
 
     /// Removes credentials from the list of available and currently used ones
@@ -645,17 +672,14 @@ impl NetHsm {
     /// # }
     /// ```
     pub fn remove_credentials(&self, user_id: &str) {
-        self.users
-            .borrow_mut()
-            .retain(|cred| cred.user_id != user_id);
+        self.credentials.borrow_mut().remove(user_id);
         if self
-            .config
+            .current_credentials
             .borrow()
-            .basic_auth
             .as_ref()
-            .is_some_and(|x| x.0 == user_id)
+            .is_some_and(|id| id == user_id)
         {
-            self.config.borrow_mut().basic_auth = None;
+            *self.current_credentials.borrow_mut() = None
         }
     }
 
@@ -702,20 +726,23 @@ impl NetHsm {
     /// # }
     /// ```
     pub fn use_credentials(&self, user_id: &str) -> Result<(), Error> {
-        if let Some(credentials) = self
-            .users
-            .borrow()
-            .iter()
-            .find(|&credentials| credentials.user_id == user_id)
-        {
-            self.config.borrow_mut().basic_auth = Some(credentials.into());
-            Ok(())
+        if self.credentials.borrow().contains_key(user_id) {
+            if self.current_credentials.borrow().as_ref().is_none()
+                || self
+                    .current_credentials
+                    .borrow()
+                    .as_ref()
+                    .is_some_and(|id| id != user_id)
+            {
+                *self.current_credentials.borrow_mut() = Some(user_id.to_owned());
+            }
         } else {
-            Err(Error::Default(format!(
-                "The credentials for User ID \"{}\" needs to be added before it can be used!",
+            return Err(Error::Default(format!(
+                "The credentials for User ID \"{}\" need to be added before they can be used!",
                 user_id
-            )))
+            )));
         }
+        Ok(())
     }
 
     /// Provisions a NetHSM
@@ -767,12 +794,15 @@ impl NetHsm {
         admin_passphrase: Passphrase,
         system_time: DateTime<Utc>,
     ) -> Result<(), Error> {
-        let provision_request_data = ProvisionRequestData::new(
-            unlock_passphrase.expose_owned(),
-            admin_passphrase.expose_owned(),
-            system_time.to_rfc3339_opts(chrono::SecondsFormat::Secs, true),
-        );
-        provision_post(&self.config.borrow(), provision_request_data).map_err(|error| {
+        provision_post(
+            &self.create_connection_config(),
+            ProvisionRequestData::new(
+                unlock_passphrase.expose_owned(),
+                admin_passphrase.expose_owned(),
+                system_time.to_rfc3339_opts(chrono::SecondsFormat::Secs, true),
+            ),
+        )
+        .map_err(|error| {
             Error::Api(format!(
                 "Provisioning failed: {}",
                 NetHsmApiError::from(error)
@@ -812,7 +842,7 @@ impl NetHsm {
     /// # }
     /// ```
     pub fn alive(&self) -> Result<(), Error> {
-        health_alive_get(&self.config.borrow()).map_err(|error| {
+        health_alive_get(&self.create_connection_config()).map_err(|error| {
             Error::Api(format!(
                 "Retrieving alive status failed: {}",
                 NetHsmApiError::from(error)
@@ -852,7 +882,7 @@ impl NetHsm {
     /// # }
     /// ```
     pub fn ready(&self) -> Result<(), Error> {
-        health_ready_get(&self.config.borrow()).map_err(|error| {
+        health_ready_get(&self.create_connection_config()).map_err(|error| {
             Error::Api(format!(
                 "Retrieving ready status failed: {}",
                 NetHsmApiError::from(error)
@@ -893,7 +923,7 @@ impl NetHsm {
     /// # }
     /// ```
     pub fn state(&self) -> Result<SystemState, Error> {
-        let health_state = health_state_get(&self.config.borrow()).map_err(|error| {
+        let health_state = health_state_get(&self.create_connection_config()).map_err(|error| {
             Error::Api(format!(
                 "Retrieving state failed: {}",
                 NetHsmApiError::from(error)
@@ -934,7 +964,7 @@ impl NetHsm {
     /// # }
     /// ```
     pub fn info(&self) -> Result<InfoData, Error> {
-        let info = info_get(&self.config.borrow()).map_err(|error| {
+        let info = info_get(&self.create_connection_config()).map_err(|error| {
             Error::Api(format!(
                 "Retrieving device information failed: {}",
                 NetHsmApiError::from(error)
@@ -981,7 +1011,7 @@ impl NetHsm {
     /// # }
     /// ```
     pub fn metrics(&self) -> Result<Value, Error> {
-        let metrics = metrics_get(&self.config.borrow()).map_err(|error| {
+        let metrics = metrics_get(&self.create_connection_config()).map_err(|error| {
             Error::Api(format!(
                 "Retrieving metrics failed: {}",
                 NetHsmApiError::from(error)
@@ -1037,7 +1067,7 @@ impl NetHsm {
         new_passphrase: Passphrase,
     ) -> Result<(), Error> {
         config_unlock_passphrase_put(
-            &self.config.borrow(),
+            &self.create_connection_config(),
             UnlockPassphraseConfig::new(
                 new_passphrase.expose_owned(),
                 current_passphrase.expose_owned(),
@@ -1091,7 +1121,7 @@ impl NetHsm {
     /// ```
     pub fn get_boot_mode(&self) -> Result<BootMode, Error> {
         Ok(BootMode::from(
-            config_unattended_boot_get(&self.config.borrow())
+            config_unattended_boot_get(&self.create_connection_config())
                 .map_err(|error| {
                     Error::Api(format!(
                         "Retrieving boot mode failed: {}",
@@ -1143,12 +1173,14 @@ impl NetHsm {
     /// # }
     /// ```
     pub fn set_boot_mode(&self, boot_mode: BootMode) -> Result<(), Error> {
-        config_unattended_boot_put(&self.config.borrow(), boot_mode.into()).map_err(|error| {
-            Error::Api(format!(
-                "Setting boot mode failed: {}",
-                NetHsmApiError::from(error)
-            ))
-        })?;
+        config_unattended_boot_put(&self.create_connection_config(), boot_mode.into()).map_err(
+            |error| {
+                Error::Api(format!(
+                    "Setting boot mode failed: {}",
+                    NetHsmApiError::from(error)
+                ))
+            },
+        )?;
         Ok(())
     }
 
@@ -1191,7 +1223,7 @@ impl NetHsm {
     /// # }
     /// ```
     pub fn get_tls_public_key(&self) -> Result<String, Error> {
-        Ok(config_tls_public_pem_get(&self.config.borrow())
+        Ok(config_tls_public_pem_get(&self.create_connection_config())
             .map_err(|error| {
                 Error::Api(format!(
                     "Retrieving API TLS public key failed: {}",
@@ -1239,7 +1271,7 @@ impl NetHsm {
     /// # }
     /// ```
     pub fn get_tls_cert(&self) -> Result<String, Error> {
-        Ok(config_tls_cert_pem_get(&self.config.borrow())
+        Ok(config_tls_cert_pem_get(&self.create_connection_config())
             .map_err(|error| {
                 Error::Api(format!(
                     "Retrieving API TLS certificate failed: {}",
@@ -1302,7 +1334,7 @@ impl NetHsm {
     /// ```
     pub fn get_tls_csr(&self, distinguished_name: DistinguishedName) -> Result<String, Error> {
         Ok(
-            config_tls_csr_pem_post(&self.config.borrow(), distinguished_name)
+            config_tls_csr_pem_post(&self.create_connection_config(), distinguished_name)
                 .map_err(|error| {
                     Error::Api(format!(
                         "Retrieving CSR for TLS certificate failed: {}",
@@ -1359,7 +1391,7 @@ impl NetHsm {
         length: Option<i32>,
     ) -> Result<(), Error> {
         config_tls_generate_post(
-            &self.config.borrow(),
+            &self.create_connection_config(),
             TlsKeyGenerateRequestData {
                 r#type: tls_key_type.into(),
                 length,
@@ -1425,12 +1457,14 @@ impl NetHsm {
     /// # }
     /// ```
     pub fn set_tls_cert(&self, certificate: &str) -> Result<(), Error> {
-        config_tls_cert_pem_put(&self.config.borrow(), certificate).map_err(|error| {
-            Error::Api(format!(
-                "Setting API TLS certificate failed: {}",
-                NetHsmApiError::from(error)
-            ))
-        })?;
+        config_tls_cert_pem_put(&self.create_connection_config(), certificate).map_err(
+            |error| {
+                Error::Api(format!(
+                    "Setting API TLS certificate failed: {}",
+                    NetHsmApiError::from(error)
+                ))
+            },
+        )?;
         Ok(())
     }
 
@@ -1473,7 +1507,7 @@ impl NetHsm {
     /// # }
     /// ```
     pub fn get_network(&self) -> Result<NetworkConfig, Error> {
-        Ok(config_network_get(&self.config.borrow())
+        Ok(config_network_get(&self.create_connection_config())
             .map_err(|error| {
                 Error::Api(format!(
                     "Getting network config failed: {}",
@@ -1529,7 +1563,7 @@ impl NetHsm {
     /// # }
     /// ```
     pub fn set_network(&self, network_config: NetworkConfig) -> Result<(), Error> {
-        config_network_put(&self.config.borrow(), network_config).map_err(|error| {
+        config_network_put(&self.create_connection_config(), network_config).map_err(|error| {
             Error::Api(format!(
                 "Setting network config failed: {}",
                 NetHsmApiError::from(error)
@@ -1576,7 +1610,7 @@ impl NetHsm {
     /// # }
     /// ```
     pub fn get_time(&self) -> Result<String, Error> {
-        Ok(config_time_get(&self.config.borrow())
+        Ok(config_time_get(&self.create_connection_config())
             .map_err(|error| {
                 Error::Api(format!(
                     "Getting device time failed: {}",
@@ -1629,7 +1663,7 @@ impl NetHsm {
     /// ```
     pub fn set_time(&self, time: DateTime<Utc>) -> Result<(), Error> {
         config_time_put(
-            &self.config.borrow(),
+            &self.create_connection_config(),
             TimeConfig::new(time.to_rfc3339_opts(chrono::SecondsFormat::Secs, true)),
         )
         .map_err(|error| {
@@ -1679,7 +1713,7 @@ impl NetHsm {
     /// # }
     /// ```
     pub fn get_logging(&self) -> Result<LoggingConfig, Error> {
-        Ok(config_logging_get(&self.config.borrow())
+        Ok(config_logging_get(&self.create_connection_config())
             .map_err(|error| {
                 Error::Api(format!(
                     "Getting logging config failed: {}",
@@ -1742,7 +1776,7 @@ impl NetHsm {
     ) -> Result<(), Error> {
         let ip_address = ip_address.to_string();
         config_logging_put(
-            &self.config.borrow(),
+            &self.create_connection_config(),
             LoggingConfig::new(ip_address, port, log_level.into()),
         )
         .map_err(|error| {
@@ -1801,7 +1835,7 @@ impl NetHsm {
         new_passphrase: Passphrase,
     ) -> Result<(), Error> {
         config_backup_passphrase_put(
-            &self.config.borrow(),
+            &self.create_connection_config(),
             BackupPassphraseConfig::new(
                 new_passphrase.expose_owned(),
                 current_passphrase.expose_owned(),
@@ -1859,7 +1893,7 @@ impl NetHsm {
     /// # }
     /// ```
     pub fn backup(&self) -> Result<Vec<u8>, Error> {
-        Ok(system_backup_post(&self.config.borrow())
+        Ok(system_backup_post(&self.create_connection_config())
             .map_err(|error| {
                 Error::Api(format!(
                     "Getting backup failed: {}",
@@ -1911,7 +1945,7 @@ impl NetHsm {
     /// # }
     /// ```
     pub fn factory_reset(&self) -> Result<(), Error> {
-        system_factory_reset_post(&self.config.borrow()).map_err(|error| {
+        system_factory_reset_post(&self.create_connection_config()).map_err(|error| {
             Error::Api(format!(
                 "Factory reset failed: {}",
                 NetHsmApiError::from(error)
@@ -1983,7 +2017,7 @@ impl NetHsm {
         backup: Vec<u8>,
     ) -> Result<(), Error> {
         system_restore_post(
-            &self.config.borrow(),
+            &self.create_connection_config(),
             Some(nethsm_sdk_rs::models::RestoreRequestArguments {
                 backup_passphrase: Some(backup_passphrase.expose_owned()),
                 system_time: Some(system_time.to_rfc3339_opts(chrono::SecondsFormat::Secs, true)),
@@ -2039,7 +2073,7 @@ impl NetHsm {
     /// # }
     /// ```
     pub fn lock(&self) -> Result<(), Error> {
-        lock_post(&self.config.borrow()).map_err(|error| {
+        lock_post(&self.create_connection_config()).map_err(|error| {
             Error::Api(format!(
                 "Locking device failed: {}",
                 NetHsmApiError::from(error)
@@ -2090,7 +2124,7 @@ impl NetHsm {
     /// ```
     pub fn unlock(&self, unlock_passphrase: Passphrase) -> Result<(), Error> {
         unlock_post(
-            &self.config.borrow(),
+            &self.create_connection_config(),
             UnlockRequestData::new(unlock_passphrase.expose_owned()),
         )
         .map_err(|error| {
@@ -2143,7 +2177,7 @@ impl NetHsm {
     /// # }
     /// ```
     pub fn system_info(&self) -> Result<SystemInfo, Error> {
-        Ok(system_info_get(&self.config.borrow())
+        Ok(system_info_get(&self.create_connection_config())
             .map_err(|error| {
                 Error::Api(format!(
                     "Retrieving system information failed: {}",
@@ -2193,7 +2227,7 @@ impl NetHsm {
     /// # }
     /// ```
     pub fn reboot(&self) -> Result<(), Error> {
-        system_reboot_post(&self.config.borrow()).map_err(|error| {
+        system_reboot_post(&self.create_connection_config()).map_err(|error| {
             Error::Api(format!(
                 "Rebooting device failed: {}",
                 NetHsmApiError::from(error)
@@ -2242,7 +2276,7 @@ impl NetHsm {
     /// # }
     /// ```
     pub fn shutdown(&self) -> Result<(), Error> {
-        system_shutdown_post(&self.config.borrow()).map_err(|error| {
+        system_shutdown_post(&self.create_connection_config()).map_err(|error| {
             Error::Api(format!(
                 "Shutting down device failed: {}",
                 NetHsmApiError::from(error)
@@ -2300,7 +2334,7 @@ impl NetHsm {
     /// # }
     /// ```
     pub fn upload_update(&self, update: Vec<u8>) -> Result<SystemUpdateData, Error> {
-        Ok(system_update_post(&self.config.borrow(), update)
+        Ok(system_update_post(&self.create_connection_config(), update)
             .map_err(|error| {
                 println!("error during upload");
                 Error::Api(format!(
@@ -2359,7 +2393,7 @@ impl NetHsm {
     /// # }
     /// ```
     pub fn commit_update(&self) -> Result<(), Error> {
-        system_commit_update_post(&self.config.borrow()).map_err(|error| {
+        system_commit_update_post(&self.create_connection_config()).map_err(|error| {
             Error::Api(format!(
                 "Committing update failed: {}",
                 NetHsmApiError::from(error)
@@ -2416,7 +2450,7 @@ impl NetHsm {
     /// # }
     /// ```
     pub fn cancel_update(&self) -> Result<(), Error> {
-        system_cancel_update_post(&self.config.borrow()).map_err(|error| {
+        system_cancel_update_post(&self.create_connection_config()).map_err(|error| {
             Error::Api(format!(
                 "Cancelling update failed: {}",
                 NetHsmApiError::from(error)
@@ -2498,7 +2532,7 @@ impl NetHsm {
     ) -> Result<String, Error> {
         let user_id = if let Some(user_id) = user_id {
             users_user_id_put(
-                &self.config.borrow(),
+                &self.create_connection_config(),
                 &user_id,
                 UserPostData::new(real_name, role.into(), passphrase.expose_owned()),
             )
@@ -2511,7 +2545,7 @@ impl NetHsm {
             user_id
         } else {
             users_post(
-                &self.config.borrow(),
+                &self.create_connection_config(),
                 UserPostData::new(real_name, role.into(), passphrase.expose_owned()),
             )
             .map_err(|error| {
@@ -2584,7 +2618,7 @@ impl NetHsm {
     /// # }
     /// ```
     pub fn delete_user(&self, user_id: &str) -> Result<(), Error> {
-        users_user_id_delete(&self.config.borrow(), user_id).map_err(|error| {
+        users_user_id_delete(&self.create_connection_config(), user_id).map_err(|error| {
             Error::Api(format!(
                 "Deleting user failed: {}",
                 NetHsmApiError::from(error)
@@ -2636,7 +2670,7 @@ impl NetHsm {
     /// # }
     /// ```
     pub fn get_users(&self) -> Result<Vec<String>, Error> {
-        Ok(users_get(&self.config.borrow())
+        Ok(users_get(&self.create_connection_config())
             .map_err(|error| {
                 Error::Api(format!(
                     "Getting users failed: {}",
@@ -2692,7 +2726,7 @@ impl NetHsm {
     /// # }
     /// ```
     pub fn get_user(&self, user_id: &str) -> Result<UserData, Error> {
-        Ok(users_user_id_get(&self.config.borrow(), user_id)
+        Ok(users_user_id_get(&self.create_connection_config(), user_id)
             .map_err(|error| {
                 Error::Api(format!(
                     "Getting user failed: {}",
@@ -2748,7 +2782,7 @@ impl NetHsm {
     /// ```
     pub fn set_user_passphrase(&self, user_id: &str, passphrase: Passphrase) -> Result<(), Error> {
         users_user_id_passphrase_post(
-            &self.config.borrow(),
+            &self.create_connection_config(),
             user_id,
             UserPassphrasePostData::new(passphrase.expose_owned()),
         )
@@ -2761,16 +2795,6 @@ impl NetHsm {
 
         // add to list of available credentials
         self.add_credentials(Credentials::new(user_id.to_string(), Some(passphrase)));
-        // if the caller changed their own passphrase, use it
-        if self
-            .config
-            .borrow()
-            .basic_auth
-            .as_ref()
-            .is_some_and(|credentials| credentials.0 == user_id)
-        {
-            self.use_credentials(user_id)?;
-        }
 
         Ok(())
     }
@@ -2829,12 +2853,14 @@ impl NetHsm {
     /// # }
     /// ```
     pub fn add_user_tag(&self, user_id: &str, tag: &str) -> Result<(), Error> {
-        users_user_id_tags_tag_put(&self.config.borrow(), user_id, tag).map_err(|error| {
-            Error::Api(format!(
-                "Adding tag for user failed: {}",
-                NetHsmApiError::from(error)
-            ))
-        })?;
+        users_user_id_tags_tag_put(&self.create_connection_config(), user_id, tag).map_err(
+            |error| {
+                Error::Api(format!(
+                    "Adding tag for user failed: {}",
+                    NetHsmApiError::from(error)
+                ))
+            },
+        )?;
         Ok(())
     }
 
@@ -2881,12 +2907,14 @@ impl NetHsm {
     /// # }
     /// ```
     pub fn delete_user_tag(&self, user_id: &str, tag: &str) -> Result<(), Error> {
-        users_user_id_tags_tag_delete(&self.config.borrow(), user_id, tag).map_err(|error| {
-            Error::Api(format!(
-                "Deleting tag for user failed: {}",
-                NetHsmApiError::from(error)
-            ))
-        })?;
+        users_user_id_tags_tag_delete(&self.create_connection_config(), user_id, tag).map_err(
+            |error| {
+                Error::Api(format!(
+                    "Deleting tag for user failed: {}",
+                    NetHsmApiError::from(error)
+                ))
+            },
+        )?;
         Ok(())
     }
 
@@ -2946,14 +2974,16 @@ impl NetHsm {
     /// # }
     /// ```
     pub fn get_user_tags(&self, user_id: &str) -> Result<Vec<String>, Error> {
-        Ok(users_user_id_tags_get(&self.config.borrow(), user_id)
-            .map_err(|error| {
-                Error::Api(format!(
-                    "Getting tags of user failed: {}",
-                    NetHsmApiError::from(error)
-                ))
-            })?
-            .entity)
+        Ok(
+            users_user_id_tags_get(&self.create_connection_config(), user_id)
+                .map_err(|error| {
+                    Error::Api(format!(
+                        "Getting tags of user failed: {}",
+                        NetHsmApiError::from(error)
+                    ))
+                })?
+                .entity,
+        )
     }
 
     /// Generates a new key on the device
@@ -3052,7 +3082,7 @@ impl NetHsm {
         key_type.matches_mechanisms(&mechanisms)?;
 
         Ok(keys_generate_post(
-            &self.config.borrow(),
+            &self.create_connection_config(),
             KeyGenerateRequestData {
                 mechanisms: mechanisms
                     .into_iter()
@@ -3168,7 +3198,7 @@ impl NetHsm {
 
         if let Some(key_id) = key_id {
             keys_key_id_put(
-                &self.config.borrow(),
+                &self.create_connection_config(),
                 &key_id,
                 nethsm_sdk_rs::apis::default_api::KeysKeyIdPutBody::ApplicationJson(PrivateKey {
                     mechanisms,
@@ -3186,7 +3216,7 @@ impl NetHsm {
             Ok(key_id)
         } else {
             Ok(keys_post(
-                &self.config.borrow(),
+                &self.create_connection_config(),
                 KeysPostBody::ApplicationJson(PrivateKey {
                     mechanisms,
                     r#type: key_type.into(),
@@ -3245,7 +3275,7 @@ impl NetHsm {
     /// # }
     /// ```
     pub fn delete_key(&self, key_id: &str) -> Result<(), Error> {
-        keys_key_id_delete(&self.config.borrow(), key_id).map_err(|error| {
+        keys_key_id_delete(&self.create_connection_config(), key_id).map_err(|error| {
             Error::Api(format!(
                 "Deleting key failed: {}",
                 NetHsmApiError::from(error)
@@ -3296,7 +3326,7 @@ impl NetHsm {
     /// # }
     /// ```
     pub fn get_key(&self, key_id: &str) -> Result<PublicKey, Error> {
-        Ok(keys_key_id_get(&self.config.borrow(), key_id)
+        Ok(keys_key_id_get(&self.create_connection_config(), key_id)
             .map_err(|error| {
                 Error::Api(format!(
                     "Getting key failed: {}",
@@ -3351,7 +3381,7 @@ impl NetHsm {
     /// # }
     /// ```
     pub fn get_keys(&self, filter: Option<&str>) -> Result<Vec<String>, Error> {
-        Ok(keys_get(&self.config.borrow(), filter)
+        Ok(keys_get(&self.create_connection_config(), filter)
             .map_err(|error| {
                 Error::Api(format!(
                     "Getting keys failed: {}",
@@ -3407,14 +3437,16 @@ impl NetHsm {
     /// # }
     /// ```
     pub fn get_public_key(&self, key_id: &str) -> Result<String, Error> {
-        Ok(keys_key_id_public_pem_get(&self.config.borrow(), key_id)
-            .map_err(|error| {
-                Error::Api(format!(
-                    "Getting public key failed: {}",
-                    NetHsmApiError::from(error)
-                ))
-            })?
-            .entity)
+        Ok(
+            keys_key_id_public_pem_get(&self.create_connection_config(), key_id)
+                .map_err(|error| {
+                    Error::Api(format!(
+                        "Getting public key failed: {}",
+                        NetHsmApiError::from(error)
+                    ))
+                })?
+                .entity,
+        )
     }
 
     /// Adds a tag to a key on the device
@@ -3464,14 +3496,13 @@ impl NetHsm {
     /// # }
     /// ```
     pub fn add_key_tag(&self, key_id: &str, tag: &str) -> Result<(), Error> {
-        keys_key_id_restrictions_tags_tag_put(&self.config.borrow(), tag, key_id).map_err(
-            |error| {
+        keys_key_id_restrictions_tags_tag_put(&self.create_connection_config(), tag, key_id)
+            .map_err(|error| {
                 Error::Api(format!(
                     "Adding tag for key failed: {}",
                     NetHsmApiError::from(error)
                 ))
-            },
-        )?;
+            })?;
         Ok(())
     }
 
@@ -3518,14 +3549,13 @@ impl NetHsm {
     /// # }
     /// ```
     pub fn delete_key_tag(&self, key_id: &str, tag: &str) -> Result<(), Error> {
-        keys_key_id_restrictions_tags_tag_delete(&self.config.borrow(), tag, key_id).map_err(
-            |error| {
+        keys_key_id_restrictions_tags_tag_delete(&self.create_connection_config(), tag, key_id)
+            .map_err(|error| {
                 Error::Api(format!(
                     "Deleting tag for key failed: {}",
                     NetHsmApiError::from(error)
                 ))
-            },
-        )?;
+            })?;
         Ok(())
     }
 
@@ -3595,7 +3625,7 @@ impl NetHsm {
     /// # }
     /// ```
     pub fn import_key_certificate(&self, key_id: &str, data: Vec<u8>) -> Result<(), Error> {
-        keys_key_id_cert_put(&self.config.borrow(), key_id, data).map_err(|error| {
+        keys_key_id_cert_put(&self.create_connection_config(), key_id, data).map_err(|error| {
             Error::Api(format!(
                 "Importing certificate for key failed: {}",
                 NetHsmApiError::from(error)
@@ -3647,14 +3677,16 @@ impl NetHsm {
     /// # }
     /// ```
     pub fn get_key_certificate(&self, key_id: &str) -> Result<Vec<u8>, Error> {
-        Ok(keys_key_id_cert_get(&self.config.borrow(), key_id)
-            .map_err(|error| {
-                Error::Api(format!(
-                    "Getting certificate for key failed: {}",
-                    NetHsmApiError::from(error)
-                ))
-            })?
-            .entity)
+        Ok(
+            keys_key_id_cert_get(&self.create_connection_config(), key_id)
+                .map_err(|error| {
+                    Error::Api(format!(
+                        "Getting certificate for key failed: {}",
+                        NetHsmApiError::from(error)
+                    ))
+                })?
+                .entity,
+        )
     }
 
     /// Deletes the certificate associated with a key
@@ -3699,7 +3731,7 @@ impl NetHsm {
     /// # }
     /// ```
     pub fn delete_key_certificate(&self, key_id: &str) -> Result<(), Error> {
-        keys_key_id_cert_delete(&self.config.borrow(), key_id).map_err(|error| {
+        keys_key_id_cert_delete(&self.create_connection_config(), key_id).map_err(|error| {
             Error::Api(format!(
                 "Deleting certificate for key failed: {}",
                 NetHsmApiError::from(error)
@@ -3773,7 +3805,7 @@ impl NetHsm {
         distinguished_name: DistinguishedName,
     ) -> Result<String, Error> {
         Ok(
-            keys_key_id_csr_pem_post(&self.config.borrow(), key_id, distinguished_name)
+            keys_key_id_csr_pem_post(&self.create_connection_config(), key_id, distinguished_name)
                 .map_err(|error| {
                     Error::Api(format!(
                         "Getting CSR for key failed: {}",
@@ -3878,7 +3910,7 @@ impl NetHsm {
         // decode base64 encoded data from the API
         Base64::decode_vec(
             &keys_key_id_sign_post(
-                &self.config.borrow(),
+                &self.create_connection_config(),
                 key_id,
                 SignRequestData::new(signature_type.into(), message),
             )
@@ -3961,7 +3993,7 @@ impl NetHsm {
         // decode base64 encoded data from the API
         Base64::decode_vec(
             &keys_key_id_encrypt_post(
-                &self.config.borrow(),
+                &self.create_connection_config(),
                 key_id,
                 EncryptRequestData {
                     mode: mode.into(),
@@ -4073,7 +4105,7 @@ impl NetHsm {
         // decode base64 encoded data from the API
         Base64::decode_vec(
             &keys_key_id_decrypt_post(
-                &self.config.borrow(),
+                &self.create_connection_config(),
                 key_id,
                 DecryptRequestData {
                     mode: mode.into(),
@@ -4133,15 +4165,18 @@ impl NetHsm {
     /// # }
     /// ```
     pub fn random(&self, length: i32) -> Result<Vec<u8>, Error> {
-        let base64_bytes = random_post(&self.config.borrow(), RandomRequestData::new(length))
-            .map_err(|error| {
-                Error::Api(format!(
-                    "Getting random bytes failed: {}",
-                    NetHsmApiError::from(error)
-                ))
-            })?
-            .entity
-            .random;
+        let base64_bytes = random_post(
+            &self.create_connection_config(),
+            RandomRequestData::new(length),
+        )
+        .map_err(|error| {
+            Error::Api(format!(
+                "Getting random bytes failed: {}",
+                NetHsmApiError::from(error)
+            ))
+        })?
+        .entity
+        .random;
         Base64::decode_vec(&base64_bytes).map_err(Error::Base64Decode)
     }
 }
