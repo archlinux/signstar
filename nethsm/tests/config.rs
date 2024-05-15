@@ -7,8 +7,8 @@ use std::path::PathBuf;
 
 use chrono::Utc;
 use common::{
-    nethsm_container,
     nethsm_with_users,
+    unprovisioned_nethsm,
     update_file,
     NetHsmImage,
     BACKUP_PASSPHRASE,
@@ -372,10 +372,10 @@ async fn cancel_update(
 #[rstest]
 #[tokio::test]
 async fn get_tls_public_key(
-    #[future] nethsm_container: TestResult<(NetHsm, Container<NetHsmImage>)>,
+    #[future] unprovisioned_nethsm: TestResult<(NetHsm, Container<NetHsmImage>)>,
     #[future] nethsm_with_users: TestResult<(NetHsm, Container<NetHsmImage>)>,
 ) -> TestResult {
-    let (unprovisioned_nethsm, _container) = nethsm_container.await?;
+    let (unprovisioned_nethsm, _container) = unprovisioned_nethsm.await?;
     let (nethsm, _container) = nethsm_with_users.await?;
 
     println!("Get TLS certificate of unprovisioned device...");

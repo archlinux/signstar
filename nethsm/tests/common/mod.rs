@@ -11,6 +11,7 @@ use nethsm::{
     KeyType,
     NetHsm,
     Passphrase,
+    Url,
     UserRole,
 };
 use reqwest::get;
@@ -50,8 +51,7 @@ pub static DEFAULT_AES_BITS: i32 = 128;
 mod container;
 pub use container::NetHsmImage;
 
-#[fixture]
-pub async fn new_container() -> TestResult<Container<NetHsmImage>> {
+pub async fn create_container() -> TestResult<Container<NetHsmImage>> {
     let runner = Runner::podman()?;
     let image = NetHsmImage::default();
     println!("image: {:#?}", image.image);
@@ -60,14 +60,9 @@ pub async fn new_container() -> TestResult<Container<NetHsmImage>> {
     Ok(container)
 }
 
-#[fixture]
-pub async fn nethsm_container(
-    #[future] new_container: TestResult<Container<NetHsmImage>>,
-) -> TestResult<(NetHsm, rustainers::Container<NetHsmImage>)> {
-    let container = new_container.await?;
-
-    let nethsm = NetHsm::new(
-        container.url().await?,
+pub fn create_nethsm(url: Url) -> TestResult<NetHsm> {
+    Ok(NetHsm::new(
+        url,
         ConnectionSecurity::Unsafe,
         Some(Credentials::new(
             ADMIN_USER_ID.to_string(),
@@ -75,9 +70,14 @@ pub async fn nethsm_container(
         )),
         None,
         None,
-    )?;
+    )?)
+}
 
-    Ok((nethsm, container))
+#[fixture]
+pub async fn unprovisioned_nethsm() -> TestResult<(NetHsm, rustainers::Container<NetHsmImage>)> {
+    let container = create_container().await?;
+
+    Ok((create_nethsm(container.url().await?)?, container))
 }
 
 fn provision_nethsm(nethsm: &NetHsm) -> TestResult {
@@ -191,11 +191,9 @@ fn add_keys_to_nethsm(nethsm: &NetHsm) -> TestResult {
 }
 
 #[fixture]
-pub async fn provisioned_nethsm(
-    #[future] nethsm_container: TestResult<(NetHsm, Container<NetHsmImage>)>,
-) -> TestResult<(NetHsm, Container<NetHsmImage>)> {
-    let (nethsm, container) = nethsm_container.await?;
-
+pub async fn provisioned_nethsm() -> TestResult<(NetHsm, Container<NetHsmImage>)> {
+    let container = create_container().await?;
+    let nethsm = create_nethsm(container.url().await?)?;
     println!("Provisioning container...");
     provision_nethsm(&nethsm)?;
 
@@ -203,11 +201,11 @@ pub async fn provisioned_nethsm(
 }
 
 #[fixture]
-pub async fn nethsm_with_users(
-    #[future] provisioned_nethsm: TestResult<(NetHsm, Container<NetHsmImage>)>,
-) -> TestResult<(NetHsm, Container<NetHsmImage>)> {
-    let (nethsm, container) = provisioned_nethsm.await?;
-
+pub async fn nethsm_with_users() -> TestResult<(NetHsm, Container<NetHsmImage>)> {
+    let container = create_container().await?;
+    let nethsm = create_nethsm(container.url().await?)?;
+    println!("Provisioning container...");
+    provision_nethsm(&nethsm)?;
     println!("Adding users to container...");
     add_users_to_nethsm(&nethsm)?;
 

@@ -5,7 +5,7 @@ use std::time::Duration;
 
 mod common;
 use chrono::Utc;
-use common::nethsm_container;
+use common::unprovisioned_nethsm;
 use common::NetHsmImage;
 use common::ADMIN_USER_ID;
 use common::ADMIN_USER_PASSPHRASE;
@@ -22,9 +22,9 @@ use tokio::time::sleep;
 #[rstest]
 #[tokio::test]
 async fn initial_provisioning(
-    #[future] nethsm_container: TestResult<(NetHsm, Container<NetHsmImage>)>,
+    #[future] unprovisioned_nethsm: TestResult<(NetHsm, Container<NetHsmImage>)>,
 ) -> TestResult {
-    let (nethsm, _container) = nethsm_container.await?;
+    let (nethsm, _container) = unprovisioned_nethsm.await?;
 
     nethsm.remove_credentials("admin");
 

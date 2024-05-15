@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
 mod common;
-use common::{nethsm_container, nethsm_with_users, NetHsmImage};
+use common::{nethsm_with_users, unprovisioned_nethsm, NetHsmImage};
 use nethsm::{NetHsm, SystemState};
 use rstest::rstest;
 use rustainers::Container;
@@ -12,10 +12,10 @@ use testresult::TestResult;
 #[rstest]
 #[tokio::test]
 async fn alive(
-    #[future] nethsm_container: TestResult<(NetHsm, Container<NetHsmImage>)>,
+    #[future] unprovisioned_nethsm: TestResult<(NetHsm, Container<NetHsmImage>)>,
     #[future] nethsm_with_users: TestResult<(NetHsm, Container<NetHsmImage>)>,
 ) -> TestResult {
-    let (unprovisioned_nethsm, _container) = nethsm_container.await?;
+    let (unprovisioned_nethsm, _container) = unprovisioned_nethsm.await?;
     let (nethsm, _container) = nethsm_with_users.await?;
 
     println!("Checking unprovisioned device...");
@@ -32,10 +32,10 @@ async fn alive(
 #[rstest]
 #[tokio::test]
 async fn ready(
-    #[future] nethsm_container: TestResult<(NetHsm, Container<NetHsmImage>)>,
+    #[future] unprovisioned_nethsm: TestResult<(NetHsm, Container<NetHsmImage>)>,
     #[future] nethsm_with_users: TestResult<(NetHsm, Container<NetHsmImage>)>,
 ) -> TestResult {
-    let (unprovisioned_nethsm, _container) = nethsm_container.await?;
+    let (unprovisioned_nethsm, _container) = unprovisioned_nethsm.await?;
     let (nethsm, _container) = nethsm_with_users.await?;
 
     println!("Checking unprovisioned device...");
@@ -52,10 +52,10 @@ async fn ready(
 #[rstest]
 #[tokio::test]
 async fn state(
-    #[future] nethsm_container: TestResult<(NetHsm, Container<NetHsmImage>)>,
+    #[future] unprovisioned_nethsm: TestResult<(NetHsm, Container<NetHsmImage>)>,
     #[future] nethsm_with_users: TestResult<(NetHsm, Container<NetHsmImage>)>,
 ) -> TestResult {
-    let (unprovisioned_nethsm, _container) = nethsm_container.await?;
+    let (unprovisioned_nethsm, _container) = unprovisioned_nethsm.await?;
     let (nethsm, _container) = nethsm_with_users.await?;
 
     println!("Checking unprovisioned device...");
