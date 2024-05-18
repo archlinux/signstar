@@ -203,8 +203,6 @@ mod tls;
 pub use tls::{ConnectionSecurity, HostCertificateFingerprints};
 use tls::{DangerIgnoreVerifier, FingerprintVerifier};
 
-const USER_AGENT: &str = "signstar-nethsm/0.1.0";
-
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
     /// Wraps a [`rustls::Error`] for issues with rustls based TLS setups
@@ -573,7 +571,11 @@ impl NetHsm {
             } else {
                 None
             },
-            user_agent: Some(USER_AGENT.to_string()),
+            user_agent: Some(format!(
+                "{}/{}",
+                env!("CARGO_PKG_NAME"),
+                env!("CARGO_PKG_VERSION")
+            )),
             ..Default::default()
         }
     }
