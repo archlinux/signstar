@@ -108,12 +108,16 @@ check-formatting:
     # We're using nightly to properly group imports, see rustfmt.toml
     cargo +nightly fmt -- --check
 
+# Updates the local cargo index and displays which crates would be updated
+dry-update:
+    cargo update --dry-run --verbose
+
 # Lints the source code
 lint:
     cargo clippy --all -- -D warnings
 
 # Checks for issues with dependencies
-check-dependencies:
+check-dependencies: dry-update
     cargo deny --all-features check
 
 # Checks licensing status
