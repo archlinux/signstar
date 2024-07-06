@@ -60,12 +60,12 @@ impl FromStr for ConnectionSecurity {
 
     /// Create a ConnectionSecurity from string
     ///
-    /// Valid inputs are either "unsafe", "native" or "sha256:checksum" where "checksum" denotes
-    /// 64 ASCII hexadecimal chars.
+    /// Valid inputs are either "Unsafe" (or "unsafe"), "Native" (or "native") or "sha256:checksum"
+    /// where "checksum" denotes 64 ASCII hexadecimal chars.
     ///
     /// # Errors
     ///
-    /// Returns an [`Error`] if the input is neither "unsafe" nor "native" and also no valid
+    /// Returns an [`Error`] if the input is neither "Unsafe" nor "Native" and also no valid
     /// certificate fingerprint can be derived from the input.
     ///
     /// # Examples
@@ -85,8 +85,8 @@ impl FromStr for ConnectionSecurity {
     /// ```
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
-            "unsafe" => Ok(Self::Unsafe),
-            "native" => Ok(Self::Native),
+            "unsafe" | "Unsafe" => Ok(Self::Unsafe),
+            "native" | "Native" => Ok(Self::Native),
             _ => {
                 let sha256_fingerprints: Vec<Vec<u8>> = s
                     .split(',')
