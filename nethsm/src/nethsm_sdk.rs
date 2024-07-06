@@ -105,7 +105,18 @@ impl<T> Display for NetHsmApiError<T> {
 ///
 /// This enum covers all variants of [`nethsm_sdk_rs::models::SignMode`], but instead of
 /// [`nethsm_sdk_rs::models::SignMode::Ecdsa`] covers prime size specific ECDSA modes.
-#[derive(Clone, Debug, strum::Display, strum::EnumString, Eq, PartialEq, Ord, PartialOrd, Hash)]
+#[derive(
+    Clone,
+    Debug,
+    strum::Display,
+    strum::EnumString,
+    strum::EnumIter,
+    Eq,
+    PartialEq,
+    Ord,
+    PartialOrd,
+    Hash,
+)]
 #[strum(ascii_case_insensitive)]
 pub enum SignatureType {
     /// Elliptic Curve Digital Signature Algorithm (ECDSA) signing using a key over a prime field
@@ -173,7 +184,7 @@ impl From<SignatureType> for SignMode {
 /// Defines in which state the NetHSM is in during boot after provisioning (see
 /// [`crate::NetHsm::provision`]) and whether an unlock passphrase has to be provided for it to be
 /// of state [`crate::SystemState::Operational`].
-#[derive(Clone, Debug, strum::Display, strum::EnumString, Eq, PartialEq)]
+#[derive(Clone, Debug, strum::Display, strum::EnumString, strum::EnumIter, Eq, PartialEq)]
 #[strum(ascii_case_insensitive)]
 pub enum BootMode {
     /// The device boots into state [`crate::SystemState::Locked`] and an unlock passphrase has to
@@ -213,6 +224,7 @@ impl From<BootMode> for UnattendedBootConfig {
     Deserialize,
     strum::Display,
     strum::EnumString,
+    strum::EnumIter,
     Eq,
     Hash,
     Ord,
@@ -276,6 +288,7 @@ impl From<DecryptMode> for nethsm_sdk_rs::models::DecryptMode {
     Deserialize,
     strum::Display,
     strum::EnumString,
+    strum::EnumIter,
     Eq,
     Hash,
     Ord,
@@ -307,6 +320,7 @@ impl From<EncryptMode> for nethsm_sdk_rs::models::EncryptMode {
     Deserialize,
     strum::Display,
     strum::EnumString,
+    strum::EnumIter,
     strum::IntoStaticStr,
     Hash,
     Eq,
@@ -411,6 +425,7 @@ impl From<KeyMechanism> for nethsm_sdk_rs::models::KeyMechanism {
     Deserialize,
     strum::Display,
     strum::EnumString,
+    strum::EnumIter,
     Eq,
     Hash,
     Ord,
@@ -568,6 +583,7 @@ impl From<KeyType> for nethsm_sdk_rs::models::KeyType {
     Deserialize,
     strum::Display,
     strum::EnumString,
+    strum::EnumIter,
     Eq,
     Hash,
     Ord,
@@ -611,6 +627,7 @@ impl From<LogLevel> for nethsm_sdk_rs::models::LogLevel {
     Deserialize,
     strum::Display,
     strum::EnumString,
+    strum::EnumIter,
     Eq,
     Hash,
     Ord,
@@ -661,6 +678,7 @@ impl From<TlsKeyType> for nethsm_sdk_rs::models::TlsKeyType {
     Deserialize,
     strum::Display,
     strum::EnumString,
+    strum::EnumIter,
     Eq,
     PartialEq,
     Ord,
