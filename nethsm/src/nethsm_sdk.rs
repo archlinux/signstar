@@ -402,6 +402,47 @@ pub enum KeyMechanism {
     RsaSignaturePssSha512,
 }
 
+impl KeyMechanism {
+    /// Returns key mechanisms specific to Curve25519 key types
+    pub fn curve25519_mechanisms() -> Vec<KeyMechanism> {
+        vec![KeyMechanism::EdDsaSignature]
+    }
+
+    /// Returns key mechanisms specific to elliptic curve key types
+    pub fn elliptic_curve_mechanisms() -> Vec<KeyMechanism> {
+        vec![KeyMechanism::EcdsaSignature]
+    }
+
+    /// Returns key mechanisms specific to generic key types
+    pub fn generic_mechanisms() -> Vec<KeyMechanism> {
+        vec![
+            KeyMechanism::AesDecryptionCbc,
+            KeyMechanism::AesEncryptionCbc,
+        ]
+    }
+
+    /// Returns key mechanisms specific to RSA key types
+    pub fn rsa_mechanisms() -> Vec<KeyMechanism> {
+        vec![
+            KeyMechanism::RsaDecryptionRaw,
+            KeyMechanism::RsaDecryptionPkcs1,
+            KeyMechanism::RsaDecryptionOaepMd5,
+            KeyMechanism::RsaDecryptionOaepSha1,
+            KeyMechanism::RsaDecryptionOaepSha224,
+            KeyMechanism::RsaDecryptionOaepSha256,
+            KeyMechanism::RsaDecryptionOaepSha384,
+            KeyMechanism::RsaDecryptionOaepSha512,
+            KeyMechanism::RsaSignaturePkcs1,
+            KeyMechanism::RsaSignaturePssMd5,
+            KeyMechanism::RsaSignaturePssSha1,
+            KeyMechanism::RsaSignaturePssSha224,
+            KeyMechanism::RsaSignaturePssSha256,
+            KeyMechanism::RsaSignaturePssSha384,
+            KeyMechanism::RsaSignaturePssSha512,
+        ]
+    }
+}
+
 impl From<KeyMechanism> for nethsm_sdk_rs::models::KeyMechanism {
     fn from(value: KeyMechanism) -> Self {
         match value {
@@ -526,31 +567,12 @@ impl KeyType {
     /// ```
     pub fn matches_mechanisms(&self, mechanisms: &[KeyMechanism]) -> Result<(), Error> {
         let valid_mechanisms: &[KeyMechanism] = match self {
-            KeyType::Curve25519 => &[KeyMechanism::EdDsaSignature],
+            KeyType::Curve25519 => &KeyMechanism::curve25519_mechanisms(),
             KeyType::EcP224 | KeyType::EcP256 | KeyType::EcP384 | KeyType::EcP521 => {
-                &[KeyMechanism::EcdsaSignature]
+                &KeyMechanism::elliptic_curve_mechanisms()
             }
-            KeyType::Generic => &[
-                KeyMechanism::AesDecryptionCbc,
-                KeyMechanism::AesEncryptionCbc,
-            ],
-            KeyType::Rsa => &[
-                KeyMechanism::RsaDecryptionRaw,
-                KeyMechanism::RsaDecryptionPkcs1,
-                KeyMechanism::RsaDecryptionOaepMd5,
-                KeyMechanism::RsaDecryptionOaepSha1,
-                KeyMechanism::RsaDecryptionOaepSha224,
-                KeyMechanism::RsaDecryptionOaepSha256,
-                KeyMechanism::RsaDecryptionOaepSha384,
-                KeyMechanism::RsaDecryptionOaepSha512,
-                KeyMechanism::RsaSignaturePkcs1,
-                KeyMechanism::RsaSignaturePssMd5,
-                KeyMechanism::RsaSignaturePssSha1,
-                KeyMechanism::RsaSignaturePssSha224,
-                KeyMechanism::RsaSignaturePssSha256,
-                KeyMechanism::RsaSignaturePssSha384,
-                KeyMechanism::RsaSignaturePssSha512,
-            ],
+            KeyType::Generic => &KeyMechanism::generic_mechanisms(),
+            KeyType::Rsa => &KeyMechanism::rsa_mechanisms(),
         };
 
         let mut invalid_mechanisms = mechanisms
