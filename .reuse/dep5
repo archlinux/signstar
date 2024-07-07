@@ -3,7 +3,7 @@ Upstream-Name: signstar
 Upstream-Contact: David Runge <dvzrv@archlinux.org>
 Source: https://gitlab.archlinux.org/archlinux/signstar
 
-Files: Cargo.lock
+Files: Cargo.lock renovate.json
 Copyright: 2024 David Runge <dvzrv@archlinux.org>
 License: CC0-1.0
 
