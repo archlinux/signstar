@@ -1,6 +1,9 @@
 # SPDX-FileCopyrightText: 2024 David Runge <dvzrv@archlinux.org>
 # SPDX-License-Identifier: CC0-1.0
 
+variables:
+  RUST_BACKTRACE: full
+
 stages:
   - check
   - test
@@ -52,12 +55,13 @@ integration-test:
     - pacman-key --init
     - pacman -Sy --needed --noconfirm archlinux-keyring
     - source .env && pacman -Syu --needed --noconfirm $PACMAN_PACKAGES
-    - just install-rust-dev-tools
+    - useradd -m testuser
+    - chown -R testuser:testuser .
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
   script:
-    - just ignored=true test
+    - WORKDIR="$(pwd)" runuser -w WORKDIR -l testuser -c 'env && cd "$WORKDIR" && just install-rust-dev-tools && just test-readme nethsm-cli && just ignored=true test'
   stage: test
   tags:
     - vm
