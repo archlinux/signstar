@@ -111,6 +111,7 @@ impl<T> Display for NetHsmApiError<T> {
     strum::Display,
     strum::EnumString,
     strum::EnumIter,
+    strum::IntoStaticStr,
     Eq,
     PartialEq,
     Ord,
@@ -184,7 +185,16 @@ impl From<SignatureType> for SignMode {
 /// Defines in which state the NetHSM is in during boot after provisioning (see
 /// [`crate::NetHsm::provision`]) and whether an unlock passphrase has to be provided for it to be
 /// of state [`crate::SystemState::Operational`].
-#[derive(Clone, Debug, strum::Display, strum::EnumString, strum::EnumIter, Eq, PartialEq)]
+#[derive(
+    Clone,
+    Debug,
+    strum::Display,
+    strum::EnumString,
+    strum::EnumIter,
+    strum::IntoStaticStr,
+    Eq,
+    PartialEq,
+)]
 #[strum(ascii_case_insensitive)]
 pub enum BootMode {
     /// The device boots into state [`crate::SystemState::Locked`] and an unlock passphrase has to
@@ -225,6 +235,7 @@ impl From<BootMode> for UnattendedBootConfig {
     strum::Display,
     strum::EnumString,
     strum::EnumIter,
+    strum::IntoStaticStr,
     Eq,
     Hash,
     Ord,
@@ -289,6 +300,7 @@ impl From<DecryptMode> for nethsm_sdk_rs::models::DecryptMode {
     strum::Display,
     strum::EnumString,
     strum::EnumIter,
+    strum::IntoStaticStr,
     Eq,
     Hash,
     Ord,
@@ -426,6 +438,7 @@ impl From<KeyMechanism> for nethsm_sdk_rs::models::KeyMechanism {
     strum::Display,
     strum::EnumString,
     strum::EnumIter,
+    strum::IntoStaticStr,
     Eq,
     Hash,
     Ord,
@@ -584,6 +597,7 @@ impl From<KeyType> for nethsm_sdk_rs::models::KeyType {
     strum::Display,
     strum::EnumString,
     strum::EnumIter,
+    strum::IntoStaticStr,
     Eq,
     Hash,
     Ord,
@@ -628,6 +642,7 @@ impl From<LogLevel> for nethsm_sdk_rs::models::LogLevel {
     strum::Display,
     strum::EnumString,
     strum::EnumIter,
+    strum::IntoStaticStr,
     Eq,
     Hash,
     Ord,
@@ -679,6 +694,7 @@ impl From<TlsKeyType> for nethsm_sdk_rs::models::TlsKeyType {
     strum::Display,
     strum::EnumString,
     strum::EnumIter,
+    strum::IntoStaticStr,
     Eq,
     PartialEq,
     Ord,
