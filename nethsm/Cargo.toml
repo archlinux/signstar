@@ -9,7 +9,7 @@ keywords = ["encryption", "hsm", "nethsm", "signing"]
 license = "Apache-2.0 OR MIT"
 name = "nethsm"
 repository = "https://gitlab.archlinux.org/archlinux/signstar"
-version = "0.2.0"
+version = "0.3.0"
 
 [dependencies]
 base64ct = { version = "1.6.0", features = ["alloc"] }
@@ -24,7 +24,7 @@ p256 = { version = "0.13.2", features = ["pem", "pkcs8"] }
 p384 = { version = "0.13.0", features = ["pem", "pkcs8"] }
 p521 = { version = "0.13.3", features = ["pem", "pkcs8"] }
 rsa = { version = "0.9.6", features = ["pem"] }
-rustls = { version = "0.22.2", default-features = false, features = ["ring"] }
+rustls = { version = "0.23.0", default-features = false, features = ["ring"] }
 rustls-native-certs = "0.7.0"
 secrecy = { version = "0.8.0", features = ["alloc", "serde"] }
 serde = { version = "1.0.197", features = ["derive"] }
@@ -33,14 +33,14 @@ sha1 = "0.10.6"
 sha2 = { version = "0.10.8", features = ["oid"] }
 strum = { version = "0.25.0", features = ["derive"] }
 thiserror = "1.0.56"
-ureq = { version = "2.9.6", features = ["json"] }
+ureq = { version = "2.10.0", features = ["json"] }
 url = { version = "2.5.0", features = ["serde"] }
 
 [dev-dependencies]
 ed25519-dalek = { version = "2.1.1", features = ["pkcs8", "pem", "rand_core"] }
 ed25519-compact = { version = "2.0.6", features = ["pem", "traits"] }
 rand = "0.8.5"
-reqwest = "0.11.24"
+reqwest = "0.12.0"
 rsa = { version = "0.9.6", features = ["getrandom", "sha2", "pem"] }
 rstest = "0.18.2"
 rustainers = { version = "0.12.0" }

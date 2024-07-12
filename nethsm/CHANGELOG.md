@@ -6,6 +6,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2024-07-12
+
+### Added
+- Add functions to return key type specific lists of key mechanisms
+- Extend FromStr for ConnectionSecurity to cover case sensitivity
+- Derive strum::IntoStaticStr for various types
+- Derive strum::EnumIter for various types
+- [**breaking**] Assemble connection configuration only when it is needed
+- [**breaking**] Use secrecy for passphrase zeroing
+- Publicly re-export all required nethsm-sdk-rs models
+
+### Fixed
+- *(nethsm/src/nethsm_sdk.rs)* Fix spelling mistake in error message
+
+### Other
+- Switch rustls's crypto provider to ring
+- Describe output data types for signing functionality
+- *(Cargo.toml)* Remove strum_macros as it is unused
+- Assemble user agent string from crate data
+- Make container setup with fixtures more robust
+- Use TestResult for all doc tests
+
 ## [0.2.0] - 2024-05-10
 
 ### Added
