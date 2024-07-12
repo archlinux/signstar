@@ -128,6 +128,44 @@ check-licenses:
 test:
     {{ if ignored == "true" { "cargo test --all -- --ignored" } else { "cargo test --all && RUSTFLAGS='-D warnings' cargo doc" } }}
 
+# Runs per project end-to-end tests found in a project README.md
+test-readme project:
+    #!/usr/bin/env bash
+    set -euxo pipefail
+
+    CARGO_HOME="${CARGO_HOME:-$HOME/.cargo}"
+
+    container_id=""
+
+    install_executables() {
+        printf "Installing executables of %s...\n" "{{ project }}"
+        cargo install --locked --path {{ project }}
+    }
+
+    create_container() {
+        container_id="$(podman container create --rm --network=pasta:-t,auto,-u,auto,-T,auto,-U,auto docker.io/nitrokey/nethsm:testing)"
+    }
+
+    start_container() {
+        podman container start "$container_id" > /dev/null
+        sleep 2
+    }
+
+    stop_container() {
+        podman container stop "$container_id" > /dev/null
+    }
+
+    trap stop_container EXIT
+
+    install_executables
+    create_container
+    start_container
+
+    PATH="$CARGO_HOME/bin:$PATH"
+    printf "PATH=%s\n" "$PATH"
+
+    cd {{ project }} && PATH="$PATH" tangler bash < README.md | bash -euxo pipefail -
+
 # Adds pre-commit and pre-push git hooks
 add-hooks:
     #!/usr/bin/env bash
