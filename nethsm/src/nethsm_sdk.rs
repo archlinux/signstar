@@ -24,7 +24,7 @@ impl From<Response> for Message {
             message
         } else {
             Message {
-                message: "Deseralization error (no message in body)".to_string(),
+                message: "Deserialization error (no message in body)".to_string(),
             }
         }
     }
