@@ -3826,6 +3826,19 @@ impl NetHsm {
     /// The `message` does not have to be hashed, as this function takes care of this based on the
     /// provided [`SignatureType`].
     ///
+    /// The returned data depends on the chosen [`SignatureType`]:
+    ///
+    /// * [`SignatureType::Pkcs1`] returns the PKCS1 padded signature (no signature algorithm OID
+    ///   prepended, since the used hash is not known).
+    /// * [`SignatureType::PssMd5`], [`SignatureType::PssSha1`], [`SignatureType::PssSha224`],
+    ///   [`SignatureType::PssSha256`], [`SignatureType::PssSha384`] and
+    ///   [`SignatureType::PssSha512`] return the [EMSA-PSS](https://en.wikipedia.org/wiki/PKCS_1) encoded signature.
+    /// * [`SignatureType::EdDsa`] returns the encoding as specified in [RFC 8032 (5.1.6)](https://www.rfc-editor.org/rfc/rfc8032#section-5.1.6)
+    ///   (`r` appended with `s` (each 32 bytes), in total 64 bytes).
+    /// * [`SignatureType::EcdsaP224`], [`SignatureType::EcdsaP256`], [`SignatureType::EcdsaP384`]
+    ///   and [`SignatureType::EcdsaP521`] return the [ASN.1](https://en.wikipedia.org/wiki/ASN.1) DER encoded signature (a sequence of
+    ///   integer `r` and integer `s`).
+    ///
     /// This call requires using credentials of a user in the "operator"
     /// [role](https://docs.nitrokey.com/nethsm/administration#roles).
     ///
