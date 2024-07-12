@@ -24,7 +24,7 @@ p256 = { version = "0.13.2", features = ["pem", "pkcs8"] }
 p384 = { version = "0.13.0", features = ["pem", "pkcs8"] }
 p521 = { version = "0.13.3", features = ["pem", "pkcs8"] }
 rsa = { version = "0.9.6", features = ["pem"] }
-rustls = { version = "0.22.2", features = ["aws_lc_rs"] }
+rustls = { version = "0.22.2", default-features = false, features = ["ring"] }
 rustls-native-certs = "0.7.0"
 secrecy = { version = "0.8.0", features = ["alloc", "serde"] }
 serde = { version = "1.0.197", features = ["derive"] }

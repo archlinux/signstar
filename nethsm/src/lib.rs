@@ -175,8 +175,8 @@ pub use nethsm_sdk_rs::models::{
     UserData,
 };
 use nethsm_sdk_rs::ureq::{Agent, AgentBuilder};
-use rustls::crypto::{aws_lc_rs as tls_provider, CryptoProvider};
-use rustls::ClientConfig;
+use rustls::client::ClientConfig;
+use rustls::crypto::{ring as tls_provider, CryptoProvider};
 use secrecy::{ExposeSecret, SecretString};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
