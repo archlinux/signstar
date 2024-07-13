@@ -1,7 +1,3 @@
-<!--
-# SPDX-FileCopyrightText: 2024 David Runge <dvzrv@archlinux.org>
-# SPDX-License-Identifier: CC0-1.0
--->
 # NetHSM
 
 A high-level library abstracting the use of the [nethsm-sdk-rs] library.
