@@ -4,7 +4,7 @@
     "config:base"
   ],
   "separateMinorPatch": true,
-  "patch": [
+  "patch": {
     "enabled": false
-  ]
+  }
 }
