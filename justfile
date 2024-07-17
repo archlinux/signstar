@@ -1,5 +1,6 @@
 #!/usr/bin/env -S just --working-directory . --justfile
 # SPDX-FileCopyrightText: 2024 David Runge <dvzrv@archlinux.org>
+# SPDX-FileCopyrightText: 2024 Wiktor Kwapisiewicz <wiktor@metacode.biz>
 # SPDX-License-Identifier: CC0-1.0
 #
 # Load project-specific properties from the `.env` file
@@ -96,6 +97,7 @@ check-commits:
         fi
     done
 
+# Runs checks before pushing commits to remote repository.
 run-pre-push-hook: check-commits
 
 # Checks common spelling mistakes
