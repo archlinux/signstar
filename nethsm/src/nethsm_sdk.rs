@@ -606,6 +606,21 @@ impl From<KeyType> for nethsm_sdk_rs::models::KeyType {
     }
 }
 
+impl From<nethsm_sdk_rs::models::KeyType> for KeyType {
+    fn from(value: nethsm_sdk_rs::models::KeyType) -> Self {
+        use nethsm_sdk_rs::models::KeyType;
+        match value {
+            KeyType::Curve25519 => Self::Curve25519,
+            KeyType::EcP224 => Self::EcP224,
+            KeyType::EcP256 => Self::EcP256,
+            KeyType::EcP384 => Self::EcP384,
+            KeyType::EcP521 => Self::EcP521,
+            KeyType::Generic => Self::Generic,
+            KeyType::Rsa => Self::Rsa,
+        }
+    }
+}
+
 /// The format of a key
 #[derive(
     Clone,

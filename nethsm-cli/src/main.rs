@@ -707,6 +707,45 @@ fn main() -> Result<(), Error> {
 
             println!("{}", nethsm.metrics()?);
         }
+        Command::OpenPgp(command) => match command {
+            cli::OpenPgpCommand::Add(command) => {
+                let flags = {
+                    let mut flags = nethsm::OpenPgpKeyUsageFlags::default();
+                    if command.can_sign {
+                        flags.set_sign();
+                    }
+                    if command.cannot_sign {
+                        flags.clear_sign();
+                    }
+                    flags
+                };
+
+                let nethsm = config
+                    .get_device(cli.label.as_deref())?
+                    .nethsm_with_matching_creds(
+                        &[UserRole::Operator],
+                        cli.user.as_deref(),
+                        auth_passphrase.clone(),
+                    )?;
+
+                let cert = nethsm.add_openpgp_cert(
+                    &command.key_id,
+                    flags,
+                    &command.user_id,
+                    command.time.unwrap_or_else(Utc::now),
+                )?;
+
+                let nethsm = config
+                    .get_device(cli.label.as_deref())?
+                    .nethsm_with_matching_creds(
+                        &[UserRole::Administrator],
+                        cli.user.as_deref(),
+                        auth_passphrase,
+                    )?;
+
+                nethsm.import_key_certificate(&command.key_id, cert.clone())?;
+            }
+        },
         Command::Provision(command) => {
             let nethsm = config
                 .get_device(cli.label.as_deref())?

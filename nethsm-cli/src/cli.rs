@@ -8,6 +8,7 @@ pub use info::InfoCommand;
 pub use key::{KeyCertCommand, KeyCommand};
 pub use lock::LockCommand;
 pub use metrics::MetricsCommand;
+pub use openpgp::OpenPgpCommand;
 pub use provision::ProvisionCommand;
 pub use random::RandomCommand;
 pub use system::SystemCommand;
@@ -23,6 +24,7 @@ mod info;
 mod key;
 mod lock;
 mod metrics;
+mod openpgp;
 mod provision;
 mod random;
 mod system;
@@ -112,6 +114,9 @@ pub enum Command {
     Lock(LockCommand),
 
     Metrics(MetricsCommand),
+
+    #[command(subcommand, name = "openpgp")]
+    OpenPgp(OpenPgpCommand),
 
     Provision(ProvisionCommand),
 

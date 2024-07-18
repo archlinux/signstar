@@ -162,6 +162,7 @@ nethsm key generate --key-id signing5 --tags signing2 EcP521 EcdsaSignature
 nethsm key generate --key-id encdec1 --tags decryption1 --length 128 Generic AesDecryptionCbc AesEncryptionCbc
 nethsm key generate --key-id dec1 --tags decryption2 --length 2048 Rsa RsaDecryptionPkcs1
 nethsm key generate --key-id signing6 --tags signing3 --length 2048 Rsa RsaSignaturePssSha512
+nethsm key generate --key-id signing8 --tags openpgpsigning --length 2048 Rsa RsaSignaturePkcs1
 ```
 
 All key IDs on the device and info about them can be listed:
@@ -213,6 +214,7 @@ message_digest="$(mktemp --tmpdir="$nethsm_tmpdir" --dry-run --suffix '-nethsm.m
 nethsm user tag operator1 signing2
 # if we add the signing3 tag for operator1 it is able to use signing6
 nethsm user tag operator1 signing3
+nethsm user tag operator1 openpgpsigning
 
 # create a signature with each key type
 nethsm key sign --force signing1 EdDsa README.md
@@ -252,6 +254,38 @@ openssl pkeyutl -verify -in README.md -rawin -sigfile "$NETHSM_KEY_SIGNATURE_OUT
 nethsm user untag operator1 signing3
 ```
 
+#### OpenPGP
+
+The CLI can also create OpenPGP certificates for keys stored in the HSM:
+
+```bash
+export GNUPGHOME="$(mktemp --directory --tmpdir="$nethsm_tmpdir" --suffix 'gnupghome')"
+
+nethsm openpgp add --can-sign signing1 "Test signing1 key"
+nethsm key cert get signing1 > "$nethsm_tmpdir/ed25519.pgp"
+gpg --import "$nethsm_tmpdir/ed25519.pgp"
+sq inspect "$nethsm_tmpdir/ed25519.pgp" | grep "Test signing1 key"
+
+nethsm openpgp add signing3 "Test signing3 key"
+nethsm key cert get signing3 > "$nethsm_tmpdir/p256.pgp"
+gpg --import "$nethsm_tmpdir/p256.pgp"
+sq inspect "$nethsm_tmpdir/p256.pgp" | grep "Test signing3 key"
+
+nethsm openpgp add signing4 "Test signing4 key"
+nethsm key cert get signing4 > "$nethsm_tmpdir/p384.pgp"
+gpg --import "$nethsm_tmpdir/p384.pgp"
+sq inspect "$nethsm_tmpdir/p384.pgp" | grep "Test signing4 key"
+
+nethsm openpgp add signing5 "Test signing5 key"
+nethsm key cert get signing5 > "$nethsm_tmpdir/p521.pgp"
+gpg --import "$nethsm_tmpdir/p521.pgp"
+sq inspect "$nethsm_tmpdir/p521.pgp" | grep "Test signing5 key"
+
+nethsm openpgp add signing8 "Test signing8 key"
+nethsm key cert get signing8 > "$nethsm_tmpdir/rsa.pgp"
+gpg --import "$nethsm_tmpdir/rsa.pgp"
+sq inspect "$nethsm_tmpdir/rsa.pgp" | grep "Test signing8 key"
+```
 #### Encrypting messages
 
 Messages can be encrypted using keys that offer the key mechanisms for this operation.
@@ -307,7 +341,7 @@ Administrators and operators can retrieve the public key of any key:
 
 ```bash
 # keys of type "Generic" don't have a public key, so we do not request them
-for key in signing{1..7} dec1; do
+for key in signing{1..8} dec1; do
   nethsm key public-key "$key" --force
 done
 ```

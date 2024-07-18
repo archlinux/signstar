@@ -197,6 +197,9 @@ pub use nethsm_sdk::{
     TlsKeyType,
     UserRole,
 };
+mod openpgp;
+pub use openpgp::extract_certificate as extract_openpgp_certificate;
+pub use openpgp::KeyUsageFlags as OpenPgpKeyUsageFlags;
 mod tls;
 pub use tls::{ConnectionSecurity, HostCertificateFingerprints};
 use tls::{DangerIgnoreVerifier, FingerprintVerifier};
@@ -209,7 +212,7 @@ pub enum Error {
 
     /// A Base64 encoded string can not be decode
     #[error("Decoding Base64 string failed: {0}")]
-    Base64Decode(base64ct::Error),
+    Base64Decode(#[from] base64ct::Error),
 
     /// A generic error with a custom message
     #[error("NetHSM error: {0}")]
@@ -238,6 +241,14 @@ pub enum Error {
     /// Unable to convert string slice to Passphrase
     #[error("Unable to convert string to passphrase")]
     Passphrase,
+
+    /// OpenPGP error
+    #[error("OpenPGP error: {0}")]
+    OpenPgp(#[from] pgp::errors::Error),
+
+    /// Elliptic curve error
+    #[error("Elliptic curve error: {0}")]
+    EllipticCurve(#[from] p256::elliptic_curve::Error),
 }
 
 /// Credentials for a [`NetHsm`]
@@ -3813,6 +3824,92 @@ impl NetHsm {
         )
     }
 
+    /// Signs a digest using a key
+    ///
+    /// [Signs](https://docs.nitrokey.com/nethsm/operation#sign) a `digest` using a key
+    /// identified by `key_id`.
+    ///
+    /// The digest must be of appropriate type depending on the type of the signature.
+    ///
+    /// The returned data depends on the chosen [`SignatureType`]:
+    ///
+    /// * [`SignatureType::Pkcs1`] returns the PKCS1 padded signature (no signature algorithm OID
+    ///   prepended, since the used hash is not known).
+    /// * [`SignatureType::PssMd5`], [`SignatureType::PssSha1`], [`SignatureType::PssSha224`],
+    ///   [`SignatureType::PssSha256`], [`SignatureType::PssSha384`] and
+    ///   [`SignatureType::PssSha512`] return the [EMSA-PSS](https://en.wikipedia.org/wiki/PKCS_1) encoded signature.
+    /// * [`SignatureType::EdDsa`] returns the encoding as specified in [RFC 8032 (5.1.6)](https://www.rfc-editor.org/rfc/rfc8032#section-5.1.6)
+    ///   (`r` appended with `s` (each 32 bytes), in total 64 bytes).
+    /// * [`SignatureType::EcdsaP224`], [`SignatureType::EcdsaP256`], [`SignatureType::EcdsaP384`]
+    ///   and [`SignatureType::EcdsaP521`] return the [ASN.1](https://en.wikipedia.org/wiki/ASN.1) DER encoded signature (a sequence of
+    ///   integer `r` and integer `s`).
+    ///
+    /// This call requires using credentials of a user in the "operator"
+    /// [role](https://docs.nitrokey.com/nethsm/administration#roles).
+    ///
+    /// # Errors
+    ///
+    /// Returns an [`Error::Api`] if signing the message fails:
+    /// * the device is not in state [`SystemState::Operational`]
+    /// * no key identified by `key_id` exists on the device
+    /// * the chosen [`SignatureType`] is incompatible with the targeted key
+    /// * the user lacks access to the key
+    /// * the used credentials are not correct
+    /// * the used credentials are not that of a user in the "operator" role
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # use testresult::TestResult;
+    /// use nethsm::{ConnectionSecurity, Credentials, Error, NetHsm, Passphrase, SignatureType};
+    ///
+    /// # fn main() -> TestResult {
+    /// // create a connection with a user in the "operator" role
+    /// let nethsm = NetHsm::new(
+    ///     "https://example.org/api/v1".try_into()?,
+    ///     ConnectionSecurity::Unsafe,
+    ///     Some(Credentials::new(
+    ///         "operator".to_string(),
+    ///         Some(Passphrase::new("passphrase".to_string())),
+    ///     )),
+    ///     None,
+    ///     None,
+    /// )?;
+    ///
+    /// // create an ed25519 signature
+    /// // this assumes the key with Key ID "signing1" is of type KeyType::Curve25519
+    /// println!(
+    ///     "{:?}",
+    ///     nethsm.sign_digest("signing1", SignatureType::EdDsa, &[0, 1, 2])?
+    /// );
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn sign_digest(
+        &self,
+        key_id: &str,
+        signature_type: SignatureType,
+        digest: &[u8],
+    ) -> Result<Vec<u8>, Error> {
+        // decode base64 encoded data from the API
+        Base64::decode_vec(
+            &keys_key_id_sign_post(
+                &self.create_connection_config(),
+                key_id,
+                SignRequestData::new(signature_type.into(), Base64::encode_string(digest)),
+            )
+            .map_err(|error| {
+                Error::Api(format!(
+                    "Signing message failed: {}",
+                    NetHsmApiError::from(error)
+                ))
+            })?
+            .entity
+            .signature,
+        )
+        .map_err(Error::Base64Decode)
+    }
+
     /// Signs a message using a key
     ///
     /// [Signs](https://docs.nitrokey.com/nethsm/operation#sign) a `message` using a key
@@ -3887,53 +3984,37 @@ impl NetHsm {
             SignatureType::Pkcs1 | SignatureType::PssSha256 | SignatureType::EcdsaP256 => {
                 let mut hasher = Sha256::new();
                 hasher.update(message);
-                Base64::encode_string(&hasher.finalize()[..])
+                &hasher.finalize()[..]
             }
             SignatureType::PssMd5 => {
                 let mut hasher = Md5::new();
                 hasher.update(message);
-                Base64::encode_string(&hasher.finalize()[..])
+                &hasher.finalize()[..]
             }
             SignatureType::PssSha1 => {
                 let mut hasher = Sha1::new();
                 hasher.update(message);
-                Base64::encode_string(&hasher.finalize()[..])
+                &hasher.finalize()[..]
             }
             SignatureType::PssSha224 | SignatureType::EcdsaP224 => {
                 let mut hasher = Sha224::new();
                 hasher.update(message);
-                Base64::encode_string(&hasher.finalize()[..])
+                &hasher.finalize()[..]
             }
             SignatureType::PssSha384 | SignatureType::EcdsaP384 => {
                 let mut hasher = Sha384::new();
                 hasher.update(message);
-                Base64::encode_string(&hasher.finalize()[..])
+                &hasher.finalize()[..]
             }
             SignatureType::PssSha512 | SignatureType::EcdsaP521 => {
                 let mut hasher = Sha512::new();
                 hasher.update(message);
-                Base64::encode_string(&hasher.finalize()[..])
+                &hasher.finalize()[..]
             }
-            SignatureType::EdDsa => Base64::encode_string(message),
+            SignatureType::EdDsa => message,
         };
 
-        // decode base64 encoded data from the API
-        Base64::decode_vec(
-            &keys_key_id_sign_post(
-                &self.create_connection_config(),
-                key_id,
-                SignRequestData::new(signature_type.into(), message),
-            )
-            .map_err(|error| {
-                Error::Api(format!(
-                    "Signing message failed: {}",
-                    NetHsmApiError::from(error)
-                ))
-            })?
-            .entity
-            .signature,
-        )
-        .map_err(Error::Base64Decode)
+        self.sign_digest(key_id, signature_type, message)
     }
 
     /// Encrypts a message using a symmetric key
@@ -4188,5 +4269,68 @@ impl NetHsm {
         .entity
         .random;
         Base64::decode_vec(&base64_bytes).map_err(Error::Base64Decode)
+    }
+
+    /// Adds an OpenPGP certificate to an existing key
+    ///
+    /// The NetHSM key is used to sign the self-certification and the resulting [OpenPGP certificate](https://openpgp.dev/book/certificates.html) is persisted in the NetHSM.
+    ///
+    /// This call requires using credentials of a user in the "operator" *and* "administrator" [roles](https://docs.nitrokey.com/nethsm/administration#roles).
+    ///
+    /// # Errors
+    ///
+    /// Returns an [`Error::Api`] if:
+    /// * retrieving random bytes fails
+    /// * the device is not in state [`SystemState::Operational`]
+    /// * the used credentials are not correct
+    /// * the used credentials are not those of users in the "operator" and "administrator" role
+    /// * the key does not exist
+    /// * the used operator credentials do not grant access to the used key
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # use testresult::TestResult;
+    /// use std::time::SystemTime;
+    ///
+    /// use nethsm::{ConnectionSecurity, Credentials, NetHsm, OpenPgpKeyUsageFlags, Passphrase};
+    ///
+    /// # fn main() -> TestResult {
+    /// // create a connection with a user in the "operator" and "administrator" role
+    /// let nethsm = NetHsm::new(
+    ///     "https://example.org/api/v1".try_into()?,
+    ///     ConnectionSecurity::Unsafe,
+    ///     Some(Credentials::new(
+    ///         "admin".to_string(),
+    ///         Some(Passphrase::new("passphrase".to_string())),
+    ///     )),
+    ///     None,
+    ///     None,
+    /// )?;
+    ///
+    /// nethsm.add_credentials(Credentials::new(
+    ///     "operator".to_string(),
+    ///     Some(Passphrase::new("passphrase".to_string())),
+    /// ));
+    ///
+    /// assert!(!nethsm
+    ///     .add_openpgp_cert(
+    ///         "key",
+    ///         OpenPgpKeyUsageFlags::default(),
+    ///         "Test <test@example.com>",
+    ///         SystemTime::now().into()
+    ///     )?
+    ///     .is_empty());
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn add_openpgp_cert(
+        &self,
+        key_id: &str,
+        flags: openpgp::KeyUsageFlags,
+        user_id: &str,
+        created_at: DateTime<Utc>,
+    ) -> Result<Vec<u8>, Error> {
+        openpgp::add_certificate(self, flags, key_id.into(), user_id, created_at)
     }
 }
