@@ -128,7 +128,7 @@ check-licenses:
 
 # Runs all unit tests. By default ignored tests are not run. Run with `ignored=true` to run only ignored tests
 test:
-    {{ if ignored == "true" { "cargo test --all -- --ignored" } else { "cargo test --all && RUSTFLAGS='-D warnings' cargo doc" } }}
+    {{ if ignored == "true" { "cargo test --all -- --ignored" } else { "cargo test --all && RUSTFLAGS='-D warnings' cargo doc --no-deps" } }}
 
 # Runs per project end-to-end tests found in a project README.md
 test-readme project:
