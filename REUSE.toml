@@ -8,6 +8,7 @@ SPDX-PackageDownloadLocation = "https://gitlab.archlinux.org/archlinux/signstar"
 
 [[annotations]]
 path = [
+    ".gitlab/CODEOWNERS",
     "Cargo.lock",
     "renovate.json",
 ]
