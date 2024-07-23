@@ -1,6 +1,3 @@
-// SPDX-FileCopyrightText: 2024 David Runge <dvzrv@archlinux.org>
-// SPDX-License-Identifier: Apache-2.0 OR MIT
-
 use std::{net::Ipv4Addr, path::PathBuf};
 
 use chrono::{DateTime, Utc};

@@ -1,7 +1,3 @@
-<!--
-# SPDX-FileCopyrightText: 2024 David Runge <dvzrv@archlinux.org>
-# SPDX-License-Identifier: CC0-1.0
--->
 # Contributing
 
 These are the contributing guidelines for the signstar project.

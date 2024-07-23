@@ -1,6 +1,3 @@
-// SPDX-FileCopyrightText: 2024 David Runge <dvzrv@archlinux.org>
-// SPDX-License-Identifier: Apache-2.0 OR MIT
-
 use std::fs::{read, read_to_string, File};
 use std::io::{stdout, Write};
 use std::path::{Path, PathBuf};

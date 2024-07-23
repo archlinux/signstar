@@ -1,6 +1,3 @@
-// SPDX-FileCopyrightText: 2024 David Runge <dvzrv@archlinux.org>
-// SPDX-License-Identifier: Apache-2.0 OR MIT
-
 //! A high-level library to interact with the API of a [Nitrokey NetHSM](https://docs.nitrokey.com/nethsm/)
 //!
 //! Provides high-level integration with a Nitrokey NetHSM and official container.

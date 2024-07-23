@@ -1,6 +1,3 @@
-// SPDX-FileCopyrightText: 2024 David Runge <dvzrv@archlinux.org>
-// SPDX-License-Identifier: Apache-2.0 OR MIT
-
 mod common;
 use common::{nethsm_with_users, unprovisioned_nethsm, NetHsmImage};
 use nethsm::{NetHsm, SystemState};

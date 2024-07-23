@@ -1,28 +1,37 @@
-# SPDX-FileCopyrightText: 2024 David Runge <dvzrv@archlinux.org>
-# SPDX-License-Identifier: CC0-1.0
-
+# NOTE: This project does not attribute contributors individually. Instead refer to `git log --format="%an <%aE>" | sort -u` for a list of individual contributors.
 version = 1
 SPDX-PackageName = "signstar"
-SPDX-PackageSupplier = "David Runge <dvzrv@archlinux.org>"
+SPDX-PackageSupplier = "Arch Linux"
 SPDX-PackageDownloadLocation = "https://gitlab.archlinux.org/archlinux/signstar"
 
 [[annotations]]
 path = [
-    ".gitlab/CODEOWNERS",
-    "Cargo.lock",
-    "renovate.json",
+    "**.rs",
 ]
 precedence = "aggregate"
-SPDX-FileCopyrightText = "2024 David Runge <dvzrv@archlinux.org>"
+SPDX-FileCopyrightText = "Signstar Contributors"
+SPDX-License-Identifier = "Apache-2.0 OR MIT"
+
+[[annotations]]
+path = [
+    "**.toml",
+    "*.json",
+    "Cargo.lock",
+    ".codespellrc",
+    ".env",
+    ".gitignore",
+    ".gitlab-ci.yml",
+    ".gitlab/CODEOWNERS",
+    "justfile",
+]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "Signstar Contributors"
 SPDX-License-Identifier = "CC0-1.0"
 
 [[annotations]]
 path = [
-     "README.md",
-     "nethsm/README.md",
-     "nethsm/CHANGELOG.md",
-     "nethsm-cli/CHANGELOG.md",
+    "**.md",
 ]
 precedence = "aggregate"
-SPDX-FileCopyrightText = "2024 David Runge <dvzrv@archlinux.org>"
+SPDX-FileCopyrightText = "Signstar Contributors"
 SPDX-License-Identifier = "CC-BY-SA-4.0"

@@ -1,6 +1,3 @@
-// SPDX-FileCopyrightText: 2024 David Runge <dvzrv@archlinux.org>
-// SPDX-License-Identifier: Apache-2.0 OR MIT
-
 use nethsm::{Passphrase, UserRole};
 use rpassword::prompt_password;
 use rprompt::prompt_reply;

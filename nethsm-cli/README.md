@@ -1,7 +1,3 @@
-<!--
-# SPDX-FileCopyrightText: 2024 David Runge <dvzrv@archlinux.org>
-# SPDX-License-Identifier: CC-BY-SA-4.0
--->
 # NetHSM Command Line Interface
 
 A command line interface (CLI) for the Nitrokey [NetHSM] based on the [nethsm crate].
