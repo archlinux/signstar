@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: 2024 David Runge <dvzrv@archlinux.org>
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
+use std::fs::File;
 use std::path::PathBuf;
 
 use chrono::Utc;
@@ -14,7 +15,6 @@ use nethsm::{
     Url,
     UserRole,
 };
-use reqwest::get;
 use rstest::fixture;
 use rustainers::runner::Runner;
 use rustainers::Container;
@@ -236,8 +236,9 @@ pub async fn update_file() -> TestResult<PathBuf> {
     let file = download_dir.join(file_name);
 
     if !file.exists() {
-        let file_bytes = get(update_link).await?.bytes().await?;
-        std::fs::write(&file, file_bytes)?;
+        let mut file_bytes = ureq::get(&update_link).call()?.into_reader();
+        let mut file_writer = File::create(&file)?;
+        std::io::copy(&mut file_bytes, &mut file_writer)?;
         assert!(file.exists());
     }
 
