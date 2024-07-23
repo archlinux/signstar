@@ -293,10 +293,10 @@ async fn fail_upload_update(
 #[tokio::test]
 async fn commit_update(
     #[future] nethsm_with_users: TestResult<(NetHsm, Container<NetHsmImage>)>,
-    #[future] update_file: TestResult<PathBuf>,
+    update_file: TestResult<PathBuf>,
 ) -> TestResult {
     let (nethsm, _container) = nethsm_with_users.await?;
-    let file = std::fs::read(update_file.await?)?;
+    let file = std::fs::read(update_file?)?;
 
     async fn upload_and_commit_update(nethsm: &NetHsm, file: Vec<u8>) -> TestResult {
         // NOTE: uploading may fail from time to time in CI, so we try at least three times before
@@ -333,10 +333,10 @@ async fn commit_update(
 #[tokio::test]
 async fn cancel_update(
     #[future] nethsm_with_users: TestResult<(NetHsm, Container<NetHsmImage>)>,
-    #[future] update_file: TestResult<PathBuf>,
+    update_file: TestResult<PathBuf>,
 ) -> TestResult {
     let (nethsm, _container) = nethsm_with_users.await?;
-    let file = std::fs::read(update_file.await?)?;
+    let file = std::fs::read(update_file?)?;
 
     async fn upload_and_cancel_update(nethsm: &NetHsm, file: Vec<u8>) -> TestResult {
         // NOTE: uploading may fail from time to time in CI, so we try at least three times before

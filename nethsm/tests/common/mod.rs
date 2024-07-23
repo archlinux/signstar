@@ -226,7 +226,7 @@ pub async fn nethsm_with_keys(
 }
 
 #[fixture]
-pub async fn update_file() -> TestResult<PathBuf> {
+pub fn update_file() -> TestResult<PathBuf> {
     let file_name = "update.img.bin";
     let update_link = format!(
         "https://raw.githubusercontent.com/Nitrokey/nethsm-sdk-py/main/tests/{}",
