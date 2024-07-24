@@ -8,6 +8,7 @@ use common::{
     unprovisioned_nethsm,
     update_file,
     NetHsmImage,
+    ADMIN_USER_ID,
     BACKUP_PASSPHRASE,
     BACKUP_USER_ID,
     BACKUP_USER_PASSPHRASE,
@@ -211,17 +212,13 @@ async fn create_backup(
     std::fs::write(&backup_file, backup.clone())?;
     println!("Written NetHSM backup file: {:?}", &backup_file);
 
-    // restore from backup is broken
-    assert!(
-        nethsm
-            .restore(
-                Passphrase::new(BACKUP_PASSPHRASE.to_string()),
-                Utc::now(),
-                std::fs::read(backup_file)?,
-            )
-            .is_err(),
-        "Restore from backup works again: https://github.com/Nitrokey/nethsm/issues/5"
-    );
+    // use the admin user again for the restore call
+    nethsm.use_credentials(ADMIN_USER_ID)?;
+    nethsm.restore(
+        Passphrase::new(BACKUP_PASSPHRASE.to_string()),
+        Utc::now(),
+        std::fs::read(backup_file)?,
+    )?;
 
     Ok(())
 }
