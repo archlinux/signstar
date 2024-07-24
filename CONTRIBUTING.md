@@ -53,6 +53,12 @@ All code contributions fall under the terms of the [Apache-2.0] and [MIT].
 
 Configuration file contributions fall under the terms of the [CC0-1.0].
 
+Documentation contributions fall under the terms of the [CC-BY-SA-4.0].
+
+Specific license assignments and attribution are handled using [`REUSE.toml`].
+Individual contributors are all summarized as *"Signstar Contributors"*.
+For a full list of individual contributors, refer to `git log --format="%an <%aE>" | sort -u`.
+
 [Rust]: https://www.rust-lang.org/
 [`rustfmt`]: https://github.com/rust-lang/rustfmt
 [`clippy`]: https://github.com/rust-lang/rust-clippy
@@ -68,3 +74,5 @@ Configuration file contributions fall under the terms of the [CC0-1.0].
 [Apache-2.0]: ./LICENSES/Apache-2.0.txt
 [MIT]: ./LICENSES/MIT.txt
 [CC0-1.0]: ./LICENSES/CC0-1.0.txt
+[CC-BY-SA-4.0]: ./LICENSES/CC-BY-SA-4.0.txt
+[`REUSE.toml`]: ./REUSE.toml
