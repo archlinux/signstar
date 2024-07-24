@@ -60,6 +60,27 @@ printf 'my-very-unsafe-admin-passphrase' > "$NETHSM_PASSPHRASE_FILE"
 nethsm env add credentials admin Administrator
 ```
 
+<!--
+```bash
+set +x
+counter=0
+
+while ! nethsm health state; do
+  printf "NetHSM is not ready, waiting (try %d)...\n" "$counter"
+  sleep 1
+  counter=$(( counter + 1 ))
+  if (( counter > 30 )); then
+    printf "NetHSM is not up even after 30 tries. Aborting."
+    set -x
+    exit 2
+  fi
+done
+
+printf "NetHSM is ready for provisioning after %d seconds.\n" "$counter"
+set -x
+```
+-->
+
 ### Provisioning
 
 Before using a device for the first time, it must be provisioned.

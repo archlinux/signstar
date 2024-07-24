@@ -146,7 +146,6 @@ test-readme project:
 
     start_container() {
         podman container start "$container_id" > /dev/null
-        sleep 2
     }
 
     stop_container() {
