@@ -10,7 +10,12 @@ use rustainers::{
 use testresult::TestResult;
 use uuid::{timestamp::Timestamp, NoContext, Uuid};
 
-const IMAGE_NAME: &ImageName = &ImageName::new("docker.io/nitrokey/nethsm:testing");
+/// The NetHSM container image and specific tag
+///
+/// We are currently pinning to "c16fe4ed" due to https://gitlab.archlinux.org/archlinux/signstar/-/issues/32
+/// In the future we will probably want to stick to a specific release tag (representing an actual
+/// upstream release) and not "testing"
+const IMAGE_NAME: &str = "docker.io/nitrokey/nethsm:c16fe4ed";
 const DEFAULT_PORT: u16 = 8443;
 const DEFAULT_PATH: &str = "/api/v1";
 
@@ -33,7 +38,7 @@ impl NetHsmImage {
 impl Default for NetHsmImage {
     fn default() -> Self {
         Self {
-            image: IMAGE_NAME.clone(),
+            image: ImageName::new(IMAGE_NAME),
             port: ExposedPort::new(DEFAULT_PORT),
         }
     }
