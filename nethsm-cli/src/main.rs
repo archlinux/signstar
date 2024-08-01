@@ -23,7 +23,7 @@ use cli::{
 };
 mod passphrase_file;
 mod prompt;
-use nethsm::{DistinguishedName, NetworkConfig, PrivateKeyImport, UserRole};
+use nethsm::{DistinguishedName, KeyFormat, NetworkConfig, PrivateKeyImport, UserRole};
 use prompt::PassphrasePrompt;
 
 use crate::cli::EnvCommand;
@@ -582,9 +582,16 @@ fn main() -> Result<(), Error> {
                         cli.user.as_deref(),
                         auth_passphrase,
                     )?;
-                let key_data: PrivateKeyImport =
-                    PrivateKeyImport::new(command.key_type, &read(command.key_data)?)
-                        .map_err(nethsm::Error::Key)?;
+                let key_data = match command.format {
+                    KeyFormat::Der => {
+                        PrivateKeyImport::new(command.key_type, &read(command.key_data)?)
+                    }
+                    KeyFormat::Pem => PrivateKeyImport::from_pkcs8_pem(
+                        command.key_type,
+                        &read_to_string(command.key_data)?,
+                    ),
+                }
+                .map_err(nethsm::Error::Key)?;
 
                 println!(
                     "{}",

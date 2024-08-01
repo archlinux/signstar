@@ -606,6 +606,34 @@ impl From<KeyType> for nethsm_sdk_rs::models::KeyType {
     }
 }
 
+/// The format of a key
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    Default,
+    Deserialize,
+    strum::Display,
+    strum::EnumString,
+    strum::EnumIter,
+    strum::IntoStaticStr,
+    Eq,
+    Hash,
+    Ord,
+    PartialEq,
+    PartialOrd,
+    Serialize,
+)]
+#[strum(ascii_case_insensitive)]
+pub enum KeyFormat {
+    /// Privacy-Enhanced Mail (PEM) format.
+    Pem,
+
+    /// ASN.1 DER binary format.
+    #[default]
+    Der,
+}
+
 /// A device log level
 #[derive(
     Clone,

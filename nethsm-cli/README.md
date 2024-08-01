@@ -181,8 +181,12 @@ ed25519_cert_pem="$(mktemp --tmpdir="$nethsm_tmpdir" --dry-run --suffix '-nethsm
 ed25519_cert_der="$(mktemp --tmpdir="$nethsm_tmpdir" --dry-run --suffix '-nethsm.ed25519_cert.pkcs8.der')"
 openssl genpkey -algorithm ed25519 -out "$ed25519_cert_pem"
 openssl pkcs8 -topk8 -inform pem -in "$ed25519_cert_pem" -outform der -nocrypt -out "$ed25519_cert_der"
-# import requires a PKCS#8 private key in ASN.1 DER-encoded format
+
+# import supports PKCS#8 private key in ASN.1 DER-encoded format, by default
 nethsm key import Curve25519 "$ed25519_cert_der" EdDsaSignature --key-id signing7
+
+# however, importing a PKCS#8 private key in ASN.1 PEM-encoded format is supported, too
+nethsm key import Curve25519 --format PEM "$ed25519_cert_pem" EdDsaSignature --key-id signing9
 
 # forgot to set a tag!
 nethsm key tag signing7 signing1

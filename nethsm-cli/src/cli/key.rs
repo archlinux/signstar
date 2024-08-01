@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
 use clap::{Parser, Subcommand};
-use nethsm::{DecryptMode, EncryptMode, KeyMechanism, KeyType, SignatureType, UserRole};
+use nethsm::{DecryptMode, EncryptMode, KeyFormat, KeyMechanism, KeyType, SignatureType, UserRole};
 use strum::IntoEnumIterator;
 
 #[derive(Debug, Subcommand)]
@@ -474,6 +474,20 @@ One of {:?}.",
             KeyMechanism::iter().map(Into::into).collect::<Vec<&'static str>>()),
     )]
     pub key_type: KeyType,
+
+    #[arg(
+        env = "NETHSM_KEY_FORMAT",
+        help = "The format of key to import",
+        default_value_t = KeyFormat::default(),
+        long,
+        long_help = format!("The format of key to import
+
+The key type must match the provided key data and chosen key mechanisms!
+
+One of {:?}.",
+            KeyFormat::iter().map(Into::into).collect::<Vec<&'static str>>()),
+    )]
+    pub format: KeyFormat,
 
     #[arg(
         env = "NETHSM_KEY_DATA",

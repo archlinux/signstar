@@ -189,6 +189,7 @@ pub use nethsm_sdk::{
     BootMode,
     DecryptMode,
     EncryptMode,
+    KeyFormat,
     KeyMechanism,
     KeyType,
     LogLevel,
