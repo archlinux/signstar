@@ -26,6 +26,6 @@ path = "src/main.rs"
 
 [dev-dependencies]
 rand = "0.8.5"
-rstest = "0.21.0"
+rstest = "0.22.0"
 testdir = "0.9.1"
 testresult = "0.4.0"

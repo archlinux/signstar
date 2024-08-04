@@ -38,7 +38,7 @@ ed25519-dalek = { version = "2.1.1", features = ["pkcs8", "pem", "rand_core"] }
 ed25519-compact = { version = "2.0.6", features = ["pem", "traits"] }
 rand = "0.8.5"
 rsa = { version = "0.9.6", features = ["getrandom", "sha2", "pem"] }
-rstest = "0.21.0"
+rstest = "0.22.0"
 rustainers = { version = "0.12.0" }
 testdir = "0.9.1"
 testresult = "0.4.0"
