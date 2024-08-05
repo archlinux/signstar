@@ -444,7 +444,7 @@ fn main() -> Result<(), Error> {
                     let nethsm = config
                         .get_device(cli.label.as_deref())?
                         .nethsm_with_matching_creds(
-                            &[UserRole::Administrator],
+                            &[UserRole::Operator, UserRole::Administrator],
                             cli.user.as_deref(),
                             auth_passphrase,
                         )?;
