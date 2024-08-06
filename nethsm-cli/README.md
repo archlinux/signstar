@@ -287,6 +287,18 @@ gpg --import "$nethsm_tmpdir/rsa.pgp"
 sq inspect "$nethsm_tmpdir/rsa.pgp" | grep "Test signing8 key"
 ```
 
+Importing new keys:
+
+```bash
+rsop generate-key --no-armor --signing-only "Test signing10 key <test@example.com>" > "$nethsm_tmpdir/private.pgp"
+nethsm openpgp import --tags signing10 --key-id signing10 "$nethsm_tmpdir/private.pgp" > /dev/null
+# openpgp import automatically stores the certificate so it can be fetched
+nethsm key cert get signing10 > "$nethsm_tmpdir/imported.pgp"
+gpg --import "$nethsm_tmpdir/imported.pgp"
+sq inspect "$nethsm_tmpdir/imported.pgp" | grep "Test signing10 key"
+nethsm user tag operator1 signing10
+```
+
 Signing messages:
 
 ```bash
@@ -301,6 +313,7 @@ for key in signing1 signing3 signing4 signing5 signing8 signing10; do
   rsop verify "$nethsm_tmpdir/message.txt.pgp" "$nethsm_tmpdir/cert.pgp" < "$nethsm_tmpdir/message.txt"
 done
 ```
+
 
 #### Encrypting messages
 

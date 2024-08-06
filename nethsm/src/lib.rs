@@ -199,6 +199,7 @@ pub use nethsm_sdk::{
 };
 mod openpgp;
 pub use openpgp::extract_certificate as extract_openpgp_certificate;
+pub use openpgp::tsk_to_private_key_import;
 pub use openpgp::KeyUsageFlags as OpenPgpKeyUsageFlags;
 mod tls;
 pub use tls::{ConnectionSecurity, HostCertificateFingerprints};
@@ -249,6 +250,14 @@ pub enum Error {
     /// Elliptic curve error
     #[error("Elliptic curve error: {0}")]
     EllipticCurve(#[from] p256::elliptic_curve::Error),
+
+    /// ECDSA parameter is unsupported
+    #[error("Unsupported ECDSA parameter")]
+    UnsupportedEcdsaParam,
+
+    /// Multiple component keys are unsupported
+    #[error("Unsupported multiple component keys")]
+    UnsupportedMultipleComponentKeys,
 }
 
 /// Credentials for a [`NetHsm`]

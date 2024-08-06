@@ -24,9 +24,11 @@ use pgp::{
         KeyTrait,
         KeyVersion,
         Mpi,
+        PlainSecretParams,
         PublicKeyTrait,
         PublicParams,
         SecretKeyTrait,
+        SecretParams,
         Version,
     },
     Deserializable,
@@ -43,7 +45,7 @@ use picky_asn1_x509::{
 use rand::prelude::{CryptoRng, Rng};
 
 use crate::KeyType;
-use crate::NetHsm;
+use crate::{KeyMechanism, NetHsm, PrivateKeyImport};
 
 /// PGP-adapter for a NetHSM key.
 ///
@@ -271,6 +273,46 @@ fn hash_to_oid(hash: HashAlgorithm) -> pgp::errors::Result<AlgorithmIdentifier> 
     }))
 }
 
+/// Converts an OpenPGP Transferable Secret Key into [`PrivateKeyImport`] object.
+pub fn tsk_to_private_key_import(
+    key_data: &[u8],
+) -> Result<(PrivateKeyImport, KeyMechanism), crate::Error> {
+    let key = SignedSecretKey::from_bytes(key_data)?;
+    if !key.secret_subkeys.is_empty() {
+        return Err(crate::Error::UnsupportedMultipleComponentKeys);
+    }
+    let SecretParams::Plain(secret) = key.primary_key.secret_params() else {
+        return Err(crate::Error::Passphrase);
+    };
+    Ok(match secret {
+        PlainSecretParams::RSA { p, q, .. } => (
+            PrivateKeyImport::from_rsa(p.as_bytes().to_vec(), q.as_bytes().to_vec(), vec![1, 0, 1]),
+            KeyMechanism::RsaSignaturePkcs1,
+        ),
+        PlainSecretParams::ECDSA(bytes) => {
+            let ec = if let PublicParams::ECDSA(pp) = key.primary_key.public_params() {
+                pp.try_into()?
+            } else {
+                return Err(crate::Error::UnsupportedEcdsaParam);
+            };
+
+            (
+                PrivateKeyImport::from_raw_bytes(ec, bytes.as_bytes().to_vec()),
+                KeyMechanism::EcdsaSignature,
+            )
+        }
+        PlainSecretParams::EdDSA(bytes) => (
+            PrivateKeyImport::from_raw_bytes(crate::KeyType::Curve25519, bytes.as_bytes().to_vec()),
+            KeyMechanism::EdDsaSignature,
+        ),
+        params => {
+            return Err(crate::Error::KeyData(format!(
+                "Unsupported key data: {params:?}"
+            )))
+        }
+    })
+}
+
 /// Generates an OpenPGP signature using a given NetHSM key for the message.
 pub fn sign(nethsm: &NetHsm, key_id: String, message: &[u8]) -> Result<Vec<u8>, crate::Error> {
     let public_key = nethsm.get_key_certificate(&key_id)?;
@@ -440,6 +482,19 @@ impl KeyUsageFlags {
 impl From<KeyUsageFlags> for KeyFlags {
     fn from(value: KeyUsageFlags) -> Self {
         value.0
+    }
+}
+
+impl TryFrom<&EcdsaPublicParams> for crate::KeyType {
+    type Error = crate::Error;
+
+    fn try_from(value: &EcdsaPublicParams) -> Result<Self, Self::Error> {
+        Ok(match value {
+            EcdsaPublicParams::P256 { .. } => crate::KeyType::EcP256,
+            EcdsaPublicParams::P384 { .. } => crate::KeyType::EcP384,
+            EcdsaPublicParams::P521 { .. } => crate::KeyType::EcP521,
+            _ => return Err(crate::Error::UnsupportedEcdsaParam),
+        })
     }
 }
 

@@ -215,6 +215,64 @@ impl PrivateKeyImport {
         })
     }
 
+    /// Create [`PrivateKeyImport`] object from raw, private RSA key parts.
+    ///
+    /// The function takes two primes (*p* and *q*) and the public exponent,
+    /// which usually is 65537 (`[0x01, 0x00, 0x01]`).
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use nethsm::PrivateKeyImport;
+    ///
+    /// # fn main() -> testresult::TestResult {
+    /// let prime_p = vec![7];
+    /// let prime_q = vec![11];
+    /// let public_exponent = vec![1, 0, 1];
+    ///
+    /// let _import = PrivateKeyImport::from_rsa(prime_p, prime_q, public_exponent);
+    /// # Ok(()) }
+    /// ```
+    pub fn from_rsa(prime_p: Vec<u8>, prime_q: Vec<u8>, public_exponent: Vec<u8>) -> Self {
+        Self {
+            key_data: PrivateKeyData::Rsa {
+                prime_p,
+                prime_q,
+                public_exponent,
+            },
+        }
+    }
+
+    /// Create [`PrivateKeyImport`] object from raw, private Elliptic Curve bytes.
+    ///
+    /// The function takes two parameters:
+    /// - the type of elliptic curve,
+    /// - raw bytes in a curve-specific encoding
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use nethsm::{KeyType, PrivateKeyImport};
+    ///
+    /// # fn main() -> testresult::TestResult {
+    /// let bytes = vec![0x00; 40];
+    ///
+    /// let _import = PrivateKeyImport::from_raw_bytes(KeyType::Curve25519, bytes);
+    /// # Ok(()) }
+    /// ```
+    pub fn from_raw_bytes(ec: KeyType, bytes: Vec<u8>) -> Self {
+        Self {
+            key_data: match ec {
+                KeyType::EcP224 => PrivateKeyData::EcP224(bytes),
+                KeyType::EcP256 => PrivateKeyData::EcP256(bytes),
+                KeyType::EcP384 => PrivateKeyData::EcP384(bytes),
+                KeyType::EcP521 => PrivateKeyData::EcP521(bytes),
+                KeyType::Curve25519 => PrivateKeyData::Curve25519(bytes),
+                _ => unimplemented!(),
+            },
+        }
+    }
+
     /// Get the matching [`KeyType`] for the data contained in the [`PrivateKeyImport`]
     pub fn key_type(&self) -> KeyType {
         match &self.key_data {

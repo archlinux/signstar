@@ -14,6 +14,7 @@ operations using those keys."
 )]
 pub enum OpenPgpCommand {
     Add(OpenPgpAddCommand),
+    Import(OpenPgpImportCommand),
     Sign(OpenPgpSignCommand),
 }
 
@@ -103,4 +104,43 @@ pub struct OpenPgpSignCommand {
         short
     )]
     pub output: Option<PathBuf>,
+}
+
+#[derive(Debug, Parser)]
+#[command(
+    about = "Import OpenPGP TSK-formatted private key",
+    long_about = format!("Import OpenPGP TSK-formatted private key
+
+Only TSKs with a single component key are supported.
+
+Requires authentication of a user in the \"{}\" role that has access to the targeted key.", UserRole::Administrator)
+)]
+pub struct OpenPgpImportCommand {
+    #[arg(
+        env = "NETHSM_OPENPGP_TSK_FILE",
+        help = "The path to the Transferable Secret Key file to import"
+    )]
+    pub tsk_file: PathBuf,
+
+    #[arg(
+        env = "NETHSM_OPENPGP_KEY_ID",
+        help = "An optional unique ID that is assigned to the imported key",
+        long_help = "An optional unique ID that is assigned to the imported key
+
+If none is provided a generic one is generated for the key.",
+        long,
+        short
+    )]
+    pub key_id: Option<String>,
+
+    #[arg(
+        env = "NETHSM_OPENPGP_KEY_TAGS",
+        help = "An optional list of tags that are assigned to the imported key",
+        long_help = "An optional list of tags that are assigned to the imported key
+
+Tags on keys are used to grant access to those keys for users that carry the same tags.",
+        long,
+        short
+    )]
+    pub tags: Option<Vec<String>>,
 }
