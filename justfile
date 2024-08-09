@@ -113,6 +113,8 @@ dry-update:
 # Lints the source code
 lint:
     tangler bash < nethsm-cli/README.md | shellcheck --shell bash -
+    just -vv -n test-readme nethsm-cli 2>&1 | rg -v '===> Running recipe' | shellcheck -
+    just -vv -n check-commits 2>&1 | rg -v '===> Running recipe' | shellcheck -
     cargo clippy --all -- -D warnings
 
 # Checks for issues with dependencies
