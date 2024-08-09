@@ -2107,10 +2107,7 @@ impl NetHsm {
     /// let nethsm = NetHsm::new(
     ///     "https://example.org/api/v1".try_into()?,
     ///     ConnectionSecurity::Unsafe,
-    ///     Some(Credentials::new(
-    ///         "admin".to_string(),
-    ///         Some(Passphrase::new("passphrase".to_string())),
-    ///     )),
+    ///     None,
     ///     None,
     ///     None,
     /// )?;

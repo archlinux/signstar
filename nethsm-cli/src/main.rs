@@ -871,11 +871,7 @@ fn main() -> Result<(), Error> {
         Command::Unlock(command) => {
             let nethsm = config
                 .get_device(cli.label.as_deref())?
-                .nethsm_with_matching_creds(
-                    &[UserRole::Administrator],
-                    cli.user.as_deref(),
-                    auth_passphrase,
-                )?;
+                .nethsm_with_matching_creds(&[], cli.user.as_deref(), auth_passphrase)?;
             let unlock_passphrase = if let Some(passphrase_file) = command.unlock_passphrase_file {
                 passphrase_file.passphrase
             } else {
