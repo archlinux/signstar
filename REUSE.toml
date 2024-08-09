@@ -22,6 +22,7 @@ path = [
     ".gitignore",
     ".gitlab-ci.yml",
     ".gitlab/CODEOWNERS",
+    ".shellcheckrc",
     "justfile",
 ]
 precedence = "aggregate"

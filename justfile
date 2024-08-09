@@ -112,6 +112,7 @@ dry-update:
 
 # Lints the source code
 lint:
+    tangler bash < nethsm-cli/README.md | shellcheck --shell bash -
     cargo clippy --all -- -D warnings
 
 # Checks for issues with dependencies
