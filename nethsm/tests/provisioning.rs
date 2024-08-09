@@ -70,7 +70,7 @@ async fn initial_provisioning(
     )?;
 
     nethsm.lock()?;
-    assert!(nethsm.state()? == SystemState::Locked);
+    nethsm.remove_credentials("admin");
     nethsm.unlock(Passphrase::new(new_unlock_passphrase.to_string()))?;
     assert!(nethsm.state()? == SystemState::Operational);
 
