@@ -745,6 +745,23 @@ fn main() -> Result<(), Error> {
 
                 nethsm.import_key_certificate(&command.key_id, cert.clone())?;
             }
+            cli::OpenPgpCommand::Sign(command) => {
+                let nethsm = config
+                    .get_device(cli.label.as_deref())?
+                    .nethsm_with_matching_creds(
+                        &[UserRole::Operator],
+                        cli.user.as_deref(),
+                        auth_passphrase,
+                    )?;
+
+                let output = FileOrStdout::new(command.output.as_deref(), command.force)?;
+
+                output.output().write_all(
+                    nethsm
+                        .openpgp_sign(&command.key_id, &read(command.message)?)?
+                        .as_slice(),
+                )?;
+            }
         },
         Command::Provision(command) => {
             let nethsm = config

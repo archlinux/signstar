@@ -6,7 +6,16 @@ use base64ct::{Base64, Encoding as _};
 use chrono::{DateTime, Utc};
 use pgp::{
     crypto::{ecc_curve::ECCCurve, hash::HashAlgorithm, public_key::PublicKeyAlgorithm},
-    packet::{KeyFlags, PublicKey, UserId},
+    packet::{
+        KeyFlags,
+        PublicKey,
+        SignatureConfig,
+        SignatureType,
+        SignatureVersion,
+        Subpacket,
+        SubpacketData,
+        UserId,
+    },
     ser::Serialize as _,
     types::{
         CompressionAlgorithm,
@@ -260,6 +269,53 @@ fn hash_to_oid(hash: HashAlgorithm) -> pgp::errors::Result<AlgorithmIdentifier> 
             )))
         }
     }))
+}
+
+/// Generates an OpenPGP signature using a given NetHSM key for the message.
+pub fn sign(nethsm: &NetHsm, key_id: String, message: &[u8]) -> Result<Vec<u8>, crate::Error> {
+    let public_key = nethsm.get_key_certificate(&key_id)?;
+
+    let signer = HsmKey::new(
+        nethsm,
+        SignedPublicKey::from_bytes(&*public_key)?.primary_key,
+        key_id,
+    );
+
+    let sig_config = SignatureConfig::new_v4(
+        SignatureVersion::V4,
+        SignatureType::Binary,
+        signer.algorithm(),
+        signer.hash_alg(),
+        vec![
+            Subpacket::regular(SubpacketData::SignatureCreationTime(
+                std::time::SystemTime::now().into(),
+            )),
+            Subpacket::regular(SubpacketData::Issuer(signer.key_id())),
+            Subpacket::regular(SubpacketData::IssuerFingerprint(
+                KeyVersion::V4,
+                signer.fingerprint().into(),
+            )),
+        ],
+        vec![],
+    );
+
+    let mut hasher = sig_config.hash_alg.new_hasher()?;
+
+    sig_config.hash_data_to_sign(&mut *hasher, message)?;
+    let len = sig_config.hash_signature_data(&mut *hasher)?;
+    hasher.update(&sig_config.trailer(len)?);
+
+    let hash = &hasher.finish()[..];
+
+    let signed_hash_value = [hash[0], hash[1]];
+    let raw_sig = signer.create_signature(String::new, sig_config.hash_alg, hash)?;
+
+    let signature = pgp::Signature::from_config(sig_config, signed_hash_value, raw_sig);
+
+    let mut out = vec![];
+    pgp::packet::write_packet(&mut out, &signature)?;
+
+    Ok(out)
 }
 
 /// Converts NetHSM public key to OpenPGP public key.

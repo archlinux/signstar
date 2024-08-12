@@ -286,6 +286,22 @@ nethsm key cert get signing8 > "$nethsm_tmpdir/rsa.pgp"
 gpg --import "$nethsm_tmpdir/rsa.pgp"
 sq inspect "$nethsm_tmpdir/rsa.pgp" | grep "Test signing8 key"
 ```
+
+Signing messages:
+
+```bash
+echo "I like strawberries" > "$nethsm_tmpdir/message.txt"
+
+for key in signing1 signing3 signing4 signing5 signing8 signing10; do
+  printf "Signing with key %s ...\n" "$key"
+
+  nethsm openpgp sign "$key" "$nethsm_tmpdir/message.txt" > "$nethsm_tmpdir/message.txt.pgp"
+  gpg --verify "$nethsm_tmpdir/message.txt.pgp" "$nethsm_tmpdir/message.txt"
+  nethsm key cert get "$key" > "$nethsm_tmpdir/cert.pgp"
+  rsop verify "$nethsm_tmpdir/message.txt.pgp" "$nethsm_tmpdir/cert.pgp" < "$nethsm_tmpdir/message.txt"
+done
+```
+
 #### Encrypting messages
 
 Messages can be encrypted using keys that offer the key mechanisms for this operation.

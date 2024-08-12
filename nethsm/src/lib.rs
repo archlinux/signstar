@@ -4333,4 +4333,45 @@ impl NetHsm {
     ) -> Result<Vec<u8>, Error> {
         openpgp::add_certificate(self, flags, key_id.into(), user_id, created_at)
     }
+
+    /// Creates an OpenPGP signature for a message
+    ///
+    /// Signs the `message` using the `key_id` key and returns an OpenPGP-framed signature.
+    ///
+    /// This call requires using credentials of a user in the "operator" [role](https://docs.nitrokey.com/nethsm/administration#roles) with access to the used key.
+    ///
+    /// # Errors
+    ///
+    /// Returns an [`Error::Api`] if:
+    /// * retrieving random bytes fails
+    /// * the device is not in state [`SystemState::Operational`]
+    /// * the used credentials are not correct
+    /// * the used credentials are not that of a user in the "operator" role
+    /// * the used operator credentials do not grant access to the key
+    /// * the key does not exist
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use nethsm::{ConnectionSecurity, Credentials, NetHsm, Passphrase};
+    ///
+    /// # fn main() -> testresult::TestResult {
+    /// // create a connection with a user in the "operator" role
+    /// let nethsm = NetHsm::new(
+    ///     "https://example.org/api/v1".try_into()?,
+    ///     ConnectionSecurity::Unsafe,
+    ///     Some(Credentials::new(
+    ///         "operator".to_string(),
+    ///         Some(Passphrase::new("passphrase".to_string())),
+    ///     )),
+    ///     None,
+    ///     None,
+    /// )?;
+    ///
+    /// assert!(!nethsm.openpgp_sign("key", b"sample message")?.is_empty());
+    /// # Ok(()) }
+    /// ```
+    pub fn openpgp_sign(&self, key_id: &str, message: &[u8]) -> Result<Vec<u8>, Error> {
+        openpgp::sign(self, key_id.into(), message)
+    }
 }

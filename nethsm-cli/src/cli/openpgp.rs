@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use chrono::{DateTime, Utc};
 use clap::{Parser, Subcommand};
 use nethsm::UserRole;
@@ -12,6 +14,7 @@ operations using those keys."
 )]
 pub enum OpenPgpCommand {
     Add(OpenPgpAddCommand),
+    Sign(OpenPgpSignCommand),
 }
 
 #[derive(Debug, Parser)]
@@ -64,4 +67,40 @@ If this option is used, the key is created without a component key that has the 
         long
     )]
     pub cannot_sign: bool,
+}
+
+#[derive(Debug, Parser)]
+#[command(
+    about = "Create an OpenPGP signature for a message",
+    long_about = format!("Create an OpenPGP signature for a message
+
+The signature is written to stdout, unless a specific path to a file is provided.
+
+Requires authentication of a user in the \"{}\" role that has access to the targeted key.", UserRole::Operator)
+)]
+pub struct OpenPgpSignCommand {
+    #[arg(env = "NETHSM_KEY_ID", help = "The ID of the key to use")]
+    pub key_id: String,
+
+    #[arg(
+        env = "NETHSM_FORCE",
+        help = "Write to output file even if it exists already",
+        long,
+        short
+    )]
+    pub force: bool,
+
+    #[arg(
+        env = "NETHSM_OPENPGP_SIGNATURE_MESSAGE",
+        help = "The path to a message for which to create a signature"
+    )]
+    pub message: PathBuf,
+
+    #[arg(
+        env = "NETHSM_OPENPGP_SIGNATURE_OUTPUT_FILE",
+        help = "The optional path to a specific output file",
+        long,
+        short
+    )]
+    pub output: Option<PathBuf>,
 }
