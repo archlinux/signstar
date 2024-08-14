@@ -100,6 +100,19 @@ run-pre-push-hook: check-commits
 check-spelling:
     codespell
 
+# Gets names of all workspace members
+get-workspace-members:
+    cargo metadata --format-version=1 |jq -r '.workspace_members[] | capture("/(?<name>[a-z-]+)#.*").name'
+
+# Checks for unused dependencies
+check-unused-deps:
+    #!/usr/bin/env bash
+    set -euxo pipefail
+
+    for name in $(just get-workspace-members); do
+        cargo machete "$name"
+    done
+
 # Checks source code formatting
 check-formatting:
     just --unstable --fmt --check
