@@ -28,7 +28,7 @@ pub enum SystemCommand {
 Writes an encrypted backup to a file in the current working directory, named after the device label in the configuration file and the current time.
 Optionally, a specific output file can be provided.
 
-Requires authentication of a user in the \"{}\" role.", UserRole::Administrator)
+Requires authentication of a user in the \"{}\" role.", UserRole::Backup)
 )]
 pub struct SystemBackupCommand {
     #[arg(

@@ -1856,14 +1856,14 @@ impl NetHsm {
     /// Before creating a backup, [`NetHsm::set_backup_passphrase`] has to be called once to set a
     /// passphrase for the backup.
     ///
-    /// This call requires using credentials of a user in the "admin" [role](https://docs.nitrokey.com/nethsm/administration#roles).
+    /// This call requires using credentials of a user in the "backup" [role](https://docs.nitrokey.com/nethsm/administration#roles).
     ///
     /// # Errors
     ///
     /// Returns an [`Error::Api`] if creating a backup fails:
     /// * the device is not in state [`SystemState::Operational`]
     /// * the used credentials are not correct
-    /// * the used credentials are not that of a user in the "admin" role
+    /// * the used credentials are not that of a user in the "backup" role
     ///
     /// # Examples
     ///
