@@ -1,52 +1,76 @@
 # Signstar
 
-Provide a secure way to sign packages, arch iso's and pacman databases in an enclave.
+This project provides tools and documentation for running a generic signing enclave with the help of one or more [Nitrokey NetHSM] devices.
+
+Raw cryptographic signatures and [OpenPGP data signatures] are supported.
+
+## Components
+
+Signstar consists of several loosely coupled components, some of which are used in conjunction with one another.
+
+- [nethsm]: A library to provide interaction with the [Nitrokey NetHSM] to applications
+- [nethsm-cli]: A dedicated commandline interface to the [Nitrokey NetHSM], akin to Nitrokey's [pynitrokey], useful for general purpose, interactive use of the HSM
+- *signstar-sign*: An executable, that allows signing of messages with the help of a [Nitrokey NetHSM], based on a configuration ([#34])
+- *signstar-configure*: An executable, that allows non-interactive configuration of a [Nitrokey NetHSM] based on a configuration ([#48])
+- *signstar-request-signature*: An executable, run on a client host, that prepares data to be signed and retrieves a signature for it from a Signstar setup ([#49])
 
 ## Requirements
 
-- simple auditable and memory safe non-interpreted language aka rust
-- runs as login shell accepting stdin and outputting a signature to stdout
-- sandbox the whole process including seccomp filters
-- simple logging facility: user, hash of input, date
-- avoid any shellout and writing to harddisc if possible
-- must not be possible to do anything else than signing an artifact###
+A Signstar setup requires a [TPM-2.0]-enabled host, allowing to run [SignstarOS] which provides a read-only root filesystem and an encrypted `/var` partition for its state.
+This signing service host is connected to one or more [Nitrokey NetHSM] devices over an otherwise secluded network and exposes *signstar-sign* to clients of the signing service.
 
-## Threat model
+Clients use *signstar-request-signature* to connect to a Signstar setup and retrieve a signature for a provided payload.
 
-### Obtaining GPG key
+```mermaid
+---
+title: Simplified overview of a Signstar setup
+---
+sequenceDiagram
+    participant C as Client
+    participant S as Signstar
+    participant N as NetHSM
 
-- Prevent extraction of the key by using a GPG smartcard or TPM.
+    Note over S: pair of Signstar credentials
+    Note over N: pair of NetHSM credentials
 
-### Unauthorized signing
-
-- Restrict network access to a specific server to reduce exposure
-- Restrict ssh access to very specific keys
-- Restrict ssh key access to a dedicated user
-
-### Considerations
-
-- Think about ways to isolate inputs and not allow users/packagers to sign arbitrary date. However this will require sophisticated changes as repo database and package files can easily be changed before sending to the signing server. We would need to restrict it should tooling and workflow similar
-
-## Architecture
-
-For signing a dedicated user is set up on a secure enclave which only allows ssh logins from a specific server. A dedicated user on the source server can ssh into the signing server and retrieve a signed artefact back.
-
-```bash
-ssh signer@signstar.archlinux.org < core.db.tar.xz > core.db.tar.xz.sig
+    S ->> N: HSM is configured using *signstar-configure*
+    C ->>+ S: User "A" requests signature using *signstar-request-signature*
+    S ->> S: Host user "A" is mapped to HSM operator user "X" by *signstar-sign*
+    S ->> N: Signature is requested using operator user "X" by *signstar-sign*
+    N ->> S: Raw cryptographic signature is received by *signstar-sign*
+    S ->>- C: Signature for user "A" is returned by *signstar-sign*
 ```
 
-The sshd_config is configured as:
+Further details on the setup, as well as the threat model that the setup operates under can be found in the [design documentation].
 
-```
-Match user signer
-    ForceCommand /usr/bin/signstar
-```
+## Packaging
 
-## CLI conveniences
+The `justfile` contains recipes for generating integration useful for packaging:
 
-`justfile` contains additional facilities for generating tools for packagers:
+- `just generate shell_completions nethsm-cli` generates shell completions for [nethsm-cli] to `$CARGO_TARGET_DIR/output/shell_completions/` (or to `$PWD/output/shell_completions/` if `$CARGO_TARGET_DIR` is unset)
+- `just generate manpages nethsm-cli` generates man pages for [nethsm-cli] to`$CARGO_TARGET_DIR/output/manpages/` (or to `$PWD/output/manpages/` if `$CARGO_TARGET_DIR` is unset)
 
-  - `just generate shell_completions nethsm-cli` will generate shell completions for [nethsm-cli](nethsm-cli/) to `$CARGO_TARGET_DIR/output/shell_completions/` (or to `$PWD/output/shell_completions/` if `$CARGO_TARGET_DIR` is unset)
-  - `just generate manpages nethsm-cli` will generate man pages for [nethsm-cli](nethsm-cli/) to`$CARGO_TARGET_DIR/output/manpages/` (or to `$PWD/output/manpages/` if `$CARGO_TARGET_DIR` is unset)
+The target directory is created automatically.
 
-The target directory will be automatically created.
+## Contributing
+
+Please refer to the [contributing guidelines].
+
+## License
+
+This project may be used under the terms of the [Apache-2.0](https://www.apache.org/licenses/LICENSE-2.0) or [MIT](https://opensource.org/licenses/MIT) license.
+
+Changes to this project - unless stated otherwise - automatically fall under the terms of both of the aforementioned licenses.
+
+[Nitrokey NetHSM]: https://www.nitrokey.com/products/nethsm
+[OpenPGP data signatures]: https://openpgp.dev/book/signing_data.html
+[SignstarOS]: resources/mkosi/signstar/README.md
+[TPM-2.0]: https://en.wikipedia.org/wiki/Trusted_Platform_Module
+[design documentation]: resources/docs/design.md
+[contributing guidelines]: CONTRIBUTING.md
+[nethsm]: nethsm/
+[nethsm-cli]: nethsm-cli/
+[pynitrokey]: https://github.com/Nitrokey/pynitrokey
+[#34]: https://gitlab.archlinux.org/archlinux/signstar/-/issues/34
+[#48]: https://gitlab.archlinux.org/archlinux/signstar/-/issues/48
+[#49]: https://gitlab.archlinux.org/archlinux/signstar/-/issues/49
