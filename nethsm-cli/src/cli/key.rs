@@ -61,6 +61,10 @@ pub struct KeyCertDeleteCommand {
     about = "Get the certificate for a key",
     long_about = format!("Get the certificate for a key
 
+The NetHSM backend can store binary data as the certificate and offers no guarantee for the certificate to be of any particular format.
+
+The `nethsm openpgp add` command sets the certificate to a newly generated OpenPGP certificate.
+
 Unless a specific output file is specified, the certificate is written to stdout.
 
 Requires authentication of a user in the \"{}\" or \"{}\" role.", UserRole::Administrator, UserRole::Operator)
@@ -94,10 +98,7 @@ pub struct KeyCertGetCommand {
     about = "Import the certificate for a key",
     long_about = format!("Import the certificate for a key
 
-Certificates are supported as the following MIME types:
-* *application/x-pem-file*
-* *application/x-x509-ca-cert*
-* *application/pgp-keys*
+The NetHSM backend can store binary data up to 1 MiB in size as certificate.
 
 Requires authentication of a user in the \"{}\" role.", UserRole::Administrator)
 )]
