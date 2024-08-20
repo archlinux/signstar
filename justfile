@@ -126,8 +126,11 @@ dry-update:
 # Lints the source code
 lint:
     tangler bash < nethsm-cli/README.md | shellcheck --shell bash -
+
     just -vv -n test-readme nethsm-cli 2>&1 | rg -v '===> Running recipe' | shellcheck -
     just -vv -n check-commits 2>&1 | rg -v '===> Running recipe' | shellcheck -
+    just -vv -n generate shell_completions nethsm-cli 2>&1 | rg -v '===> Running recipe' | shellcheck -
+
     cargo clippy --all -- -D warnings
 
 # Checks for issues with dependencies
@@ -206,3 +209,42 @@ fix:
 
     # fmt must be last as clippy's changes may break formatting
     cargo +nightly fmt
+
+render-script := '''
+    //! ```cargo
+    //! [dependencies]
+    //! pkg = { path = "PATH", package = "PKG" }
+    //! clap_allgen = "0.2.0"
+    //! ```
+
+    fn main() -> Result<(), Box<dyn std::error::Error>> {
+        clap_allgen::render_KIND::<pkg::cli::Cli>(
+            &std::env::args().collect::<Vec<_>>()[1],
+        )?;
+        Ok(())
+    }
+'''
+
+# Render `manpages` or `shell_completions` (`kind`) of a given package (`pkg`).
+generate kind pkg:
+    #!/usr/bin/bash
+
+    set -Eeuo pipefail
+
+    readonly output_dir="${CARGO_TARGET_DIR:-$PWD/output}"
+    mkdir --parents "$output_dir"
+
+    readonly kind="{{ kind }}"
+
+    case "$kind" in
+      manpages|shell_completions)
+          ;;
+      *)
+          printf 'Only "manpages" and "shell_completions" are supported.\n'
+          exit 1
+    esac
+
+    script="$(mktemp --suffix=.rs)"
+    sed "s/PKG/{{ pkg }}/;s#PATH#$PWD/{{ pkg }}#g;s/KIND/{{ kind }}/g" > "$script" <<< '{{ render-script }}'
+    rust-script "$script" "$output_dir/{{ kind }}"
+    rm --force "$script"

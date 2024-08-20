@@ -41,3 +41,12 @@ The sshd_config is configured as:
 Match user signer
     ForceCommand /usr/bin/signstar
 ```
+
+## CLI conveniences
+
+`justfile` contains additional facilities for generating tools for packagers:
+
+  - `just generate shell_completions nethsm-cli` will generate shell completions for [nethsm-cli](nethsm-cli/) to `$CARGO_TARGET_DIR/output/shell_completions/` (or to `$PWD/output/shell_completions/` if `$CARGO_TARGET_DIR` is unset)
+  - `just generate manpages nethsm-cli` will generate man pages for [nethsm-cli](nethsm-cli/) to`$CARGO_TARGET_DIR/output/manpages/` (or to `$PWD/output/manpages/` if `$CARGO_TARGET_DIR` is unset)
+
+The target directory will be automatically created.
