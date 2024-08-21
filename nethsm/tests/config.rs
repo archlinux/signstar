@@ -365,19 +365,28 @@ async fn cancel_update(
 #[ignore = "requires Podman"]
 #[rstest]
 #[tokio::test]
-async fn get_tls_public_key(
-    #[future] unprovisioned_nethsm: TestResult<(NetHsm, Container<NetHsmImage>)>,
+async fn get_tls_public_key_of_provisioned_nethsm(
     #[future] nethsm_with_users: TestResult<(NetHsm, Container<NetHsmImage>)>,
 ) -> TestResult {
-    let (unprovisioned_nethsm, _container) = unprovisioned_nethsm.await?;
     let (nethsm, _container) = nethsm_with_users.await?;
-
-    println!("Get TLS certificate of unprovisioned device...");
-    assert!(unprovisioned_nethsm.get_tls_public_key().is_err());
 
     println!("Get TLS certificate of provisioned device...");
     println!("{}", nethsm.get_tls_public_key()?);
     assert!(nethsm.get_tls_public_key().is_ok());
+
+    Ok(())
+}
+
+#[ignore = "requires Podman"]
+#[rstest]
+#[tokio::test]
+async fn get_tls_public_key_of_unprovisioned_nethsm(
+    #[future] unprovisioned_nethsm: TestResult<(NetHsm, Container<NetHsmImage>)>,
+) -> TestResult {
+    let (unprovisioned_nethsm, _container) = unprovisioned_nethsm.await?;
+
+    println!("Get TLS certificate of unprovisioned device...");
+    assert!(unprovisioned_nethsm.get_tls_public_key().is_err());
 
     Ok(())
 }
