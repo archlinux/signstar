@@ -7,6 +7,8 @@ use nethsm_sdk_rs::apis::configuration::BasicAuth;
 use secrecy::{ExposeSecret, SecretString};
 use serde::{Deserialize, Serialize};
 
+use crate::UserRole;
+
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
     /// Unable to convert string slice to Passphrase
@@ -20,6 +22,39 @@ pub enum Error {
     /// Invalid User ID
     #[error("Invalid User ID: {0}")]
     InvalidUserId(String),
+
+    /// The API call does not support users in namespaces
+    #[error("The calling user {0} is in a namespace, which is not supported in this context.")]
+    NamespaceUnsupported(UserId),
+
+    /// A user in one namespace targets a user in another
+    #[error("User {caller} targets {target} which is in a different namespace")]
+    NamespaceTargetMismatch { caller: UserId, target: UserId },
+
+    /// A user in a namespace tries to modify a system-wide user
+    #[error("User {caller} targets {target} a system-wide user")]
+    NamespaceSystemWideTarget { caller: UserId, target: UserId },
+
+    /// A user in Backup or Metrics role is about to be created in a namespace
+    #[error(
+        "User {caller} targets user {target} in role {role} which is not supported in namespaces"
+    )]
+    NamespaceRoleInvalid {
+        caller: UserId,
+        target: UserId,
+        role: UserRole,
+    },
+}
+
+/// Whether a resource has [namespace] support or not
+///
+/// [namespace]: https://docs.nitrokey.com/nethsm/administration#namespaces
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum NamespaceSupport {
+    /// The resource supports namespaces
+    Supported,
+    /// The resource does not support namespaces
+    Unsupported,
 }
 
 /// The ID of a [`NetHsm`][`crate::NetHsm`] [namespace]
@@ -219,6 +254,91 @@ impl UserId {
             Self::Namespace(_, _) => true,
         }
     }
+
+    /// Validates whether the [`UserId`] can be used in a given context
+    ///
+    /// Ensures that [`UserId`] can be used in its context (e.g. calls to system-wide or
+    /// [namespace] resources) by defining [namespace] `support` of the context.
+    /// Additionally ensures the validity of calls to resources targeting other users (provided by
+    /// `target`), which are themselves system-wide or in a [namespace].
+    /// When `role` is provided, the validity of targeting the [`UserRole`] is evaluated.
+    ///
+    /// # Errors
+    ///
+    /// This call returns an
+    /// * [`Error::NamespaceTargetMismatch`] if a user in one namespace tries to target a user in
+    ///   another namespace
+    /// * [`Error::NamespaceRoleInvalid`], if a user in a namespace targets a user in the
+    ///   [`Backup`][`UserRole::Backup`] or [`Metrics`][`UserRole::Metrics`] [role], or if a user
+    ///   not in a namespace targets a namespaced user in the [`Backup`][`UserRole::Backup`] or
+    ///   [`Metrics`][`UserRole::Metrics`] [role].
+    /// * [`Error::NamespaceSystemWideTarget`], if a user in a [namespace] targets a system-wide
+    ///   user
+    ///
+    /// [namespace]: https://docs.nitrokey.com/nethsm/administration#namespaces
+    /// [role]: https://docs.nitrokey.com/nethsm/administration#roles
+    pub fn validate_namespace_access(
+        &self,
+        support: NamespaceSupport,
+        target: Option<&UserId>,
+        role: Option<&UserRole>,
+    ) -> Result<(), Error> {
+        // the caller is in a namespace
+        if let Some(caller_namespace) = self.namespace() {
+            // the caller context does not support namespaces
+            if support == NamespaceSupport::Unsupported {
+                return Err(Error::NamespaceUnsupported(self.to_owned()));
+            }
+
+            // there is a target user
+            if let Some(target) = target {
+                // the target user is in a namespace
+                if let Some(target_namespace) = target.namespace() {
+                    // the caller's and the target's namespaces are not the same
+                    if caller_namespace != target_namespace {
+                        return Err(Error::NamespaceTargetMismatch {
+                            caller: self.to_owned(),
+                            target: target.to_owned(),
+                        });
+                    }
+
+                    // the action towards the targeted user provides a role
+                    if let Some(role) = role {
+                        // the targeted user's role is not supported
+                        if role == &UserRole::Metrics || role == &UserRole::Backup {
+                            return Err(Error::NamespaceRoleInvalid {
+                                caller: self.to_owned(),
+                                target: target.to_owned(),
+                                role: role.to_owned(),
+                            });
+                        }
+                    }
+                } else {
+                    // the caller is in a namespace and the target user is not
+                    return Err(Error::NamespaceSystemWideTarget {
+                        caller: self.to_owned(),
+                        target: target.to_owned(),
+                    });
+                }
+            }
+        // there is a target user
+        } else if let Some(target) = target {
+            // there is a target role
+            if let Some(role) = role {
+                // the targeted user's role is not supported
+                if (role == &UserRole::Metrics || role == &UserRole::Backup)
+                    && target.is_namespaced()
+                {
+                    return Err(Error::NamespaceRoleInvalid {
+                        caller: self.to_owned(),
+                        target: target.to_owned(),
+                        role: role.to_owned(),
+                    });
+                }
+            }
+        }
+        Ok(())
+    }
 }
 
 impl FromStr for UserId {
@@ -397,6 +517,51 @@ mod tests {
     #[case(UserId::Namespace(NamespaceId("namespace".to_string()), "user".to_string()), true)]
     fn user_id_in_namespace(#[case] input: UserId, #[case] result: bool) -> TestResult {
         assert_eq!(input.is_namespaced(), result);
+        Ok(())
+    }
+
+    #[rstest]
+    #[case(UserId::from_str("user")?, NamespaceSupport::Unsupported, Some(UserId::from_str("user2")?), None, Some(()))]
+    #[case(UserId::from_str("user")?, NamespaceSupport::Unsupported, Some(UserId::from_str("user2")?), Some(UserRole::Administrator), Some(()))]
+    #[case(UserId::from_str("user")?, NamespaceSupport::Unsupported, Some(UserId::from_str("user2")?), Some(UserRole::Operator), Some(()))]
+    #[case(UserId::from_str("user")?, NamespaceSupport::Unsupported, Some(UserId::from_str("user2")?), Some(UserRole::Metrics), Some(()))]
+    #[case(UserId::from_str("user")?, NamespaceSupport::Unsupported, Some(UserId::from_str("user2")?), Some(UserRole::Backup), Some(()))]
+    #[case(UserId::from_str("user")?, NamespaceSupport::Unsupported, Some(UserId::from_str("ns1~user2")?), None, Some(()))]
+    #[case(UserId::from_str("user")?, NamespaceSupport::Unsupported, Some(UserId::from_str("ns1~user2")?), Some(UserRole::Administrator), Some(()))]
+    #[case(UserId::from_str("user")?, NamespaceSupport::Unsupported, Some(UserId::from_str("ns1~user2")?), Some(UserRole::Operator), Some(()))]
+    #[case(UserId::from_str("user")?, NamespaceSupport::Unsupported, Some(UserId::from_str("ns1~user2")?), Some(UserRole::Metrics), None)]
+    #[case(UserId::from_str("user")?, NamespaceSupport::Unsupported, Some(UserId::from_str("ns1~user2")?), Some(UserRole::Backup), None)]
+    #[case(UserId::from_str("ns1~user")?, NamespaceSupport::Unsupported, Some(UserId::from_str("ns1~user2")?), None, None)]
+    #[case(UserId::from_str("ns1~user")?, NamespaceSupport::Unsupported, Some(UserId::from_str("ns2~user1")?), None, None)]
+    #[case(UserId::from_str("ns1~user")?, NamespaceSupport::Unsupported, Some(UserId::from_str("user2")?), None, None)]
+    #[case(UserId::from_str("ns1~user")?, NamespaceSupport::Supported, Some(UserId::from_str("ns2~user1")?), None, None)]
+    #[case(UserId::from_str("ns1~user")?, NamespaceSupport::Supported, Some(UserId::from_str("user2")?), None, None)]
+    #[case(UserId::from_str("ns1~user")?, NamespaceSupport::Supported, Some(UserId::from_str("ns1~user2")?), None, Some(()))]
+    #[case(UserId::from_str("ns1~user")?, NamespaceSupport::Supported, Some(UserId::from_str("ns1~user2")?), Some(UserRole::Administrator), Some(()))]
+    #[case(UserId::from_str("ns1~user")?, NamespaceSupport::Supported, Some(UserId::from_str("ns1~user2")?), Some(UserRole::Operator), Some(()))]
+    #[case(UserId::from_str("ns1~user")?, NamespaceSupport::Supported, Some(UserId::from_str("ns1~user2")?), Some(UserRole::Metrics), None)]
+    #[case(UserId::from_str("ns1~user")?, NamespaceSupport::Supported, Some(UserId::from_str("ns1~user2")?), Some(UserRole::Backup), None)]
+    #[case(UserId::from_str("user")?, NamespaceSupport::Supported, Some(UserId::from_str("user2")?), None, Some(()))]
+    #[case(UserId::from_str("user")?, NamespaceSupport::Supported, Some(UserId::from_str("user2")?), Some(UserRole::Administrator), Some(()))]
+    #[case(UserId::from_str("user")?, NamespaceSupport::Supported, Some(UserId::from_str("user2")?), Some(UserRole::Operator), Some(()))]
+    #[case(UserId::from_str("user")?, NamespaceSupport::Supported, Some(UserId::from_str("user2")?), Some(UserRole::Metrics), Some(()))]
+    #[case(UserId::from_str("user")?, NamespaceSupport::Supported, Some(UserId::from_str("user2")?), Some(UserRole::Backup), Some(()))]
+    fn validate_namespace_access(
+        #[case] caller: UserId,
+        #[case] namespace_support: NamespaceSupport,
+        #[case] target: Option<UserId>,
+        #[case] role: Option<UserRole>,
+        #[case] result: Option<()>,
+    ) -> TestResult {
+        if result.is_some() {
+            assert!(caller
+                .validate_namespace_access(namespace_support, target.as_ref(), role.as_ref())
+                .is_ok());
+        } else {
+            assert!(caller
+                .validate_namespace_access(namespace_support, target.as_ref(), role.as_ref())
+                .is_err())
+        }
         Ok(())
     }
 }

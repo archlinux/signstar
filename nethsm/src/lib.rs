@@ -210,6 +210,7 @@ use tls::{DangerIgnoreVerifier, FingerprintVerifier};
 
 mod user;
 pub use user::Error as UserError;
+use user::NamespaceSupport;
 pub use user::{Credentials, NamespaceId, Passphrase, UserId};
 
 #[derive(Debug, thiserror::Error)]
@@ -483,6 +484,25 @@ impl NetHsm {
         })
     }
 
+    /// Validates the potential [namespace] access of a context
+    ///
+    /// Validates, that [`current_credentials`][`NetHsm::current_credentials`] can be used in a
+    /// defined context. This function relies on [`UserId::validate_namespace_access`] and should be
+    /// used for validating the context of [`NetHsm`] methods.
+    ///
+    /// [namespace]: https://docs.nitrokey.com/nethsm/administration#namespaces
+    fn validate_namespace_access(
+        &self,
+        support: NamespaceSupport,
+        target: Option<&UserId>,
+        role: Option<&UserRole>,
+    ) -> Result<(), Error> {
+        if let Some(current_user_id) = self.current_credentials.borrow().to_owned() {
+            current_user_id.validate_namespace_access(support, target, role)?
+        }
+        Ok(())
+    }
+
     /// Creates a connection configuration
     ///
     /// Uses the [`Agent`] configured during creation of the [`NetHsm`], the current [`Url`] and
@@ -726,6 +746,7 @@ impl NetHsm {
         admin_passphrase: Passphrase,
         system_time: DateTime<Utc>,
     ) -> Result<(), Error> {
+        self.validate_namespace_access(NamespaceSupport::Supported, None, None)?;
         provision_post(
             &self.create_connection_config(),
             ProvisionRequestData::new(
@@ -774,6 +795,7 @@ impl NetHsm {
     /// # }
     /// ```
     pub fn alive(&self) -> Result<(), Error> {
+        self.validate_namespace_access(NamespaceSupport::Supported, None, None)?;
         health_alive_get(&self.create_connection_config()).map_err(|error| {
             Error::Api(format!(
                 "Retrieving alive status failed: {}",
@@ -814,6 +836,7 @@ impl NetHsm {
     /// # }
     /// ```
     pub fn ready(&self) -> Result<(), Error> {
+        self.validate_namespace_access(NamespaceSupport::Supported, None, None)?;
         health_ready_get(&self.create_connection_config()).map_err(|error| {
             Error::Api(format!(
                 "Retrieving ready status failed: {}",
@@ -855,6 +878,7 @@ impl NetHsm {
     /// # }
     /// ```
     pub fn state(&self) -> Result<SystemState, Error> {
+        self.validate_namespace_access(NamespaceSupport::Supported, None, None)?;
         let health_state = health_state_get(&self.create_connection_config()).map_err(|error| {
             Error::Api(format!(
                 "Retrieving state failed: {}",
@@ -896,6 +920,7 @@ impl NetHsm {
     /// # }
     /// ```
     pub fn info(&self) -> Result<InfoData, Error> {
+        self.validate_namespace_access(NamespaceSupport::Supported, None, None)?;
         let info = info_get(&self.create_connection_config()).map_err(|error| {
             Error::Api(format!(
                 "Retrieving device information failed: {}",
@@ -943,6 +968,7 @@ impl NetHsm {
     /// # }
     /// ```
     pub fn metrics(&self) -> Result<Value, Error> {
+        self.validate_namespace_access(NamespaceSupport::Supported, None, None)?;
         let metrics = metrics_get(&self.create_connection_config()).map_err(|error| {
             Error::Api(format!(
                 "Retrieving metrics failed: {}",
@@ -998,6 +1024,7 @@ impl NetHsm {
         current_passphrase: Passphrase,
         new_passphrase: Passphrase,
     ) -> Result<(), Error> {
+        self.validate_namespace_access(NamespaceSupport::Unsupported, None, None)?;
         config_unlock_passphrase_put(
             &self.create_connection_config(),
             UnlockPassphraseConfig::new(
@@ -1052,6 +1079,7 @@ impl NetHsm {
     /// # }
     /// ```
     pub fn get_boot_mode(&self) -> Result<BootMode, Error> {
+        self.validate_namespace_access(NamespaceSupport::Unsupported, None, None)?;
         Ok(BootMode::from(
             config_unattended_boot_get(&self.create_connection_config())
                 .map_err(|error| {
@@ -1105,6 +1133,7 @@ impl NetHsm {
     /// # }
     /// ```
     pub fn set_boot_mode(&self, boot_mode: BootMode) -> Result<(), Error> {
+        self.validate_namespace_access(NamespaceSupport::Unsupported, None, None)?;
         config_unattended_boot_put(&self.create_connection_config(), boot_mode.into()).map_err(
             |error| {
                 Error::Api(format!(
@@ -1155,6 +1184,7 @@ impl NetHsm {
     /// # }
     /// ```
     pub fn get_tls_public_key(&self) -> Result<String, Error> {
+        self.validate_namespace_access(NamespaceSupport::Unsupported, None, None)?;
         Ok(config_tls_public_pem_get(&self.create_connection_config())
             .map_err(|error| {
                 Error::Api(format!(
@@ -1203,6 +1233,7 @@ impl NetHsm {
     /// # }
     /// ```
     pub fn get_tls_cert(&self) -> Result<String, Error> {
+        self.validate_namespace_access(NamespaceSupport::Unsupported, None, None)?;
         Ok(config_tls_cert_pem_get(&self.create_connection_config())
             .map_err(|error| {
                 Error::Api(format!(
@@ -1265,6 +1296,7 @@ impl NetHsm {
     /// # }
     /// ```
     pub fn get_tls_csr(&self, distinguished_name: DistinguishedName) -> Result<String, Error> {
+        self.validate_namespace_access(NamespaceSupport::Unsupported, None, None)?;
         Ok(
             config_tls_csr_pem_post(&self.create_connection_config(), distinguished_name)
                 .map_err(|error| {
@@ -1322,6 +1354,7 @@ impl NetHsm {
         tls_key_type: TlsKeyType,
         length: Option<i32>,
     ) -> Result<(), Error> {
+        self.validate_namespace_access(NamespaceSupport::Unsupported, None, None)?;
         config_tls_generate_post(
             &self.create_connection_config(),
             TlsKeyGenerateRequestData {
@@ -1389,6 +1422,7 @@ impl NetHsm {
     /// # }
     /// ```
     pub fn set_tls_cert(&self, certificate: &str) -> Result<(), Error> {
+        self.validate_namespace_access(NamespaceSupport::Unsupported, None, None)?;
         config_tls_cert_pem_put(&self.create_connection_config(), certificate).map_err(
             |error| {
                 Error::Api(format!(
@@ -1439,6 +1473,7 @@ impl NetHsm {
     /// # }
     /// ```
     pub fn get_network(&self) -> Result<NetworkConfig, Error> {
+        self.validate_namespace_access(NamespaceSupport::Unsupported, None, None)?;
         Ok(config_network_get(&self.create_connection_config())
             .map_err(|error| {
                 Error::Api(format!(
@@ -1495,6 +1530,7 @@ impl NetHsm {
     /// # }
     /// ```
     pub fn set_network(&self, network_config: NetworkConfig) -> Result<(), Error> {
+        self.validate_namespace_access(NamespaceSupport::Unsupported, None, None)?;
         config_network_put(&self.create_connection_config(), network_config).map_err(|error| {
             Error::Api(format!(
                 "Setting network config failed: {}",
@@ -1542,6 +1578,7 @@ impl NetHsm {
     /// # }
     /// ```
     pub fn get_time(&self) -> Result<String, Error> {
+        self.validate_namespace_access(NamespaceSupport::Unsupported, None, None)?;
         Ok(config_time_get(&self.create_connection_config())
             .map_err(|error| {
                 Error::Api(format!(
@@ -1594,6 +1631,7 @@ impl NetHsm {
     /// # }
     /// ```
     pub fn set_time(&self, time: DateTime<Utc>) -> Result<(), Error> {
+        self.validate_namespace_access(NamespaceSupport::Unsupported, None, None)?;
         config_time_put(
             &self.create_connection_config(),
             TimeConfig::new(time.to_rfc3339_opts(chrono::SecondsFormat::Secs, true)),
@@ -1645,6 +1683,7 @@ impl NetHsm {
     /// # }
     /// ```
     pub fn get_logging(&self) -> Result<LoggingConfig, Error> {
+        self.validate_namespace_access(NamespaceSupport::Unsupported, None, None)?;
         Ok(config_logging_get(&self.create_connection_config())
             .map_err(|error| {
                 Error::Api(format!(
@@ -1706,6 +1745,7 @@ impl NetHsm {
         port: i32,
         log_level: LogLevel,
     ) -> Result<(), Error> {
+        self.validate_namespace_access(NamespaceSupport::Unsupported, None, None)?;
         let ip_address = ip_address.to_string();
         config_logging_put(
             &self.create_connection_config(),
@@ -1766,6 +1806,7 @@ impl NetHsm {
         current_passphrase: Passphrase,
         new_passphrase: Passphrase,
     ) -> Result<(), Error> {
+        self.validate_namespace_access(NamespaceSupport::Unsupported, None, None)?;
         config_backup_passphrase_put(
             &self.create_connection_config(),
             BackupPassphraseConfig::new(
@@ -1825,6 +1866,7 @@ impl NetHsm {
     /// # }
     /// ```
     pub fn backup(&self) -> Result<Vec<u8>, Error> {
+        self.validate_namespace_access(NamespaceSupport::Unsupported, None, None)?;
         Ok(system_backup_post(&self.create_connection_config())
             .map_err(|error| {
                 Error::Api(format!(
@@ -1877,6 +1919,7 @@ impl NetHsm {
     /// # }
     /// ```
     pub fn factory_reset(&self) -> Result<(), Error> {
+        self.validate_namespace_access(NamespaceSupport::Unsupported, None, None)?;
         system_factory_reset_post(&self.create_connection_config()).map_err(|error| {
             Error::Api(format!(
                 "Factory reset failed: {}",
@@ -1948,6 +1991,7 @@ impl NetHsm {
         system_time: DateTime<Utc>,
         backup: Vec<u8>,
     ) -> Result<(), Error> {
+        self.validate_namespace_access(NamespaceSupport::Unsupported, None, None)?;
         system_restore_post(
             &self.create_connection_config(),
             Some(nethsm_sdk_rs::models::RestoreRequestArguments {
@@ -2005,6 +2049,7 @@ impl NetHsm {
     /// # }
     /// ```
     pub fn lock(&self) -> Result<(), Error> {
+        self.validate_namespace_access(NamespaceSupport::Unsupported, None, None)?;
         lock_post(&self.create_connection_config()).map_err(|error| {
             Error::Api(format!(
                 "Locking device failed: {}",
@@ -2050,6 +2095,7 @@ impl NetHsm {
     /// # }
     /// ```
     pub fn unlock(&self, unlock_passphrase: Passphrase) -> Result<(), Error> {
+        self.validate_namespace_access(NamespaceSupport::Supported, None, None)?;
         unlock_post(
             &self.create_connection_config(),
             UnlockRequestData::new(unlock_passphrase.expose_owned()),
@@ -2104,6 +2150,7 @@ impl NetHsm {
     /// # }
     /// ```
     pub fn system_info(&self) -> Result<SystemInfo, Error> {
+        self.validate_namespace_access(NamespaceSupport::Unsupported, None, None)?;
         Ok(system_info_get(&self.create_connection_config())
             .map_err(|error| {
                 Error::Api(format!(
@@ -2154,6 +2201,7 @@ impl NetHsm {
     /// # }
     /// ```
     pub fn reboot(&self) -> Result<(), Error> {
+        self.validate_namespace_access(NamespaceSupport::Unsupported, None, None)?;
         system_reboot_post(&self.create_connection_config()).map_err(|error| {
             Error::Api(format!(
                 "Rebooting device failed: {}",
@@ -2203,6 +2251,7 @@ impl NetHsm {
     /// # }
     /// ```
     pub fn shutdown(&self) -> Result<(), Error> {
+        self.validate_namespace_access(NamespaceSupport::Unsupported, None, None)?;
         system_shutdown_post(&self.create_connection_config()).map_err(|error| {
             Error::Api(format!(
                 "Shutting down device failed: {}",
@@ -2261,6 +2310,7 @@ impl NetHsm {
     /// # }
     /// ```
     pub fn upload_update(&self, update: Vec<u8>) -> Result<SystemUpdateData, Error> {
+        self.validate_namespace_access(NamespaceSupport::Unsupported, None, None)?;
         Ok(system_update_post(&self.create_connection_config(), update)
             .map_err(|error| {
                 println!("error during upload");
@@ -2320,6 +2370,7 @@ impl NetHsm {
     /// # }
     /// ```
     pub fn commit_update(&self) -> Result<(), Error> {
+        self.validate_namespace_access(NamespaceSupport::Unsupported, None, None)?;
         system_commit_update_post(&self.create_connection_config()).map_err(|error| {
             Error::Api(format!(
                 "Committing update failed: {}",
@@ -2377,6 +2428,7 @@ impl NetHsm {
     /// # }
     /// ```
     pub fn cancel_update(&self) -> Result<(), Error> {
+        self.validate_namespace_access(NamespaceSupport::Unsupported, None, None)?;
         system_cancel_update_post(&self.create_connection_config()).map_err(|error| {
             Error::Api(format!(
                 "Cancelling update failed: {}",
@@ -2445,6 +2497,7 @@ impl NetHsm {
     /// [role]: https://docs.nitrokey.com/nethsm/administration#roles
     /// [state]: https://docs.nitrokey.com/nethsm/administration#state
     pub fn add_namespace(&self, namespace_id: &NamespaceId) -> Result<(), Error> {
+        self.validate_namespace_access(NamespaceSupport::Unsupported, None, None)?;
         namespaces_namespace_id_put(&self.create_connection_config(), &namespace_id.to_string())
             .map_err(|error| {
                 Error::Api(format!(
@@ -2511,6 +2564,7 @@ impl NetHsm {
     /// [role]: https://docs.nitrokey.com/nethsm/administration#roles
     /// [state]: https://docs.nitrokey.com/nethsm/administration#state
     pub fn get_namespaces(&self) -> Result<Vec<String>, Error> {
+        self.validate_namespace_access(NamespaceSupport::Unsupported, None, None)?;
         Ok(namespaces_get(&self.create_connection_config())
             .map_err(|error| {
                 Error::Api(format!(
@@ -2586,6 +2640,7 @@ impl NetHsm {
     /// [role]: https://docs.nitrokey.com/nethsm/administration#roles
     /// [state]: https://docs.nitrokey.com/nethsm/administration#state
     pub fn delete_namespace(&self, namespace_id: &NamespaceId) -> Result<(), Error> {
+        self.validate_namespace_access(NamespaceSupport::Unsupported, None, None)?;
         namespaces_namespace_id_delete(&self.create_connection_config(), &namespace_id.to_string())
             .map_err(|error| {
                 Error::Api(format!(
@@ -2667,6 +2722,7 @@ impl NetHsm {
         passphrase: Passphrase,
         user_id: Option<UserId>,
     ) -> Result<UserId, Error> {
+        self.validate_namespace_access(NamespaceSupport::Supported, user_id.as_ref(), Some(&role))?;
         let user_id = if let Some(user_id) = user_id {
             users_user_id_put(
                 &self.create_connection_config(),
@@ -2757,6 +2813,7 @@ impl NetHsm {
     /// # }
     /// ```
     pub fn delete_user(&self, user_id: &UserId) -> Result<(), Error> {
+        self.validate_namespace_access(NamespaceSupport::Supported, Some(user_id), None)?;
         users_user_id_delete(&self.create_connection_config(), &user_id.to_string()).map_err(
             |error| {
                 Error::Api(format!(
@@ -2811,6 +2868,7 @@ impl NetHsm {
     /// # }
     /// ```
     pub fn get_users(&self) -> Result<Vec<String>, Error> {
+        self.validate_namespace_access(NamespaceSupport::Supported, None, None)?;
         Ok(users_get(&self.create_connection_config())
             .map_err(|error| {
                 Error::Api(format!(
@@ -2867,6 +2925,7 @@ impl NetHsm {
     /// # }
     /// ```
     pub fn get_user(&self, user_id: &UserId) -> Result<UserData, Error> {
+        self.validate_namespace_access(NamespaceSupport::Supported, Some(user_id), None)?;
         Ok(
             users_user_id_get(&self.create_connection_config(), &user_id.to_string())
                 .map_err(|error| {
@@ -2931,6 +2990,7 @@ impl NetHsm {
         user_id: UserId,
         passphrase: Passphrase,
     ) -> Result<(), Error> {
+        self.validate_namespace_access(NamespaceSupport::Supported, Some(&user_id), None)?;
         users_user_id_passphrase_post(
             &self.create_connection_config(),
             &user_id.to_string(),
@@ -3003,6 +3063,7 @@ impl NetHsm {
     /// # }
     /// ```
     pub fn add_user_tag(&self, user_id: &UserId, tag: &str) -> Result<(), Error> {
+        self.validate_namespace_access(NamespaceSupport::Supported, Some(user_id), None)?;
         users_user_id_tags_tag_put(&self.create_connection_config(), &user_id.to_string(), tag)
             .map_err(|error| {
                 Error::Api(format!(
@@ -3056,6 +3117,7 @@ impl NetHsm {
     /// # }
     /// ```
     pub fn delete_user_tag(&self, user_id: &UserId, tag: &str) -> Result<(), Error> {
+        self.validate_namespace_access(NamespaceSupport::Supported, Some(user_id), None)?;
         users_user_id_tags_tag_delete(&self.create_connection_config(), &user_id.to_string(), tag)
             .map_err(|error| {
                 Error::Api(format!(
@@ -3124,6 +3186,7 @@ impl NetHsm {
     /// # }
     /// ```
     pub fn get_user_tags(&self, user_id: &UserId) -> Result<Vec<String>, Error> {
+        self.validate_namespace_access(NamespaceSupport::Supported, Some(user_id), None)?;
         Ok(
             users_user_id_tags_get(&self.create_connection_config(), &user_id.to_string())
                 .map_err(|error| {
@@ -3228,6 +3291,7 @@ impl NetHsm {
         key_id: Option<String>,
         tags: Option<Vec<String>>,
     ) -> Result<String, Error> {
+        self.validate_namespace_access(NamespaceSupport::Supported, None, None)?;
         // ensure the key_type - mechanisms combinations are valid
         key_type.matches_mechanisms(&mechanisms)?;
 
@@ -3335,6 +3399,7 @@ impl NetHsm {
         key_id: Option<String>,
         tags: Option<Vec<String>>,
     ) -> Result<String, Error> {
+        self.validate_namespace_access(NamespaceSupport::Supported, None, None)?;
         // ensure the key_type - mechanisms combinations are valid
         let key_type = key_data.key_type();
         key_type.matches_mechanisms(&mechanisms)?;
@@ -3425,6 +3490,7 @@ impl NetHsm {
     /// # }
     /// ```
     pub fn delete_key(&self, key_id: &str) -> Result<(), Error> {
+        self.validate_namespace_access(NamespaceSupport::Supported, None, None)?;
         keys_key_id_delete(&self.create_connection_config(), key_id).map_err(|error| {
             Error::Api(format!(
                 "Deleting key failed: {}",
@@ -3476,6 +3542,7 @@ impl NetHsm {
     /// # }
     /// ```
     pub fn get_key(&self, key_id: &str) -> Result<PublicKey, Error> {
+        self.validate_namespace_access(NamespaceSupport::Supported, None, None)?;
         Ok(keys_key_id_get(&self.create_connection_config(), key_id)
             .map_err(|error| {
                 Error::Api(format!(
@@ -3531,6 +3598,7 @@ impl NetHsm {
     /// # }
     /// ```
     pub fn get_keys(&self, filter: Option<&str>) -> Result<Vec<String>, Error> {
+        self.validate_namespace_access(NamespaceSupport::Supported, None, None)?;
         Ok(keys_get(&self.create_connection_config(), filter)
             .map_err(|error| {
                 Error::Api(format!(
@@ -3589,6 +3657,7 @@ impl NetHsm {
     /// [X.509]: https://en.wikipedia.org/wiki/X.509
     /// [PEM]: https://en.wikipedia.org/wiki/Privacy-Enhanced_Mail
     pub fn get_public_key(&self, key_id: &str) -> Result<String, Error> {
+        self.validate_namespace_access(NamespaceSupport::Supported, None, None)?;
         Ok(
             keys_key_id_public_pem_get(&self.create_connection_config(), key_id)
                 .map_err(|error| {
@@ -3648,6 +3717,7 @@ impl NetHsm {
     /// # }
     /// ```
     pub fn add_key_tag(&self, key_id: &str, tag: &str) -> Result<(), Error> {
+        self.validate_namespace_access(NamespaceSupport::Supported, None, None)?;
         keys_key_id_restrictions_tags_tag_put(&self.create_connection_config(), tag, key_id)
             .map_err(|error| {
                 Error::Api(format!(
@@ -3701,6 +3771,7 @@ impl NetHsm {
     /// # }
     /// ```
     pub fn delete_key_tag(&self, key_id: &str, tag: &str) -> Result<(), Error> {
+        self.validate_namespace_access(NamespaceSupport::Supported, None, None)?;
         keys_key_id_restrictions_tags_tag_delete(&self.create_connection_config(), tag, key_id)
             .map_err(|error| {
                 Error::Api(format!(
@@ -3777,6 +3848,7 @@ impl NetHsm {
     /// # }
     /// ```
     pub fn import_key_certificate(&self, key_id: &str, data: Vec<u8>) -> Result<(), Error> {
+        self.validate_namespace_access(NamespaceSupport::Supported, None, None)?;
         keys_key_id_cert_put(&self.create_connection_config(), key_id, data).map_err(|error| {
             Error::Api(format!(
                 "Importing certificate for key failed: {}",
@@ -3829,6 +3901,7 @@ impl NetHsm {
     /// # }
     /// ```
     pub fn get_key_certificate(&self, key_id: &str) -> Result<Vec<u8>, Error> {
+        self.validate_namespace_access(NamespaceSupport::Supported, None, None)?;
         Ok(
             keys_key_id_cert_get(&self.create_connection_config(), key_id)
                 .map_err(|error| {
@@ -3883,6 +3956,7 @@ impl NetHsm {
     /// # }
     /// ```
     pub fn delete_key_certificate(&self, key_id: &str) -> Result<(), Error> {
+        self.validate_namespace_access(NamespaceSupport::Supported, None, None)?;
         keys_key_id_cert_delete(&self.create_connection_config(), key_id).map_err(|error| {
             Error::Api(format!(
                 "Deleting certificate for key failed: {}",
@@ -3956,6 +4030,7 @@ impl NetHsm {
         key_id: &str,
         distinguished_name: DistinguishedName,
     ) -> Result<String, Error> {
+        self.validate_namespace_access(NamespaceSupport::Supported, None, None)?;
         Ok(
             keys_key_id_csr_pem_post(&self.create_connection_config(), key_id, distinguished_name)
                 .map_err(|error| {
@@ -4035,6 +4110,7 @@ impl NetHsm {
         signature_type: SignatureType,
         digest: &[u8],
     ) -> Result<Vec<u8>, Error> {
+        self.validate_namespace_access(NamespaceSupport::Supported, None, None)?;
         // decode base64 encoded data from the API
         Base64::decode_vec(
             &keys_key_id_sign_post(
@@ -4221,6 +4297,7 @@ impl NetHsm {
         message: &[u8],
         iv: Option<&[u8]>,
     ) -> Result<Vec<u8>, Error> {
+        self.validate_namespace_access(NamespaceSupport::Supported, None, None)?;
         // the API requires data to be base64 encoded
         let message = Base64::encode_string(message);
         let iv = iv.map(Base64::encode_string);
@@ -4333,6 +4410,7 @@ impl NetHsm {
         message: &[u8],
         iv: Option<&[u8]>,
     ) -> Result<Vec<u8>, Error> {
+        self.validate_namespace_access(NamespaceSupport::Supported, None, None)?;
         // the API requires data to be base64 encoded
         let encrypted = Base64::encode_string(message);
         let iv = iv.map(Base64::encode_string);
@@ -4400,6 +4478,7 @@ impl NetHsm {
     /// # }
     /// ```
     pub fn random(&self, length: i32) -> Result<Vec<u8>, Error> {
+        self.validate_namespace_access(NamespaceSupport::Supported, None, None)?;
         let base64_bytes = random_post(
             &self.create_connection_config(),
             RandomRequestData::new(length),
