@@ -11,7 +11,6 @@ use pgp::{
         PublicKey,
         SignatureConfig,
         SignatureType,
-        SignatureVersion,
         Subpacket,
         SubpacketData,
         UserId,
@@ -20,15 +19,17 @@ use pgp::{
     types::{
         CompressionAlgorithm,
         EcdsaPublicParams,
+        EskType,
         KeyId,
-        KeyTrait,
         KeyVersion,
         Mpi,
+        PkeskBytes,
         PlainSecretParams,
         PublicKeyTrait,
         PublicParams,
         SecretKeyTrait,
         SecretParams,
+        SignatureBytes,
         Version,
     },
     Deserializable,
@@ -100,14 +101,6 @@ impl Debug for HsmKey<'_, '_> {
     }
 }
 
-/// Safely construct an MPI from a slice of bytes.
-#[inline]
-fn mpi(bytes: &[u8]) -> Mpi {
-    // construct an MPI using a safe function which will correctly truncate
-    // any leading zeros, see also: https://github.com/rpgp/rpgp/issues/401
-    Mpi::from_raw_slice(bytes)
-}
-
 /// Parse signature bytes into algorithm-specific vector of MPIs.
 fn parse_signature(sig_type: crate::SignatureType, sig: &[u8]) -> pgp::errors::Result<Vec<Mpi>> {
     use crate::SignatureType::*;
@@ -116,8 +109,8 @@ fn parse_signature(sig_type: crate::SignatureType, sig: &[u8]) -> pgp::errors::R
             let sig: EcdsaSignatureValue =
                 picky_asn1_der::from_bytes(sig).map_err(|_| pgp::errors::Error::InvalidInput)?;
             vec![
-                mpi(sig.r.as_unsigned_bytes_be()),
-                mpi(sig.s.as_unsigned_bytes_be()),
+                Mpi::from_slice(sig.r.as_unsigned_bytes_be()),
+                Mpi::from_slice(sig.s.as_unsigned_bytes_be()),
             ]
         }
         EdDsa => {
@@ -125,11 +118,11 @@ fn parse_signature(sig_type: crate::SignatureType, sig: &[u8]) -> pgp::errors::R
                 return Err(pgp::errors::Error::InvalidKeyLength);
             }
 
-            vec![mpi(&sig[..32]), mpi(&sig[32..])]
+            vec![Mpi::from_slice(&sig[..32]), Mpi::from_slice(&sig[32..])]
         }
         Pkcs1 => {
             // RSA
-            vec![mpi(sig)]
+            vec![Mpi::from_slice(sig)]
         }
         param => {
             return Err(pgp::errors::Error::Unsupported(format!(
@@ -162,7 +155,7 @@ impl<'a, 'b> HsmKey<'a, 'b> {
                     )))
                 }
             },
-            PublicParams::EdDSA { .. } => crate::SignatureType::EdDsa,
+            PublicParams::EdDSALegacy { .. } => crate::SignatureType::EdDsa,
             PublicParams::RSA { .. } => crate::SignatureType::Pkcs1,
             param => {
                 return Err(pgp::errors::Error::Unsupported(format!(
@@ -173,8 +166,34 @@ impl<'a, 'b> HsmKey<'a, 'b> {
     }
 }
 
-impl KeyTrait for HsmKey<'_, '_> {
-    fn fingerprint(&self) -> Vec<u8> {
+impl PublicKeyTrait for HsmKey<'_, '_> {
+    fn verify_signature(
+        &self,
+        hash: pgp::crypto::hash::HashAlgorithm,
+        data: &[u8],
+        sig: &SignatureBytes,
+    ) -> pgp::errors::Result<()> {
+        self.public_key.verify_signature(hash, data, sig)
+    }
+
+    fn encrypt<R: CryptoRng + Rng>(
+        &self,
+        rng: R,
+        plain: &[u8],
+        esk_type: EskType,
+    ) -> pgp::errors::Result<PkeskBytes> {
+        self.public_key.encrypt(rng, plain, esk_type)
+    }
+
+    fn serialize_for_hashing(&self, writer: &mut impl std::io::Write) -> pgp::errors::Result<()> {
+        self.public_key.serialize_for_hashing(writer)
+    }
+
+    fn version(&self) -> KeyVersion {
+        self.public_key.version()
+    }
+
+    fn fingerprint(&self) -> pgp::types::Fingerprint {
         self.public_key.fingerprint()
     }
 
@@ -185,28 +204,17 @@ impl KeyTrait for HsmKey<'_, '_> {
     fn algorithm(&self) -> PublicKeyAlgorithm {
         self.public_key.algorithm()
     }
-}
 
-impl PublicKeyTrait for HsmKey<'_, '_> {
-    fn verify_signature(
-        &self,
-        hash: pgp::crypto::hash::HashAlgorithm,
-        data: &[u8],
-        sig: &[Mpi],
-    ) -> pgp::errors::Result<()> {
-        self.public_key.verify_signature(hash, data, sig)
+    fn created_at(&self) -> &chrono::DateTime<chrono::Utc> {
+        self.public_key.created_at()
     }
 
-    fn encrypt<R: CryptoRng + Rng>(
-        &self,
-        rng: &mut R,
-        plain: &[u8],
-    ) -> pgp::errors::Result<Vec<Mpi>> {
-        self.public_key.encrypt(rng, plain)
+    fn expiration(&self) -> Option<u16> {
+        self.public_key.expiration()
     }
 
-    fn to_writer_old(&self, writer: &mut impl std::io::Write) -> pgp::errors::Result<()> {
-        self.public_key.to_writer_old(writer)
+    fn public_params(&self) -> &PublicParams {
+        self.public_key.public_params()
     }
 }
 
@@ -228,7 +236,7 @@ impl SecretKeyTrait for HsmKey<'_, '_> {
         _key_pw: F,
         hash: HashAlgorithm,
         data: &[u8],
-    ) -> pgp::errors::Result<Vec<Mpi>>
+    ) -> pgp::errors::Result<SignatureBytes>
     where
         F: FnOnce() -> String,
     {
@@ -250,15 +258,11 @@ impl SecretKeyTrait for HsmKey<'_, '_> {
             .sign_digest(self.key_id, signature_type, &request_data)
             .map_err(|_| pgp::errors::Error::InvalidInput)?;
 
-        parse_signature(signature_type, &sig)
+        Ok(parse_signature(signature_type, &sig)?.into())
     }
 
     fn public_key(&self) -> Self::PublicKey {
         self.public_key.clone()
-    }
-
-    fn public_params(&self) -> &PublicParams {
-        self.public_key.public_params()
     }
 }
 
@@ -286,11 +290,14 @@ pub fn add_certificate(
             Default::default(),
             Default::default(),
             vec![CompressionAlgorithm::Uncompressed].into(),
+            vec![].into(),
             None,
         ),
         vec![],
     );
-    let signed_pk = composed_pk.sign(&signer, String::new).map_err(Error::Pgp)?;
+    let signed_pk = composed_pk
+        .sign(rand::thread_rng(), &signer, String::new)
+        .map_err(Error::Pgp)?;
     let mut buffer = vec![];
     signed_pk.to_writer(&mut buffer).map_err(Error::Pgp)?;
     Ok(buffer)
@@ -372,7 +379,7 @@ pub fn tsk_to_private_key_import(
                 KeyMechanism::EcdsaSignature,
             )
         }
-        (PlainSecretParams::EdDSA(bytes), _) => (
+        (PlainSecretParams::EdDSALegacy(bytes), _) => (
             PrivateKeyImport::from_raw_bytes(crate::KeyType::Curve25519, bytes)?,
             KeyMechanism::EdDsaSignature,
         ),
@@ -400,32 +407,25 @@ pub fn sign(
         key_id,
     );
 
-    let sig_config = SignatureConfig::new_v4(
-        SignatureVersion::V4,
-        SignatureType::Binary,
-        signer.algorithm(),
-        signer.hash_alg(),
-        vec![
-            Subpacket::regular(SubpacketData::SignatureCreationTime(
-                std::time::SystemTime::now().into(),
-            )),
-            Subpacket::regular(SubpacketData::Issuer(signer.key_id())),
-            Subpacket::regular(SubpacketData::IssuerFingerprint(
-                KeyVersion::V4,
-                signer.fingerprint().into(),
-            )),
-        ],
-        vec![],
-    );
+    let mut sig_config =
+        SignatureConfig::v4(SignatureType::Binary, signer.algorithm(), signer.hash_alg());
+    sig_config.hashed_subpackets = vec![
+        Subpacket::regular(SubpacketData::SignatureCreationTime(
+            std::time::SystemTime::now().into(),
+        )),
+        Subpacket::regular(SubpacketData::Issuer(signer.key_id())),
+        Subpacket::regular(SubpacketData::IssuerFingerprint(signer.fingerprint())),
+    ];
 
     let mut hasher = sig_config.hash_alg.new_hasher().map_err(Error::Pgp)?;
-
     sig_config
         .hash_data_to_sign(&mut *hasher, message)
         .map_err(Error::Pgp)?;
+
     let len = sig_config
-        .hash_signature_data(&mut *hasher)
+        .hash_signature_data(&mut hasher)
         .map_err(Error::Pgp)?;
+
     hasher.update(&sig_config.trailer(len).map_err(Error::Pgp)?);
 
     let hash = &hasher.finish()[..];
@@ -464,18 +464,16 @@ fn hsm_pk_to_pgp_pk(
             created_at,
             None,
             PublicParams::RSA {
-                n: Base64::decode_vec(
+                n: Mpi::from_raw(Base64::decode_vec(
                     &public
                         .modulus
                         .ok_or(Error::KeyData("missing RSA modulus".into()))?,
-                )?
-                .into(),
-                e: Base64::decode_vec(
+                )?),
+                e: Mpi::from_raw(Base64::decode_vec(
                     &public
                         .public_exponent
                         .ok_or(Error::KeyData("missing RSA exponent".into()))?,
-                )?
-                .into(),
+                )?),
             },
         )?,
         KeyType::Curve25519 => {
@@ -490,12 +488,12 @@ fn hsm_pk_to_pgp_pk(
             PublicKey::new(
                 Version::New,
                 KeyVersion::V4,
-                PublicKeyAlgorithm::EdDSA,
+                PublicKeyAlgorithm::EdDSALegacy,
                 created_at,
                 None,
-                PublicParams::EdDSA {
+                PublicParams::EdDSALegacy {
                     curve: ECCCurve::Ed25519,
-                    q: bytes.into(),
+                    q: Mpi::from_raw(bytes),
                 },
             )?
         }
@@ -508,15 +506,15 @@ fn hsm_pk_to_pgp_pk(
             let key = match curve {
                 KeyType::EcP256 => EcdsaPublicParams::P256 {
                     key: p256::PublicKey::from_sec1_bytes(&pubkey)?,
-                    p: pubkey.into(),
+                    p: Mpi::from_raw(pubkey),
                 },
                 KeyType::EcP384 => EcdsaPublicParams::P384 {
                     key: p384::PublicKey::from_sec1_bytes(&pubkey)?,
-                    p: pubkey.into(),
+                    p: Mpi::from_raw(pubkey),
                 },
                 KeyType::EcP521 => EcdsaPublicParams::P521 {
                     key: p521::PublicKey::from_sec1_bytes(&pubkey)?,
-                    p: pubkey.into(),
+                    p: Mpi::from_raw(pubkey),
                 },
                 _ => unreachable!(),
             };
@@ -598,7 +596,7 @@ mod tests {
         };
 
         let pgp_key = hsm_pk_to_pgp_pk(hsm_key, DateTime::UNIX_EPOCH)?;
-        let PublicParams::EdDSA { curve, q } = pgp_key.public_params() else {
+        let PublicParams::EdDSALegacy { curve, q } = pgp_key.public_params() else {
             panic!("Wrong type of public params");
         };
         assert_eq!(curve, &ECCCurve::Ed25519);

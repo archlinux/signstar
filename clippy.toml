@@ -1,5 +1,0 @@
-disallowed-methods = [
-  # This function produces invalid MPIs when a slice with leading-zeros
-  # is passed. See https://github.com/rpgp/rpgp/issues/401 for details.
-  "pgp::types::Mpi::from_slice",
-]
