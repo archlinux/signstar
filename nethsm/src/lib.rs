@@ -2107,14 +2107,12 @@ impl NetHsm {
     /// If the device is in state [`SystemState::Locked`] unlocks the device using
     /// `unlock_passphrase` and sets its [state](https://docs.nitrokey.com/nethsm/administration#state) to [`SystemState::Operational`].
     ///
-    /// This call requires using credentials of a user in the "admin" [role](https://docs.nitrokey.com/nethsm/administration#roles).
+    /// For this call no credentials are required and if any are configured, they are ignored.
     ///
     /// # Errors
     ///
     /// Returns an [`Error::Api`] if unlocking the device fails:
     /// * the device is not in state [`SystemState::Locked`]
-    /// * the used credentials are not correct
-    /// * the used credentials are not that of a user in the "admin" role
     ///
     /// # Examples
     ///
@@ -2123,7 +2121,7 @@ impl NetHsm {
     /// use nethsm::{ConnectionSecurity, Credentials, Error, NetHsm, Passphrase, SystemState};
     ///
     /// # fn main() -> TestResult {
-    /// // create a connection with a user in the "admin" role
+    /// // no initial credentials are required
     /// let nethsm = NetHsm::new(
     ///     "https://example.org/api/v1".try_into()?,
     ///     ConnectionSecurity::Unsafe,
