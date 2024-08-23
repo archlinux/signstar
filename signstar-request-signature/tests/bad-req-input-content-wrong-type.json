@@ -1,0 +1,16 @@
+{
+  "version": "1.0.0",
+  "required": {
+    "input": {
+      "type": "sha2-0.11-SHA512-state",
+      "content": "base64=="
+    },
+    "output": {
+      "type": "OpenPGPv4"
+    }
+  },
+  "optional": {
+    "request-time": 1728913277,
+    "XHy1dHj": "https://gitlab.archlinux.org/archlinux/signstar/-/merge_requests/43"
+  }
+}

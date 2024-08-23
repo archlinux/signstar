@@ -48,6 +48,7 @@ path = [
     "resources/mkosi/signstar/mkosi.extra/usr/lib/systemd/system-preset/*.preset",
     "resources/mkosi/signstar/mkosi.profiles/local-testing/mkosi.extra/usr/local/bin/.gitignore",
     "resources/mkosi/signstar/mkosi.profiles/local-testing/mkosi.extra/usr/local/share/signstar/.gitignore",
+    "signstar-request-signature/tests/*.json",
 ]
 precedence = "aggregate"
 SPDX-FileCopyrightText = "Signstar Contributors"

@@ -1,0 +1,12 @@
+{
+  "version": "1.0.0",
+  "required": {
+    "output": {
+      "type": "OpenPGPv4"
+    }
+  },
+  "optional": {
+    "request-time": 1728913277,
+    "XHy1dHj": "https://gitlab.archlinux.org/archlinux/signstar/-/merge_requests/43"
+  }
+}
