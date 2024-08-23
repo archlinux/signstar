@@ -3413,7 +3413,7 @@ impl NetHsm {
     ///
     /// [Gets the public key of a key](https://docs.nitrokey.com/nethsm/operation#show-key-details)
     /// on the device specified by `key_id`.
-    /// The public key is returned in PKCS#8 format.
+    /// The public key is returned in [X.509] Privacy-Enhanced Mail ([PEM]) format.
     ///
     /// This call requires using credentials of a user in the "admin" or "operator"
     /// [role](https://docs.nitrokey.com/nethsm/administration#roles).
@@ -3451,6 +3451,8 @@ impl NetHsm {
     /// # Ok(())
     /// # }
     /// ```
+    /// [X.509]: https://en.wikipedia.org/wiki/X.509
+    /// [PEM]: https://en.wikipedia.org/wiki/Privacy-Enhanced_Mail
     pub fn get_public_key(&self, key_id: &str) -> Result<String, Error> {
         Ok(
             keys_key_id_public_pem_get(&self.create_connection_config(), key_id)
