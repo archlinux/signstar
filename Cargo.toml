@@ -6,6 +6,7 @@ members = [
   "nethsm-config",
   "nethsm-tests",
   "signstar-configure-build",
+  "signstar-request-signature",
 ]
 
 [workspace.dependencies]
