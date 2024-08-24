@@ -104,6 +104,20 @@ check-spelling:
 get-workspace-members:
     cargo metadata --format-version=1 |jq -r '.workspace_members[] | capture("/(?<name>[a-z-]+)#.*").name'
 
+# Gets metadata version of a workspace member
+get-workspace-member-version package:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    readonly version="$(cargo metadata --format-version=1 |jq -r --arg pkg {{ package }} '.workspace_members[] | capture("/(?<name>[a-z-]+)#(?<version>[0-9.]+)") | select(.name == $pkg).version')"
+
+    if [[ -z "$version" ]]; then
+        printf "No version found for package %s\n" {{ package }} >&2
+        exit 1
+    fi
+
+    printf "$version\n"
+
 # Checks for unused dependencies
 check-unused-deps:
     #!/usr/bin/env bash
