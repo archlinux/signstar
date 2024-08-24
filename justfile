@@ -145,6 +145,7 @@ lint:
     just -vv -n check-commits 2>&1 | rg -v '===> Running recipe' | shellcheck -
     just -vv -n check-unused-deps 2>&1 | rg -v '===> Running recipe' | shellcheck -
     just -vv -n generate shell_completions nethsm-cli 2>&1 | rg -v '===> Running recipe' | shellcheck -
+    just -vv -n release nethsm 2>&1 | rg -v '===> Running recipe' | shellcheck -
 
     cargo clippy --all -- -D warnings
 
@@ -267,3 +268,24 @@ generate kind pkg:
 # Prepares the release of a crate by updating dependencies, incrementing the crate version and creating a changelog entry
 prepare-release package:
     release-plz update -u -p {{ package }}
+
+# Creates a release of a crate in the workspace by creating a tag and pushing it
+release package:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    readonly package_version="$(just get-workspace-member-version {{ package }})"
+    if [[ -z "$package_version" ]]; then
+        exit 1
+    fi
+    readonly current_version="{{ package }}/$package_version"
+
+    if [[ -n "$(git tag -l "$current_version")" ]]; then
+        printf "The tag %s exists already!\n" "$current_version" >&2
+        exit 1
+    fi
+
+    printf "Creating tag %s...\n" "$current_version"
+    git tag -s "$current_version"
+    printf "Pushing tag %s...\n" "$current_version"
+    git push origin refs/tags/"$current_version"
