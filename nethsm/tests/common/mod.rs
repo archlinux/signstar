@@ -19,7 +19,6 @@ use testresult::TestResult;
 
 pub static ADMIN_USER_ID: &str = "admin";
 pub static ADMIN_USER_PASSPHRASE: &str = "just-an-admin-passphrase";
-pub static BACKUP_PASSPHRASE: &str = "just-a-backup-passphrase";
 pub static UNLOCK_PASSPHRASE: &str = "just-an-unlock-passphrase";
 pub static DEFAULT_OPERATOR_USER_ID: &str = "operator1";
 pub static DEFAULT_OPERATOR_USER_REAL_NAME: &str = "Some Operator";
@@ -44,6 +43,21 @@ pub static ENC_OPERATOR_USER_ID: &str = "encoperator1";
 pub static ENC_OPERATOR_USER_REAL_NAME: &str = "Some Encryption Operator";
 pub static ENC_OPERATOR_USER_PASSPHRASE: &str = "just-an-encryption-passphrase";
 pub static DEFAULT_AES_BITS: i32 = 128;
+
+pub static NAMESPACE1: &str = "namespace1";
+pub static NAMESPACE1_ADMIN_USER_ID: &str = "namespace1~admin";
+pub static NAMESPACE1_ADMIN_USER_PASSPHRASE: &str = "just-a-namespace-admin-passphrase";
+pub static NAMESPACE1_ADMIN_REAL_NAME: &str = "Namespace1 Admin";
+pub static NAMESPACE1_OPERATOR_USER_ID: &str = "namespace1~operator";
+pub static NAMESPACE1_OPERATOR_USER_PASSPHRASE: &str = "just-a-namespace-operator-passphrase";
+pub static NAMESPACE1_OPERATOR_REAL_NAME: &str = "Namespace1 Operator";
+pub static NAMESPACE2: &str = "namespace2";
+pub static NAMESPACE2_ADMIN_USER_ID: &str = "namespace2~admin";
+pub static NAMESPACE2_ADMIN_USER_PASSPHRASE: &str = "just-a-namespace2-admin-passphrase";
+pub static NAMESPACE2_ADMIN_REAL_NAME: &str = "Namespace2 Admin";
+pub static NAMESPACE2_OPERATOR_USER_ID: &str = "namespace2~operator";
+pub static NAMESPACE2_OPERATOR_USER_PASSPHRASE: &str = "just-a-namespace2-operator-passphrase";
+pub static NAMESPACE2_OPERATOR_REAL_NAME: &str = "Namespace2 Operator";
 
 mod container;
 pub use container::NetHsmImage;
@@ -83,10 +97,6 @@ fn provision_nethsm(nethsm: &NetHsm) -> TestResult {
         Passphrase::new(ADMIN_USER_PASSPHRASE.to_string()),
         Utc::now(),
     )?;
-    nethsm.set_backup_passphrase(
-        Passphrase::new("".to_string()),
-        Passphrase::new(BACKUP_PASSPHRASE.to_string()),
-    )?;
     Ok(())
 }
 
@@ -122,10 +132,35 @@ fn add_users_to_nethsm(nethsm: &NetHsm) -> TestResult {
             BACKUP_USER_PASSPHRASE,
             BACKUP_USER_REAL_NAME,
         ),
+        (
+            UserRole::Administrator,
+            NAMESPACE1_ADMIN_USER_ID,
+            NAMESPACE1_ADMIN_USER_PASSPHRASE,
+            NAMESPACE1_ADMIN_REAL_NAME,
+        ),
+        (
+            UserRole::Operator,
+            NAMESPACE1_OPERATOR_USER_ID,
+            NAMESPACE1_OPERATOR_USER_PASSPHRASE,
+            NAMESPACE1_OPERATOR_REAL_NAME,
+        ),
+        (
+            UserRole::Administrator,
+            NAMESPACE2_ADMIN_USER_ID,
+            NAMESPACE2_ADMIN_USER_PASSPHRASE,
+            NAMESPACE2_ADMIN_REAL_NAME,
+        ),
+        (
+            UserRole::Operator,
+            NAMESPACE2_OPERATOR_USER_ID,
+            NAMESPACE2_OPERATOR_USER_PASSPHRASE,
+            NAMESPACE2_OPERATOR_REAL_NAME,
+        ),
     ];
 
     println!("Adding users to NetHSM...");
     for (role, user_id, passphrase, real_name) in users.into_iter() {
+        println!("Adding user: {}", user_id);
         nethsm.add_user(
             real_name.to_string(),
             role,
@@ -134,6 +169,12 @@ fn add_users_to_nethsm(nethsm: &NetHsm) -> TestResult {
         )?;
     }
     println!("users: {:?}", nethsm.get_users()?);
+    println!("Creating namespaces...");
+    for namespace in [NAMESPACE1, NAMESPACE2] {
+        println!("Creating namespace: {}", namespace);
+        nethsm.add_namespace(&namespace.parse()?)?;
+    }
+    println!("namespaces: {:?}", nethsm.get_namespaces()?);
     Ok(())
 }
 

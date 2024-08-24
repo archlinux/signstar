@@ -9,22 +9,16 @@ use common::{
     update_file,
     NetHsmImage,
     ADMIN_USER_ID,
-    BACKUP_PASSPHRASE,
-    BACKUP_USER_ID,
-    BACKUP_USER_PASSPHRASE,
-    METRICS_USER_ID,
-    METRICS_USER_PASSPHRASE,
+    NAMESPACE1_ADMIN_USER_ID,
     UNLOCK_PASSPHRASE,
 };
 use nethsm::{
     BootMode,
-    Credentials,
     DistinguishedName,
     LogLevel,
     NetHsm,
     NetworkConfig,
     Passphrase,
-    SystemState,
     TlsKeyType,
 };
 use rstest::rstest;
@@ -46,6 +40,11 @@ async fn boot_mode(
     nethsm.set_boot_mode(BootMode::Unattended)?;
     assert_eq!(BootMode::Unattended, nethsm.get_boot_mode()?);
 
+    // N-Administrators can not set the boot mode
+    nethsm.use_credentials(&NAMESPACE1_ADMIN_USER_ID.parse()?)?;
+    assert!(nethsm.get_boot_mode().is_err());
+    assert!(nethsm.set_boot_mode(BootMode::Unattended).is_err());
+
     Ok(())
 }
 
@@ -57,12 +56,24 @@ async fn tls_cert(
 ) -> TestResult {
     let (nethsm, _container) = nethsm_with_users.await?;
 
+    // N-Administrators can not get the TLS cert
+    nethsm.use_credentials(&NAMESPACE1_ADMIN_USER_ID.parse()?)?;
+    assert!(nethsm.get_tls_cert().is_err());
+
     // get and set TLS cert
+    nethsm.use_credentials(&ADMIN_USER_ID.parse()?)?;
     let initial_cert_file = testdir!().join("initial_cert.pem");
     let initial_cert = nethsm.get_tls_cert()?;
     println!("initial cert\n{}", initial_cert);
     std::fs::write(initial_cert_file, initial_cert)?;
 
+    // N-Administrators can not generate a TLS cert
+    nethsm.use_credentials(&NAMESPACE1_ADMIN_USER_ID.parse()?)?;
+    assert!(nethsm
+        .generate_tls_cert(TlsKeyType::Rsa, Some(4096))
+        .is_err());
+
+    nethsm.use_credentials(&ADMIN_USER_ID.parse()?)?;
     nethsm.generate_tls_cert(TlsKeyType::Rsa, Some(4096))?;
 
     let updated_cert_file = testdir!().join("updated_cert.pem");
@@ -71,6 +82,22 @@ async fn tls_cert(
     std::fs::write(updated_cert_file, updated_cert.clone())?;
 
     let csr_file = testdir!().join("updated_cert.csr");
+
+    // N-Administrators can not a TLS CSR
+    nethsm.use_credentials(&NAMESPACE1_ADMIN_USER_ID.parse()?)?;
+    assert!(nethsm
+        .get_tls_csr(DistinguishedName {
+            country_name: Some("DE".to_string()),
+            state_or_province_name: Some("Berlin".to_string()),
+            locality_name: Some("Berlin".to_string()),
+            organization_name: Some("Foobar Inc".to_string()),
+            organizational_unit_name: Some("Department of Foo".to_string()),
+            common_name: "Foobar Inc".to_string(),
+            email_address: Some("foobar@mcfooface.com".to_string()),
+        })
+        .is_err());
+
+    nethsm.use_credentials(&ADMIN_USER_ID.parse()?)?;
     let csr = nethsm.get_tls_csr(DistinguishedName {
         country_name: Some("DE".to_string()),
         state_or_province_name: Some("Berlin".to_string()),
@@ -83,6 +110,11 @@ async fn tls_cert(
     println!("A TLS CSR for the NetHSM:\n{}", csr);
     std::fs::write(csr_file, csr)?;
 
+    // N-Administrators can not set the TLS cert
+    nethsm.use_credentials(&NAMESPACE1_ADMIN_USER_ID.parse()?)?;
+    assert!(nethsm.set_tls_cert(&updated_cert).is_err());
+
+    nethsm.use_credentials(&ADMIN_USER_ID.parse()?)?;
     nethsm.set_tls_cert(&updated_cert)?;
 
     Ok(())
@@ -95,12 +127,25 @@ async fn network(
     #[future] nethsm_with_users: TestResult<(NetHsm, Container<NetHsmImage>)>,
 ) -> TestResult {
     let (nethsm, _container) = nethsm_with_users.await?;
+    let ip_address = String::from("192.168.1.2");
 
+    // N-Administrators can neither get nor set network settings
+    nethsm.use_credentials(&NAMESPACE1_ADMIN_USER_ID.parse()?)?;
+    assert!(nethsm.get_network().is_err());
+    assert!(nethsm
+        .set_network(NetworkConfig::new(
+            ip_address.clone(),
+            "255.255.255.0".to_string(),
+            "0.0.0.0".to_string(),
+        ))
+        .is_err());
+
+    // R-Administrators can get and set network settings
+    nethsm.use_credentials(&ADMIN_USER_ID.parse()?)?;
     let network_config = nethsm.get_network()?;
     println!("NetHSM network config: {:?}", network_config);
     assert_eq!("192.168.1.1".to_string(), network_config.ip_address);
 
-    let ip_address = String::from("192.168.1.2");
     nethsm.set_network(NetworkConfig::new(
         ip_address.clone(),
         "255.255.255.0".to_string(),
@@ -120,6 +165,13 @@ async fn time(
 ) -> TestResult {
     let (nethsm, _container) = nethsm_with_users.await?;
 
+    // N-Administrators can neither get nor set system time
+    nethsm.use_credentials(&NAMESPACE1_ADMIN_USER_ID.parse()?)?;
+    assert!(nethsm.get_time().is_err());
+    assert!(nethsm.set_time(Utc::now()).is_err());
+
+    // R-Administrators can get and set system time
+    nethsm.use_credentials(&ADMIN_USER_ID.parse()?)?;
     let time = nethsm.get_time()?;
     println!("NetHSM time: {}", time);
 
@@ -135,34 +187,30 @@ async fn time(
 #[ignore = "requires Podman"]
 #[rstest]
 #[tokio::test]
-async fn lock(
+async fn set_unlock_passphrase(
     #[future] nethsm_with_users: TestResult<(NetHsm, Container<NetHsmImage>)>,
 ) -> TestResult {
     let (nethsm, _container) = nethsm_with_users.await?;
+    let new_unlock_passphrase = "just-another-unlock-passphrase";
 
-    println!("NetHSM info: {:?}", nethsm.info()?);
-    assert_eq!(SystemState::Operational, nethsm.state()?);
-    nethsm.lock()?;
-    assert_eq!(SystemState::Locked, nethsm.state()?);
-    nethsm.unlock(Passphrase::new(UNLOCK_PASSPHRASE.to_string()))?;
-    assert_eq!(SystemState::Operational, nethsm.state()?);
-    Ok(())
-}
+    // R-Administrators can set the unlock passphrase
+    nethsm.set_unlock_passphrase(
+        Passphrase::new(UNLOCK_PASSPHRASE.to_string()),
+        Passphrase::new(new_unlock_passphrase.to_string()),
+    )?;
+    nethsm.set_unlock_passphrase(
+        Passphrase::new(new_unlock_passphrase.to_string()),
+        Passphrase::new(UNLOCK_PASSPHRASE.to_string()),
+    )?;
+    // N-Administrators can not set the unlock passphrase
+    nethsm.use_credentials(&NAMESPACE1_ADMIN_USER_ID.parse()?)?;
+    assert!(nethsm
+        .set_unlock_passphrase(
+            Passphrase::new(UNLOCK_PASSPHRASE.to_string()),
+            Passphrase::new(new_unlock_passphrase.to_string()),
+        )
+        .is_err());
 
-#[ignore = "requires Podman"]
-#[rstest]
-#[tokio::test]
-async fn metrics(
-    #[future] nethsm_with_users: TestResult<(NetHsm, Container<NetHsmImage>)>,
-) -> TestResult {
-    let (nethsm, _container) = nethsm_with_users.await?;
-    nethsm.add_credentials(Credentials::new(
-        METRICS_USER_ID.parse()?,
-        Some(Passphrase::new(METRICS_USER_PASSPHRASE.to_string())),
-    ));
-    nethsm.use_credentials(&METRICS_USER_ID.parse()?)?;
-
-    println!("The NetHSM metrics: {}", nethsm.metrics()?);
     Ok(())
 }
 
@@ -184,41 +232,24 @@ async fn logging(
 #[ignore = "requires Podman"]
 #[rstest]
 #[tokio::test]
-async fn create_backup(
+async fn set_backup_passphrase(
     #[future] nethsm_with_users: TestResult<(NetHsm, Container<NetHsmImage>)>,
 ) -> TestResult {
     let (nethsm, _container) = nethsm_with_users.await?;
-    let backup_file = testdir!().join("nethsm-backup");
+    let initial_passphrase = "";
+    let new_backup_passphrase = "totally-unsafe-passphrase";
 
-    // set backup passphrase
-    let new_backup_passphrase = "totally-unsafe-passphrase".to_string();
     nethsm.set_backup_passphrase(
-        Passphrase::new(BACKUP_PASSPHRASE.to_string()),
-        Passphrase::new(new_backup_passphrase.clone()),
+        Passphrase::new(initial_passphrase.to_string()),
+        Passphrase::new(new_backup_passphrase.to_string()),
     )?;
-    nethsm.set_backup_passphrase(
-        Passphrase::new(new_backup_passphrase.clone()),
-        Passphrase::new(BACKUP_PASSPHRASE.to_string()),
-    )?;
-
-    nethsm.add_credentials(Credentials::new(
-        BACKUP_USER_ID.parse()?,
-        Some(Passphrase::new(BACKUP_USER_PASSPHRASE.to_string())),
-    ));
-    nethsm.use_credentials(&BACKUP_USER_ID.parse()?)?;
-
-    // write backup file
-    let backup = nethsm.backup()?;
-    std::fs::write(&backup_file, backup.clone())?;
-    println!("Written NetHSM backup file: {:?}", &backup_file);
-
-    // use the admin user again for the restore call
-    nethsm.use_credentials(&ADMIN_USER_ID.parse()?)?;
-    nethsm.restore(
-        Passphrase::new(BACKUP_PASSPHRASE.to_string()),
-        Utc::now(),
-        std::fs::read(backup_file)?,
-    )?;
+    // the passphrase is too short!
+    assert!(nethsm
+        .set_backup_passphrase(
+            Passphrase::new(new_backup_passphrase.to_string()),
+            Passphrase::new(initial_passphrase.to_string()),
+        )
+        .is_err());
 
     Ok(())
 }
@@ -373,6 +404,9 @@ async fn get_tls_public_key_of_provisioned_nethsm(
     println!("Get TLS certificate of provisioned device...");
     println!("{}", nethsm.get_tls_public_key()?);
     assert!(nethsm.get_tls_public_key().is_ok());
+
+    nethsm.use_credentials(&NAMESPACE1_ADMIN_USER_ID.parse()?)?;
+    assert!(nethsm.get_tls_public_key().is_err());
 
     Ok(())
 }
