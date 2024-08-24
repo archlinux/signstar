@@ -4336,7 +4336,7 @@ impl NetHsm {
     pub fn create_openpgp_cert(
         &self,
         key_id: &str,
-        flags: openpgp::KeyUsageFlags,
+        flags: OpenPgpKeyUsageFlags,
         user_id: &str,
         created_at: DateTime<Utc>,
     ) -> Result<Vec<u8>, Error> {
