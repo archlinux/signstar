@@ -728,7 +728,7 @@ fn main() -> Result<(), Error> {
                         auth_passphrase.clone(),
                     )?;
 
-                let cert = nethsm.add_openpgp_cert(
+                let cert = nethsm.create_openpgp_cert(
                     &command.key_id,
                     flags,
                     &command.user_id,

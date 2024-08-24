@@ -4280,11 +4280,11 @@ impl NetHsm {
         Base64::decode_vec(&base64_bytes).map_err(Error::Base64Decode)
     }
 
-    /// Adds an OpenPGP certificate to an existing key
+    /// Creates an OpenPGP certificate for an existing key
     ///
-    /// The NetHSM key is used to sign the self-certification and the resulting [OpenPGP certificate](https://openpgp.dev/book/certificates.html) is persisted in the NetHSM.
+    /// The NetHSM key is used to sign the self-certification and the resulting [OpenPGP certificate](https://openpgp.dev/book/certificates.html) is returned.
     ///
-    /// This call requires using credentials of a user in the "operator" *and* "administrator" [roles](https://docs.nitrokey.com/nethsm/administration#roles).
+    /// This call requires using credentials of a user in the "operator" [role](https://docs.nitrokey.com/nethsm/administration#roles).
     ///
     /// # Errors
     ///
@@ -4292,7 +4292,7 @@ impl NetHsm {
     /// * retrieving random bytes fails
     /// * the device is not in state [`SystemState::Operational`]
     /// * the used credentials are not correct
-    /// * the used credentials are not those of users in the "operator" and "administrator" role
+    /// * the used credentials are not those of a user in the "operator" role
     /// * the key does not exist
     /// * the used operator credentials do not grant access to the used key
     ///
@@ -4323,7 +4323,7 @@ impl NetHsm {
     /// ));
     ///
     /// assert!(!nethsm
-    ///     .add_openpgp_cert(
+    ///     .create_openpgp_cert(
     ///         "key",
     ///         OpenPgpKeyUsageFlags::default(),
     ///         "Test <test@example.com>",
@@ -4333,7 +4333,7 @@ impl NetHsm {
     /// # Ok(())
     /// # }
     /// ```
-    pub fn add_openpgp_cert(
+    pub fn create_openpgp_cert(
         &self,
         key_id: &str,
         flags: openpgp::KeyUsageFlags,
