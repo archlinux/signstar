@@ -29,23 +29,18 @@ To ensure compatibility and automatic creation of [semantic versioning] compatib
 Releases are created by the developers of this project using [`release-plz`] by running (per package in the workspace):
 
 ```shell
-$ release-plz update -p <package> -u
+just prepare-release <package>
 ```
 
 Changed files are added in a pull request towards the default branch.
 
-Once the changes are merged to the default branch a tag is created for the respective package (with a prefix):
+Once the changes are merged to the default branch a tag is created and pushed for the respective package:
 
 ```shell
-git tag -s <package>/<version>
-git push --tags
+just release <package>
 ```
 
-Then the crate is published to https://crates.io:
-
-```shell
-cargo publish -p <package>
-```
+The crate is afterwards automatically published on https://crates.io using a pipeline job.
 
 ## License
 
