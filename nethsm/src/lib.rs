@@ -119,6 +119,9 @@ use nethsm_sdk_rs::apis::default_api::{
     keys_post,
     lock_post,
     metrics_get,
+    namespaces_get,
+    namespaces_namespace_id_delete,
+    namespaces_namespace_id_put,
     provision_post,
     random_post,
     system_backup_post,
@@ -2471,6 +2474,218 @@ impl NetHsm {
                 NetHsmApiError::from(error)
             ))
         })?;
+        Ok(())
+    }
+
+    /// Adds a new namespace
+    ///
+    /// Adds a new [namespace] with the ID `namespace_id`.
+    ///
+    /// **WARNING**: A user in the [`Administrator`][`UserRole::Administrator`] [role] must be added
+    /// for the [namespace] using [`add_user`][`NetHsm::add_user`] **before** creating the
+    /// [namespace]! Otherwise there is no user to administrate the new [namespace]!
+    ///
+    /// This call requires using credentials of a system-wide user in the
+    /// [`Administrator`][`UserRole::Administrator`] [role] (*R-Administrator*).
+    ///
+    /// # Errors
+    ///
+    /// Returns an [`Error::Api`] if adding the namespace fails:
+    /// * the NetHSM is not in [`Operational`][`SystemState::Operational`] [state]
+    /// * the namespace identified by `namespace_id` exists already
+    /// * the used credentials are not correct
+    /// * the used credentials are not that of a system-wide user in the
+    ///   [`Administrator`][`UserRole::Administrator`] [role] (*R-Administrator*)
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # use testresult::TestResult;
+    /// use nethsm::{ConnectionSecurity, Credentials, Error, NetHsm, Passphrase, UserRole};
+    ///
+    /// # fn main() -> TestResult {
+    /// // create a connection with a system-wide user in the Administrator role (R-Administrator)
+    /// let nethsm = NetHsm::new(
+    ///     "https://example.org/api/v1".try_into()?,
+    ///     ConnectionSecurity::Unsafe,
+    ///     Some(Credentials::new(
+    ///         "admin".to_string(),
+    ///         Some(Passphrase::new("passphrase".to_string())),
+    ///     )),
+    ///     None,
+    ///     None,
+    /// )?;
+    ///
+    /// // add a user in the Administrator role for a namespace (N-Administrator)
+    /// nethsm.add_user(
+    ///     "Namespace1 Admin".to_string(),
+    ///     UserRole::Administrator,
+    ///     Passphrase::new("namespace1-admin-passphrase".to_string()),
+    ///     Some("namespace1~admin1".to_string()),
+    /// )?;
+    /// // create accompanying namespace
+    /// nethsm.add_namespace("namespace1")?;
+    ///
+    /// // N-Administrator can not create namespaces
+    /// nethsm.use_credentials("namespace1~admin1")?;
+    /// assert!(nethsm.add_namespace("namespace2").is_err());
+    /// # Ok(())
+    /// # }
+    /// ```
+    /// [namespace]: https://docs.nitrokey.com/nethsm/administration#namespaces
+    /// [role]: https://docs.nitrokey.com/nethsm/administration#roles
+    /// [state]: https://docs.nitrokey.com/nethsm/administration#state
+    pub fn add_namespace(&self, namespace_id: &str) -> Result<(), Error> {
+        namespaces_namespace_id_put(&self.create_connection_config(), namespace_id).map_err(
+            |error| {
+                Error::Api(format!(
+                    "Adding namespace failed: {}",
+                    NetHsmApiError::from(error)
+                ))
+            },
+        )?;
+        Ok(())
+    }
+
+    /// Gets all available [namespaces]
+    ///
+    /// This call requires using credentials of a system-wide user in the
+    /// [`Administrator`][`UserRole::Administrator`] [role] (*R-Administrator*).
+    ///
+    /// # Errors
+    ///
+    /// Returns an [`Error::Api`] if getting the namespaces fails:
+    /// * the NetHSM is not in [`Operational`][`SystemState::Operational`] [state]
+    /// * the used credentials are not correct
+    /// * the used credentials are not that of a system-wide user in the
+    ///   [`Administrator`][`UserRole::Administrator`] [role] (*R-Administrator*)
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # use testresult::TestResult;
+    /// use nethsm::{ConnectionSecurity, Credentials, Error, NetHsm, Passphrase, UserRole};
+    ///
+    /// # fn main() -> TestResult {
+    /// // create a connection with a system-wide user in the Administrator role (R-Administrator)
+    /// let nethsm = NetHsm::new(
+    ///     "https://example.org/api/v1".try_into()?,
+    ///     ConnectionSecurity::Unsafe,
+    ///     Some(Credentials::new(
+    ///         "admin".to_string(),
+    ///         Some(Passphrase::new("passphrase".to_string())),
+    ///     )),
+    ///     None,
+    ///     None,
+    /// )?;
+    ///
+    /// // print list of all namespaces
+    /// println!("{:?}", nethsm.get_namespaces()?);
+    ///
+    /// // add a user in the Administrator role for a namespace (N-Administrator)
+    /// nethsm.add_user(
+    ///     "Namespace1 Admin".to_string(),
+    ///     UserRole::Administrator,
+    ///     Passphrase::new("namespace1-admin-passphrase".to_string()),
+    ///     Some("namespace1~admin1".to_string()),
+    /// )?;
+    /// // create accompanying namespace
+    /// nethsm.add_namespace("namespace1")?;
+    ///
+    /// // N-Administrator can not get namespaces
+    /// nethsm.use_credentials("namespace1~admin1")?;
+    /// assert!(nethsm.get_namespaces().is_err());
+    /// # Ok(())
+    /// # }
+    /// ```
+    /// [namespace]: https://docs.nitrokey.com/nethsm/administration#namespaces
+    /// [namespaces]: https://docs.nitrokey.com/nethsm/administration#namespaces
+    /// [role]: https://docs.nitrokey.com/nethsm/administration#roles
+    /// [state]: https://docs.nitrokey.com/nethsm/administration#state
+    pub fn get_namespaces(&self) -> Result<Vec<String>, Error> {
+        Ok(namespaces_get(&self.create_connection_config())
+            .map_err(|error| {
+                Error::Api(format!(
+                    "Getting namespaces failed: {}",
+                    NetHsmApiError::from(error)
+                ))
+            })?
+            .entity
+            .iter()
+            .map(|x| &x.id)
+            .cloned()
+            .collect())
+    }
+
+    /// Deletes an existing [namespace]
+    ///
+    /// Deletes the [namespace] identified by `namespace_id`.
+    ///
+    /// **WARNING**: This call deletes the [namespace] and all keys in it! Make sure to create a
+    /// [`backup`][`NetHsm::backup`]!
+    ///
+    /// This call requires using credentials of a system-wide user in the
+    /// [`Administrator`][`UserRole::Administrator`] [role] (*R-Administrator*).
+    ///
+    /// # Errors
+    ///
+    /// Returns an [`Error::Api`] if deleting the namespace fails:
+    /// * the NetHSM is not in [`Operational`][`SystemState::Operational`] [state]
+    /// * the [namespace] identified by `namespace_id` does not exist
+    /// * the used credentials are not correct
+    /// * the used credentials are not that of a system-wide user in the
+    ///   [`Administrator`][`UserRole::Administrator`] [role] (*R-Administrator*)
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # use testresult::TestResult;
+    /// use nethsm::{ConnectionSecurity, Credentials, Error, NetHsm, Passphrase, UserRole};
+    ///
+    /// # fn main() -> TestResult {
+    /// // create a connection with a system-wide user in the Administrator role (R-Administrator)
+    /// let nethsm = NetHsm::new(
+    ///     "https://example.org/api/v1".try_into()?,
+    ///     ConnectionSecurity::Unsafe,
+    ///     Some(Credentials::new(
+    ///         "admin".to_string(),
+    ///         Some(Passphrase::new("passphrase".to_string())),
+    ///     )),
+    ///     None,
+    ///     None,
+    /// )?;
+    /// // add a user in the Administrator role for a namespace (N-Administrator)
+    /// nethsm.add_user(
+    ///     "Namespace1 Admin".to_string(),
+    ///     UserRole::Administrator,
+    ///     Passphrase::new("namespace1-admin-passphrase".to_string()),
+    ///     Some("namespace1~admin1".to_string()),
+    /// )?;
+    /// // create accompanying namespace
+    /// nethsm.add_namespace("namespace1")?;
+    ///
+    /// // N-Administrators can not delete namespaces
+    /// nethsm.use_credentials("namespace1~admin1")?;
+    /// assert!(nethsm.delete_namespace("namespace1").is_err());
+    ///
+    /// // R-Administrators can delete namespaces
+    /// nethsm.use_credentials("admin")?;
+    /// nethsm.delete_namespace("namespace1")?;
+    /// # Ok(())
+    /// # }
+    /// ```
+    /// [namespace]: https://docs.nitrokey.com/nethsm/administration#namespaces
+    /// [role]: https://docs.nitrokey.com/nethsm/administration#roles
+    /// [state]: https://docs.nitrokey.com/nethsm/administration#state
+    pub fn delete_namespace(&self, namespace_id: &str) -> Result<(), Error> {
+        namespaces_namespace_id_delete(&self.create_connection_config(), namespace_id).map_err(
+            |error| {
+                Error::Api(format!(
+                    "Deleting namespace failed: {}",
+                    NetHsmApiError::from(error)
+                ))
+            },
+        )?;
         Ok(())
     }
 
