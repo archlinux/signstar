@@ -6,7 +6,7 @@ use chrono::Utc;
 use clap::Parser;
 
 mod config;
-use cli::{KeyCertCommand, KeyCommand, SystemCommand};
+use cli::{KeyCertCommand, KeyCommand, NamespaceCommand, SystemCommand};
 use config::Config;
 
 mod cli;
@@ -707,6 +707,41 @@ fn main() -> Result<(), Error> {
 
             println!("{}", nethsm.metrics()?);
         }
+        Command::Namespace(command) => match command {
+            NamespaceCommand::Add(command) => {
+                let nethsm = config
+                    .get_device(cli.label.as_deref())?
+                    .nethsm_with_matching_creds(
+                        &[UserRole::Administrator],
+                        cli.user.as_ref(),
+                        auth_passphrase,
+                    )?;
+                nethsm.add_namespace(&command.name)?;
+            }
+            NamespaceCommand::List(_command) => {
+                let nethsm = config
+                    .get_device(cli.label.as_deref())?
+                    .nethsm_with_matching_creds(
+                        &[UserRole::Administrator],
+                        cli.user.as_ref(),
+                        auth_passphrase,
+                    )?;
+                nethsm
+                    .get_namespaces()?
+                    .iter()
+                    .for_each(|namespace_id| println!("{namespace_id}"));
+            }
+            NamespaceCommand::Remove(command) => {
+                let nethsm = config
+                    .get_device(cli.label.as_deref())?
+                    .nethsm_with_matching_creds(
+                        &[UserRole::Metrics],
+                        cli.user.as_ref(),
+                        auth_passphrase,
+                    )?;
+                nethsm.delete_namespace(&command.name)?;
+            }
+        },
         Command::OpenPgp(command) => match command {
             cli::OpenPgpCommand::Add(command) => {
                 let flags = {

@@ -8,6 +8,7 @@ pub use info::InfoCommand;
 pub use key::{KeyCertCommand, KeyCommand};
 pub use lock::LockCommand;
 pub use metrics::MetricsCommand;
+pub use namespace::NamespaceCommand;
 use nethsm::UserId;
 pub use openpgp::OpenPgpCommand;
 pub use provision::ProvisionCommand;
@@ -25,6 +26,7 @@ mod info;
 mod key;
 mod lock;
 mod metrics;
+mod namespace;
 mod openpgp;
 mod provision;
 mod random;
@@ -115,6 +117,9 @@ pub enum Command {
     Lock(LockCommand),
 
     Metrics(MetricsCommand),
+
+    #[command(subcommand)]
+    Namespace(NamespaceCommand),
 
     #[command(subcommand, name = "openpgp")]
     OpenPgp(OpenPgpCommand),
