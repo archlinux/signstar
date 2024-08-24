@@ -248,3 +248,7 @@ generate kind pkg:
     sed "s/PKG/{{ pkg }}/;s#PATH#$PWD/{{ pkg }}#g;s/KIND/{{ kind }}/g" > "$script" <<< '{{ render-script }}'
     rust-script "$script" "$output_dir/{{ kind }}"
     rm --force "$script"
+
+# Prepares the release of a crate by updating dependencies, incrementing the crate version and creating a changelog entry
+prepare-release package:
+    release-plz update -u -p {{ package }}
