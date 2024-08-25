@@ -129,6 +129,7 @@ lint:
 
     just -vv -n test-readme nethsm-cli 2>&1 | rg -v '===> Running recipe' | shellcheck -
     just -vv -n check-commits 2>&1 | rg -v '===> Running recipe' | shellcheck -
+    just -vv -n check-unused-deps 2>&1 | rg -v '===> Running recipe' | shellcheck -
     just -vv -n generate shell_completions nethsm-cli 2>&1 | rg -v '===> Running recipe' | shellcheck -
 
     cargo clippy --all -- -D warnings
