@@ -158,6 +158,7 @@ lint:
     just -vv -n test-readme nethsm-cli 2>&1 | rg -v '===> Running recipe' | shellcheck -
     just -vv -n check-commits 2>&1 | rg -v '===> Running recipe' | shellcheck -
     just -vv -n check-unused-deps 2>&1 | rg -v '===> Running recipe' | shellcheck -
+    just -vv -n ci-publish 2>&1 | rg -v '===> Running recipe' | shellcheck -
     just -vv -n generate shell_completions nethsm-cli 2>&1 | rg -v '===> Running recipe' | shellcheck -
     just -vv -n is-workspace-member nethsm 2>&1 | rg -v '===> Running recipe' | shellcheck -
     just -vv -n release nethsm 2>&1 | rg -v '===> Running recipe' | shellcheck -
@@ -304,3 +305,37 @@ release package:
     git tag -s "$current_version"
     printf "Pushing tag %s...\n" "$current_version"
     git push origin refs/tags/"$current_version"
+
+# Publishes a crate in the workspace from GitLab CI in a pipeline for tags
+ci-publish:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    # an auth token with publishing capabilities is expected to be set in GitLab project settings
+    readonly token="${CARGO_REGISTRY_TOKEN:-}"
+    # rely on predefined variable to retrieve git tag: https://docs.gitlab.com/ee/ci/variables/predefined_variables.html
+    readonly tag="${CI_COMMIT_TAG:-}"
+    readonly crate="${tag//\/*/}"
+    readonly version="${tag#*/}"
+
+    if [[ -z "$tag" ]]; then
+        printf "There is no tag!\n" >&2
+        exit 1
+    fi
+    if [[ -z "$token" ]]; then
+        printf "There is no token for crates.io!\n" >&2
+        exit 1
+    fi
+    if ! just is-workspace-member "$crate" &>/dev/null; then
+        printf "The crate %s is not a workspace member of the project!\n" "$crate" >&2
+        exit 1
+    fi
+
+    readonly current_member_version="$(just get-workspace-member-version "$crate" 2>/dev/null)"
+    if [[ "$version" != "$current_member_version" ]]; then
+        printf "Current version in metadata of crate %s (%s) does not match the version from the tag (%s)!\n" "$crate" "$current_member_version" "$version"
+        exit 1
+    fi
+
+    printf "Found tag %s (crate %s in version %s).\n" "$tag" "$crate" "$version"
+    cargo publish -p "$crate"
