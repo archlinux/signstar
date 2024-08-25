@@ -104,6 +104,20 @@ check-spelling:
 get-workspace-members:
     cargo metadata --format-version=1 |jq -r '.workspace_members[] | capture("/(?<name>[a-z-]+)#.*").name'
 
+# Checks if a string matches a workspace member exactly
+is-workspace-member package:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    mapfile -t workspace_members < <(just get-workspace-members 2>/dev/null)
+
+    for name in "${workspace_members[@]}"; do
+        if [[ "$name" == {{ package }} ]]; then
+            exit 0
+        fi
+    done
+    exit 1
+
 # Gets metadata version of a workspace member
 get-workspace-member-version package:
     #!/usr/bin/env bash
@@ -145,6 +159,7 @@ lint:
     just -vv -n check-commits 2>&1 | rg -v '===> Running recipe' | shellcheck -
     just -vv -n check-unused-deps 2>&1 | rg -v '===> Running recipe' | shellcheck -
     just -vv -n generate shell_completions nethsm-cli 2>&1 | rg -v '===> Running recipe' | shellcheck -
+    just -vv -n is-workspace-member nethsm 2>&1 | rg -v '===> Running recipe' | shellcheck -
     just -vv -n release nethsm 2>&1 | rg -v '===> Running recipe' | shellcheck -
 
     cargo clippy --all -- -D warnings
