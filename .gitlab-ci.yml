@@ -4,6 +4,7 @@ variables:
 stages:
   - check
   - test
+  - publish
 
 check-commits:
   before_script:
@@ -62,3 +63,18 @@ integration-test:
   stage: test
   tags:
     - vm
+
+crates_publish:
+  before_script:
+    - pacman-key --init
+    - pacman -Sy --needed --noconfirm archlinux-keyring
+    - source .env && pacman -Syu --needed --noconfirm $PACMAN_PACKAGES
+    - just install-rust-dev-tools
+  dependencies: []
+  rules:
+    - if: '$CARGO_REGISTRY_TOKEN && $CI_COMMIT_TAG && $CI_PROJECT_PATH == "archlinux/signstar"'
+  script:
+    - just ci-publish
+  stage: publish
+  tags:
+    - secure
