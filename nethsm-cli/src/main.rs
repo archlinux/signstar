@@ -1036,7 +1036,7 @@ fn main() -> Result<(), Error> {
                 println!("{:?}", user_data);
                 // only users in the Operator role can have tags
                 if user_data.role == UserRole::Operator.into() {
-                    println!("{:?}", nethsm.get_user_tags(&command.name));
+                    println!("{:?}", nethsm.get_user_tags(&command.name)?);
                 }
             }
             UserCommand::List(_command) => {
