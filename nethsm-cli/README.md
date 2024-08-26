@@ -98,11 +98,18 @@ nethsm provision
 ### Users
 
 Each user may be in exactly one role ("Administrator", "Operator", "Metrics" or "Backup").
+Users either exist system-wide or in a "Namespace".
+Users in a Namespace only have access to users and keys in their own Namespace and are not able to interact with system-wide facilities.
+System-wide users on the other hand are not able to access keys or manipulate users in a Namespace, but can interact with other system-wide facilities, as well as system-wide users and keys.
 
-* "Administrator": for adjusting system configuration, managing users and keys
-* "Operator": for using cryptographic keys and getting random bytes
-* "Metrics": for retrieving metrics of a device
-* "Backup": for creating and downloading backups of a device
+* "Administrator": for adjusting system configuration, managing users and keys (may exist in a Namespace or system-wide)
+  * *R-Administrator*: a system-wide Administrator which is able to interact with all system-wide facilities, as well as managing system-wide users and keys
+  * *N-Administrator*: a namespace Administrator, which is only able to operate on users and keys in their own namespace
+* "Operator": for using cryptographic keys and getting random bytes (may exist in a Namespace or system-wide)
+* "Metrics": for retrieving metrics of a device (may only exist system-wide)
+* "Backup": for creating and downloading backups of a device (may only exist system-wide)
+
+System-wide and namespace users are easily distinguishable: While system-wide user names consist only of characters in the set `[a-z0-9]` (e.g. `admin1`), namespace user names consist of characters in the set `[a-z0-9~]` and start with the namespace name (e.g. `namespace1~admin1`).
 
 ```bash
 nethsm_admin1_passphrase_file="$(mktemp --tmpdir="$nethsm_tmpdir" --dry-run --suffix '-nethsm.admin1-passphrase.txt')"
@@ -113,6 +120,10 @@ nethsm_backup1_passphrase_file="$(mktemp --tmpdir="$nethsm_tmpdir" --dry-run --s
 printf 'my-very-unsafe-backup1-passphrase' > "$nethsm_backup1_passphrase_file"
 nethsm_metrics1_passphrase_file="$(mktemp --tmpdir="$nethsm_tmpdir" --dry-run --suffix '-nethsm.metrics1-passphrase.txt')"
 printf 'my-very-unsafe-metrics1-passphrase' > "$nethsm_metrics1_passphrase_file"
+nethsm_namespace1_admin1_passphrase_file="$(mktemp --tmpdir="$nethsm_tmpdir" --dry-run --suffix '-nethsm.namespace1-admin1-passphrase.txt')"
+printf 'my-very-unsafe-namespace1-admin1-passphrase' > "$nethsm_namespace1_admin1_passphrase_file"
+nethsm_namespace1_operator1_passphrase_file="$(mktemp --tmpdir="$nethsm_tmpdir" --dry-run --suffix '-nethsm.namespace1-operator1-passphrase.txt')"
+printf 'my-very-unsafe-namespace1-operator1-passphrase' > "$nethsm_namespace1_operator1_passphrase_file"
 
 # we create a user in each role and add the credentials including passphrases to the configuration
 # NOTE: this is for testing purposes! passphrases stored in configuration files can easily be retrieved!
@@ -128,22 +139,46 @@ nethsm env add credentials backup1 Backup
 export NETHSM_PASSPHRASE_FILE="$nethsm_metrics1_passphrase_file"
 nethsm user add "Some Metrics1" Metrics metrics1
 nethsm env add credentials metrics1 Metrics
+
+# we also create an admin for a namespace "namespace1" and create that namespace
+export NETHSM_PASSPHRASE_FILE="$nethsm_namespace1_admin1_passphrase_file"
+nethsm user add "Namespace1 Admin1" Administrator namespace1~admin1
+nethsm env add credentials namespace1~admin1 Administrator
+nethsm --user admin namespace add namespace1
+
+# now the N-Administrator can create further users in that namespace
+export NETHSM_PASSPHRASE_FILE="$nethsm_operator1_passphrase_file"
+nethsm --user namespace1~admin1 user add "Namespace1 Operator1" Operator namespace1~operator1
+nethsm env add credentials namespace1~operator1 Operator
+
+# NOTE: from now on we have to be *specific* about which Administrator and which Operator user to use for each action as we have multiple and `nethsm` opportunistically selects the first it finds!
+
+# show the configured environments in the configuration file
+nethsm env list
 ```
 
 The user names and accompanying information can be queried:
 
 ```bash
-for user in $(nethsm user list); do
-  nethsm user get "$user"
-done
+# the R-Administrator can see all users
+while read -r user; do
+   nethsm --user admin1 user get "$user"
+done < <(nethsm --user admin1 user list)
+
+# the N-Administrator can only see the users in its own namespace
+while read -r user; do
+   nethsm --user namespace1~admin1 user get "$user"
+done < <(nethsm --user namespace1~admin1 user list)
 ```
 
 Tags for users can only be created once keys with those tags exists.
 
 ### Keys
 
-Keys on the device are managed using a user in the "Administrator" role.
+Keys on the device are managed using users in the "Administrator" role.
 Depending on restrictions (tags), the keys may then be used by users in the "Operator" role.
+
+**NOTE**: Keys created by an *N-Administrator* are only visible within their namespace and only available to *Operator* users in that namespace.
 
 #### Generating keys
 
@@ -154,23 +189,41 @@ Tags, which later on allow users access to the keys may also be set during key g
 Note that some keys require to set the key bit length (i.e. Generic and Rsa).
 
 ```bash
-nethsm key generate --key-id signing1 --tags tag1 Curve25519 EdDsaSignature
-nethsm key generate --key-id signing2 --tags tag2 EcP224 EcdsaSignature
-nethsm key generate --key-id signing3 --tags tag2 EcP256 EcdsaSignature
-nethsm key generate --key-id signing4 --tags tag2 EcP384 EcdsaSignature
-nethsm key generate --key-id signing5 --tags tag2 EcP521 EcdsaSignature
-nethsm key generate --key-id encdec1 --length 128 --tags tag3 Generic AesDecryptionCbc AesEncryptionCbc
-nethsm key generate --key-id dec1 --length 2048 --tags tag4 Rsa RsaDecryptionPkcs1
-nethsm key generate --key-id signing6 --length 2048 --tags tag5 Rsa RsaSignaturePssSha512
-nethsm key generate --key-id signing8 --length 2048 --tags tag6 Rsa RsaSignaturePkcs1
+# keys created by the R-Administrator are only available to system-wide Operator users!
+nethsm --user admin1 key generate --key-id signing1 --tags tag1 Curve25519 EdDsaSignature
+nethsm --user admin1 key generate --key-id signing2 --tags tag2 EcP224 EcdsaSignature
+nethsm --user admin1 key generate --key-id signing3 --tags tag2 EcP256 EcdsaSignature
+nethsm --user admin1 key generate --key-id signing4 --tags tag2 EcP384 EcdsaSignature
+nethsm --user admin1 key generate --key-id signing5 --tags tag2 EcP521 EcdsaSignature
+nethsm --user admin1 key generate --key-id encdec1 --tags tag3 --length 128 Generic AesDecryptionCbc AesEncryptionCbc
+nethsm --user admin1 key generate --key-id dec1 --tags tag4 --length 2048 Rsa RsaDecryptionPkcs1
+nethsm --user admin1 key generate --key-id signing6 --tags tag5 --length 2048 Rsa RsaSignaturePssSha512
+nethsm --user admin1 key generate --key-id signing8 --tags tag6 --length 2048 Rsa RsaSignaturePkcs1
+
+# keys created by the N-Administrator are only available to Operator users in the same namespace!
+nethsm --user namespace1~admin1 key generate --key-id signing1 --tags tag1 Curve25519 EdDsaSignature
+nethsm --user namespace1~admin1 key generate --key-id signing2 --tags tag2 EcP224 EcdsaSignature
+nethsm --user namespace1~admin1 key generate --key-id signing3 --tags tag2 EcP256 EcdsaSignature
+nethsm --user namespace1~admin1 key generate --key-id signing4 --tags tag2 EcP384 EcdsaSignature
+nethsm --user namespace1~admin1 key generate --key-id signing5 --tags tag2 EcP521 EcdsaSignature
+nethsm --user namespace1~admin1 key generate --key-id encdec1 --length 128 --tags tag3 Generic AesDecryptionCbc AesEncryptionCbc
+nethsm --user namespace1~admin1 key generate --key-id dec1 --length 2048 --tags tag4 Rsa RsaDecryptionPkcs1
+nethsm --user namespace1~admin1 key generate --key-id signing6 --length 2048 --tags tag5 Rsa RsaSignaturePssSha512
+nethsm --user namespace1~admin1 key generate --key-id signing8 --length 2048 --tags tag6 Rsa RsaSignaturePkcs1
 ```
 
 All key IDs on the device and info about them can be listed:
 
 ```bash
-for key in $(nethsm key list); do
+# R-Administrators can only see system-wide keys
+while read -r key; do
   nethsm key get "$key"
-done
+done < <(nethsm --user admin1 key list)
+
+# N-Administrators can only see keys in their own namespace
+while read -r key; do
+  nethsm key get "$key"
+done < <(nethsm --user namespace1~admin1 key list)
 ```
 
 #### Importing keys
@@ -184,15 +237,29 @@ openssl genpkey -algorithm ed25519 -out "$ed25519_cert_pem"
 openssl pkcs8 -topk8 -inform pem -in "$ed25519_cert_pem" -outform der -nocrypt -out "$ed25519_cert_der"
 
 # import supports PKCS#8 private key in ASN.1 DER-encoded format, by default
-nethsm key import --key-id signing7 Curve25519 "$ed25519_cert_der" EdDsaSignature
+nethsm --user admin1 key import --key-id signing7 Curve25519 "$ed25519_cert_der" EdDsaSignature
 
 # however, importing a PKCS#8 private key in ASN.1 PEM-encoded format is supported, too
-nethsm key import --format PEM --key-id signing9 Curve25519 "$ed25519_cert_pem" EdDsaSignature
+nethsm --user admin1 key import --format PEM --key-id signing9 Curve25519 "$ed25519_cert_pem" EdDsaSignature
 
-# forgot to set a tag!
-nethsm key tag signing7 tag1
+# forgot to set a tag for key signing7 so that operator1 has access!
+nethsm --user admin1 key tag signing7 tag1
 
-nethsm key get signing7
+# show information about the new key
+nethsm --user operator1 key get signing7
+
+# the same for namespace1
+# import supports PKCS#8 private key in ASN.1 DER-encoded format, by default
+nethsm --user namespace1~admin1 key import --key-id signing7 Curve25519 "$ed25519_cert_der" EdDsaSignature
+
+# however, importing a PKCS#8 private key in ASN.1 PEM-encoded format is supported, too
+nethsm --user namespace1~admin1 key import --format PEM --key-id signing9 Curve25519 "$ed25519_cert_pem" EdDsaSignature
+
+# forgot to set a tag for key signing7 so that namespace1~operator1 has access!
+nethsm --user namespace1~admin1 key tag signing7 tag1
+
+# show information about the new key
+nethsm --user namespace1~operator1 key get signing7
 ```
 
 #### Access to keys
@@ -200,7 +267,10 @@ nethsm key get signing7
 To provide access to keys for users, the users have to be tagged with the same tags as the keys.
 
 ```bash
-nethsm user tag operator1 tag1
+# an R-Administrator can only modify system-wide users
+nethsm --user admin1 user tag operator1 tag1
+# an N-Administrator can only modify namespace users
+nethsm --user namespace1~admin1 user tag namespace1~operator1 tag1
 ```
 
 #### Signing messages
@@ -211,47 +281,90 @@ export NETHSM_KEY_PUBKEY_OUTPUT_FILE="$(mktemp --tmpdir="$nethsm_tmpdir" --dry-r
 message_digest="$(mktemp --tmpdir="$nethsm_tmpdir" --dry-run --suffix '-nethsm.message.dgst')"
 
 # if we add the tag2 tag for operator1 it is able to use signing{2-5}
-nethsm user tag operator1 tag2
+nethsm --user admin1 user tag operator1 tag2
 # if we add the tag5 tag for operator1 it is able to use signing6
-nethsm user tag operator1 tag5
-nethsm user tag operator1 tag6
+nethsm --user admin1 user tag operator1 tag5
+nethsm --user admin1 user tag operator1 tag6
+
+# we made the same tags available in namespace1, so the examples work similarly
+# if we add the tag2 tag for namespace1~operator1 it is able to use signing{2-5}
+nethsm --user namespace1~admin1 user tag namespace1~operator1 tag2
+# if we add the tag5 tag for namespace1~operator1 it is able to use signing6
+nethsm --user namespace1~admin1 user tag namespace1~operator1 tag5
+nethsm --user namespace1~admin1 user tag namespace1~operator1 tag6
 
 # create a signature with each key type
-nethsm key sign --force signing1 EdDsa README.md
-nethsm key public-key --force signing1
+nethsm --user operator1 key sign --force signing1 EdDsa README.md
+nethsm --user operator1 key public-key --force signing1
 openssl pkeyutl -verify -in README.md -rawin -sigfile "$NETHSM_KEY_SIGNATURE_OUTPUT_FILE" -inkey "$NETHSM_KEY_PUBKEY_OUTPUT_FILE" -pubin
 
-nethsm key sign --force signing2 EcdsaP224 README.md
-nethsm key public-key --force signing2
+nethsm --user operator1 key sign --force signing2 EcdsaP224 README.md
+nethsm --user operator1 key public-key --force signing2
 openssl dgst -sha224 -binary README.md > "$message_digest"
 openssl pkeyutl -verify -in "$message_digest" -sigfile "$NETHSM_KEY_SIGNATURE_OUTPUT_FILE" -inkey "$NETHSM_KEY_PUBKEY_OUTPUT_FILE" -pubin
 
-nethsm key sign --force signing3 EcdsaP256 README.md
-nethsm key public-key --force signing3
+nethsm --user operator1 key sign --force signing3 EcdsaP256 README.md
+nethsm --user operator1 key public-key --force signing3
 openssl dgst -sha256 -binary README.md > "$message_digest"
 openssl pkeyutl -verify -in "$message_digest" -sigfile "$NETHSM_KEY_SIGNATURE_OUTPUT_FILE" -inkey "$NETHSM_KEY_PUBKEY_OUTPUT_FILE" -pubin
 
-nethsm key sign --force signing4 EcdsaP384 README.md
-nethsm key public-key --force signing4
+nethsm --user operator1 key sign --force signing4 EcdsaP384 README.md
+nethsm --user operator1 key public-key --force signing4
 openssl dgst -sha384 -binary README.md > "$message_digest"
 openssl pkeyutl -verify -in "$message_digest" -sigfile "$NETHSM_KEY_SIGNATURE_OUTPUT_FILE" -inkey "$NETHSM_KEY_PUBKEY_OUTPUT_FILE" -pubin
 
-nethsm key sign --force signing5 EcdsaP521 README.md
-nethsm key public-key --force signing5
+nethsm --user operator1 key sign --force signing5 EcdsaP521 README.md
+nethsm --user operator1 key public-key --force signing5
 openssl dgst -sha512 -binary README.md > "$message_digest"
 openssl pkeyutl -verify -in "$message_digest" -sigfile "$NETHSM_KEY_SIGNATURE_OUTPUT_FILE" -inkey "$NETHSM_KEY_PUBKEY_OUTPUT_FILE" -pubin
 
-nethsm key sign --force signing6 PssSha512 README.md
-nethsm key public-key --force signing6
+nethsm --user operator1 key sign --force signing6 PssSha512 README.md
+nethsm --user operator1 key public-key --force signing6
 openssl dgst -sha512 -binary README.md > "$message_digest"
 openssl pkeyutl -verify -in "$message_digest" -sigfile "$NETHSM_KEY_SIGNATURE_OUTPUT_FILE" -inkey "$NETHSM_KEY_PUBKEY_OUTPUT_FILE" -pubin -pkeyopt rsa_padding_mode:pss -pkeyopt digest:sha512 -pkeyopt rsa_pss_saltlen:-1
 
-nethsm key sign --force signing7 EdDsa README.md
-nethsm key public-key --force signing7
+nethsm --user operator1 key sign --force signing7 EdDsa README.md
+nethsm --user operator1 key public-key --force signing7
+openssl pkeyutl -verify -in README.md -rawin -sigfile "$NETHSM_KEY_SIGNATURE_OUTPUT_FILE" -inkey "$NETHSM_KEY_PUBKEY_OUTPUT_FILE" -pubin
+
+# the same of course also works in a namespace!
+nethsm --user namespace1~operator1 key sign --force signing1 EdDsa README.md
+nethsm --user namespace1~operator1 key public-key --force signing1
+openssl pkeyutl -verify -in README.md -rawin -sigfile "$NETHSM_KEY_SIGNATURE_OUTPUT_FILE" -inkey "$NETHSM_KEY_PUBKEY_OUTPUT_FILE" -pubin
+
+nethsm --user namespace1~operator1 key sign --force signing2 EcdsaP224 README.md
+nethsm --user namespace1~operator1 key public-key --force signing2
+openssl dgst -sha224 -binary README.md > "$message_digest"
+openssl pkeyutl -verify -in "$message_digest" -sigfile "$NETHSM_KEY_SIGNATURE_OUTPUT_FILE" -inkey "$NETHSM_KEY_PUBKEY_OUTPUT_FILE" -pubin
+
+nethsm --user namespace1~operator1 key sign --force signing3 EcdsaP256 README.md
+nethsm --user namespace1~operator1 key public-key --force signing3
+openssl dgst -sha256 -binary README.md > "$message_digest"
+openssl pkeyutl -verify -in "$message_digest" -sigfile "$NETHSM_KEY_SIGNATURE_OUTPUT_FILE" -inkey "$NETHSM_KEY_PUBKEY_OUTPUT_FILE" -pubin
+
+nethsm --user namespace1~operator1 key sign --force signing4 EcdsaP384 README.md
+nethsm --user namespace1~operator1 key public-key --force signing4
+openssl dgst -sha384 -binary README.md > "$message_digest"
+openssl pkeyutl -verify -in "$message_digest" -sigfile "$NETHSM_KEY_SIGNATURE_OUTPUT_FILE" -inkey "$NETHSM_KEY_PUBKEY_OUTPUT_FILE" -pubin
+
+nethsm --user namespace1~operator1 key sign --force signing5 EcdsaP521 README.md
+nethsm --user namespace1~operator1 key public-key --force signing5
+openssl dgst -sha512 -binary README.md > "$message_digest"
+openssl pkeyutl -verify -in "$message_digest" -sigfile "$NETHSM_KEY_SIGNATURE_OUTPUT_FILE" -inkey "$NETHSM_KEY_PUBKEY_OUTPUT_FILE" -pubin
+
+nethsm --user namespace1~operator1 key sign --force signing6 PssSha512 README.md
+nethsm --user namespace1~operator1 key public-key --force signing6
+openssl dgst -sha512 -binary README.md > "$message_digest"
+openssl pkeyutl -verify -in "$message_digest" -sigfile "$NETHSM_KEY_SIGNATURE_OUTPUT_FILE" -inkey "$NETHSM_KEY_PUBKEY_OUTPUT_FILE" -pubin -pkeyopt rsa_padding_mode:pss -pkeyopt digest:sha512 -pkeyopt rsa_pss_saltlen:-1
+
+nethsm --user namespace1~operator1 key sign --force signing7 EdDsa README.md
+nethsm --user namespace1~operator1 key public-key --force signing7
 openssl pkeyutl -verify -in README.md -rawin -sigfile "$NETHSM_KEY_SIGNATURE_OUTPUT_FILE" -inkey "$NETHSM_KEY_PUBKEY_OUTPUT_FILE" -pubin
 
 # if we remove the tag5 tag for operator1 it is no longer able to use signing6
-nethsm user untag operator1 tag5
+nethsm --user admin1 user untag operator1 tag5
+# analogous: if we remove the tag5 tag for namespace1~operator1 it is no longer able to use signing6
+nethsm --user namespace1~admin1 user untag namespace1~operator1 tag5
 ```
 
 #### OpenPGP
@@ -262,28 +375,54 @@ The CLI can also create OpenPGP certificates for keys stored in the HSM:
 export GNUPGHOME="$(mktemp --directory --tmpdir="$nethsm_tmpdir" --suffix 'gnupghome')"
 export NETHSM_KEY_CERT_OUTPUT_FILE="$(mktemp --tmpdir="$nethsm_tmpdir" --dry-run --suffix '-nethsm.openpgp-cert.pgp')"
 
-nethsm openpgp add --can-sign signing1 "Test signing1 key <test@example.org>"
-nethsm key cert get --force signing1
+nethsm --user admin1 --user operator1 openpgp add --can-sign signing1 "Test signing1 key <test@example.org>"
+nethsm --user operator1 key cert get --force signing1
 gpg --import "$NETHSM_KEY_CERT_OUTPUT_FILE"
 sq inspect "$NETHSM_KEY_CERT_OUTPUT_FILE" | grep "Test signing1 key"
 
-nethsm openpgp add signing3 "Test signing3 key <test@example.org>"
-nethsm key cert get --force signing3
+nethsm --user admin1 --user operator1 openpgp add signing3 "Test signing3 key <test@example.org>"
+nethsm --user operator1 key cert get --force signing3
 gpg --import "$NETHSM_KEY_CERT_OUTPUT_FILE"
 sq inspect "$NETHSM_KEY_CERT_OUTPUT_FILE" | grep "Test signing3 key"
 
-nethsm openpgp add signing4 "Test signing4 key <test@example.org>"
-nethsm key cert get --force signing4
+nethsm --user admin1 --user operator1 openpgp add signing4 "Test signing4 key <test@example.org>"
+nethsm --user operator1 key cert get --force signing4
 gpg --import "$NETHSM_KEY_CERT_OUTPUT_FILE"
 sq inspect "$NETHSM_KEY_CERT_OUTPUT_FILE" | grep "Test signing4 key"
 
-nethsm openpgp add signing5 "Test signing5 key <test@example.org>"
-nethsm key cert get --force signing5
+nethsm --user admin1 --user operator1 openpgp add signing5 "Test signing5 key <test@example.org>"
+nethsm --user operator1 key cert get --force signing5
 gpg --import "$NETHSM_KEY_CERT_OUTPUT_FILE"
 sq inspect "$NETHSM_KEY_CERT_OUTPUT_FILE" | grep "Test signing5 key"
 
-nethsm openpgp add signing8 "Test signing8 key <test@example.org>"
-nethsm key cert get --force signing8
+nethsm --user admin1 --user operator1 openpgp add signing8 "Test signing8 key <test@example.org>"
+nethsm --user operator1 key cert get --force signing8
+gpg --import "$NETHSM_KEY_CERT_OUTPUT_FILE"
+sq inspect "$NETHSM_KEY_CERT_OUTPUT_FILE" | grep "Test signing8 key"
+
+# all of this works with our namespaced keys as well of course!
+nethsm --user namespace1~admin1 --user namespace1~operator1 openpgp add --can-sign signing1 "Test signing1 key <test@example.org>"
+nethsm --user namespace1~operator1 key cert get --force signing1
+gpg --import "$NETHSM_KEY_CERT_OUTPUT_FILE"
+sq inspect "$NETHSM_KEY_CERT_OUTPUT_FILE" | grep "Test signing1 key"
+
+nethsm --user namespace1~admin1 --user namespace1~operator1 openpgp add signing3 "Test signing3 key <test@example.org>"
+nethsm --user namespace1~operator1 key cert get --force signing3
+gpg --import "$NETHSM_KEY_CERT_OUTPUT_FILE"
+sq inspect "$NETHSM_KEY_CERT_OUTPUT_FILE" | grep "Test signing3 key"
+
+nethsm --user namespace1~admin1 --user namespace1~operator1 openpgp add signing4 "Test signing4 key <test@example.org>"
+nethsm --user namespace1~operator1 key cert get --force signing4
+gpg --import "$NETHSM_KEY_CERT_OUTPUT_FILE"
+sq inspect "$NETHSM_KEY_CERT_OUTPUT_FILE" | grep "Test signing4 key"
+
+nethsm --user namespace1~admin1 --user namespace1~operator1 openpgp add signing5 "Test signing5 key <test@example.org>"
+nethsm --user namespace1~operator1 key cert get --force signing5
+gpg --import "$NETHSM_KEY_CERT_OUTPUT_FILE"
+sq inspect "$NETHSM_KEY_CERT_OUTPUT_FILE" | grep "Test signing5 key"
+
+nethsm --user namespace1~admin1 --user namespace1~operator1 openpgp add signing8 "Test signing8 key <test@example.org>"
+nethsm --user namespace1~operator1 key cert get --force signing8
 gpg --import "$NETHSM_KEY_CERT_OUTPUT_FILE"
 sq inspect "$NETHSM_KEY_CERT_OUTPUT_FILE" | grep "Test signing8 key"
 ```
@@ -293,9 +432,15 @@ Importing new keys:
 ```bash
 export NETHSM_OPENPGP_TSK_FILE="$(mktemp --tmpdir="$nethsm_tmpdir" --dry-run --suffix '-nethsm.openpgp-private-key.tsk')"
 rsop generate-key --no-armor --signing-only "Test signing10 key <test@example.org>" > "$NETHSM_OPENPGP_TSK_FILE"
-nethsm openpgp import --key-id signing10 --tags tag1
+nethsm --user admin1 openpgp import --key-id signing10 --tags tag1
 # openpgp import automatically stores the certificate so it can be fetched
-nethsm key cert get --force signing10
+nethsm --user operator1 key cert get --force signing10
+gpg --import "$NETHSM_KEY_CERT_OUTPUT_FILE"
+sq inspect "$NETHSM_KEY_CERT_OUTPUT_FILE" | grep "Test signing10 key"
+
+nethsm --user namespace1~admin1 openpgp import --key-id signing10 --tags tag1
+# openpgp import automatically stores the certificate so it can be fetched
+nethsm --user namespace1~operator1 key cert get --force signing10
 gpg --import "$NETHSM_KEY_CERT_OUTPUT_FILE"
 sq inspect "$NETHSM_KEY_CERT_OUTPUT_FILE" | grep "Test signing10 key"
 ```
@@ -308,11 +453,14 @@ export NETHSM_OPENPGP_SIGNATURE_MESSAGE="$(mktemp --tmpdir="$nethsm_tmpdir" --dr
 printf "I like strawberries\n" > "$NETHSM_OPENPGP_SIGNATURE_MESSAGE"
 
 for key in signing1 signing3 signing4 signing5 signing8 signing10; do
-  printf "Signing with key %s ...\n" "$key"
-
-  nethsm openpgp sign --force "$key"
+  nethsm --user operator1 openpgp sign --force "$key"
   gpg --verify "$NETHSM_OPENPGP_SIGNATURE_OUTPUT_FILE" "$NETHSM_OPENPGP_SIGNATURE_MESSAGE"
-  nethsm key cert get --force "$key"
+  nethsm --user operator1 key cert get --force "$key"
+  rsop verify "$NETHSM_OPENPGP_SIGNATURE_OUTPUT_FILE" "$NETHSM_KEY_CERT_OUTPUT_FILE" < "$NETHSM_OPENPGP_SIGNATURE_MESSAGE"
+
+  nethsm --user namespace1~operator1 openpgp sign --force "$key"
+  gpg --verify "$NETHSM_OPENPGP_SIGNATURE_OUTPUT_FILE" "$NETHSM_OPENPGP_SIGNATURE_MESSAGE"
+  nethsm --user namespace1~operator1 key cert get --force "$key"
   rsop verify "$NETHSM_OPENPGP_SIGNATURE_OUTPUT_FILE" "$NETHSM_KEY_CERT_OUTPUT_FILE" < "$NETHSM_OPENPGP_SIGNATURE_MESSAGE"
 done
 ```
@@ -328,42 +476,61 @@ printf "Hello World! This is a message!!" > "$message"
 export NETHSM_KEY_ENCRYPT_IV="$(mktemp --tmpdir="$nethsm_tmpdir" --dry-run --suffix '-nethsm.iv.txt')"
 printf "This is unsafe!!" > "$NETHSM_KEY_ENCRYPT_IV"
 export NETHSM_KEY_ENCRYPT_OUTPUT="$(mktemp --tmpdir="$nethsm_tmpdir" --dry-run --suffix '-nethsm.symmetric-encrypted-message.txt.enc')"
-
-# we need to provide access to the key by tagging the user
-nethsm user tag operator1 tag3
-
-# let's use our symmetric encryption key to encrypt a message
-nethsm key encrypt encdec1 "$message"
-
-# the initialization vector must be the same
+# the initialization vector for decryption must be the same
 export NETHSM_KEY_DECRYPT_IV="$NETHSM_KEY_ENCRYPT_IV"
 export NETHSM_KEY_DECRYPT_OUTPUT="$(mktemp --tmpdir="$nethsm_tmpdir" --dry-run --suffix '-nethsm.decrypted-message.txt')"
+
+# we need to provide access to the key by tagging the user
+nethsm --user admin1 user tag operator1 tag3
+
+# let's use our symmetric encryption key to encrypt a message
+nethsm --user operator1 key encrypt --force encdec1 "$message"
+
 # now let's decrypt the encrypted message again
-nethsm key decrypt encdec1 "$NETHSM_KEY_ENCRYPT_OUTPUT" AesCbc
+nethsm --user operator1 key decrypt --force encdec1 "$NETHSM_KEY_ENCRYPT_OUTPUT" AesCbc
 cat "$NETHSM_KEY_DECRYPT_OUTPUT"
 
+[[ "$(b2sum "$NETHSM_KEY_DECRYPT_OUTPUT" | cut -d ' ' -f1)" == "$(b2sum "$message" | cut -d ' ' -f1)" ]]
+
+# this works analogously in a namespace
+# we need to provide access to the key by tagging the user
+nethsm --user namespace1~admin1 user tag namespace1~operator1 tag3
+# let's use our symmetric encryption key to encrypt a message
+nethsm --user namespace1~operator1 key encrypt --force encdec1 "$message"
+# now let's decrypt the encrypted message again
+nethsm --user namespace1~operator1 key decrypt --force encdec1 "$NETHSM_KEY_ENCRYPT_OUTPUT" AesCbc
+cat "$NETHSM_KEY_DECRYPT_OUTPUT"
 [[ "$(b2sum "$NETHSM_KEY_DECRYPT_OUTPUT" | cut -d ' ' -f1)" == "$(b2sum "$message" | cut -d ' ' -f1)" ]]
 ```
 
 The same works for asymmetric keys as well:
 
 ```bash
-# we need to provide access to the key by tagging the user
-nethsm user tag operator1 tag4
-
 # unset the initialization vectors as we do not need them for this
 unset NETHSM_KEY_DECRYPT_IV NETHSM_KEY_ENCRYPT_IV
-# retrieve the public key of the key to use (and overwrite any previously existing)
-nethsm key public-key --force dec1
-
 asymmetric_enc_message="$(mktemp --tmpdir="$nethsm_tmpdir" --dry-run --suffix '-nethsm.asymmetric-encrypted-message.txt.enc')"
+
+# we need to provide access to the key by tagging the user
+nethsm --user admin1 user tag operator1 tag4
+# retrieve the public key of the key to use (and overwrite any previously existing)
+nethsm --user operator1 key public-key --force dec1
 # encrypt the previous message
 openssl pkeyutl -encrypt -inkey "$NETHSM_KEY_PUBKEY_OUTPUT_FILE" -pubin -in "$message" -out "$asymmetric_enc_message"
-
 # decrypt the asymmetrically encrypted message and replace any existing output
-nethsm key decrypt --force dec1 "$asymmetric_enc_message" Pkcs1
+nethsm --user operator1 key decrypt --force dec1 "$asymmetric_enc_message" Pkcs1
 cat "$NETHSM_KEY_DECRYPT_OUTPUT"
+[[ "$(b2sum "$NETHSM_KEY_DECRYPT_OUTPUT" | cut -d ' ' -f1)" == "$(b2sum "$message" | cut -d ' ' -f1)" ]]
 
+# this works analogously in a namespace
+# we need to provide access to the key by tagging the user
+nethsm --user namespace1~admin1 user tag namespace1~operator1 tag4
+# retrieve the public key of the key to use (and overwrite any previously existing)
+nethsm --user namespace1~operator1 key public-key --force dec1
+# encrypt the previous message
+openssl pkeyutl -encrypt -inkey "$NETHSM_KEY_PUBKEY_OUTPUT_FILE" -pubin -in "$message" -out "$asymmetric_enc_message"
+# decrypt the asymmetrically encrypted message and replace any existing output
+nethsm --user namespace1~operator1 key decrypt --force dec1 "$asymmetric_enc_message" Pkcs1
+cat "$NETHSM_KEY_DECRYPT_OUTPUT"
 [[ "$(b2sum "$NETHSM_KEY_DECRYPT_OUTPUT" | cut -d ' ' -f1)" == "$(b2sum "$message" | cut -d ' ' -f1)" ]]
 ```
 
@@ -372,9 +539,15 @@ cat "$NETHSM_KEY_DECRYPT_OUTPUT"
 Administrators and operators can retrieve the public key of any key:
 
 ```bash
+# when NETHSM_KEY_PUBKEY_OUTPUT_FILE is set, the public key is written to that file
+# to print to stdout, we unset the environment variable
+unset NETHSM_KEY_PUBKEY_OUTPUT_FILE
+
 # keys of type "Generic" don't have a public key, so we do not request them
 for key in signing{1..8} dec1; do
-  nethsm key public-key --force "$key"
+  nethsm --user operator1 key public-key --force "$key"
+  # in our namespace1 we have keys of the same name, that we can get public keys for
+  nethsm --user namespace1~operator1 key public-key --force "$key"
 done
 ```
 
@@ -384,12 +557,15 @@ Certificate Signing Requests for a particular target can be issued using the key
 
 ```bash
 # get a CSR for example.com
-nethsm key csr signing7 example.com
+nethsm --user operator1 key csr signing7 example.com
+# also for the key of the same name in our namespace
+nethsm --user namespace1~operator1 key csr signing7 example.com
 ```
 
 ### Random bytes
 
 The device can generate an arbitrary number of random bytes on demand.
+All users in the "Operator" role have access to this functionality!
 
 ```bash
 export NETHSM_RANDOM_OUTPUT_FILE="$(mktemp --tmpdir="$nethsm_tmpdir" --dry-run --suffix '-nethsm.random.txt')"
@@ -400,7 +576,7 @@ nethsm random 200
 
 ### Metrics
 
-The metrics for a device can only be retrieved by a user in the "Metrics" role.
+The metrics for a device can only be retrieved by a system-wide user in the "Metrics" role.
 
 ```bash
 nethsm metrics
@@ -409,18 +585,19 @@ nethsm metrics
 ### Device configuration
 
 Several aspects of the device configuration can be retrieved and modified.
+The device configuration is only available to "R-Administrators" (system-wide users in the "Administrator" role).
 
 #### Boot mode
 
 The boot mode defines whether the system starts into "Locked" or "Operational" state (the former requiring to supply the unlock passphrase to get to "Operational" state).
 
 ```bash
-nethsm config get boot-mode
+nethsm --user admin1 config get boot-mode
 
 # let's set it to unattended
-nethsm config set boot-mode Unattended
+nethsm --user admin1 config set boot-mode Unattended
 
-nethsm config get boot-mode
+nethsm --user admin1 config get boot-mode
 ```
 
 #### Logging
@@ -428,7 +605,7 @@ nethsm config get boot-mode
 Each device may send syslog to a remote host.
 
 ```bash
-nethsm config get logging
+nethsm --user admin1 config get logging
 ```
 
 #### Network
@@ -436,7 +613,7 @@ nethsm config get logging
 The devices have a unique and static network configuration.
 
 ```bash
-nethsm config get network
+nethsm --user admin1 config get network
 ```
 
 #### System Time
@@ -444,9 +621,9 @@ nethsm config get network
 The device's system time can be queried and set.
 
 ```bash
-nethsm config get time
-nethsm config set time
-nethsm config get time
+nethsm --user admin1 config get time
+nethsm --user admin1 config set time
+nethsm --user admin1 config get time
 ```
 
 #### TLS certificate
@@ -454,22 +631,22 @@ nethsm config get time
 We can get and set the TLS certificate used for the device.
 
 ```bash
-nethsm config get tls-certificate
+nethsm --user admin1 config get tls-certificate
 # this generates a new RSA 4096bit certificate on the device
-nethsm config set tls-generate Rsa 4096
-nethsm config get tls-certificate
+nethsm --user admin1 config set tls-generate Rsa 4096
+nethsm --user admin1 config get tls-certificate
 ```
 
 We can also receive only the public key for the TLS certificate:
 
 ```bash
-nethsm config get tls-public-key
+nethsm --user admin1 config get tls-public-key
 ```
 
 Or generate a Certificate Signing Request for the TLS certificate:
 
 ```bash
-nethsm config get tls-csr example.com
+nethsm --user admin1 config get tls-csr example.com
 ```
 
 #### Setting passphrases
@@ -483,7 +660,7 @@ export NETHSM_NEW_PASSPHRASE_FILE="$nethsm_backup_passphrase_file"
 nethsm_initial_backup_passphrase_file="$(mktemp --tmpdir="$nethsm_tmpdir" --dry-run --suffix '-nethsm.initial-backup-passphrase.txt')"
 touch "$nethsm_initial_backup_passphrase_file"
 export NETHSM_OLD_PASSPHRASE_FILE="$nethsm_initial_backup_passphrase_file"
-nethsm config set backup-passphrase
+nethsm --user admin1 config set backup-passphrase
 ```
 
 The unlock passphrase is set during initial provisioning and is used to unlock the device when it is locked.
@@ -492,7 +669,7 @@ The unlock passphrase is set during initial provisioning and is used to unlock t
 export NETHSM_OLD_PASSPHRASE_FILE="$NETHSM_UNLOCK_PASSPHRASE_FILE"
 export NETHSM_NEW_PASSPHRASE_FILE="$(mktemp --tmpdir="$nethsm_tmpdir" --dry-run --suffix '-nethsm.unlock-passphrase.txt')"
 printf 'my-new-unsafe-unlock-passphrase' > "$NETHSM_NEW_PASSPHRASE_FILE"
-nethsm config set unlock-passphrase
+nethsm --user admin1 config set unlock-passphrase
 ```
 
 ### Locking
@@ -500,14 +677,14 @@ nethsm config set unlock-passphrase
 The device can be locked and unlocked, which puts it into state `"Locked"` and `"Operational"`, respectively.
 
 ```bash
-nethsm lock
-nethsm health state
-nethsm health alive
+nethsm --user admin1 lock
+nethsm --user admin1 health state
+nethsm --user admin1 health alive
 # as we have changed the unlock passphrase, we need to provide the new one
 export NETHSM_UNLOCK_PASSPHRASE_FILE="$NETHSM_NEW_PASSPHRASE_FILE"
 nethsm unlock
-nethsm health state
-nethsm health ready
+nethsm --user admin1 health state
+nethsm --user admin1 health ready
 ```
 
 ### System modifications
@@ -516,38 +693,39 @@ The devices offer various system level actions, e.g.:
 
 ```sh
 # reset device to factory settings
-nethsm system factory-reset
+nethsm --user admin1 system factory-reset
 ```
 
 ```sh
 # reboot device
-nethsm system reboot
+nethsm --user admin1 system reboot
 ```
 
 ```sh
 # shut down device
-nethsm system shutdown
+nethsm --user admin1 system shutdown
 ```
 
 ```bash
 # get system info about the device
-nethsm system info
+nethsm --user admin1 system info
 ```
 
 #### Backups
 
 The device offers backing up of keys and user data.
+Backup retrieval is only available to system-wide users in the "Backup" role!
 
 ```bash
 export NETHSM_BACKUP_OUTPUT_FILE="$(mktemp --tmpdir="$nethsm_tmpdir" --dry-run --suffix '-nethsm.backup-file.bkp')"
 nethsm system backup
 ```
 
-A backup can later on be used to restore a device:
+A backup can later on be used to restore a device, using an "R-Administrator":
 
 ```sh
 export NETHSM_BACKUP_PASSPHRASE_FILE="$nethsm_backup_passphrase_file"
-nethsm system restore "$NETHSM_BACKUP_OUTPUT_FILE"
+nethsm --user admin1 system restore "$NETHSM_BACKUP_OUTPUT_FILE"
 ```
 
 #### Updates
@@ -555,11 +733,11 @@ nethsm system restore "$NETHSM_BACKUP_OUTPUT_FILE"
 Updates for the operating system/ firmware of the device are uploaded to the device and then applied or aborted.
 
 ```sh
-nethsm system upload-update my-update-file.bin
+nethsm --user admin1 system upload-update my-update-file.bin
 # apply the update
-nethsm system commit-update
+nethsm --user admin1 system commit-update
 # abort the update
-nethsm system cancel-update
+nethsm --user admin1 system cancel-update
 ```
 
 <!--
