@@ -29,9 +29,12 @@ pub enum Error {
     #[error("Credentials do not exist: {0}")]
     CredentialsMissing(String),
 
-    /// Credentials do not exist
-    #[error("No user {0} in the role {1} exists")]
-    MatchingCredentialsMissing(String, String),
+    /// None of the provided users map to one of the provided roles
+    #[error("None of the provided users ({names:?}) map to one of the provided roles ({roles:?})")]
+    MatchingCredentialsMissing {
+        names: Vec<UserId>,
+        roles: Vec<UserRole>,
+    },
 
     /// Credentials do not exist
     #[error("No user matches the role {0} exists")]
@@ -207,40 +210,23 @@ impl DeviceConfig {
 
     /// Returns [`ConfigCredentials`] matching a [`UserRole`]
     ///
-    /// If `name` is [`Option::Some`], credentials matching one of the provided `roles` are
-    /// returned.
-    /// If `name` is [`Option::None`], the credentials first found, matching one of the provided
+    /// If `names` is not empty, credentials matching the first name that matches a user with a
+    /// matching role in `roles` are returned.
+    /// If `names` is empty, the credentials first found, matching one of the provided
     /// `roles` are returned.
     ///
     /// # Errors
     ///
     /// Returns an error if
-    /// * the provided `name` does not match any existing credentials
+    /// * none of the provided `names` match any existing credentials in the provided `roles`
     /// * credentials matching the `name` do not have any of the provided `roles`
     /// * no credentials have any of the provided `roles`
     fn get_matching_credentials(
         &self,
         roles: &[UserRole],
-        name: Option<&UserId>,
+        names: &[UserId],
     ) -> Result<ConfigCredentials, Error> {
-        if let Some(name) = name {
-            if let Ok(creds) = &self.get_credentials(name) {
-                if roles.contains(&creds.role) {
-                    Ok(creds.clone())
-                } else {
-                    Err(Error::MatchingCredentialsMissing(
-                        name.to_string(),
-                        roles
-                            .iter()
-                            .map(|x| x.to_string())
-                            .collect::<Vec<_>>()
-                            .join(","),
-                    ))
-                }
-            } else {
-                Err(Error::CredentialsMissing(name.to_string()))
-            }
-        } else {
+        if names.is_empty() {
             let creds = self
                 .credentials
                 .borrow()
@@ -253,7 +239,7 @@ impl DeviceConfig {
                     }
                 })
                 .collect::<Vec<ConfigCredentials>>();
-            creds
+            return creds
                 .first()
                 .ok_or_else(|| {
                     Error::NoMatchingCredentials(
@@ -264,24 +250,39 @@ impl DeviceConfig {
                             .join(","),
                     )
                 })
-                .cloned()
+                .cloned();
         }
+
+        for name in names {
+            if let Ok(creds) = &self.get_credentials(name) {
+                if roles.contains(&creds.role) {
+                    return Ok(creds.clone());
+                }
+            } else {
+                return Err(Error::CredentialsMissing(name.to_string()));
+            }
+        }
+
+        Err(Error::MatchingCredentialsMissing {
+            names: names.to_vec(),
+            roles: roles.to_vec(),
+        })
     }
 
     /// Returns a [`NetHsm`] (optionally with credentials) based on the [`DeviceConfig`]
     ///
-    /// If there is at least one [`UserRole`] in `roles` and `name` is [`Option::Some`], matching
-    /// credentials are searched for. If no credentials matching one of the `roles` and the `name`
-    /// are found, credentials for a user in the first user role is prompted for interactively.
-    /// is [`Option::None`], temporary [`ConfigCredentials`] using the first [`UserRole`] in `roles`
-    /// are created by prompting for user input.
+    /// If there is at least one [`UserRole`] in `roles` and `names` is not empty, matching
+    /// credentials are searched for. If no credentials matching one of the `roles` and one of the
+    /// `names` are found, credentials for a user in the first user role are prompted for
+    /// interactively. If `names` is empty, temporary [`ConfigCredentials`] using the first
+    /// [`UserRole`] in `roles` are created by prompting for user input.
     /// When no passphrase is set for the [`ConfigCredentials`] yet, the user is prompted for it.
     ///
     /// In all other cases no [`ConfigCredentials`] are added for the [`NetHsm`].
     pub fn nethsm_with_matching_creds(
         &self,
         roles: &[UserRole],
-        name: Option<&UserId>,
+        names: &[UserId],
         passphrase: Option<Passphrase>,
     ) -> Result<NetHsm, Error> {
         let nethsm: NetHsm = self.try_into()?;
@@ -289,7 +290,7 @@ impl DeviceConfig {
         // do not add any users if no user roles are requested
         if !roles.is_empty() {
             // try to find a user name with a role in the requested set of credentials
-            let creds = if let Ok(creds) = self.get_matching_credentials(roles, name) {
+            let creds = if let Ok(creds) = self.get_matching_credentials(roles, names) {
                 creds
             // or request a user name in the first requested role
             } else {

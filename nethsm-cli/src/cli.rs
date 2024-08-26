@@ -87,11 +87,14 @@ Must be provided if more than one device is setup in the configuration file.",
         long_help = "A user name which is used for a command
 
 Can be provided, if no user name is setup in the configuration file for a device.
-Must be provided, if several user names of the same target role are setup in the configuration file for a device.",
+Must be provided, if several user names of the same target role are setup in the configuration file for a device.
+
+This option can be provided multiple times, which is needed for commands that require multiple roles at once.
+",
         long,
         short
     )]
-    pub user: Option<UserId>,
+    pub user: Vec<UserId>,
 
     #[command(subcommand)]
     pub command: Command,
