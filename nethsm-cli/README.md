@@ -154,15 +154,15 @@ Tags, which later on allow users access to the keys may also be set during key g
 Note that some keys require to set the key bit length (i.e. Generic and Rsa).
 
 ```bash
-nethsm key generate --key-id signing1 --tags signing1 Curve25519 EdDsaSignature
-nethsm key generate --key-id signing2 --tags signing2 EcP224 EcdsaSignature
-nethsm key generate --key-id signing3 --tags signing2 EcP256 EcdsaSignature
-nethsm key generate --key-id signing4 --tags signing2 EcP384 EcdsaSignature
-nethsm key generate --key-id signing5 --tags signing2 EcP521 EcdsaSignature
-nethsm key generate --key-id encdec1 --tags decryption1 --length 128 Generic AesDecryptionCbc AesEncryptionCbc
-nethsm key generate --key-id dec1 --tags decryption2 --length 2048 Rsa RsaDecryptionPkcs1
-nethsm key generate --key-id signing6 --tags signing3 --length 2048 Rsa RsaSignaturePssSha512
-nethsm key generate --key-id signing8 --tags openpgpsigning --length 2048 Rsa RsaSignaturePkcs1
+nethsm key generate --key-id signing1 --tags tag1 Curve25519 EdDsaSignature
+nethsm key generate --key-id signing2 --tags tag2 EcP224 EcdsaSignature
+nethsm key generate --key-id signing3 --tags tag2 EcP256 EcdsaSignature
+nethsm key generate --key-id signing4 --tags tag2 EcP384 EcdsaSignature
+nethsm key generate --key-id signing5 --tags tag2 EcP521 EcdsaSignature
+nethsm key generate --key-id encdec1 --tags tag3 --length 128 Generic AesDecryptionCbc AesEncryptionCbc
+nethsm key generate --key-id dec1 --tags tag4 --length 2048 Rsa RsaDecryptionPkcs1
+nethsm key generate --key-id signing6 --tags tag5 --length 2048 Rsa RsaSignaturePssSha512
+nethsm key generate --key-id signing8 --tags tag6 --length 2048 Rsa RsaSignaturePkcs1
 ```
 
 All key IDs on the device and info about them can be listed:
@@ -190,7 +190,7 @@ nethsm key import Curve25519 "$ed25519_cert_der" EdDsaSignature --key-id signing
 nethsm key import Curve25519 --format PEM "$ed25519_cert_pem" EdDsaSignature --key-id signing9
 
 # forgot to set a tag!
-nethsm key tag signing7 signing1
+nethsm key tag signing7 tag1
 
 nethsm key get signing7
 ```
@@ -200,7 +200,7 @@ nethsm key get signing7
 To provide access to keys for users, the users have to be tagged with the same tags as the keys.
 
 ```bash
-nethsm user tag operator1 signing1
+nethsm user tag operator1 tag1
 ```
 
 #### Signing messages
@@ -210,11 +210,11 @@ export NETHSM_KEY_SIGNATURE_OUTPUT_FILE="$(mktemp --tmpdir="$nethsm_tmpdir" --dr
 export NETHSM_KEY_PUBKEY_OUTPUT_FILE="$(mktemp --tmpdir="$nethsm_tmpdir" --dry-run --suffix '-nethsm.pubkey.pem')"
 message_digest="$(mktemp --tmpdir="$nethsm_tmpdir" --dry-run --suffix '-nethsm.message.dgst')"
 
-# if we add the signing2 tag for operator1 it is able to use signing{2-5}
-nethsm user tag operator1 signing2
-# if we add the signing3 tag for operator1 it is able to use signing6
-nethsm user tag operator1 signing3
-nethsm user tag operator1 openpgpsigning
+# if we add the tag2 tag for operator1 it is able to use signing{2-5}
+nethsm user tag operator1 tag2
+# if we add the tag5 tag for operator1 it is able to use signing6
+nethsm user tag operator1 tag5
+nethsm user tag operator1 tag6
 
 # create a signature with each key type
 nethsm key sign --force signing1 EdDsa README.md
@@ -250,8 +250,8 @@ nethsm key sign --force signing7 EdDsa README.md
 nethsm key public-key --force signing7
 openssl pkeyutl -verify -in README.md -rawin -sigfile "$NETHSM_KEY_SIGNATURE_OUTPUT_FILE" -inkey "$NETHSM_KEY_PUBKEY_OUTPUT_FILE" -pubin
 
-# if we remove the signing3 tag for operator1 it is no longer able to use signing6
-nethsm user untag operator1 signing3
+# if we remove the tag5 tag for operator1 it is no longer able to use signing6
+nethsm user untag operator1 tag5
 ```
 
 #### OpenPGP
@@ -291,12 +291,11 @@ Importing new keys:
 
 ```bash
 rsop generate-key --no-armor --signing-only "Test signing10 key <test@example.com>" > "$nethsm_tmpdir/private.pgp"
-nethsm openpgp import --tags signing10 --key-id signing10 "$nethsm_tmpdir/private.pgp" > /dev/null
+nethsm openpgp import --tags tag1 --key-id signing10 "$nethsm_tmpdir/private.pgp" > /dev/null
 # openpgp import automatically stores the certificate so it can be fetched
 nethsm key cert get signing10 > "$nethsm_tmpdir/imported.pgp"
 gpg --import "$nethsm_tmpdir/imported.pgp"
 sq inspect "$nethsm_tmpdir/imported.pgp" | grep "Test signing10 key"
-nethsm user tag operator1 signing10
 ```
 
 Signing messages:
@@ -327,7 +326,7 @@ printf "This is unsafe!!" > "$NETHSM_KEY_ENCRYPT_IV"
 export NETHSM_KEY_ENCRYPT_OUTPUT="$(mktemp --tmpdir="$nethsm_tmpdir" --dry-run --suffix '-nethsm.symmetric-encrypted-message.txt.enc')"
 
 # we need to provide access to the key by tagging the user
-nethsm user tag operator1 decryption1
+nethsm user tag operator1 tag3
 
 # let's use our symmetric encryption key to encrypt a message
 nethsm key encrypt encdec1 "$message"
@@ -346,7 +345,7 @@ The same works for asymmetric keys as well:
 
 ```bash
 # we need to provide access to the key by tagging the user
-nethsm user tag operator1 decryption2
+nethsm user tag operator1 tag4
 
 # unset the initialization vectors as we do not need them for this
 unset NETHSM_KEY_DECRYPT_IV NETHSM_KEY_ENCRYPT_IV
