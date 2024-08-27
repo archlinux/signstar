@@ -23,7 +23,7 @@ use cli::{
 };
 mod passphrase_file;
 mod prompt;
-use nethsm::{DistinguishedName, KeyFormat, NetworkConfig, PrivateKeyImport, UserRole};
+use nethsm::{DistinguishedName, KeyFormat, NetworkConfig, Passphrase, PrivateKeyImport, UserRole};
 use prompt::PassphrasePrompt;
 
 use crate::cli::EnvCommand;
@@ -94,11 +94,11 @@ impl FileOrStdout {
 fn main() -> Result<(), Error> {
     let cli = Cli::parse();
     let config = Config::new(cli.config.as_deref())?;
-    let auth_passphrase = if let Some(passphrase_file) = cli.auth_passphrase_file {
-        Some(passphrase_file.passphrase)
-    } else {
-        None
-    };
+    let auth_passphrases: Vec<Passphrase> = cli
+        .auth_passphrase_file
+        .iter()
+        .map(|x| x.passphrase.clone())
+        .collect();
 
     match cli.command {
         Command::Config(command) => match command {
@@ -109,7 +109,7 @@ fn main() -> Result<(), Error> {
                         .nethsm_with_matching_creds(
                             &[UserRole::Administrator],
                             &cli.user,
-                            auth_passphrase,
+                            &auth_passphrases,
                         )?;
 
                     println!("{:?}", nethsm.get_boot_mode()?);
@@ -120,7 +120,7 @@ fn main() -> Result<(), Error> {
                         .nethsm_with_matching_creds(
                             &[UserRole::Administrator],
                             &cli.user,
-                            auth_passphrase,
+                            &auth_passphrases,
                         )?;
 
                     println!("{:?}", nethsm.get_logging()?);
@@ -131,7 +131,7 @@ fn main() -> Result<(), Error> {
                         .nethsm_with_matching_creds(
                             &[UserRole::Administrator],
                             &cli.user,
-                            auth_passphrase,
+                            &auth_passphrases,
                         )?;
 
                     println!("{:?}", nethsm.get_network()?);
@@ -142,7 +142,7 @@ fn main() -> Result<(), Error> {
                         .nethsm_with_matching_creds(
                             &[UserRole::Administrator],
                             &cli.user,
-                            auth_passphrase,
+                            &auth_passphrases,
                         )?;
 
                     println!("{}", nethsm.get_time()?);
@@ -153,7 +153,7 @@ fn main() -> Result<(), Error> {
                         .nethsm_with_matching_creds(
                             &[UserRole::Administrator],
                             &cli.user,
-                            auth_passphrase,
+                            &auth_passphrases,
                         )?;
                     let output = FileOrStdout::new(command.output.as_deref(), command.force)?;
 
@@ -167,7 +167,7 @@ fn main() -> Result<(), Error> {
                         .nethsm_with_matching_creds(
                             &[UserRole::Administrator],
                             &cli.user,
-                            auth_passphrase,
+                            &auth_passphrases,
                         )?;
                     let output = FileOrStdout::new(command.output.as_deref(), command.force)?;
 
@@ -191,7 +191,7 @@ fn main() -> Result<(), Error> {
                         .nethsm_with_matching_creds(
                             &[UserRole::Administrator],
                             &cli.user,
-                            auth_passphrase,
+                            &auth_passphrases,
                         )?;
                     let output = FileOrStdout::new(command.output.as_deref(), command.force)?;
 
@@ -207,7 +207,7 @@ fn main() -> Result<(), Error> {
                         .nethsm_with_matching_creds(
                             &[UserRole::Administrator],
                             &cli.user,
-                            auth_passphrase,
+                            &auth_passphrases,
                         )?;
                     let current_passphrase =
                         if let Some(passphrase_file) = command.old_passphrase_file {
@@ -230,7 +230,7 @@ fn main() -> Result<(), Error> {
                         .nethsm_with_matching_creds(
                             &[UserRole::Administrator],
                             &cli.user,
-                            auth_passphrase,
+                            &auth_passphrases,
                         )?;
 
                     nethsm.set_boot_mode(command.boot_mode)?;
@@ -241,7 +241,7 @@ fn main() -> Result<(), Error> {
                         .nethsm_with_matching_creds(
                             &[UserRole::Administrator],
                             &cli.user,
-                            auth_passphrase,
+                            &auth_passphrases,
                         )?;
 
                     nethsm.set_logging(
@@ -256,7 +256,7 @@ fn main() -> Result<(), Error> {
                         .nethsm_with_matching_creds(
                             &[UserRole::Administrator],
                             &cli.user,
-                            auth_passphrase,
+                            &auth_passphrases,
                         )?;
 
                     nethsm.set_network(NetworkConfig {
@@ -271,7 +271,7 @@ fn main() -> Result<(), Error> {
                         .nethsm_with_matching_creds(
                             &[UserRole::Administrator],
                             &cli.user,
-                            auth_passphrase,
+                            &auth_passphrases,
                         )?;
 
                     nethsm.set_time(command.system_time.unwrap_or_else(Utc::now))?;
@@ -282,7 +282,7 @@ fn main() -> Result<(), Error> {
                         .nethsm_with_matching_creds(
                             &[UserRole::Administrator],
                             &cli.user,
-                            auth_passphrase,
+                            &auth_passphrases,
                         )?;
 
                     nethsm.set_tls_cert(&read_to_string(command.tls_cert)?)?;
@@ -293,7 +293,7 @@ fn main() -> Result<(), Error> {
                         .nethsm_with_matching_creds(
                             &[UserRole::Administrator],
                             &cli.user,
-                            auth_passphrase,
+                            &auth_passphrases,
                         )?;
 
                     nethsm.generate_tls_cert(
@@ -307,7 +307,7 @@ fn main() -> Result<(), Error> {
                         .nethsm_with_matching_creds(
                             &[UserRole::Administrator],
                             &cli.user,
-                            auth_passphrase,
+                            &auth_passphrases,
                         )?;
                     let current_passphrase =
                         if let Some(passphrase_file) = command.old_passphrase_file {
@@ -401,21 +401,21 @@ fn main() -> Result<(), Error> {
             HealthCommand::Alive(_command) => {
                 let nethsm = config
                     .get_device(cli.label.as_deref())?
-                    .nethsm_with_matching_creds(&[], &cli.user, auth_passphrase)?;
+                    .nethsm_with_matching_creds(&[], &cli.user, &auth_passphrases)?;
 
                 nethsm.alive()?;
             }
             HealthCommand::Ready(_command) => {
                 let nethsm = config
                     .get_device(cli.label.as_deref())?
-                    .nethsm_with_matching_creds(&[], &cli.user, auth_passphrase)?;
+                    .nethsm_with_matching_creds(&[], &cli.user, &auth_passphrases)?;
 
                 nethsm.ready()?;
             }
             HealthCommand::State(_command) => {
                 let nethsm = config
                     .get_device(cli.label.as_deref())?
-                    .nethsm_with_matching_creds(&[], &cli.user, auth_passphrase)?;
+                    .nethsm_with_matching_creds(&[], &cli.user, &auth_passphrases)?;
 
                 println!("{:?}", nethsm.state()?);
             }
@@ -423,7 +423,7 @@ fn main() -> Result<(), Error> {
         Command::Info(_command) => {
             let nethsm = config
                 .get_device(cli.label.as_deref())?
-                .nethsm_with_matching_creds(&[], &cli.user, auth_passphrase)?;
+                .nethsm_with_matching_creds(&[], &cli.user, &auth_passphrases)?;
 
             println!("{:?}", nethsm.info()?);
         }
@@ -435,7 +435,7 @@ fn main() -> Result<(), Error> {
                         .nethsm_with_matching_creds(
                             &[UserRole::Administrator],
                             &cli.user,
-                            auth_passphrase,
+                            &auth_passphrases,
                         )?;
 
                     nethsm.delete_key_certificate(&command.key_id)?;
@@ -446,7 +446,7 @@ fn main() -> Result<(), Error> {
                         .nethsm_with_matching_creds(
                             &[UserRole::Operator, UserRole::Administrator],
                             &cli.user,
-                            auth_passphrase,
+                            &auth_passphrases,
                         )?;
                     let output = FileOrStdout::new(command.output.as_deref(), command.force)?;
 
@@ -460,7 +460,7 @@ fn main() -> Result<(), Error> {
                         .nethsm_with_matching_creds(
                             &[UserRole::Administrator],
                             &cli.user,
-                            auth_passphrase,
+                            &auth_passphrases,
                         )?;
 
                     nethsm.import_key_certificate(&command.key_id, read(command.cert_file)?)?;
@@ -472,7 +472,7 @@ fn main() -> Result<(), Error> {
                     .nethsm_with_matching_creds(
                         &[UserRole::Administrator, UserRole::Operator],
                         &cli.user,
-                        auth_passphrase,
+                        &auth_passphrases,
                     )?;
                 let output = FileOrStdout::new(command.output.as_deref(), command.force)?;
 
@@ -499,7 +499,7 @@ fn main() -> Result<(), Error> {
                     .nethsm_with_matching_creds(
                         &[UserRole::Operator],
                         &cli.user,
-                        auth_passphrase,
+                        &auth_passphrases,
                     )?;
                 // NOTE: IV can not be zero length or None when decrypting
                 let iv = if let Some(iv) = command.initialization_vector {
@@ -522,7 +522,7 @@ fn main() -> Result<(), Error> {
                     .nethsm_with_matching_creds(
                         &[UserRole::Operator],
                         &cli.user,
-                        auth_passphrase,
+                        &auth_passphrases,
                     )?;
                 // NOTE: IV can not be zero length or None when decrypting
                 let iv = if let Some(iv) = command.initialization_vector {
@@ -549,7 +549,7 @@ fn main() -> Result<(), Error> {
                     .nethsm_with_matching_creds(
                         &[UserRole::Administrator],
                         &cli.user,
-                        auth_passphrase,
+                        &auth_passphrases,
                     )?;
 
                 println!(
@@ -569,7 +569,7 @@ fn main() -> Result<(), Error> {
                     .nethsm_with_matching_creds(
                         &[UserRole::Administrator, UserRole::Operator],
                         &cli.user,
-                        auth_passphrase,
+                        &auth_passphrases,
                     )?;
 
                 println!("{:#?}", nethsm.get_key(&command.key_id)?);
@@ -580,7 +580,7 @@ fn main() -> Result<(), Error> {
                     .nethsm_with_matching_creds(
                         &[UserRole::Administrator],
                         &cli.user,
-                        auth_passphrase,
+                        &auth_passphrases,
                     )?;
                 let key_data = match command.format {
                     KeyFormat::Der => {
@@ -609,7 +609,7 @@ fn main() -> Result<(), Error> {
                     .nethsm_with_matching_creds(
                         &[UserRole::Administrator, UserRole::Operator],
                         &cli.user,
-                        auth_passphrase,
+                        &auth_passphrases,
                     )?;
 
                 nethsm
@@ -623,7 +623,7 @@ fn main() -> Result<(), Error> {
                     .nethsm_with_matching_creds(
                         &[UserRole::Administrator, UserRole::Operator],
                         &cli.user,
-                        auth_passphrase,
+                        &auth_passphrases,
                     )?;
                 let output = FileOrStdout::new(command.output.as_deref(), command.force)?;
 
@@ -637,7 +637,7 @@ fn main() -> Result<(), Error> {
                     .nethsm_with_matching_creds(
                         &[UserRole::Administrator],
                         &cli.user,
-                        auth_passphrase,
+                        &auth_passphrases,
                     )?;
 
                 nethsm.delete_key(&command.key_id)?;
@@ -648,7 +648,7 @@ fn main() -> Result<(), Error> {
                     .nethsm_with_matching_creds(
                         &[UserRole::Operator],
                         &cli.user,
-                        auth_passphrase,
+                        &auth_passphrases,
                     )?;
                 let output = FileOrStdout::new(command.output.as_deref(), command.force)?;
 
@@ -668,7 +668,7 @@ fn main() -> Result<(), Error> {
                     .nethsm_with_matching_creds(
                         &[UserRole::Administrator],
                         &cli.user,
-                        auth_passphrase,
+                        &auth_passphrases,
                     )?;
 
                 nethsm.add_key_tag(&command.key_id, &command.tag)?;
@@ -679,7 +679,7 @@ fn main() -> Result<(), Error> {
                     .nethsm_with_matching_creds(
                         &[UserRole::Administrator],
                         &cli.user,
-                        auth_passphrase,
+                        &auth_passphrases,
                     )?;
 
                 nethsm.delete_key_tag(&command.key_id, &command.tag)?;
@@ -691,7 +691,7 @@ fn main() -> Result<(), Error> {
                 .nethsm_with_matching_creds(
                     &[UserRole::Administrator],
                     &cli.user,
-                    auth_passphrase,
+                    &auth_passphrases,
                 )?;
 
             nethsm.lock()?;
@@ -699,7 +699,7 @@ fn main() -> Result<(), Error> {
         Command::Metrics(_command) => {
             let nethsm = config
                 .get_device(cli.label.as_deref())?
-                .nethsm_with_matching_creds(&[UserRole::Metrics], &cli.user, auth_passphrase)?;
+                .nethsm_with_matching_creds(&[UserRole::Metrics], &cli.user, &auth_passphrases)?;
 
             println!("{}", nethsm.metrics()?);
         }
@@ -710,7 +710,7 @@ fn main() -> Result<(), Error> {
                     .nethsm_with_matching_creds(
                         &[UserRole::Administrator],
                         &cli.user,
-                        auth_passphrase,
+                        &auth_passphrases,
                     )?;
                 nethsm.add_namespace(&command.name)?;
             }
@@ -720,7 +720,7 @@ fn main() -> Result<(), Error> {
                     .nethsm_with_matching_creds(
                         &[UserRole::Administrator],
                         &cli.user,
-                        auth_passphrase,
+                        &auth_passphrases,
                     )?;
                 nethsm
                     .get_namespaces()?
@@ -730,7 +730,11 @@ fn main() -> Result<(), Error> {
             NamespaceCommand::Remove(command) => {
                 let nethsm = config
                     .get_device(cli.label.as_deref())?
-                    .nethsm_with_matching_creds(&[UserRole::Metrics], &cli.user, auth_passphrase)?;
+                    .nethsm_with_matching_creds(
+                        &[UserRole::Metrics],
+                        &cli.user,
+                        &auth_passphrases,
+                    )?;
                 nethsm.delete_namespace(&command.name)?;
             }
         },
@@ -752,7 +756,7 @@ fn main() -> Result<(), Error> {
                     .nethsm_with_matching_creds(
                         &[UserRole::Operator],
                         &cli.user,
-                        auth_passphrase.clone(),
+                        &auth_passphrases.clone(),
                     )?;
 
                 let cert = nethsm.create_openpgp_cert(
@@ -767,7 +771,7 @@ fn main() -> Result<(), Error> {
                     .nethsm_with_matching_creds(
                         &[UserRole::Administrator],
                         &cli.user,
-                        auth_passphrase,
+                        &auth_passphrases,
                     )?;
 
                 nethsm.import_key_certificate(&command.key_id, cert.clone())?;
@@ -778,7 +782,7 @@ fn main() -> Result<(), Error> {
                     .nethsm_with_matching_creds(
                         &[UserRole::Administrator],
                         &cli.user,
-                        auth_passphrase,
+                        &auth_passphrases,
                     )?;
                 let private_key = &read(command.tsk_file)?;
                 let (key_data, key_mechanism) = nethsm::tsk_to_private_key_import(private_key)?;
@@ -800,7 +804,7 @@ fn main() -> Result<(), Error> {
                     .nethsm_with_matching_creds(
                         &[UserRole::Operator],
                         &cli.user,
-                        auth_passphrase,
+                        &auth_passphrases,
                     )?;
 
                 let output = FileOrStdout::new(command.output.as_deref(), command.force)?;
@@ -815,7 +819,7 @@ fn main() -> Result<(), Error> {
         Command::Provision(command) => {
             let nethsm = config
                 .get_device(cli.label.as_deref())?
-                .nethsm_with_matching_creds(&[], &cli.user, auth_passphrase)?;
+                .nethsm_with_matching_creds(&[], &cli.user, &auth_passphrases)?;
             let unlock_passphrase = if let Some(passphrase_file) = command.unlock_passphrase_file {
                 passphrase_file.passphrase
             } else {
@@ -836,7 +840,7 @@ fn main() -> Result<(), Error> {
         Command::Random(command) => {
             let nethsm = config
                 .get_device(cli.label.as_deref())?
-                .nethsm_with_matching_creds(&[UserRole::Operator], &cli.user, auth_passphrase)?;
+                .nethsm_with_matching_creds(&[UserRole::Operator], &cli.user, &auth_passphrases)?;
             let output = FileOrStdout::new(command.output.as_deref(), command.force)?;
 
             output.output().write_all(&nethsm.random(command.length)?)?;
@@ -854,7 +858,7 @@ fn main() -> Result<(), Error> {
                 let nethsm = device_config.nethsm_with_matching_creds(
                     &[UserRole::Backup],
                     &cli.user,
-                    auth_passphrase,
+                    &auth_passphrases,
                 )?;
                 let output = FileOrStdout::new(
                     Some(command.output.unwrap_or_else(|| {
@@ -876,7 +880,7 @@ fn main() -> Result<(), Error> {
                     .nethsm_with_matching_creds(
                         &[UserRole::Administrator],
                         &cli.user,
-                        auth_passphrase,
+                        &auth_passphrases,
                     )?;
 
                 nethsm.cancel_update()?;
@@ -887,7 +891,7 @@ fn main() -> Result<(), Error> {
                     .nethsm_with_matching_creds(
                         &[UserRole::Administrator],
                         &cli.user,
-                        auth_passphrase,
+                        &auth_passphrases,
                     )?;
 
                 nethsm.commit_update()?;
@@ -898,7 +902,7 @@ fn main() -> Result<(), Error> {
                     .nethsm_with_matching_creds(
                         &[UserRole::Administrator],
                         &cli.user,
-                        auth_passphrase,
+                        &auth_passphrases,
                     )?;
 
                 nethsm.factory_reset()?;
@@ -909,7 +913,7 @@ fn main() -> Result<(), Error> {
                     .nethsm_with_matching_creds(
                         &[UserRole::Administrator],
                         &cli.user,
-                        auth_passphrase,
+                        &auth_passphrases,
                     )?;
 
                 println!("{:#?}", nethsm.system_info()?);
@@ -920,7 +924,7 @@ fn main() -> Result<(), Error> {
                     .nethsm_with_matching_creds(
                         &[UserRole::Administrator],
                         &cli.user,
-                        auth_passphrase,
+                        &auth_passphrases,
                     )?;
 
                 nethsm.reboot()?;
@@ -931,7 +935,7 @@ fn main() -> Result<(), Error> {
                     .nethsm_with_matching_creds(
                         &[UserRole::Administrator],
                         &cli.user,
-                        auth_passphrase,
+                        &auth_passphrases,
                     )?;
                 let backup_passphrase =
                     if let Some(passphrase_file) = command.backup_passphrase_file {
@@ -952,7 +956,7 @@ fn main() -> Result<(), Error> {
                     .nethsm_with_matching_creds(
                         &[UserRole::Administrator],
                         &cli.user,
-                        auth_passphrase,
+                        &auth_passphrases,
                     )?;
 
                 nethsm.shutdown()?;
@@ -963,7 +967,7 @@ fn main() -> Result<(), Error> {
                     .nethsm_with_matching_creds(
                         &[UserRole::Administrator],
                         &cli.user,
-                        auth_passphrase,
+                        &auth_passphrases,
                     )?;
 
                 println!("{:?}", nethsm.upload_update(read(command.input)?)?);
@@ -972,7 +976,7 @@ fn main() -> Result<(), Error> {
         Command::Unlock(command) => {
             let nethsm = config
                 .get_device(cli.label.as_deref())?
-                .nethsm_with_matching_creds(&[], &cli.user, auth_passphrase)?;
+                .nethsm_with_matching_creds(&[], &cli.user, &auth_passphrases)?;
             let unlock_passphrase = if let Some(passphrase_file) = command.unlock_passphrase_file {
                 passphrase_file.passphrase
             } else {
@@ -988,7 +992,7 @@ fn main() -> Result<(), Error> {
                     .nethsm_with_matching_creds(
                         &[UserRole::Administrator],
                         &cli.user,
-                        auth_passphrase,
+                        &auth_passphrases,
                     )?;
                 let passphrase = if let Some(passphrase_file) = command.passphrase_file {
                     passphrase_file.passphrase
@@ -1017,7 +1021,7 @@ fn main() -> Result<(), Error> {
                     .nethsm_with_matching_creds(
                         &[UserRole::Administrator],
                         &cli.user,
-                        auth_passphrase,
+                        &auth_passphrases,
                     )?;
 
                 let user_data = nethsm.get_user(&command.name)?;
@@ -1033,7 +1037,7 @@ fn main() -> Result<(), Error> {
                     .nethsm_with_matching_creds(
                         &[UserRole::Administrator],
                         &cli.user,
-                        auth_passphrase,
+                        &auth_passphrases,
                     )?;
 
                 nethsm
@@ -1047,7 +1051,7 @@ fn main() -> Result<(), Error> {
                     .nethsm_with_matching_creds(
                         &[UserRole::Administrator],
                         &cli.user,
-                        auth_passphrase,
+                        &auth_passphrases,
                     )?;
                 let passphrase = if let Some(passphrase_file) = command.passphrase_file {
                     passphrase_file.passphrase
@@ -1063,7 +1067,7 @@ fn main() -> Result<(), Error> {
                     .nethsm_with_matching_creds(
                         &[UserRole::Administrator],
                         &cli.user,
-                        auth_passphrase,
+                        &auth_passphrases,
                     )?;
 
                 nethsm.delete_user(&command.name)?;
@@ -1074,7 +1078,7 @@ fn main() -> Result<(), Error> {
                     .nethsm_with_matching_creds(
                         &[UserRole::Administrator],
                         &cli.user,
-                        auth_passphrase,
+                        &auth_passphrases,
                     )?;
 
                 nethsm.add_user_tag(&command.name, &command.tag)?;
@@ -1085,7 +1089,7 @@ fn main() -> Result<(), Error> {
                     .nethsm_with_matching_creds(
                         &[UserRole::Administrator],
                         &cli.user,
-                        auth_passphrase,
+                        &auth_passphrases,
                     )?;
 
                 nethsm.delete_user_tag(&command.name, &command.tag)?;

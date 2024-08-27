@@ -276,14 +276,19 @@ impl DeviceConfig {
     /// `names` are found, credentials for a user in the first user role are prompted for
     /// interactively. If `names` is empty, temporary [`ConfigCredentials`] using the first
     /// [`UserRole`] in `roles` are created by prompting for user input.
-    /// When no passphrase is set for the [`ConfigCredentials`] yet, the user is prompted for it.
+    /// If the chosen [`ConfigCredentials`] provide a passphrase already, they are used.
+    /// If the chosen [`ConfigCredentials`] do not provide a passphrase it is attempted to use
+    /// matching passphrase from `passphrases`. If `passphrases` is empty or the index of
+    /// `names` using the chosen credentials name can not be used to retrieve a [`Passphrase`] for
+    /// the credentials, it is prompted for interactively.  When no passphrase is set for the
+    /// [`ConfigCredentials`] yet, the user is prompted for it.
     ///
     /// In all other cases no [`ConfigCredentials`] are added for the [`NetHsm`].
     pub fn nethsm_with_matching_creds(
         &self,
         roles: &[UserRole],
         names: &[UserId],
-        passphrase: Option<Passphrase>,
+        passphrases: &[Passphrase],
     ) -> Result<NetHsm, Error> {
         let nethsm: NetHsm = self.try_into()?;
 
@@ -297,9 +302,18 @@ impl DeviceConfig {
                 let role = roles.first().expect("We have at least one user role");
                 ConfigCredentials::new(role.clone(), UserPrompt::new(role.clone()).prompt()?, None)
             };
+            // get index of the found credentials name in the input names
+            let name_index = names.iter().position(|name| name == &creds.name);
             if !creds.has_passphrase() {
-                let credentials = if let Some(passphrase) = passphrase {
-                    Credentials::new(creds.get_user_id(), Some(passphrase))
+                let credentials = if let Some(name_index) = name_index {
+                    if let Some(passphrase) = passphrases.get(name_index) {
+                        Credentials::new(creds.get_user_id(), Some(passphrase.clone()))
+                    } else {
+                        Credentials::new(
+                            creds.get_user_id(),
+                            Some(PassphrasePrompt::User(creds.get_user_id().to_string()).prompt()?),
+                        )
+                    }
                 } else {
                     Credentials::new(
                         creds.get_user_id(),

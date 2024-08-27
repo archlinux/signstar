@@ -50,11 +50,14 @@ pub struct Cli {
         help = "The path to a file containing a passphrase for authentication",
         long_help = "The path to a file containing a passphrase for authentication
 
-The passphrase provided in the file must be the one for the user chosen for the command.",
+The passphrase provided in the file must be the one for the user chosen for the command.
+
+This option can be provided multiple times, which is needed for commands that require multiple roles at once.
+With multiple passphrase files ordering matters, as the files are assigned to the respective user provided by the \"--user\" option.",
         long,
         short
     )]
-    pub auth_passphrase_file: Option<PassphraseFile>,
+    pub auth_passphrase_file: Vec<PassphraseFile>,
 
     #[arg(
         env = "NETHSM_CONFIG",
