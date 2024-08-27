@@ -260,56 +260,60 @@ The CLI can also create OpenPGP certificates for keys stored in the HSM:
 
 ```bash
 export GNUPGHOME="$(mktemp --directory --tmpdir="$nethsm_tmpdir" --suffix 'gnupghome')"
+export NETHSM_KEY_CERT_OUTPUT_FILE="$(mktemp --tmpdir="$nethsm_tmpdir" --dry-run --suffix '-nethsm.openpgp-cert.pgp')"
 
 nethsm openpgp add --can-sign signing1 "Test signing1 key <test@example.org>"
-nethsm key cert get signing1 > "$nethsm_tmpdir/ed25519.pgp"
-gpg --import "$nethsm_tmpdir/ed25519.pgp"
-sq inspect "$nethsm_tmpdir/ed25519.pgp" | grep "Test signing1 key"
+nethsm key cert get --force signing1
+gpg --import "$NETHSM_KEY_CERT_OUTPUT_FILE"
+sq inspect "$NETHSM_KEY_CERT_OUTPUT_FILE" | grep "Test signing1 key"
 
 nethsm openpgp add signing3 "Test signing3 key <test@example.org>"
-nethsm key cert get signing3 > "$nethsm_tmpdir/p256.pgp"
-gpg --import "$nethsm_tmpdir/p256.pgp"
-sq inspect "$nethsm_tmpdir/p256.pgp" | grep "Test signing3 key"
+nethsm key cert get --force signing3
+gpg --import "$NETHSM_KEY_CERT_OUTPUT_FILE"
+sq inspect "$NETHSM_KEY_CERT_OUTPUT_FILE" | grep "Test signing3 key"
 
 nethsm openpgp add signing4 "Test signing4 key <test@example.org>"
-nethsm key cert get signing4 > "$nethsm_tmpdir/p384.pgp"
-gpg --import "$nethsm_tmpdir/p384.pgp"
-sq inspect "$nethsm_tmpdir/p384.pgp" | grep "Test signing4 key"
+nethsm key cert get --force signing4
+gpg --import "$NETHSM_KEY_CERT_OUTPUT_FILE"
+sq inspect "$NETHSM_KEY_CERT_OUTPUT_FILE" | grep "Test signing4 key"
 
 nethsm openpgp add signing5 "Test signing5 key <test@example.org>"
-nethsm key cert get signing5 > "$nethsm_tmpdir/p521.pgp"
-gpg --import "$nethsm_tmpdir/p521.pgp"
-sq inspect "$nethsm_tmpdir/p521.pgp" | grep "Test signing5 key"
+nethsm key cert get --force signing5
+gpg --import "$NETHSM_KEY_CERT_OUTPUT_FILE"
+sq inspect "$NETHSM_KEY_CERT_OUTPUT_FILE" | grep "Test signing5 key"
 
 nethsm openpgp add signing8 "Test signing8 key <test@example.org>"
-nethsm key cert get signing8 > "$nethsm_tmpdir/rsa.pgp"
-gpg --import "$nethsm_tmpdir/rsa.pgp"
-sq inspect "$nethsm_tmpdir/rsa.pgp" | grep "Test signing8 key"
+nethsm key cert get --force signing8
+gpg --import "$NETHSM_KEY_CERT_OUTPUT_FILE"
+sq inspect "$NETHSM_KEY_CERT_OUTPUT_FILE" | grep "Test signing8 key"
 ```
 
 Importing new keys:
 
 ```bash
-rsop generate-key --no-armor --signing-only "Test signing10 key <test@example.org>" > "$nethsm_tmpdir/private.pgp"
-nethsm openpgp import --key-id signing10 --tags tag1 "$nethsm_tmpdir/private.pgp" > /dev/null
+export NETHSM_OPENPGP_TSK_FILE="$(mktemp --tmpdir="$nethsm_tmpdir" --dry-run --suffix '-nethsm.openpgp-private-key.tsk')"
+rsop generate-key --no-armor --signing-only "Test signing10 key <test@example.org>" > "$NETHSM_OPENPGP_TSK_FILE"
+nethsm openpgp import --key-id signing10 --tags tag1
 # openpgp import automatically stores the certificate so it can be fetched
-nethsm key cert get signing10 > "$nethsm_tmpdir/imported.pgp"
-gpg --import "$nethsm_tmpdir/imported.pgp"
-sq inspect "$nethsm_tmpdir/imported.pgp" | grep "Test signing10 key"
+nethsm key cert get --force signing10
+gpg --import "$NETHSM_KEY_CERT_OUTPUT_FILE"
+sq inspect "$NETHSM_KEY_CERT_OUTPUT_FILE" | grep "Test signing10 key"
 ```
 
 Signing messages:
 
 ```bash
-echo "I like strawberries" > "$nethsm_tmpdir/message.txt"
+export NETHSM_OPENPGP_SIGNATURE_OUTPUT_FILE="$(mktemp --tmpdir="$nethsm_tmpdir" --dry-run --suffix '-nethsm.openpgp-message.txt.sig')"
+export NETHSM_OPENPGP_SIGNATURE_MESSAGE="$(mktemp --tmpdir="$nethsm_tmpdir" --dry-run --suffix '-nethsm.openpgp-message.txt')"
+printf "I like strawberries\n" > "$NETHSM_OPENPGP_SIGNATURE_MESSAGE"
 
 for key in signing1 signing3 signing4 signing5 signing8 signing10; do
   printf "Signing with key %s ...\n" "$key"
 
-  nethsm openpgp sign "$key" "$nethsm_tmpdir/message.txt" > "$nethsm_tmpdir/message.txt.pgp"
-  gpg --verify "$nethsm_tmpdir/message.txt.pgp" "$nethsm_tmpdir/message.txt"
-  nethsm key cert get "$key" > "$nethsm_tmpdir/cert.pgp"
-  rsop verify "$nethsm_tmpdir/message.txt.pgp" "$nethsm_tmpdir/cert.pgp" < "$nethsm_tmpdir/message.txt"
+  nethsm openpgp sign --force "$key"
+  gpg --verify "$NETHSM_OPENPGP_SIGNATURE_OUTPUT_FILE" "$NETHSM_OPENPGP_SIGNATURE_MESSAGE"
+  nethsm key cert get --force "$key"
+  rsop verify "$NETHSM_OPENPGP_SIGNATURE_OUTPUT_FILE" "$NETHSM_KEY_CERT_OUTPUT_FILE" < "$NETHSM_OPENPGP_SIGNATURE_MESSAGE"
 done
 ```
 
