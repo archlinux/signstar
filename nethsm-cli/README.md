@@ -559,10 +559,11 @@ nethsm system commit-update
 nethsm system cancel-update
 ```
 
+<!--
 ```bash
 rm -r -- "$nethsm_tmpdir"
 ```
-
+-->
 ## License
 
 This project may be used under the terms of the [Apache-2.0](https://www.apache.org/licenses/LICENSE-2.0) or [MIT](https://opensource.org/licenses/MIT) license.
