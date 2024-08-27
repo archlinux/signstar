@@ -159,10 +159,10 @@ nethsm key generate --key-id signing2 --tags tag2 EcP224 EcdsaSignature
 nethsm key generate --key-id signing3 --tags tag2 EcP256 EcdsaSignature
 nethsm key generate --key-id signing4 --tags tag2 EcP384 EcdsaSignature
 nethsm key generate --key-id signing5 --tags tag2 EcP521 EcdsaSignature
-nethsm key generate --key-id encdec1 --tags tag3 --length 128 Generic AesDecryptionCbc AesEncryptionCbc
-nethsm key generate --key-id dec1 --tags tag4 --length 2048 Rsa RsaDecryptionPkcs1
-nethsm key generate --key-id signing6 --tags tag5 --length 2048 Rsa RsaSignaturePssSha512
-nethsm key generate --key-id signing8 --tags tag6 --length 2048 Rsa RsaSignaturePkcs1
+nethsm key generate --key-id encdec1 --length 128 --tags tag3 Generic AesDecryptionCbc AesEncryptionCbc
+nethsm key generate --key-id dec1 --length 2048 --tags tag4 Rsa RsaDecryptionPkcs1
+nethsm key generate --key-id signing6 --length 2048 --tags tag5 Rsa RsaSignaturePssSha512
+nethsm key generate --key-id signing8 --length 2048 --tags tag6 Rsa RsaSignaturePkcs1
 ```
 
 All key IDs on the device and info about them can be listed:
@@ -184,10 +184,10 @@ openssl genpkey -algorithm ed25519 -out "$ed25519_cert_pem"
 openssl pkcs8 -topk8 -inform pem -in "$ed25519_cert_pem" -outform der -nocrypt -out "$ed25519_cert_der"
 
 # import supports PKCS#8 private key in ASN.1 DER-encoded format, by default
-nethsm key import Curve25519 "$ed25519_cert_der" EdDsaSignature --key-id signing7
+nethsm key import --key-id signing7 Curve25519 "$ed25519_cert_der" EdDsaSignature
 
 # however, importing a PKCS#8 private key in ASN.1 PEM-encoded format is supported, too
-nethsm key import Curve25519 --format PEM "$ed25519_cert_pem" EdDsaSignature --key-id signing9
+nethsm key import --format PEM --key-id signing9 Curve25519 "$ed25519_cert_pem" EdDsaSignature
 
 # forgot to set a tag!
 nethsm key tag signing7 tag1
@@ -291,7 +291,7 @@ Importing new keys:
 
 ```bash
 rsop generate-key --no-armor --signing-only "Test signing10 key <test@example.com>" > "$nethsm_tmpdir/private.pgp"
-nethsm openpgp import --tags tag1 --key-id signing10 "$nethsm_tmpdir/private.pgp" > /dev/null
+nethsm openpgp import --key-id signing10 --tags tag1 "$nethsm_tmpdir/private.pgp" > /dev/null
 # openpgp import automatically stores the certificate so it can be fetched
 nethsm key cert get signing10 > "$nethsm_tmpdir/imported.pgp"
 gpg --import "$nethsm_tmpdir/imported.pgp"
@@ -357,7 +357,7 @@ asymmetric_enc_message="$(mktemp --tmpdir="$nethsm_tmpdir" --dry-run --suffix '-
 openssl pkeyutl -encrypt -inkey "$NETHSM_KEY_PUBKEY_OUTPUT_FILE" -pubin -in "$message" -out "$asymmetric_enc_message"
 
 # decrypt the asymmetrically encrypted message and replace any existing output
-nethsm key decrypt dec1 "$asymmetric_enc_message" Pkcs1 --force
+nethsm key decrypt --force dec1 "$asymmetric_enc_message" Pkcs1
 cat "$NETHSM_KEY_DECRYPT_OUTPUT"
 
 [[ "$(b2sum "$NETHSM_KEY_DECRYPT_OUTPUT" | cut -d ' ' -f1)" == "$(b2sum "$message" | cut -d ' ' -f1)" ]]
@@ -370,7 +370,7 @@ Administrators and operators can retrieve the public key of any key:
 ```bash
 # keys of type "Generic" don't have a public key, so we do not request them
 for key in signing{1..8} dec1; do
-  nethsm key public-key "$key" --force
+  nethsm key public-key --force "$key"
 done
 ```
 
