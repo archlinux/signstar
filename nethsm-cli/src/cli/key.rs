@@ -483,7 +483,7 @@ One of {:?}.",
         long,
         long_help = format!("The format of key to import
 
-The key type must match the provided key data and chosen key mechanisms!
+Keys can be imported in Distinguished Encoding Rules (DER) or Privacy-Enhanced Mail (PEM) format.
 
 One of {:?}.",
             KeyFormat::iter().map(Into::into).collect::<Vec<&'static str>>()),
