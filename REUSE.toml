@@ -24,6 +24,8 @@ path = [
     ".gitlab/CODEOWNERS",
     ".shellcheckrc",
     "justfile",
+    "lychee.toml",
+    ".lycheeignore",
 ]
 precedence = "aggregate"
 SPDX-FileCopyrightText = "Signstar Contributors"

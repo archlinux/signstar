@@ -11,7 +11,7 @@ ignored := "false"
 run-pre-commit-hook: check test
 
 # Runs all check targets
-check: check-spelling check-formatting lint check-unused-deps check-dependencies check-licenses
+check: check-spelling check-formatting lint check-unused-deps check-dependencies check-licenses check-links
 
 # Faster checks need to be executed first for better UX.  For example
 # codespell is very fast. cargo fmt does not need to download crates etc.
@@ -228,6 +228,10 @@ add-hooks:
 
     echo just run-pre-push-hook > .git/hooks/pre-push
     chmod +x .git/hooks/pre-push
+
+# Check for stale links in documentation
+check-links:
+    lychee -- '**/*.md' '**/*.rs'
 
 # Fixes common issues. Files need to be git add'ed
 fix:

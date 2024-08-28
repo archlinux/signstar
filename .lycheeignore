@@ -1,0 +1,5 @@
+# manually curated list of URLs that lychee should not check
+
+# an URL fragment that's used in format! macro
+# see: https://github.com/lycheeverse/lychee/issues/1492
+https://raw.githubusercontent.com/Nitrokey/nethsm-sdk-py/main/tests/%7B%7D
