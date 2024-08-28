@@ -80,7 +80,7 @@ use base64ct::{Base64, Encoding};
 use chrono::{DateTime, Utc};
 use log::{debug, error, info};
 use md5::Md5;
-use nethsm_sdk_rs::apis::configuration::{BasicAuth, Configuration};
+use nethsm_sdk_rs::apis::configuration::Configuration;
 use nethsm_sdk_rs::apis::default_api::{
     config_backup_passphrase_put,
     config_logging_get,
@@ -177,7 +177,6 @@ pub use nethsm_sdk_rs::models::{
 use nethsm_sdk_rs::ureq::{Agent, AgentBuilder};
 use rustls::client::ClientConfig;
 use rustls::crypto::{ring as tls_provider, CryptoProvider};
-use secrecy::{ExposeSecret, SecretString};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use sha1::Sha1;
@@ -204,9 +203,13 @@ mod openpgp;
 pub use openpgp::extract_certificate as extract_openpgp_certificate;
 pub use openpgp::tsk_to_private_key_import;
 pub use openpgp::KeyUsageFlags as OpenPgpKeyUsageFlags;
+
 mod tls;
 pub use tls::{ConnectionSecurity, HostCertificateFingerprints};
 use tls::{DangerIgnoreVerifier, FingerprintVerifier};
+
+mod user;
+pub use user::{Credentials, Passphrase};
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
@@ -242,96 +245,13 @@ pub enum Error {
     #[error("URL invalid: {0}")]
     Url(String),
 
-    /// Unable to convert string slice to Passphrase
-    #[error("Unable to convert string to passphrase")]
-    Passphrase,
+    /// User data error
+    #[error("User data error: {0}")]
+    User(#[from] user::Error),
 
     /// OpenPGP error
     #[error("OpenPGP error: {0}")]
     OpenPgp(#[from] openpgp::Error),
-}
-
-/// Credentials for a [`NetHsm`]
-///
-/// Holds a user ID and an accompanying [`Passphrase`].
-pub struct Credentials {
-    user_id: String,
-    passphrase: Option<Passphrase>,
-}
-
-impl Credentials {
-    /// Creates a new [`Credentials`]
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use nethsm::{Credentials, Passphrase};
-    ///
-    /// let creds = Credentials::new(
-    ///     "operator".to_string(),
-    ///     Some(Passphrase::new("passphrase".to_string())),
-    /// );
-    /// ```
-    pub fn new(user_id: String, passphrase: Option<Passphrase>) -> Self {
-        Self {
-            user_id,
-            passphrase,
-        }
-    }
-}
-
-impl From<Credentials> for BasicAuth {
-    fn from(value: Credentials) -> Self {
-        (value.user_id, value.passphrase.map(|x| x.expose_owned()))
-    }
-}
-
-impl From<&Credentials> for BasicAuth {
-    fn from(value: &Credentials) -> Self {
-        (
-            value.user_id.clone(),
-            value.passphrase.as_ref().map(|x| x.expose_owned()),
-        )
-    }
-}
-
-/// A secret passphrase
-///
-/// The passphrase is held by a [`SecretString`], which guarantees zeroing of memory on
-/// destruct.
-#[derive(Clone, Debug)]
-pub struct Passphrase(SecretString);
-
-impl Passphrase {
-    /// Creates a new [`Passphrase`] from owned [`String`]
-    ///
-    /// # Examples
-    /// ```
-    /// use nethsm::Passphrase;
-    ///
-    /// let passphrase = Passphrase::new("passphrase".to_string());
-    /// ```
-    pub fn new(passphrase: String) -> Self {
-        Self(SecretString::new(passphrase))
-    }
-
-    /// Exposes the secret passphrase as owned [`String`]
-    ///
-    /// This is a convenience function, as much of [`nethsm_sdk_rs`] exclusively deals with owned
-    /// strings.
-    pub fn expose_owned(&self) -> String {
-        self.0.expose_secret().to_owned()
-    }
-}
-
-impl FromStr for Passphrase {
-    type Err = Error;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(Self(
-            SecretString::from_str(s).map_err(|_| Error::Passphrase)?,
-        ))
-    }
 }
 
 /// The URL used for connecting to a NetHSM instance
