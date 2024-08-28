@@ -5,6 +5,7 @@ stages:
   - check
   - test
   - publish
+  - report
 
 check-commits:
   before_script:
@@ -78,3 +79,11 @@ crates_publish:
   stage: publish
   tags:
     - secure
+
+issue-bot:
+  stage: report
+  image: registry.gitlab.com/gitlab-org/distribution/issue-bot:latest
+  script: /issue-bot
+  rules:
+    - if: $CI_COMMIT_REF_NAME == $CI_DEFAULT_BRANCH
+      when: on_failure
