@@ -1,4 +1,4 @@
-use nethsm::{Passphrase, UserRole};
+use nethsm::{Passphrase, UserId, UserRole};
 use rpassword::prompt_password;
 use rprompt::prompt_reply;
 
@@ -39,6 +39,10 @@ pub enum Error {
     /// Getting username failed
     #[error("Unable to get username")]
     UserName,
+
+    /// The user data is not correct
+    #[error("User data is invalid: {0}")]
+    NetHsmUser(#[from] nethsm::UserError),
 }
 
 /// Passphrase prompt
@@ -100,7 +104,7 @@ impl UserPrompt {
     }
 
     /// Prompt for a username
-    pub fn prompt(&self) -> Result<String, Error> {
+    pub fn prompt(&self) -> Result<UserId, Error> {
         let reason = match self.0 {
             UserRole::Administrator => "Name of a user in the \"administrator\" role: ".to_string(),
             UserRole::Backup => "Name of a user in the \"backup\" role: ".to_string(),
@@ -108,7 +112,7 @@ impl UserPrompt {
             UserRole::Operator => "Name of a user in the \"operator\" role: ".to_string(),
         };
 
-        let name = prompt_reply(reason).map_err(|_| Error::UserName)?;
+        let name = UserId::new(prompt_reply(reason).map_err(|_| Error::UserName)?)?;
         Ok(name)
     }
 }

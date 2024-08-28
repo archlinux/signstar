@@ -108,7 +108,7 @@ fn main() -> Result<(), Error> {
                         .get_device(cli.label.as_deref())?
                         .nethsm_with_matching_creds(
                             &[UserRole::Administrator],
-                            cli.user.as_deref(),
+                            cli.user.as_ref(),
                             auth_passphrase,
                         )?;
 
@@ -119,7 +119,7 @@ fn main() -> Result<(), Error> {
                         .get_device(cli.label.as_deref())?
                         .nethsm_with_matching_creds(
                             &[UserRole::Administrator],
-                            cli.user.as_deref(),
+                            cli.user.as_ref(),
                             auth_passphrase,
                         )?;
 
@@ -130,7 +130,7 @@ fn main() -> Result<(), Error> {
                         .get_device(cli.label.as_deref())?
                         .nethsm_with_matching_creds(
                             &[UserRole::Administrator],
-                            cli.user.as_deref(),
+                            cli.user.as_ref(),
                             auth_passphrase,
                         )?;
 
@@ -141,7 +141,7 @@ fn main() -> Result<(), Error> {
                         .get_device(cli.label.as_deref())?
                         .nethsm_with_matching_creds(
                             &[UserRole::Administrator],
-                            cli.user.as_deref(),
+                            cli.user.as_ref(),
                             auth_passphrase,
                         )?;
 
@@ -152,7 +152,7 @@ fn main() -> Result<(), Error> {
                         .get_device(cli.label.as_deref())?
                         .nethsm_with_matching_creds(
                             &[UserRole::Administrator],
-                            cli.user.as_deref(),
+                            cli.user.as_ref(),
                             auth_passphrase,
                         )?;
                     let output = FileOrStdout::new(command.output.as_deref(), command.force)?;
@@ -166,7 +166,7 @@ fn main() -> Result<(), Error> {
                         .get_device(cli.label.as_deref())?
                         .nethsm_with_matching_creds(
                             &[UserRole::Administrator],
-                            cli.user.as_deref(),
+                            cli.user.as_ref(),
                             auth_passphrase,
                         )?;
                     let output = FileOrStdout::new(command.output.as_deref(), command.force)?;
@@ -190,7 +190,7 @@ fn main() -> Result<(), Error> {
                         .get_device(cli.label.as_deref())?
                         .nethsm_with_matching_creds(
                             &[UserRole::Administrator],
-                            cli.user.as_deref(),
+                            cli.user.as_ref(),
                             auth_passphrase,
                         )?;
                     let output = FileOrStdout::new(command.output.as_deref(), command.force)?;
@@ -206,7 +206,7 @@ fn main() -> Result<(), Error> {
                         .get_device(cli.label.as_deref())?
                         .nethsm_with_matching_creds(
                             &[UserRole::Administrator],
-                            cli.user.as_deref(),
+                            cli.user.as_ref(),
                             auth_passphrase,
                         )?;
                     let current_passphrase =
@@ -229,7 +229,7 @@ fn main() -> Result<(), Error> {
                         .get_device(cli.label.as_deref())?
                         .nethsm_with_matching_creds(
                             &[UserRole::Administrator],
-                            cli.user.as_deref(),
+                            cli.user.as_ref(),
                             auth_passphrase,
                         )?;
 
@@ -240,7 +240,7 @@ fn main() -> Result<(), Error> {
                         .get_device(cli.label.as_deref())?
                         .nethsm_with_matching_creds(
                             &[UserRole::Administrator],
-                            cli.user.as_deref(),
+                            cli.user.as_ref(),
                             auth_passphrase,
                         )?;
 
@@ -255,7 +255,7 @@ fn main() -> Result<(), Error> {
                         .get_device(cli.label.as_deref())?
                         .nethsm_with_matching_creds(
                             &[UserRole::Administrator],
-                            cli.user.as_deref(),
+                            cli.user.as_ref(),
                             auth_passphrase,
                         )?;
 
@@ -270,7 +270,7 @@ fn main() -> Result<(), Error> {
                         .get_device(cli.label.as_deref())?
                         .nethsm_with_matching_creds(
                             &[UserRole::Administrator],
-                            cli.user.as_deref(),
+                            cli.user.as_ref(),
                             auth_passphrase,
                         )?;
 
@@ -281,7 +281,7 @@ fn main() -> Result<(), Error> {
                         .get_device(cli.label.as_deref())?
                         .nethsm_with_matching_creds(
                             &[UserRole::Administrator],
-                            cli.user.as_deref(),
+                            cli.user.as_ref(),
                             auth_passphrase,
                         )?;
 
@@ -292,7 +292,7 @@ fn main() -> Result<(), Error> {
                         .get_device(cli.label.as_deref())?
                         .nethsm_with_matching_creds(
                             &[UserRole::Administrator],
-                            cli.user.as_deref(),
+                            cli.user.as_ref(),
                             auth_passphrase,
                         )?;
 
@@ -306,7 +306,7 @@ fn main() -> Result<(), Error> {
                         .get_device(cli.label.as_deref())?
                         .nethsm_with_matching_creds(
                             &[UserRole::Administrator],
-                            cli.user.as_deref(),
+                            cli.user.as_ref(),
                             auth_passphrase,
                         )?;
                     let current_passphrase =
@@ -340,7 +340,7 @@ fn main() -> Result<(), Error> {
                         if let Some(passphrase_file) = command.passphrase_file {
                             Some(passphrase_file.passphrase)
                         } else {
-                            Some(PassphrasePrompt::User(command.name.clone()).prompt()?)
+                            Some(PassphrasePrompt::User(command.name.to_string()).prompt()?)
                         }
                     } else if let Some(passphrase_file) = command.passphrase_file {
                         Some(passphrase_file.passphrase)
@@ -401,21 +401,21 @@ fn main() -> Result<(), Error> {
             HealthCommand::Alive(_command) => {
                 let nethsm = config
                     .get_device(cli.label.as_deref())?
-                    .nethsm_with_matching_creds(&[], cli.user.as_deref(), auth_passphrase)?;
+                    .nethsm_with_matching_creds(&[], cli.user.as_ref(), auth_passphrase)?;
 
                 nethsm.alive()?;
             }
             HealthCommand::Ready(_command) => {
                 let nethsm = config
                     .get_device(cli.label.as_deref())?
-                    .nethsm_with_matching_creds(&[], cli.user.as_deref(), auth_passphrase)?;
+                    .nethsm_with_matching_creds(&[], cli.user.as_ref(), auth_passphrase)?;
 
                 nethsm.ready()?;
             }
             HealthCommand::State(_command) => {
                 let nethsm = config
                     .get_device(cli.label.as_deref())?
-                    .nethsm_with_matching_creds(&[], cli.user.as_deref(), auth_passphrase)?;
+                    .nethsm_with_matching_creds(&[], cli.user.as_ref(), auth_passphrase)?;
 
                 println!("{:?}", nethsm.state()?);
             }
@@ -423,7 +423,7 @@ fn main() -> Result<(), Error> {
         Command::Info(_command) => {
             let nethsm = config
                 .get_device(cli.label.as_deref())?
-                .nethsm_with_matching_creds(&[], cli.user.as_deref(), auth_passphrase)?;
+                .nethsm_with_matching_creds(&[], cli.user.as_ref(), auth_passphrase)?;
 
             println!("{:?}", nethsm.info()?);
         }
@@ -434,7 +434,7 @@ fn main() -> Result<(), Error> {
                         .get_device(cli.label.as_deref())?
                         .nethsm_with_matching_creds(
                             &[UserRole::Administrator],
-                            cli.user.as_deref(),
+                            cli.user.as_ref(),
                             auth_passphrase,
                         )?;
 
@@ -445,7 +445,7 @@ fn main() -> Result<(), Error> {
                         .get_device(cli.label.as_deref())?
                         .nethsm_with_matching_creds(
                             &[UserRole::Operator, UserRole::Administrator],
-                            cli.user.as_deref(),
+                            cli.user.as_ref(),
                             auth_passphrase,
                         )?;
                     let output = FileOrStdout::new(command.output.as_deref(), command.force)?;
@@ -459,7 +459,7 @@ fn main() -> Result<(), Error> {
                         .get_device(cli.label.as_deref())?
                         .nethsm_with_matching_creds(
                             &[UserRole::Administrator],
-                            cli.user.as_deref(),
+                            cli.user.as_ref(),
                             auth_passphrase,
                         )?;
 
@@ -471,7 +471,7 @@ fn main() -> Result<(), Error> {
                     .get_device(cli.label.as_deref())?
                     .nethsm_with_matching_creds(
                         &[UserRole::Administrator, UserRole::Operator],
-                        cli.user.as_deref(),
+                        cli.user.as_ref(),
                         auth_passphrase,
                     )?;
                 let output = FileOrStdout::new(command.output.as_deref(), command.force)?;
@@ -498,7 +498,7 @@ fn main() -> Result<(), Error> {
                     .get_device(cli.label.as_deref())?
                     .nethsm_with_matching_creds(
                         &[UserRole::Operator],
-                        cli.user.as_deref(),
+                        cli.user.as_ref(),
                         auth_passphrase,
                     )?;
                 // NOTE: IV can not be zero length or None when decrypting
@@ -521,7 +521,7 @@ fn main() -> Result<(), Error> {
                     .get_device(cli.label.as_deref())?
                     .nethsm_with_matching_creds(
                         &[UserRole::Operator],
-                        cli.user.as_deref(),
+                        cli.user.as_ref(),
                         auth_passphrase,
                     )?;
                 // NOTE: IV can not be zero length or None when decrypting
@@ -548,7 +548,7 @@ fn main() -> Result<(), Error> {
                     .get_device(cli.label.as_deref())?
                     .nethsm_with_matching_creds(
                         &[UserRole::Administrator],
-                        cli.user.as_deref(),
+                        cli.user.as_ref(),
                         auth_passphrase,
                     )?;
 
@@ -568,7 +568,7 @@ fn main() -> Result<(), Error> {
                     .get_device(cli.label.as_deref())?
                     .nethsm_with_matching_creds(
                         &[UserRole::Administrator, UserRole::Operator],
-                        cli.user.as_deref(),
+                        cli.user.as_ref(),
                         auth_passphrase,
                     )?;
 
@@ -579,7 +579,7 @@ fn main() -> Result<(), Error> {
                     .get_device(cli.label.as_deref())?
                     .nethsm_with_matching_creds(
                         &[UserRole::Administrator],
-                        cli.user.as_deref(),
+                        cli.user.as_ref(),
                         auth_passphrase,
                     )?;
                 let key_data = match command.format {
@@ -608,7 +608,7 @@ fn main() -> Result<(), Error> {
                     .get_device(cli.label.as_deref())?
                     .nethsm_with_matching_creds(
                         &[UserRole::Administrator, UserRole::Operator],
-                        cli.user.as_deref(),
+                        cli.user.as_ref(),
                         auth_passphrase,
                     )?;
 
@@ -622,7 +622,7 @@ fn main() -> Result<(), Error> {
                     .get_device(cli.label.as_deref())?
                     .nethsm_with_matching_creds(
                         &[UserRole::Administrator, UserRole::Operator],
-                        cli.user.as_deref(),
+                        cli.user.as_ref(),
                         auth_passphrase,
                     )?;
                 let output = FileOrStdout::new(command.output.as_deref(), command.force)?;
@@ -636,7 +636,7 @@ fn main() -> Result<(), Error> {
                     .get_device(cli.label.as_deref())?
                     .nethsm_with_matching_creds(
                         &[UserRole::Administrator],
-                        cli.user.as_deref(),
+                        cli.user.as_ref(),
                         auth_passphrase,
                     )?;
 
@@ -647,7 +647,7 @@ fn main() -> Result<(), Error> {
                     .get_device(cli.label.as_deref())?
                     .nethsm_with_matching_creds(
                         &[UserRole::Operator],
-                        cli.user.as_deref(),
+                        cli.user.as_ref(),
                         auth_passphrase,
                     )?;
                 let output = FileOrStdout::new(command.output.as_deref(), command.force)?;
@@ -667,7 +667,7 @@ fn main() -> Result<(), Error> {
                     .get_device(cli.label.as_deref())?
                     .nethsm_with_matching_creds(
                         &[UserRole::Administrator],
-                        cli.user.as_deref(),
+                        cli.user.as_ref(),
                         auth_passphrase,
                     )?;
 
@@ -678,7 +678,7 @@ fn main() -> Result<(), Error> {
                     .get_device(cli.label.as_deref())?
                     .nethsm_with_matching_creds(
                         &[UserRole::Administrator],
-                        cli.user.as_deref(),
+                        cli.user.as_ref(),
                         auth_passphrase,
                     )?;
 
@@ -690,7 +690,7 @@ fn main() -> Result<(), Error> {
                 .get_device(cli.label.as_deref())?
                 .nethsm_with_matching_creds(
                     &[UserRole::Administrator],
-                    cli.user.as_deref(),
+                    cli.user.as_ref(),
                     auth_passphrase,
                 )?;
 
@@ -701,7 +701,7 @@ fn main() -> Result<(), Error> {
                 .get_device(cli.label.as_deref())?
                 .nethsm_with_matching_creds(
                     &[UserRole::Metrics],
-                    cli.user.as_deref(),
+                    cli.user.as_ref(),
                     auth_passphrase,
                 )?;
 
@@ -724,7 +724,7 @@ fn main() -> Result<(), Error> {
                     .get_device(cli.label.as_deref())?
                     .nethsm_with_matching_creds(
                         &[UserRole::Operator],
-                        cli.user.as_deref(),
+                        cli.user.as_ref(),
                         auth_passphrase.clone(),
                     )?;
 
@@ -739,7 +739,7 @@ fn main() -> Result<(), Error> {
                     .get_device(cli.label.as_deref())?
                     .nethsm_with_matching_creds(
                         &[UserRole::Administrator],
-                        cli.user.as_deref(),
+                        cli.user.as_ref(),
                         auth_passphrase,
                     )?;
 
@@ -750,7 +750,7 @@ fn main() -> Result<(), Error> {
                     .get_device(cli.label.as_deref())?
                     .nethsm_with_matching_creds(
                         &[UserRole::Administrator],
-                        cli.user.as_deref(),
+                        cli.user.as_ref(),
                         auth_passphrase,
                     )?;
                 let private_key = &read(command.tsk_file)?;
@@ -772,7 +772,7 @@ fn main() -> Result<(), Error> {
                     .get_device(cli.label.as_deref())?
                     .nethsm_with_matching_creds(
                         &[UserRole::Operator],
-                        cli.user.as_deref(),
+                        cli.user.as_ref(),
                         auth_passphrase,
                     )?;
 
@@ -788,7 +788,7 @@ fn main() -> Result<(), Error> {
         Command::Provision(command) => {
             let nethsm = config
                 .get_device(cli.label.as_deref())?
-                .nethsm_with_matching_creds(&[], cli.user.as_deref(), auth_passphrase)?;
+                .nethsm_with_matching_creds(&[], cli.user.as_ref(), auth_passphrase)?;
             let unlock_passphrase = if let Some(passphrase_file) = command.unlock_passphrase_file {
                 passphrase_file.passphrase
             } else {
@@ -811,7 +811,7 @@ fn main() -> Result<(), Error> {
                 .get_device(cli.label.as_deref())?
                 .nethsm_with_matching_creds(
                     &[UserRole::Operator],
-                    cli.user.as_deref(),
+                    cli.user.as_ref(),
                     auth_passphrase,
                 )?;
             let output = FileOrStdout::new(command.output.as_deref(), command.force)?;
@@ -830,7 +830,7 @@ fn main() -> Result<(), Error> {
                 };
                 let nethsm = device_config.nethsm_with_matching_creds(
                     &[UserRole::Backup],
-                    cli.user.as_deref(),
+                    cli.user.as_ref(),
                     auth_passphrase,
                 )?;
                 let output = FileOrStdout::new(
@@ -852,7 +852,7 @@ fn main() -> Result<(), Error> {
                     .get_device(cli.label.as_deref())?
                     .nethsm_with_matching_creds(
                         &[UserRole::Administrator],
-                        cli.user.as_deref(),
+                        cli.user.as_ref(),
                         auth_passphrase,
                     )?;
 
@@ -863,7 +863,7 @@ fn main() -> Result<(), Error> {
                     .get_device(cli.label.as_deref())?
                     .nethsm_with_matching_creds(
                         &[UserRole::Administrator],
-                        cli.user.as_deref(),
+                        cli.user.as_ref(),
                         auth_passphrase,
                     )?;
 
@@ -874,7 +874,7 @@ fn main() -> Result<(), Error> {
                     .get_device(cli.label.as_deref())?
                     .nethsm_with_matching_creds(
                         &[UserRole::Administrator],
-                        cli.user.as_deref(),
+                        cli.user.as_ref(),
                         auth_passphrase,
                     )?;
 
@@ -885,7 +885,7 @@ fn main() -> Result<(), Error> {
                     .get_device(cli.label.as_deref())?
                     .nethsm_with_matching_creds(
                         &[UserRole::Administrator],
-                        cli.user.as_deref(),
+                        cli.user.as_ref(),
                         auth_passphrase,
                     )?;
 
@@ -896,7 +896,7 @@ fn main() -> Result<(), Error> {
                     .get_device(cli.label.as_deref())?
                     .nethsm_with_matching_creds(
                         &[UserRole::Administrator],
-                        cli.user.as_deref(),
+                        cli.user.as_ref(),
                         auth_passphrase,
                     )?;
 
@@ -907,7 +907,7 @@ fn main() -> Result<(), Error> {
                     .get_device(cli.label.as_deref())?
                     .nethsm_with_matching_creds(
                         &[UserRole::Administrator],
-                        cli.user.as_deref(),
+                        cli.user.as_ref(),
                         auth_passphrase,
                     )?;
                 let backup_passphrase =
@@ -928,7 +928,7 @@ fn main() -> Result<(), Error> {
                     .get_device(cli.label.as_deref())?
                     .nethsm_with_matching_creds(
                         &[UserRole::Administrator],
-                        cli.user.as_deref(),
+                        cli.user.as_ref(),
                         auth_passphrase,
                     )?;
 
@@ -939,7 +939,7 @@ fn main() -> Result<(), Error> {
                     .get_device(cli.label.as_deref())?
                     .nethsm_with_matching_creds(
                         &[UserRole::Administrator],
-                        cli.user.as_deref(),
+                        cli.user.as_ref(),
                         auth_passphrase,
                     )?;
 
@@ -949,7 +949,7 @@ fn main() -> Result<(), Error> {
         Command::Unlock(command) => {
             let nethsm = config
                 .get_device(cli.label.as_deref())?
-                .nethsm_with_matching_creds(&[], cli.user.as_deref(), auth_passphrase)?;
+                .nethsm_with_matching_creds(&[], cli.user.as_ref(), auth_passphrase)?;
             let unlock_passphrase = if let Some(passphrase_file) = command.unlock_passphrase_file {
                 passphrase_file.passphrase
             } else {
@@ -964,7 +964,7 @@ fn main() -> Result<(), Error> {
                     .get_device(cli.label.as_deref())?
                     .nethsm_with_matching_creds(
                         &[UserRole::Administrator],
-                        cli.user.as_deref(),
+                        cli.user.as_ref(),
                         auth_passphrase,
                     )?;
                 let passphrase = if let Some(passphrase_file) = command.passphrase_file {
@@ -993,7 +993,7 @@ fn main() -> Result<(), Error> {
                     .get_device(cli.label.as_deref())?
                     .nethsm_with_matching_creds(
                         &[UserRole::Administrator],
-                        cli.user.as_deref(),
+                        cli.user.as_ref(),
                         auth_passphrase,
                     )?;
 
@@ -1009,7 +1009,7 @@ fn main() -> Result<(), Error> {
                     .get_device(cli.label.as_deref())?
                     .nethsm_with_matching_creds(
                         &[UserRole::Administrator],
-                        cli.user.as_deref(),
+                        cli.user.as_ref(),
                         auth_passphrase,
                     )?;
 
@@ -1023,23 +1023,23 @@ fn main() -> Result<(), Error> {
                     .get_device(cli.label.as_deref())?
                     .nethsm_with_matching_creds(
                         &[UserRole::Administrator],
-                        cli.user.as_deref(),
+                        cli.user.as_ref(),
                         auth_passphrase,
                     )?;
                 let passphrase = if let Some(passphrase_file) = command.passphrase_file {
                     passphrase_file.passphrase
                 } else {
-                    PassphrasePrompt::NewUser(command.name.clone()).prompt()?
+                    PassphrasePrompt::NewUser(command.name.to_string()).prompt()?
                 };
 
-                nethsm.set_user_passphrase(&command.name, passphrase)?;
+                nethsm.set_user_passphrase(command.name, passphrase)?;
             }
             UserCommand::Remove(command) => {
                 let nethsm = config
                     .get_device(cli.label.as_deref())?
                     .nethsm_with_matching_creds(
                         &[UserRole::Administrator],
-                        cli.user.as_deref(),
+                        cli.user.as_ref(),
                         auth_passphrase,
                     )?;
 
@@ -1050,7 +1050,7 @@ fn main() -> Result<(), Error> {
                     .get_device(cli.label.as_deref())?
                     .nethsm_with_matching_creds(
                         &[UserRole::Administrator],
-                        cli.user.as_deref(),
+                        cli.user.as_ref(),
                         auth_passphrase,
                     )?;
 
@@ -1061,7 +1061,7 @@ fn main() -> Result<(), Error> {
                     .get_device(cli.label.as_deref())?
                     .nethsm_with_matching_creds(
                         &[UserRole::Administrator],
-                        cli.user.as_deref(),
+                        cli.user.as_ref(),
                         auth_passphrase,
                     )?;
 

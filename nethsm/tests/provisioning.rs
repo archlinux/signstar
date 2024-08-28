@@ -23,7 +23,7 @@ async fn initial_provisioning(
 ) -> TestResult {
     let (nethsm, _container) = unprovisioned_nethsm.await?;
 
-    nethsm.remove_credentials("admin");
+    nethsm.remove_credentials(&ADMIN_USER_ID.parse()?);
 
     let info = nethsm.info()?;
     println!("The NetHSM info: {:?}", info);
@@ -53,10 +53,10 @@ async fn initial_provisioning(
 
     // now the admin credentials are needed
     nethsm.add_credentials(Credentials::new(
-        ADMIN_USER_ID.to_string(),
+        ADMIN_USER_ID.parse()?,
         Some(Passphrase::new(ADMIN_USER_PASSPHRASE.to_string())),
     ));
-    nethsm.use_credentials(ADMIN_USER_ID)?;
+    nethsm.use_credentials(&ADMIN_USER_ID.parse()?)?;
 
     nethsm.lock()?;
     assert!(nethsm.state()? == SystemState::Locked);
@@ -70,7 +70,7 @@ async fn initial_provisioning(
     )?;
 
     nethsm.lock()?;
-    nethsm.remove_credentials("admin");
+    nethsm.remove_credentials(&ADMIN_USER_ID.parse()?);
     nethsm.unlock(Passphrase::new(new_unlock_passphrase.to_string()))?;
     assert!(nethsm.state()? == SystemState::Operational);
 

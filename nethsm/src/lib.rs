@@ -45,7 +45,7 @@
 //! let nethsm = NetHsm::new(
 //!     "https://example.org/api/v1".try_into()?,
 //!     ConnectionSecurity::Unsafe,
-//!     Some(Credentials::new("admin".to_string(), Some(Passphrase::new("passphrase".to_string())))),
+//!     Some(Credentials::new("admin".parse()?, Some(Passphrase::new("passphrase".to_string())))),
 //!     None,
 //!     None,
 //! )?;
@@ -59,11 +59,11 @@
 //!     None,
 //! )?;
 //!
-//! nethsm.add_credentials(Credentials::new("admin".to_string(), Some(Passphrase::new("passphrase".to_string()))));
-//! nethsm.add_credentials(Credentials::new("user1".to_string(), Some(Passphrase::new("other_passphrase".to_string()))));
+//! nethsm.add_credentials(Credentials::new("admin".parse()?, Some(Passphrase::new("passphrase".to_string()))));
+//! nethsm.add_credentials(Credentials::new("user1".parse()?, Some(Passphrase::new("other_passphrase".to_string()))));
 //!
 //! // A set of credentials must be used before establishing a connection with the configured NetHSM
-//! nethsm.use_credentials("user1")?;
+//! nethsm.use_credentials(&"user1".parse()?)?;
 //! # Ok(())
 //! # }
 //! ```
@@ -209,7 +209,8 @@ pub use tls::{ConnectionSecurity, HostCertificateFingerprints};
 use tls::{DangerIgnoreVerifier, FingerprintVerifier};
 
 mod user;
-pub use user::{Credentials, Passphrase};
+pub use user::Error as UserError;
+pub use user::{Credentials, NamespaceId, Passphrase, UserId};
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
@@ -374,9 +375,9 @@ pub struct NetHsm {
     /// The URL path for the target API
     url: RefCell<Url>,
     /// The default credentials to use for requests
-    current_credentials: RefCell<Option<String>>,
+    current_credentials: RefCell<Option<UserId>>,
     /// The list of all available credentials
-    credentials: RefCell<HashMap<String, Credentials>>,
+    credentials: RefCell<HashMap<UserId, Credentials>>,
 }
 
 impl NetHsm {
@@ -555,14 +556,14 @@ impl NetHsm {
     ///
     /// // add credentials
     /// nethsm.add_credentials(Credentials::new(
-    ///     "admin".to_string(),
+    ///     "admin".parse()?,
     ///     Some(Passphrase::new("passphrase".to_string())),
     /// ));
     /// nethsm.add_credentials(Credentials::new(
-    ///     "user1".to_string(),
+    ///     "user1".parse()?,
     ///     Some(Passphrase::new("other_passphrase".to_string())),
     /// ));
-    /// nethsm.add_credentials(Credentials::new("user2".to_string(), None));
+    /// nethsm.add_credentials(Credentials::new("user2".parse()?, None));
     /// # Ok(())
     /// # }
     /// ```
@@ -590,7 +591,7 @@ impl NetHsm {
     ///     "https://example.org/api/v1".try_into()?,
     ///     ConnectionSecurity::Unsafe,
     ///     Some(Credentials::new(
-    ///         "admin".to_string(),
+    ///         "admin".parse()?,
     ///         Some(Passphrase::new("passphrase".to_string())),
     ///     )),
     ///     None,
@@ -598,11 +599,11 @@ impl NetHsm {
     /// )?;
     ///
     /// // remove credentials
-    /// nethsm.remove_credentials("admin");
+    /// nethsm.remove_credentials(&"admin".parse()?);
     /// # Ok(())
     /// # }
     /// ```
-    pub fn remove_credentials(&self, user_id: &str) {
+    pub fn remove_credentials(&self, user_id: &UserId) {
         self.credentials.borrow_mut().remove(user_id);
         if self
             .current_credentials
@@ -637,26 +638,26 @@ impl NetHsm {
     ///
     /// // add credentials
     /// nethsm.add_credentials(Credentials::new(
-    ///     "admin".to_string(),
+    ///     "admin".parse()?,
     ///     Some(Passphrase::new("passphrase".to_string())),
     /// ));
     /// nethsm.add_credentials(Credentials::new(
-    ///     "user1".to_string(),
+    ///     "user1".parse()?,
     ///     Some(Passphrase::new("other_passphrase".to_string())),
     /// ));
     ///
     /// // use admin credentials
-    /// nethsm.use_credentials("admin")?;
+    /// nethsm.use_credentials(&"admin".parse()?)?;
     ///
     /// // use operator credentials
-    /// nethsm.use_credentials("user1")?;
+    /// nethsm.use_credentials(&"user1".parse()?)?;
     ///
     /// // this fails, because the user has not been added yet
-    /// assert!(nethsm.use_credentials("user2").is_err());
+    /// assert!(nethsm.use_credentials(&"user2".parse()?).is_err());
     /// # Ok(())
     /// # }
     /// ```
-    pub fn use_credentials(&self, user_id: &str) -> Result<(), Error> {
+    pub fn use_credentials(&self, user_id: &UserId) -> Result<(), Error> {
         if self.credentials.borrow().contains_key(user_id) {
             if self.current_credentials.borrow().as_ref().is_none()
                 || self
@@ -929,7 +930,7 @@ impl NetHsm {
     ///     "https://example.org/api/v1".try_into()?,
     ///     ConnectionSecurity::Unsafe,
     ///     Some(Credentials::new(
-    ///         "metrics".to_string(),
+    ///         "metrics".parse()?,
     ///         Some(Passphrase::new("metrics-passphrase".to_string())),
     ///     )),
     ///     None,
@@ -977,7 +978,7 @@ impl NetHsm {
     ///     "https://example.org/api/v1".try_into()?,
     ///     ConnectionSecurity::Unsafe,
     ///     Some(Credentials::new(
-    ///         "admin".to_string(),
+    ///         "admin".parse()?,
     ///         Some(Passphrase::new("passphrase".to_string())),
     ///     )),
     ///     None,
@@ -1038,7 +1039,7 @@ impl NetHsm {
     ///     "https://example.org/api/v1".try_into()?,
     ///     ConnectionSecurity::Unsafe,
     ///     Some(Credentials::new(
-    ///         "admin".to_string(),
+    ///         "admin".parse()?,
     ///         Some(Passphrase::new("passphrase".to_string())),
     ///     )),
     ///     None,
@@ -1088,7 +1089,7 @@ impl NetHsm {
     ///     "https://example.org/api/v1".try_into()?,
     ///     ConnectionSecurity::Unsafe,
     ///     Some(Credentials::new(
-    ///         "admin".to_string(),
+    ///         "admin".parse()?,
     ///         Some(Passphrase::new("passphrase".to_string())),
     ///     )),
     ///     None,
@@ -1141,7 +1142,7 @@ impl NetHsm {
     ///     "https://example.org/api/v1".try_into()?,
     ///     ConnectionSecurity::Unsafe,
     ///     Some(Credentials::new(
-    ///         "admin".to_string(),
+    ///         "admin".parse()?,
     ///         Some(Passphrase::new("passphrase".to_string())),
     ///     )),
     ///     None,
@@ -1189,7 +1190,7 @@ impl NetHsm {
     ///     "https://example.org/api/v1".try_into()?,
     ///     ConnectionSecurity::Unsafe,
     ///     Some(Credentials::new(
-    ///         "admin".to_string(),
+    ///         "admin".parse()?,
     ///         Some(Passphrase::new("passphrase".to_string())),
     ///     )),
     ///     None,
@@ -1240,7 +1241,7 @@ impl NetHsm {
     ///     "https://example.org/api/v1".try_into()?,
     ///     ConnectionSecurity::Unsafe,
     ///     Some(Credentials::new(
-    ///         "admin".to_string(),
+    ///         "admin".parse()?,
     ///         Some(Passphrase::new("passphrase".to_string())),
     ///     )),
     ///     None,
@@ -1304,7 +1305,7 @@ impl NetHsm {
     ///     "https://example.org/api/v1".try_into()?,
     ///     ConnectionSecurity::Unsafe,
     ///     Some(Credentials::new(
-    ///         "admin".to_string(),
+    ///         "admin".parse()?,
     ///         Some(Passphrase::new("passphrase".to_string())),
     ///     )),
     ///     None,
@@ -1365,7 +1366,7 @@ impl NetHsm {
     ///     "https://example.org/api/v1".try_into()?,
     ///     ConnectionSecurity::Unsafe,
     ///     Some(Credentials::new(
-    ///         "admin".to_string(),
+    ///         "admin".parse()?,
     ///         Some(Passphrase::new("passphrase".to_string())),
     ///     )),
     ///     None,
@@ -1425,7 +1426,7 @@ impl NetHsm {
     ///     "https://example.org/api/v1".try_into()?,
     ///     ConnectionSecurity::Unsafe,
     ///     Some(Credentials::new(
-    ///         "admin".to_string(),
+    ///         "admin".parse()?,
     ///         Some(Passphrase::new("passphrase".to_string())),
     ///     )),
     ///     None,
@@ -1475,7 +1476,7 @@ impl NetHsm {
     ///     "https://example.org/api/v1".try_into()?,
     ///     ConnectionSecurity::Unsafe,
     ///     Some(Credentials::new(
-    ///         "admin".to_string(),
+    ///         "admin".parse()?,
     ///         Some(Passphrase::new("passphrase".to_string())),
     ///     )),
     ///     None,
@@ -1528,7 +1529,7 @@ impl NetHsm {
     ///     "https://example.org/api/v1".try_into()?,
     ///     ConnectionSecurity::Unsafe,
     ///     Some(Credentials::new(
-    ///         "admin".to_string(),
+    ///         "admin".parse()?,
     ///         Some(Passphrase::new("passphrase".to_string())),
     ///     )),
     ///     None,
@@ -1579,7 +1580,7 @@ impl NetHsm {
     ///     "https://example.org/api/v1".try_into()?,
     ///     ConnectionSecurity::Unsafe,
     ///     Some(Credentials::new(
-    ///         "admin".to_string(),
+    ///         "admin".parse()?,
     ///         Some(Passphrase::new("passphrase".to_string())),
     ///     )),
     ///     None,
@@ -1631,7 +1632,7 @@ impl NetHsm {
     ///     "https://example.org/api/v1".try_into()?,
     ///     ConnectionSecurity::Unsafe,
     ///     Some(Credentials::new(
-    ///         "admin".to_string(),
+    ///         "admin".parse()?,
     ///         Some(Passphrase::new("passphrase".to_string())),
     ///     )),
     ///     None,
@@ -1684,7 +1685,7 @@ impl NetHsm {
     ///     "https://example.org/api/v1".try_into()?,
     ///     ConnectionSecurity::Unsafe,
     ///     Some(Credentials::new(
-    ///         "admin".to_string(),
+    ///         "admin".parse()?,
     ///         Some(Passphrase::new("passphrase".to_string())),
     ///     )),
     ///     None,
@@ -1745,7 +1746,7 @@ impl NetHsm {
     ///     "https://example.org/api/v1".try_into()?,
     ///     ConnectionSecurity::Unsafe,
     ///     Some(Credentials::new(
-    ///         "admin".to_string(),
+    ///         "admin".parse()?,
     ///         Some(Passphrase::new("passphrase".to_string())),
     ///     )),
     ///     None,
@@ -1810,7 +1811,7 @@ impl NetHsm {
     ///     "https://example.org/api/v1".try_into()?,
     ///     ConnectionSecurity::Unsafe,
     ///     Some(Credentials::new(
-    ///         "admin".to_string(),
+    ///         "admin".parse()?,
     ///         Some(Passphrase::new("passphrase".to_string())),
     ///     )),
     ///     None,
@@ -1861,7 +1862,7 @@ impl NetHsm {
     ///     "https://example.org/api/v1".try_into()?,
     ///     ConnectionSecurity::Unsafe,
     ///     Some(Credentials::new(
-    ///         "admin".to_string(),
+    ///         "admin".parse()?,
     ///         Some(Passphrase::new("passphrase".to_string())),
     ///     )),
     ///     None,
@@ -1923,7 +1924,7 @@ impl NetHsm {
     ///     "https://example.org/api/v1".try_into()?,
     ///     ConnectionSecurity::Unsafe,
     ///     Some(Credentials::new(
-    ///         "admin".to_string(),
+    ///         "admin".parse()?,
     ///         Some(Passphrase::new("passphrase".to_string())),
     ///     )),
     ///     None,
@@ -1989,7 +1990,7 @@ impl NetHsm {
     ///     "https://example.org/api/v1".try_into()?,
     ///     ConnectionSecurity::Unsafe,
     ///     Some(Credentials::new(
-    ///         "admin".to_string(),
+    ///         "admin".parse()?,
     ///         Some(Passphrase::new("passphrase".to_string())),
     ///     )),
     ///     None,
@@ -2089,7 +2090,7 @@ impl NetHsm {
     ///     "https://example.org/api/v1".try_into()?,
     ///     ConnectionSecurity::Unsafe,
     ///     Some(Credentials::new(
-    ///         "admin".to_string(),
+    ///         "admin".parse()?,
     ///         Some(Passphrase::new("passphrase".to_string())),
     ///     )),
     ///     None,
@@ -2139,7 +2140,7 @@ impl NetHsm {
     ///     "https://example.org/api/v1".try_into()?,
     ///     ConnectionSecurity::Unsafe,
     ///     Some(Credentials::new(
-    ///         "admin".to_string(),
+    ///         "admin".parse()?,
     ///         Some(Passphrase::new("passphrase".to_string())),
     ///     )),
     ///     None,
@@ -2188,7 +2189,7 @@ impl NetHsm {
     ///     "https://example.org/api/v1".try_into()?,
     ///     ConnectionSecurity::Unsafe,
     ///     Some(Credentials::new(
-    ///         "admin".to_string(),
+    ///         "admin".parse()?,
     ///         Some(Passphrase::new("passphrase".to_string())),
     ///     )),
     ///     None,
@@ -2243,7 +2244,7 @@ impl NetHsm {
     ///     "https://example.org/api/v1".try_into()?,
     ///     ConnectionSecurity::Unsafe,
     ///     Some(Credentials::new(
-    ///         "admin".to_string(),
+    ///         "admin".parse()?,
     ///         Some(Passphrase::new("passphrase".to_string())),
     ///     )),
     ///     None,
@@ -2300,7 +2301,7 @@ impl NetHsm {
     ///     "https://example.org/api/v1".try_into()?,
     ///     ConnectionSecurity::Unsafe,
     ///     Some(Credentials::new(
-    ///         "admin".to_string(),
+    ///         "admin".parse()?,
     ///         Some(Passphrase::new("passphrase".to_string())),
     ///     )),
     ///     None,
@@ -2356,7 +2357,7 @@ impl NetHsm {
     ///     "https://example.org/api/v1".try_into()?,
     ///     ConnectionSecurity::Unsafe,
     ///     Some(Credentials::new(
-    ///         "admin".to_string(),
+    ///         "admin".parse()?,
     ///         Some(Passphrase::new("passphrase".to_string())),
     ///     )),
     ///     None,
@@ -2417,7 +2418,7 @@ impl NetHsm {
     ///     "https://example.org/api/v1".try_into()?,
     ///     ConnectionSecurity::Unsafe,
     ///     Some(Credentials::new(
-    ///         "admin".to_string(),
+    ///         "admin".parse()?,
     ///         Some(Passphrase::new("passphrase".to_string())),
     ///     )),
     ///     None,
@@ -2429,29 +2430,28 @@ impl NetHsm {
     ///     "Namespace1 Admin".to_string(),
     ///     UserRole::Administrator,
     ///     Passphrase::new("namespace1-admin-passphrase".to_string()),
-    ///     Some("namespace1~admin1".to_string()),
+    ///     Some("namespace1~admin1".parse()?),
     /// )?;
     /// // create accompanying namespace
-    /// nethsm.add_namespace("namespace1")?;
+    /// nethsm.add_namespace(&"namespace1".parse()?)?;
     ///
     /// // N-Administrator can not create namespaces
-    /// nethsm.use_credentials("namespace1~admin1")?;
-    /// assert!(nethsm.add_namespace("namespace2").is_err());
+    /// nethsm.use_credentials(&"namespace1~admin1".parse()?)?;
+    /// assert!(nethsm.add_namespace(&"namespace2".parse()?).is_err());
     /// # Ok(())
     /// # }
     /// ```
     /// [namespace]: https://docs.nitrokey.com/nethsm/administration#namespaces
     /// [role]: https://docs.nitrokey.com/nethsm/administration#roles
     /// [state]: https://docs.nitrokey.com/nethsm/administration#state
-    pub fn add_namespace(&self, namespace_id: &str) -> Result<(), Error> {
-        namespaces_namespace_id_put(&self.create_connection_config(), namespace_id).map_err(
-            |error| {
+    pub fn add_namespace(&self, namespace_id: &NamespaceId) -> Result<(), Error> {
+        namespaces_namespace_id_put(&self.create_connection_config(), &namespace_id.to_string())
+            .map_err(|error| {
                 Error::Api(format!(
                     "Adding namespace failed: {}",
                     NetHsmApiError::from(error)
                 ))
-            },
-        )?;
+            })?;
         Ok(())
     }
 
@@ -2480,7 +2480,7 @@ impl NetHsm {
     ///     "https://example.org/api/v1".try_into()?,
     ///     ConnectionSecurity::Unsafe,
     ///     Some(Credentials::new(
-    ///         "admin".to_string(),
+    ///         "admin".parse()?,
     ///         Some(Passphrase::new("passphrase".to_string())),
     ///     )),
     ///     None,
@@ -2495,13 +2495,13 @@ impl NetHsm {
     ///     "Namespace1 Admin".to_string(),
     ///     UserRole::Administrator,
     ///     Passphrase::new("namespace1-admin-passphrase".to_string()),
-    ///     Some("namespace1~admin1".to_string()),
+    ///     Some("namespace1~admin1".parse()?),
     /// )?;
     /// // create accompanying namespace
-    /// nethsm.add_namespace("namespace1")?;
+    /// nethsm.add_namespace(&"namespace1".parse()?)?;
     ///
     /// // N-Administrator can not get namespaces
-    /// nethsm.use_credentials("namespace1~admin1")?;
+    /// nethsm.use_credentials(&"namespace1~admin1".parse()?)?;
     /// assert!(nethsm.get_namespaces().is_err());
     /// # Ok(())
     /// # }
@@ -2556,7 +2556,7 @@ impl NetHsm {
     ///     "https://example.org/api/v1".try_into()?,
     ///     ConnectionSecurity::Unsafe,
     ///     Some(Credentials::new(
-    ///         "admin".to_string(),
+    ///         "admin".parse()?,
     ///         Some(Passphrase::new("passphrase".to_string())),
     ///     )),
     ///     None,
@@ -2567,33 +2567,32 @@ impl NetHsm {
     ///     "Namespace1 Admin".to_string(),
     ///     UserRole::Administrator,
     ///     Passphrase::new("namespace1-admin-passphrase".to_string()),
-    ///     Some("namespace1~admin1".to_string()),
+    ///     Some("namespace1~admin1".parse()?),
     /// )?;
     /// // create accompanying namespace
-    /// nethsm.add_namespace("namespace1")?;
+    /// nethsm.add_namespace(&"namespace1".parse()?)?;
     ///
     /// // N-Administrators can not delete namespaces
-    /// nethsm.use_credentials("namespace1~admin1")?;
-    /// assert!(nethsm.delete_namespace("namespace1").is_err());
+    /// nethsm.use_credentials(&"namespace1~admin1".parse()?)?;
+    /// assert!(nethsm.delete_namespace(&"namespace1".parse()?).is_err());
     ///
     /// // R-Administrators can delete namespaces
-    /// nethsm.use_credentials("admin")?;
-    /// nethsm.delete_namespace("namespace1")?;
+    /// nethsm.use_credentials(&"admin".parse()?)?;
+    /// nethsm.delete_namespace(&"namespace1".parse()?)?;
     /// # Ok(())
     /// # }
     /// ```
     /// [namespace]: https://docs.nitrokey.com/nethsm/administration#namespaces
     /// [role]: https://docs.nitrokey.com/nethsm/administration#roles
     /// [state]: https://docs.nitrokey.com/nethsm/administration#state
-    pub fn delete_namespace(&self, namespace_id: &str) -> Result<(), Error> {
-        namespaces_namespace_id_delete(&self.create_connection_config(), namespace_id).map_err(
-            |error| {
+    pub fn delete_namespace(&self, namespace_id: &NamespaceId) -> Result<(), Error> {
+        namespaces_namespace_id_delete(&self.create_connection_config(), &namespace_id.to_string())
+            .map_err(|error| {
                 Error::Api(format!(
                     "Deleting namespace failed: {}",
                     NetHsmApiError::from(error)
                 ))
-            },
-        )?;
+            })?;
         Ok(())
     }
 
@@ -2623,7 +2622,7 @@ impl NetHsm {
     ///
     /// ```no_run
     /// # use testresult::TestResult;
-    /// use nethsm::{ConnectionSecurity, Credentials, Error, NetHsm, Passphrase, UserRole};
+    /// use nethsm::{ConnectionSecurity, Credentials, Error, NetHsm, Passphrase, UserId, UserRole};
     ///
     /// # fn main() -> TestResult {
     /// // create a connection with a user in the "admin" role
@@ -2631,7 +2630,7 @@ impl NetHsm {
     ///     "https://example.org/api/v1".try_into()?,
     ///     ConnectionSecurity::Unsafe,
     ///     Some(Credentials::new(
-    ///         "admin".to_string(),
+    ///         "admin".parse()?,
     ///         Some(Passphrase::new("passphrase".to_string())),
     ///     )),
     ///     None,
@@ -2640,12 +2639,12 @@ impl NetHsm {
     ///
     /// // add a user in the operator role
     /// assert_eq!(
-    ///     "user1",
+    ///     UserId::new("user1".to_string())?,
     ///     nethsm.add_user(
     ///         "Operator One".to_string(),
     ///         UserRole::Operator,
     ///         Passphrase::new("operator1-passphrase".to_string()),
-    ///         Some("user1".to_string()),
+    ///         Some("user1".parse()?),
     ///     )?
     /// );
     ///
@@ -2655,7 +2654,7 @@ impl NetHsm {
     ///         "Operator One".to_string(),
     ///         UserRole::Operator,
     ///         Passphrase::new("operator1-passphrase".to_string()),
-    ///         Some("user1".to_string()),
+    ///         Some("user1".parse()?),
     ///     )
     ///     .is_err());
     /// # Ok(())
@@ -2666,12 +2665,12 @@ impl NetHsm {
         real_name: String,
         role: UserRole,
         passphrase: Passphrase,
-        user_id: Option<String>,
-    ) -> Result<String, Error> {
+        user_id: Option<UserId>,
+    ) -> Result<UserId, Error> {
         let user_id = if let Some(user_id) = user_id {
             users_user_id_put(
                 &self.create_connection_config(),
-                &user_id,
+                &user_id.to_string(),
                 UserPostData::new(real_name, role.into(), passphrase.expose_owned()),
             )
             .map_err(|error| {
@@ -2682,18 +2681,20 @@ impl NetHsm {
             })?;
             user_id
         } else {
-            users_post(
-                &self.create_connection_config(),
-                UserPostData::new(real_name, role.into(), passphrase.expose_owned()),
-            )
-            .map_err(|error| {
-                Error::Api(format!(
-                    "Adding user failed: {}",
-                    NetHsmApiError::from(error)
-                ))
-            })?
-            .entity
-            .id
+            UserId::new(
+                users_post(
+                    &self.create_connection_config(),
+                    UserPostData::new(real_name, role.into(), passphrase.expose_owned()),
+                )
+                .map_err(|error| {
+                    Error::Api(format!(
+                        "Adding user failed: {}",
+                        NetHsmApiError::from(error)
+                    ))
+                })?
+                .entity
+                .id,
+            )?
         };
 
         // add to list of users
@@ -2724,7 +2725,7 @@ impl NetHsm {
     ///
     /// ```no_run
     /// # use testresult::TestResult;
-    /// use nethsm::{ConnectionSecurity, Credentials, Error, NetHsm, Passphrase, UserRole};
+    /// use nethsm::{ConnectionSecurity, Credentials, Error, NetHsm, Passphrase, UserId, UserRole};
     ///
     /// # fn main() -> TestResult {
     /// // create a connection with a user in the "admin" role
@@ -2732,7 +2733,7 @@ impl NetHsm {
     ///     "https://example.org/api/v1".try_into()?,
     ///     ConnectionSecurity::Unsafe,
     ///     Some(Credentials::new(
-    ///         "admin".to_string(),
+    ///         "admin".parse()?,
     ///         Some(Passphrase::new("passphrase".to_string())),
     ///     )),
     ///     None,
@@ -2741,27 +2742,29 @@ impl NetHsm {
     ///
     /// // add a user in the operator role
     /// assert_eq!(
-    ///     "user1",
+    ///     UserId::new("user1".to_string())?,
     ///     nethsm.add_user(
     ///         "Operator One".to_string(),
     ///         UserRole::Operator,
     ///         Passphrase::new("operator1-passphrase".to_string()),
-    ///         Some("user1".to_string()),
+    ///         Some("user1".parse()?),
     ///     )?
     /// );
     ///
     /// // delete the user again
-    /// nethsm.delete_user("user1")?;
+    /// nethsm.delete_user(&"user1".parse()?)?;
     /// # Ok(())
     /// # }
     /// ```
-    pub fn delete_user(&self, user_id: &str) -> Result<(), Error> {
-        users_user_id_delete(&self.create_connection_config(), user_id).map_err(|error| {
-            Error::Api(format!(
-                "Deleting user failed: {}",
-                NetHsmApiError::from(error)
-            ))
-        })?;
+    pub fn delete_user(&self, user_id: &UserId) -> Result<(), Error> {
+        users_user_id_delete(&self.create_connection_config(), &user_id.to_string()).map_err(
+            |error| {
+                Error::Api(format!(
+                    "Deleting user failed: {}",
+                    NetHsmApiError::from(error)
+                ))
+            },
+        )?;
 
         // remove from list of credentials
         self.remove_credentials(user_id);
@@ -2795,7 +2798,7 @@ impl NetHsm {
     ///     "https://example.org/api/v1".try_into()?,
     ///     ConnectionSecurity::Unsafe,
     ///     Some(Credentials::new(
-    ///         "admin".to_string(),
+    ///         "admin".parse()?,
     ///         Some(Passphrase::new("passphrase".to_string())),
     ///     )),
     ///     None,
@@ -2848,7 +2851,7 @@ impl NetHsm {
     ///     "https://example.org/api/v1".try_into()?,
     ///     ConnectionSecurity::Unsafe,
     ///     Some(Credentials::new(
-    ///         "admin".to_string(),
+    ///         "admin".parse()?,
     ///         Some(Passphrase::new("passphrase".to_string())),
     ///     )),
     ///     None,
@@ -2856,22 +2859,24 @@ impl NetHsm {
     /// )?;
     ///
     /// // get user information
-    /// println!("{:?}", nethsm.get_user("admin")?);
+    /// println!("{:?}", nethsm.get_user(&"admin".parse()?)?);
     ///
     /// // this fails as the user does not exist
-    /// assert!(nethsm.get_user("user1").is_err());
+    /// assert!(nethsm.get_user(&"user1".parse()?).is_err());
     /// # Ok(())
     /// # }
     /// ```
-    pub fn get_user(&self, user_id: &str) -> Result<UserData, Error> {
-        Ok(users_user_id_get(&self.create_connection_config(), user_id)
-            .map_err(|error| {
-                Error::Api(format!(
-                    "Getting user failed: {}",
-                    NetHsmApiError::from(error)
-                ))
-            })?
-            .entity)
+    pub fn get_user(&self, user_id: &UserId) -> Result<UserData, Error> {
+        Ok(
+            users_user_id_get(&self.create_connection_config(), &user_id.to_string())
+                .map_err(|error| {
+                    Error::Api(format!(
+                        "Getting user failed: {}",
+                        NetHsmApiError::from(error)
+                    ))
+                })?
+                .entity,
+        )
     }
 
     /// Sets the passphrase for a user on the device
@@ -2906,7 +2911,7 @@ impl NetHsm {
     ///     "https://example.org/api/v1".try_into()?,
     ///     ConnectionSecurity::Unsafe,
     ///     Some(Credentials::new(
-    ///         "admin".to_string(),
+    ///         "admin".parse()?,
     ///         Some(Passphrase::new("passphrase".to_string())),
     ///     )),
     ///     None,
@@ -2914,14 +2919,21 @@ impl NetHsm {
     /// )?;
     ///
     /// // set the admin user's passphrase
-    /// nethsm.set_user_passphrase("admin", Passphrase::new("new-admin-passphrase".to_string()))?;
+    /// nethsm.set_user_passphrase(
+    ///     "admin".parse()?,
+    ///     Passphrase::new("new-admin-passphrase".to_string()),
+    /// )?;
     /// # Ok(())
     /// # }
     /// ```
-    pub fn set_user_passphrase(&self, user_id: &str, passphrase: Passphrase) -> Result<(), Error> {
+    pub fn set_user_passphrase(
+        &self,
+        user_id: UserId,
+        passphrase: Passphrase,
+    ) -> Result<(), Error> {
         users_user_id_passphrase_post(
             &self.create_connection_config(),
-            user_id,
+            &user_id.to_string(),
             UserPassphrasePostData::new(passphrase.expose_owned()),
         )
         .map_err(|error| {
@@ -2932,7 +2944,7 @@ impl NetHsm {
         })?;
 
         // add to list of available credentials
-        self.add_credentials(Credentials::new(user_id.to_string(), Some(passphrase)));
+        self.add_credentials(Credentials::new(user_id, Some(passphrase)));
 
         Ok(())
     }
@@ -2959,7 +2971,7 @@ impl NetHsm {
     ///
     /// ```no_run
     /// # use testresult::TestResult;
-    /// use nethsm::{ConnectionSecurity, Credentials, Error, NetHsm, Passphrase, UserRole};
+    /// use nethsm::{ConnectionSecurity, Credentials, Error, NetHsm, Passphrase, UserId, UserRole};
     ///
     /// # fn main() -> TestResult {
     /// // create a connection with a user in the "admin" role
@@ -2967,7 +2979,7 @@ impl NetHsm {
     ///     "https://example.org/api/v1".try_into()?,
     ///     ConnectionSecurity::Unsafe,
     ///     Some(Credentials::new(
-    ///         "admin".to_string(),
+    ///         "admin".parse()?,
     ///         Some(Passphrase::new("passphrase".to_string())),
     ///     )),
     ///     None,
@@ -2976,29 +2988,28 @@ impl NetHsm {
     ///
     /// // add a user in the operator role
     /// assert_eq!(
-    ///     "user1",
+    ///     UserId::new("user1".to_string())?,
     ///     nethsm.add_user(
     ///         "Operator One".to_string(),
     ///         UserRole::Operator,
     ///         Passphrase::new("operator1-passphrase".to_string()),
-    ///         Some("user1".to_string()),
+    ///         Some("user1".parse()?),
     ///     )?
     /// );
     ///
     /// // add a tag for the user
-    /// nethsm.add_user_tag("user1", "tag1")?;
+    /// nethsm.add_user_tag(&"user1".parse()?, "tag1")?;
     /// # Ok(())
     /// # }
     /// ```
-    pub fn add_user_tag(&self, user_id: &str, tag: &str) -> Result<(), Error> {
-        users_user_id_tags_tag_put(&self.create_connection_config(), user_id, tag).map_err(
-            |error| {
+    pub fn add_user_tag(&self, user_id: &UserId, tag: &str) -> Result<(), Error> {
+        users_user_id_tags_tag_put(&self.create_connection_config(), &user_id.to_string(), tag)
+            .map_err(|error| {
                 Error::Api(format!(
                     "Adding tag for user failed: {}",
                     NetHsmApiError::from(error)
                 ))
-            },
-        )?;
+            })?;
         Ok(())
     }
 
@@ -3032,7 +3043,7 @@ impl NetHsm {
     ///     "https://example.org/api/v1".try_into()?,
     ///     ConnectionSecurity::Unsafe,
     ///     Some(Credentials::new(
-    ///         "admin".to_string(),
+    ///         "admin".parse()?,
     ///         Some(Passphrase::new("passphrase".to_string())),
     ///     )),
     ///     None,
@@ -3040,19 +3051,18 @@ impl NetHsm {
     /// )?;
     ///
     /// // add a tag for the user
-    /// nethsm.delete_user_tag("user1", "tag1")?;
+    /// nethsm.delete_user_tag(&"user1".parse()?, "tag1")?;
     /// # Ok(())
     /// # }
     /// ```
-    pub fn delete_user_tag(&self, user_id: &str, tag: &str) -> Result<(), Error> {
-        users_user_id_tags_tag_delete(&self.create_connection_config(), user_id, tag).map_err(
-            |error| {
+    pub fn delete_user_tag(&self, user_id: &UserId, tag: &str) -> Result<(), Error> {
+        users_user_id_tags_tag_delete(&self.create_connection_config(), &user_id.to_string(), tag)
+            .map_err(|error| {
                 Error::Api(format!(
                     "Deleting tag for user failed: {}",
                     NetHsmApiError::from(error)
                 ))
-            },
-        )?;
+            })?;
         Ok(())
     }
 
@@ -3076,7 +3086,7 @@ impl NetHsm {
     ///
     /// ```no_run
     /// # use testresult::TestResult;
-    /// use nethsm::{ConnectionSecurity, Credentials, Error, NetHsm, Passphrase, UserRole};
+    /// use nethsm::{ConnectionSecurity, Credentials, Error, NetHsm, Passphrase, UserId, UserRole};
     ///
     /// # fn main() -> TestResult {
     /// // create a connection with a user in the "admin" role
@@ -3084,7 +3094,7 @@ impl NetHsm {
     ///     "https://example.org/api/v1".try_into()?,
     ///     ConnectionSecurity::Unsafe,
     ///     Some(Credentials::new(
-    ///         "admin".to_string(),
+    ///         "admin".parse()?,
     ///         Some(Passphrase::new("passphrase".to_string())),
     ///     )),
     ///     None,
@@ -3093,27 +3103,29 @@ impl NetHsm {
     ///
     /// // add a user in the operator role
     /// assert_eq!(
-    ///     "user1",
+    ///     UserId::new("user1".to_string())?,
     ///     nethsm.add_user(
     ///         "Operator One".to_string(),
     ///         UserRole::Operator,
     ///         Passphrase::new("operator1-passphrase".to_string()),
-    ///         Some("user1".to_string()),
+    ///         Some("user1".parse()?),
     ///     )?
     /// );
     ///
-    /// assert!(nethsm.get_user_tags("user1")?.is_empty());
+    /// assert!(nethsm.get_user_tags(&"user1".parse()?)?.is_empty());
     ///
     /// // add a tag for the user
-    /// nethsm.add_user_tag("user1", "tag1")?;
+    /// nethsm.add_user_tag(&"user1".parse()?, "tag1")?;
     ///
-    /// assert!(nethsm.get_user_tags("user1")?.contains(&"tag1".to_string()));
+    /// assert!(nethsm
+    ///     .get_user_tags(&"user1".parse()?)?
+    ///     .contains(&"tag1".to_string()));
     /// # Ok(())
     /// # }
     /// ```
-    pub fn get_user_tags(&self, user_id: &str) -> Result<Vec<String>, Error> {
+    pub fn get_user_tags(&self, user_id: &UserId) -> Result<Vec<String>, Error> {
         Ok(
-            users_user_id_tags_get(&self.create_connection_config(), user_id)
+            users_user_id_tags_get(&self.create_connection_config(), &user_id.to_string())
                 .map_err(|error| {
                     Error::Api(format!(
                         "Getting tags of user failed: {}",
@@ -3178,7 +3190,7 @@ impl NetHsm {
     ///     "https://example.org/api/v1".try_into()?,
     ///     ConnectionSecurity::Unsafe,
     ///     Some(Credentials::new(
-    ///         "admin".to_string(),
+    ///         "admin".parse()?,
     ///         Some(Passphrase::new("passphrase".to_string())),
     ///     )),
     ///     None,
@@ -3292,7 +3304,7 @@ impl NetHsm {
     ///     "https://example.org/api/v1".try_into()?,
     ///     ConnectionSecurity::Unsafe,
     ///     Some(Credentials::new(
-    ///         "admin".to_string(),
+    ///         "admin".parse()?,
     ///         Some(Passphrase::new("passphrase".to_string())),
     ///     )),
     ///     None,
@@ -3400,7 +3412,7 @@ impl NetHsm {
     ///     "https://example.org/api/v1".try_into()?,
     ///     ConnectionSecurity::Unsafe,
     ///     Some(Credentials::new(
-    ///         "admin".to_string(),
+    ///         "admin".parse()?,
     ///         Some(Passphrase::new("passphrase".to_string())),
     ///     )),
     ///     None,
@@ -3451,7 +3463,7 @@ impl NetHsm {
     ///     "https://example.org/api/v1".try_into()?,
     ///     ConnectionSecurity::Unsafe,
     ///     Some(Credentials::new(
-    ///         "admin".to_string(),
+    ///         "admin".parse()?,
     ///         Some(Passphrase::new("passphrase".to_string())),
     ///     )),
     ///     None,
@@ -3503,7 +3515,7 @@ impl NetHsm {
     ///     "https://example.org/api/v1".try_into()?,
     ///     ConnectionSecurity::Unsafe,
     ///     Some(Credentials::new(
-    ///         "admin".to_string(),
+    ///         "admin".parse()?,
     ///         Some(Passphrase::new("passphrase".to_string())),
     ///     )),
     ///     None,
@@ -3562,7 +3574,7 @@ impl NetHsm {
     ///     "https://example.org/api/v1".try_into()?,
     ///     ConnectionSecurity::Unsafe,
     ///     Some(Credentials::new(
-    ///         "admin".to_string(),
+    ///         "admin".parse()?,
     ///         Some(Passphrase::new("passphrase".to_string())),
     ///     )),
     ///     None,
@@ -3623,7 +3635,7 @@ impl NetHsm {
     ///     "https://example.org/api/v1".try_into()?,
     ///     ConnectionSecurity::Unsafe,
     ///     Some(Credentials::new(
-    ///         "admin".to_string(),
+    ///         "admin".parse()?,
     ///         Some(Passphrase::new("passphrase".to_string())),
     ///     )),
     ///     None,
@@ -3676,7 +3688,7 @@ impl NetHsm {
     ///     "https://example.org/api/v1".try_into()?,
     ///     ConnectionSecurity::Unsafe,
     ///     Some(Credentials::new(
-    ///         "admin".to_string(),
+    ///         "admin".parse()?,
     ///         Some(Passphrase::new("passphrase".to_string())),
     ///     )),
     ///     None,
@@ -3732,7 +3744,7 @@ impl NetHsm {
     ///     "https://example.org/api/v1".try_into()?,
     ///     ConnectionSecurity::Unsafe,
     ///     Some(Credentials::new(
-    ///         "admin".to_string(),
+    ///         "admin".parse()?,
     ///         Some(Passphrase::new("passphrase".to_string())),
     ///     )),
     ///     None,
@@ -3804,7 +3816,7 @@ impl NetHsm {
     ///     "https://example.org/api/v1".try_into()?,
     ///     ConnectionSecurity::Unsafe,
     ///     Some(Credentials::new(
-    ///         "admin".to_string(),
+    ///         "admin".parse()?,
     ///         Some(Passphrase::new("passphrase".to_string())),
     ///     )),
     ///     None,
@@ -3858,7 +3870,7 @@ impl NetHsm {
     ///     "https://example.org/api/v1".try_into()?,
     ///     ConnectionSecurity::Unsafe,
     ///     Some(Credentials::new(
-    ///         "admin".to_string(),
+    ///         "admin".parse()?,
     ///         Some(Passphrase::new("passphrase".to_string())),
     ///     )),
     ///     None,
@@ -3913,7 +3925,7 @@ impl NetHsm {
     ///     "https://example.org/api/v1".try_into()?,
     ///     ConnectionSecurity::Unsafe,
     ///     Some(Credentials::new(
-    ///         "admin".to_string(),
+    ///         "admin".parse()?,
     ///         Some(Passphrase::new("passphrase".to_string())),
     ///     )),
     ///     None,
@@ -4001,7 +4013,7 @@ impl NetHsm {
     ///     "https://example.org/api/v1".try_into()?,
     ///     ConnectionSecurity::Unsafe,
     ///     Some(Credentials::new(
-    ///         "operator".to_string(),
+    ///         "operator".parse()?,
     ///         Some(Passphrase::new("passphrase".to_string())),
     ///     )),
     ///     None,
@@ -4088,7 +4100,7 @@ impl NetHsm {
     ///     "https://example.org/api/v1".try_into()?,
     ///     ConnectionSecurity::Unsafe,
     ///     Some(Credentials::new(
-    ///         "operator".to_string(),
+    ///         "operator".parse()?,
     ///         Some(Passphrase::new("passphrase".to_string())),
     ///     )),
     ///     None,
@@ -4182,7 +4194,7 @@ impl NetHsm {
     ///     "https://example.org/api/v1".try_into()?,
     ///     ConnectionSecurity::Unsafe,
     ///     Some(Credentials::new(
-    ///         "operator".to_string(),
+    ///         "operator".parse()?,
     ///         Some(Passphrase::new("passphrase".to_string())),
     ///     )),
     ///     None,
@@ -4279,7 +4291,7 @@ impl NetHsm {
     ///     "https://example.org/api/v1".try_into()?,
     ///     ConnectionSecurity::Unsafe,
     ///     Some(Credentials::new(
-    ///         "operator".to_string(),
+    ///         "operator".parse()?,
     ///         Some(Passphrase::new("passphrase".to_string())),
     ///     )),
     ///     None,
@@ -4374,7 +4386,7 @@ impl NetHsm {
     ///     "https://example.org/api/v1".try_into()?,
     ///     ConnectionSecurity::Unsafe,
     ///     Some(Credentials::new(
-    ///         "operator".to_string(),
+    ///         "operator".parse()?,
     ///         Some(Passphrase::new("passphrase".to_string())),
     ///     )),
     ///     None,
@@ -4433,7 +4445,7 @@ impl NetHsm {
     ///     "https://example.org/api/v1".try_into()?,
     ///     ConnectionSecurity::Unsafe,
     ///     Some(Credentials::new(
-    ///         "admin".to_string(),
+    ///         "admin".parse()?,
     ///         Some(Passphrase::new("passphrase".to_string())),
     ///     )),
     ///     None,
@@ -4441,7 +4453,7 @@ impl NetHsm {
     /// )?;
     ///
     /// nethsm.add_credentials(Credentials::new(
-    ///     "operator".to_string(),
+    ///     "operator".parse()?,
     ///     Some(Passphrase::new("passphrase".to_string())),
     /// ));
     ///
@@ -4493,7 +4505,7 @@ impl NetHsm {
     ///     "https://example.org/api/v1".try_into()?,
     ///     ConnectionSecurity::Unsafe,
     ///     Some(Credentials::new(
-    ///         "operator".to_string(),
+    ///         "operator".parse()?,
     ///         Some(Passphrase::new("passphrase".to_string())),
     ///     )),
     ///     None,

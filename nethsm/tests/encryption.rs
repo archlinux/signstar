@@ -32,10 +32,10 @@ async fn symmetric_encryption_decryption(
 ) -> TestResult {
     let (nethsm, _container) = nethsm_with_keys.await?;
     nethsm.add_credentials(Credentials::new(
-        ENC_OPERATOR_USER_ID.to_string(),
+        ENC_OPERATOR_USER_ID.parse()?,
         Some(Passphrase::new(ENC_OPERATOR_USER_PASSPHRASE.to_string())),
     ));
-    nethsm.use_credentials(ENC_OPERATOR_USER_ID)?;
+    nethsm.use_credentials(&ENC_OPERATOR_USER_ID.parse()?)?;
 
     println!("NetHSM key information: {:?}", nethsm.get_key(ENC_KEY_ID)?);
 
@@ -75,10 +75,10 @@ async fn asymmetric_decryption(
 ) -> TestResult {
     let (nethsm, _container) = nethsm_with_keys.await?;
     nethsm.add_credentials(Credentials::new(
-        OTHER_OPERATOR_USER_ID.to_string(),
+        OTHER_OPERATOR_USER_ID.parse()?,
         Some(Passphrase::new(OTHER_OPERATOR_USER_PASSPHRASE.to_string())),
     ));
-    nethsm.use_credentials(OTHER_OPERATOR_USER_ID)?;
+    nethsm.use_credentials(&OTHER_OPERATOR_USER_ID.parse()?)?;
 
     let pubkey = RsaPublicKey::from_public_key_pem(&nethsm.get_public_key(OTHER_KEY_ID)?)?;
     let mut rng = rand::thread_rng();

@@ -8,6 +8,7 @@ pub use info::InfoCommand;
 pub use key::{KeyCertCommand, KeyCommand};
 pub use lock::LockCommand;
 pub use metrics::MetricsCommand;
+use nethsm::UserId;
 pub use openpgp::OpenPgpCommand;
 pub use provision::ProvisionCommand;
 pub use random::RandomCommand;
@@ -88,7 +89,7 @@ Must be provided, if several user names of the same target role are setup in the
         long,
         short
     )]
-    pub user: Option<String>,
+    pub user: Option<UserId>,
 
     #[command(subcommand)]
     pub command: Command,

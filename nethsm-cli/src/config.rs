@@ -4,7 +4,7 @@ use std::{
     path::Path,
 };
 
-use nethsm::{ConnectionSecurity, Credentials, NetHsm, Passphrase, Url, UserRole};
+use nethsm::{ConnectionSecurity, Credentials, NetHsm, Passphrase, Url, UserId, UserRole};
 use serde::{Deserialize, Serialize};
 use zeroize::Zeroize;
 
@@ -60,6 +60,10 @@ pub enum Error {
     /// A prompt requesting user data failed
     #[error("A prompt issue")]
     Prompt(#[from] crate::prompt::Error),
+
+    /// User data is invalid
+    #[error("User data invalid: {0}")]
+    User(#[from] nethsm::UserError),
 }
 
 /// The connection of a device
@@ -79,13 +83,13 @@ pub struct ConfigCredentials {
     #[zeroize(skip)]
     role: UserRole,
     #[zeroize(skip)]
-    name: String,
+    name: UserId,
     passphrase: Option<String>,
 }
 
 impl ConfigCredentials {
     /// Creates a new [`ConfigCredentials`]
-    pub fn new(role: UserRole, name: String, passphrase: Option<String>) -> Self {
+    pub fn new(role: UserRole, name: UserId, passphrase: Option<String>) -> Self {
         Self {
             role,
             name,
@@ -95,6 +99,11 @@ impl ConfigCredentials {
 
     /// Returns the name of the [`ConfigCredentials`]
     pub fn get_name(&self) -> String {
+        self.name.to_string()
+    }
+
+    /// Returns the User ID of the [`ConfigCredentials`]
+    pub fn get_user_id(&self) -> UserId {
         self.name.clone()
     }
 
@@ -140,7 +149,7 @@ impl DeviceConfig {
     pub fn add_credentials(
         &self,
         role: UserRole,
-        name: String,
+        name: UserId,
         passphrase: Option<String>,
     ) -> Result<(), crate::Error> {
         if !self
@@ -156,7 +165,7 @@ impl DeviceConfig {
             });
             Ok(())
         } else {
-            Err(Error::CredentialsExist(name).into())
+            Err(Error::CredentialsExist(name.to_string()).into())
         }
     }
 
@@ -165,12 +174,12 @@ impl DeviceConfig {
     /// # Errors
     ///
     /// Returns an error if no [`ConfigCredentials`] matches the provided name.
-    pub fn get_credentials(&self, name: &str) -> Result<ConfigCredentials, Error> {
+    pub fn get_credentials(&self, name: &UserId) -> Result<ConfigCredentials, Error> {
         if let Some(creds) = self
             .credentials
             .borrow()
             .iter()
-            .find(|creds| creds.name == name)
+            .find(|creds| &creds.name == name)
         {
             Ok(creds.clone())
         } else {
@@ -187,7 +196,7 @@ impl DeviceConfig {
         let before = self.credentials.borrow().len();
         self.credentials
             .borrow_mut()
-            .retain(|creds| creds.name != name);
+            .retain(|creds| creds.name.to_string() != name);
         let after = self.credentials.borrow().len();
         if before == after {
             Err(Error::CredentialsMissing(name.to_string()).into())
@@ -212,7 +221,7 @@ impl DeviceConfig {
     fn get_matching_credentials(
         &self,
         roles: &[UserRole],
-        name: Option<&str>,
+        name: Option<&UserId>,
     ) -> Result<ConfigCredentials, Error> {
         if let Some(name) = name {
             if let Ok(creds) = &self.get_credentials(name) {
@@ -272,7 +281,7 @@ impl DeviceConfig {
     pub fn nethsm_with_matching_creds(
         &self,
         roles: &[UserRole],
-        name: Option<&str>,
+        name: Option<&UserId>,
         passphrase: Option<Passphrase>,
     ) -> Result<NetHsm, Error> {
         let nethsm: NetHsm = self.try_into()?;
@@ -289,17 +298,17 @@ impl DeviceConfig {
             };
             if !creds.has_passphrase() {
                 let credentials = if let Some(passphrase) = passphrase {
-                    Credentials::new(creds.get_name(), Some(passphrase))
+                    Credentials::new(creds.get_user_id(), Some(passphrase))
                 } else {
                     Credentials::new(
-                        creds.get_name(),
-                        Some(PassphrasePrompt::User(creds.get_name()).prompt()?),
+                        creds.get_user_id(),
+                        Some(PassphrasePrompt::User(creds.get_user_id().to_string()).prompt()?),
                     )
                 };
                 nethsm.add_credentials(credentials);
             }
 
-            nethsm.use_credentials(&creds.get_name())?;
+            nethsm.use_credentials(&creds.get_user_id())?;
         }
 
         Ok(nethsm)
@@ -462,7 +471,7 @@ impl Config {
         &self,
         label: String,
         role: UserRole,
-        name: String,
+        name: UserId,
         passphrase: Option<String>,
     ) -> Result<(), crate::Error> {
         if let Some(device) = self.devices.borrow_mut().get_mut(&label) {

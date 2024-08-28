@@ -62,7 +62,7 @@ pub fn create_nethsm(url: Url) -> TestResult<NetHsm> {
         url,
         ConnectionSecurity::Unsafe,
         Some(Credentials::new(
-            ADMIN_USER_ID.to_string(),
+            ADMIN_USER_ID.parse()?,
             Some(Passphrase::new(ADMIN_USER_PASSPHRASE.to_string())),
         )),
         None,
@@ -130,7 +130,7 @@ fn add_users_to_nethsm(nethsm: &NetHsm) -> TestResult {
             real_name.to_string(),
             role,
             Passphrase::new(passphrase.to_string()),
-            Some(user_id.to_string()),
+            Some(user_id.parse()?),
         )?;
     }
     println!("users: {:?}", nethsm.get_users()?);
@@ -175,7 +175,7 @@ fn add_keys_to_nethsm(nethsm: &NetHsm) -> TestResult {
     for (mechanisms, key_type, length, key_id, tag, user_id) in keys {
         nethsm.generate_key(key_type, mechanisms, length, Some(key_id.to_string()), None)?;
         nethsm.add_key_tag(key_id, tag)?;
-        nethsm.add_user_tag(user_id, tag)?;
+        nethsm.add_user_tag(&user_id.parse()?, tag)?;
         // skip symmetric keys, as for those we do not have a public key
         if key_type != KeyType::Generic {
             nethsm.import_key_certificate(key_id, nethsm.get_public_key(key_id)?.into_bytes())?;

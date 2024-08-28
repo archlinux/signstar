@@ -1,5 +1,5 @@
 use clap::{Parser, Subcommand};
-use nethsm::{ConnectionSecurity, Url, UserRole};
+use nethsm::{ConnectionSecurity, Url, UserId, UserRole};
 use strum::IntoEnumIterator;
 
 use crate::passphrase_file::PassphraseFile;
@@ -45,7 +45,7 @@ pub struct CredentialsAddCommand {
         env = "NETHSM_USER_NAME",
         help = "The name of the user on the target device"
     )]
-    pub name: String,
+    pub name: UserId,
 
     #[arg(
         env = "NETHSM_PASSPHRASE_FILE",

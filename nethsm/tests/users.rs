@@ -33,7 +33,7 @@ async fn create_users(
 
     // change passphrase
     nethsm.set_user_passphrase(
-        &operator_user,
+        operator_user.clone(),
         Passphrase::new("some-other-operator-passphrase".to_string()),
     )?;
 
@@ -41,7 +41,7 @@ async fn create_users(
         OTHER_OPERATOR_USER_REAL_NAME.to_string(),
         UserRole::Operator,
         Passphrase::new(OTHER_OPERATOR_USER_PASSPHRASE.to_string()),
-        Some(OTHER_OPERATOR_USER_ID.to_string()),
+        Some(OTHER_OPERATOR_USER_ID.parse()?),
     )?;
     println!("Created Operator User: {}", other_operator_user);
     assert!(nethsm.get_users()?.len() == 3);

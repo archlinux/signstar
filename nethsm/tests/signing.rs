@@ -30,12 +30,12 @@ async fn signing(
     let (nethsm, _container) = nethsm_with_keys.await?;
     // use nethsm as operator user
     nethsm.add_credentials(Credentials::new(
-        DEFAULT_OPERATOR_USER_ID.to_string(),
+        DEFAULT_OPERATOR_USER_ID.parse()?,
         Some(Passphrase::new(
             DEFAULT_OPERATOR_USER_PASSPHRASE.to_string(),
         )),
     ));
-    nethsm.use_credentials(DEFAULT_OPERATOR_USER_ID)?;
+    nethsm.use_credentials(&DEFAULT_OPERATOR_USER_ID.parse()?)?;
 
     // create an ed25519 signature
     let signature = nethsm.sign(DEFAULT_KEY_ID, SignatureType::EdDsa, MESSAGE)?;
@@ -53,10 +53,10 @@ async fn signing(
 
     // use nethsm as another operator user
     nethsm.add_credentials(Credentials::new(
-        OTHER_OPERATOR_USER_ID.to_string(),
+        OTHER_OPERATOR_USER_ID.parse()?,
         Some(Passphrase::new(OTHER_OPERATOR_USER_PASSPHRASE.to_string())),
     ));
-    nethsm.use_credentials(OTHER_OPERATOR_USER_ID)?;
+    nethsm.use_credentials(&OTHER_OPERATOR_USER_ID.parse()?)?;
 
     // create an RSA PKCS1 signature
     let signature = nethsm.sign(OTHER_KEY_ID, SignatureType::Pkcs1, MESSAGE)?;

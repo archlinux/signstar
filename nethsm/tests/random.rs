@@ -20,12 +20,12 @@ async fn get_random_bytes(
 ) -> TestResult {
     let (nethsm, _container) = nethsm_with_users.await?;
     nethsm.add_credentials(Credentials::new(
-        DEFAULT_OPERATOR_USER_ID.to_string(),
+        DEFAULT_OPERATOR_USER_ID.parse()?,
         Some(Passphrase::new(
             DEFAULT_OPERATOR_USER_PASSPHRASE.to_string(),
         )),
     ));
-    nethsm.use_credentials(DEFAULT_OPERATOR_USER_ID)?;
+    nethsm.use_credentials(&DEFAULT_OPERATOR_USER_ID.parse()?)?;
 
     let random_message = nethsm.random(LENGTH)?;
     println!("A random message from the NetHSM: {:#?}", random_message);

@@ -1,5 +1,5 @@
 use clap::{Parser, Subcommand};
-use nethsm::{SystemState, UserRole};
+use nethsm::{SystemState, UserId, UserRole};
 use strum::IntoEnumIterator;
 
 use crate::passphrase_file::PassphraseFile;
@@ -60,7 +60,7 @@ One of {:?} (defaults to \"{:?}\").", UserRole::iter().map(Into::into).collect::
 
 This name must be unique as it is used for authentication!"
     )]
-    pub name: Option<String>,
+    pub name: Option<UserId>,
 
     #[arg(
         env = "NETHSM_PASSPHRASE_FILE",
@@ -91,7 +91,7 @@ pub struct UserGetCommand {
         env = "NETHSM_USER_NAME",
         help = "The unique name of a user on the target device"
     )]
-    pub name: String,
+    pub name: UserId,
 }
 
 #[derive(Debug, Parser)]
@@ -121,7 +121,7 @@ pub struct UserPassphraseCommand {
         env = "NETHSM_USER_NAME",
         help = "The name of the user on the target device"
     )]
-    pub name: String,
+    pub name: UserId,
 
     #[arg(
         env = "NETHSM_PASSPHRASE_FILE",
@@ -146,7 +146,7 @@ Requires authentication of a user in the \"{}\" role.", SystemState::Operational
 )]
 pub struct UserRemoveCommand {
     #[arg(env = "NETHSM_USER_NAME", help = "The name of the user to remove")]
-    pub name: String,
+    pub name: UserId,
 }
 
 #[derive(Debug, Parser)]
@@ -166,7 +166,7 @@ pub struct UserTagCommand {
         env = "NETHSM_USER_NAME",
         help = "The name of the user for which to add a tag"
     )]
-    pub name: String,
+    pub name: UserId,
 
     #[arg(env = "NETHSM_USER_TAG", help = "The tag to add for a user")]
     pub tag: String,
@@ -189,7 +189,7 @@ pub struct UserUntagCommand {
         env = "NETHSM_USER_NAME",
         help = "The name of the user from which to remove a tag"
     )]
-    pub name: String,
+    pub name: UserId,
 
     #[arg(env = "NETHSM_USER_TAG", help = "The tag to remove from a user")]
     pub tag: String,

@@ -157,10 +157,10 @@ async fn metrics(
 ) -> TestResult {
     let (nethsm, _container) = nethsm_with_users.await?;
     nethsm.add_credentials(Credentials::new(
-        METRICS_USER_ID.to_string(),
+        METRICS_USER_ID.parse()?,
         Some(Passphrase::new(METRICS_USER_PASSPHRASE.to_string())),
     ));
-    nethsm.use_credentials(METRICS_USER_ID)?;
+    nethsm.use_credentials(&METRICS_USER_ID.parse()?)?;
 
     println!("The NetHSM metrics: {}", nethsm.metrics()?);
     Ok(())
@@ -202,10 +202,10 @@ async fn create_backup(
     )?;
 
     nethsm.add_credentials(Credentials::new(
-        BACKUP_USER_ID.to_string(),
+        BACKUP_USER_ID.parse()?,
         Some(Passphrase::new(BACKUP_USER_PASSPHRASE.to_string())),
     ));
-    nethsm.use_credentials(BACKUP_USER_ID)?;
+    nethsm.use_credentials(&BACKUP_USER_ID.parse()?)?;
 
     // write backup file
     let backup = nethsm.backup()?;
@@ -213,7 +213,7 @@ async fn create_backup(
     println!("Written NetHSM backup file: {:?}", &backup_file);
 
     // use the admin user again for the restore call
-    nethsm.use_credentials(ADMIN_USER_ID)?;
+    nethsm.use_credentials(&ADMIN_USER_ID.parse()?)?;
     nethsm.restore(
         Passphrase::new(BACKUP_PASSPHRASE.to_string()),
         Utc::now(),

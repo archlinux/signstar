@@ -128,15 +128,29 @@ async fn user_tags(nethsm: &NetHsm) -> TestResult {
     println!("Adding user tags...");
     println!("users: {:?}", nethsm.get_users()?);
     println!("keys: {:?}", nethsm.get_keys(None)?);
-    nethsm.add_user_tag(DEFAULT_OPERATOR_USER_ID, DEFAULT_TAG)?;
-    assert!(nethsm.get_user_tags(DEFAULT_OPERATOR_USER_ID)?.len() == 1);
-    nethsm.delete_user_tag(DEFAULT_OPERATOR_USER_ID, DEFAULT_TAG)?;
-    assert!(nethsm.get_user_tags(DEFAULT_OPERATOR_USER_ID)?.is_empty());
+    nethsm.add_user_tag(&DEFAULT_OPERATOR_USER_ID.parse()?, DEFAULT_TAG)?;
+    assert!(
+        nethsm
+            .get_user_tags(&DEFAULT_OPERATOR_USER_ID.parse()?)?
+            .len()
+            == 1
+    );
+    nethsm.delete_user_tag(&DEFAULT_OPERATOR_USER_ID.parse()?, DEFAULT_TAG)?;
+    assert!(nethsm
+        .get_user_tags(&DEFAULT_OPERATOR_USER_ID.parse()?)?
+        .is_empty());
 
-    nethsm.add_user_tag(OTHER_OPERATOR_USER_ID, OTHER_TAG)?;
-    assert!(nethsm.get_user_tags(OTHER_OPERATOR_USER_ID)?.len() == 1);
-    nethsm.delete_user_tag(OTHER_OPERATOR_USER_ID, OTHER_TAG)?;
-    assert!(nethsm.get_user_tags(OTHER_OPERATOR_USER_ID)?.is_empty());
+    nethsm.add_user_tag(&OTHER_OPERATOR_USER_ID.parse()?, OTHER_TAG)?;
+    assert!(
+        nethsm
+            .get_user_tags(&OTHER_OPERATOR_USER_ID.parse()?)?
+            .len()
+            == 1
+    );
+    nethsm.delete_user_tag(&OTHER_OPERATOR_USER_ID.parse()?, OTHER_TAG)?;
+    assert!(nethsm
+        .get_user_tags(&OTHER_OPERATOR_USER_ID.parse()?)?
+        .is_empty());
 
     nethsm.delete_key_tag(DEFAULT_KEY_ID, DEFAULT_TAG)?;
 
