@@ -44,8 +44,42 @@ use picky_asn1_x509::{
 };
 use rand::prelude::{CryptoRng, Rng};
 
-use crate::KeyType;
-use crate::{KeyMechanism, NetHsm, PrivateKeyImport};
+use crate::{KeyMechanism, KeyType, NetHsm, PrivateKeyImport};
+
+#[derive(Debug, thiserror::Error)]
+pub enum Error {
+    /// A Base64 encoded string can not be decode
+    #[error("Decoding Base64 string failed: {0}")]
+    Base64Decode(#[from] base64ct::Error),
+
+    /// Elliptic curve error
+    #[error("Elliptic curve error: {0}")]
+    EllipticCurve(#[from] p256::elliptic_curve::Error),
+
+    /// Provided key data is invalid
+    #[error("Key data invalid: {0}")]
+    KeyData(String),
+
+    /// NetHsm error
+    #[error("NetHSM error: {0}")]
+    NetHsm(String),
+
+    /// OpenPGP error
+    #[error("rPGP error: {0}")]
+    Pgp(#[from] pgp::errors::Error),
+
+    /// The Transferable Secret Key is passphrase protected
+    #[error("Transferable Secret Key is passphrase protected")]
+    PrivateKeyPassphraseProtected,
+
+    /// ECDSA parameter is unsupported
+    #[error("Unsupported ECDSA parameter")]
+    UnsupportedEcdsaParam,
+
+    /// Multiple component keys are unsupported
+    #[error("Unsupported multiple component keys")]
+    UnsupportedMultipleComponentKeys,
+}
 
 /// PGP-adapter for a NetHSM key.
 ///
@@ -249,9 +283,9 @@ pub fn add_certificate(
         ),
         vec![],
     );
-    let signed_pk = composed_pk.sign(&signer, String::new)?;
+    let signed_pk = composed_pk.sign(&signer, String::new).map_err(Error::Pgp)?;
     let mut buffer = vec![];
-    signed_pk.to_writer(&mut buffer)?;
+    signed_pk.to_writer(&mut buffer).map_err(Error::Pgp)?;
     Ok(buffer)
 }
 
@@ -277,12 +311,14 @@ fn hash_to_oid(hash: HashAlgorithm) -> pgp::errors::Result<AlgorithmIdentifier> 
 pub fn tsk_to_private_key_import(
     key_data: &[u8],
 ) -> Result<(PrivateKeyImport, KeyMechanism), crate::Error> {
-    let key = SignedSecretKey::from_bytes(key_data)?;
+    let key = SignedSecretKey::from_bytes(key_data).map_err(Error::Pgp)?;
     if !key.secret_subkeys.is_empty() {
-        return Err(crate::Error::UnsupportedMultipleComponentKeys);
+        return Err(crate::Error::OpenPgp(
+            Error::UnsupportedMultipleComponentKeys,
+        ));
     }
     let SecretParams::Plain(secret) = key.primary_key.secret_params() else {
-        return Err(crate::Error::Passphrase);
+        return Err(crate::Error::OpenPgp(Error::PrivateKeyPassphraseProtected));
     };
     Ok(match secret {
         PlainSecretParams::RSA { p, q, .. } => (
@@ -293,7 +329,7 @@ pub fn tsk_to_private_key_import(
             let ec = if let PublicParams::ECDSA(pp) = key.primary_key.public_params() {
                 pp.try_into()?
             } else {
-                return Err(crate::Error::UnsupportedEcdsaParam);
+                return Err(crate::Error::OpenPgp(Error::UnsupportedEcdsaParam));
             };
 
             (
@@ -306,9 +342,9 @@ pub fn tsk_to_private_key_import(
             KeyMechanism::EdDsaSignature,
         ),
         params => {
-            return Err(crate::Error::KeyData(format!(
+            return Err(crate::Error::OpenPgp(Error::KeyData(format!(
                 "Unsupported key data: {params:?}"
-            )))
+            ))))
         }
     })
 }
@@ -319,7 +355,9 @@ pub fn sign(nethsm: &NetHsm, key_id: String, message: &[u8]) -> Result<Vec<u8>, 
 
     let signer = HsmKey::new(
         nethsm,
-        SignedPublicKey::from_bytes(&*public_key)?.primary_key,
+        SignedPublicKey::from_bytes(&*public_key)
+            .map_err(Error::Pgp)?
+            .primary_key,
         key_id,
     );
 
@@ -341,21 +379,27 @@ pub fn sign(nethsm: &NetHsm, key_id: String, message: &[u8]) -> Result<Vec<u8>, 
         vec![],
     );
 
-    let mut hasher = sig_config.hash_alg.new_hasher()?;
+    let mut hasher = sig_config.hash_alg.new_hasher().map_err(Error::Pgp)?;
 
-    sig_config.hash_data_to_sign(&mut *hasher, message)?;
-    let len = sig_config.hash_signature_data(&mut *hasher)?;
-    hasher.update(&sig_config.trailer(len)?);
+    sig_config
+        .hash_data_to_sign(&mut *hasher, message)
+        .map_err(Error::Pgp)?;
+    let len = sig_config
+        .hash_signature_data(&mut *hasher)
+        .map_err(Error::Pgp)?;
+    hasher.update(&sig_config.trailer(len).map_err(Error::Pgp)?);
 
     let hash = &hasher.finish()[..];
 
     let signed_hash_value = [hash[0], hash[1]];
-    let raw_sig = signer.create_signature(String::new, sig_config.hash_alg, hash)?;
+    let raw_sig = signer
+        .create_signature(String::new, sig_config.hash_alg, hash)
+        .map_err(Error::Pgp)?;
 
     let signature = pgp::Signature::from_config(sig_config, signed_hash_value, raw_sig);
 
     let mut out = vec![];
-    pgp::packet::write_packet(&mut out, &signature)?;
+    pgp::packet::write_packet(&mut out, &signature).map_err(Error::Pgp)?;
 
     Ok(out)
 }
@@ -368,10 +412,10 @@ pub fn sign(nethsm: &NetHsm, key_id: String, message: &[u8]) -> Result<Vec<u8>, 
 fn hsm_pk_to_pgp_pk(
     pk: nethsm_sdk_rs::models::PublicKey,
     created_at: DateTime<Utc>,
-) -> Result<PublicKey, crate::Error> {
+) -> Result<PublicKey, Error> {
     let public = pk
         .public
-        .ok_or(crate::Error::KeyData("missing public key data".into()))?;
+        .ok_or(Error::KeyData("missing public key data".into()))?;
     let key_type: KeyType = pk.r#type.into();
     Ok(match key_type {
         KeyType::Rsa => PublicKey::new(
@@ -384,21 +428,23 @@ fn hsm_pk_to_pgp_pk(
                 n: Base64::decode_vec(
                     &public
                         .modulus
-                        .ok_or(crate::Error::KeyData("missing RSA modulus".into()))?,
+                        .ok_or(Error::KeyData("missing RSA modulus".into()))?,
                 )?
                 .into(),
                 e: Base64::decode_vec(
                     &public
                         .public_exponent
-                        .ok_or(crate::Error::KeyData("missing RSA exponent".into()))?,
+                        .ok_or(Error::KeyData("missing RSA exponent".into()))?,
                 )?
                 .into(),
             },
         )?,
         KeyType::Curve25519 => {
-            let pubkey = Base64::decode_vec(&public.data.ok_or(crate::Error::KeyData(
-                "missing ed25519 public key data".into(),
-            ))?)?;
+            let pubkey = Base64::decode_vec(
+                &public
+                    .data
+                    .ok_or(Error::KeyData("missing ed25519 public key data".into()))?,
+            )?;
             let mut bytes = vec![0x40];
             bytes.extend(pubkey);
 
@@ -418,7 +464,7 @@ fn hsm_pk_to_pgp_pk(
             let pubkey = Base64::decode_vec(
                 &public
                     .data
-                    .ok_or(crate::Error::KeyData("missing EC public key data".into()))?,
+                    .ok_or(Error::KeyData("missing EC public key data".into()))?,
             )?;
             let key = match curve {
                 KeyType::EcP256 => EcdsaPublicParams::P256 {
@@ -456,10 +502,10 @@ fn hsm_pk_to_pgp_pk(
 
 /// Extracts certificate (public key) from an OpenPGP TSK.
 pub fn extract_certificate(key_data: &[u8]) -> Result<Vec<u8>, crate::Error> {
-    let key = SignedSecretKey::from_bytes(key_data)?;
+    let key = SignedSecretKey::from_bytes(key_data).map_err(Error::Pgp)?;
     let public: SignedPublicKey = key.into();
     let mut buffer = vec![];
-    public.to_writer(&mut buffer)?;
+    public.to_writer(&mut buffer).map_err(Error::Pgp)?;
     Ok(buffer)
 }
 
@@ -486,14 +532,14 @@ impl From<KeyUsageFlags> for KeyFlags {
 }
 
 impl TryFrom<&EcdsaPublicParams> for crate::KeyType {
-    type Error = crate::Error;
+    type Error = Error;
 
     fn try_from(value: &EcdsaPublicParams) -> Result<Self, Self::Error> {
         Ok(match value {
             EcdsaPublicParams::P256 { .. } => crate::KeyType::EcP256,
             EcdsaPublicParams::P384 { .. } => crate::KeyType::EcP384,
             EcdsaPublicParams::P521 { .. } => crate::KeyType::EcP521,
-            _ => return Err(crate::Error::UnsupportedEcdsaParam),
+            _ => return Err(Error::UnsupportedEcdsaParam),
         })
     }
 }

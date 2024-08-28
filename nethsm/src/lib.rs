@@ -248,19 +248,7 @@ pub enum Error {
 
     /// OpenPGP error
     #[error("OpenPGP error: {0}")]
-    OpenPgp(#[from] pgp::errors::Error),
-
-    /// Elliptic curve error
-    #[error("Elliptic curve error: {0}")]
-    EllipticCurve(#[from] p256::elliptic_curve::Error),
-
-    /// ECDSA parameter is unsupported
-    #[error("Unsupported ECDSA parameter")]
-    UnsupportedEcdsaParam,
-
-    /// Multiple component keys are unsupported
-    #[error("Unsupported multiple component keys")]
-    UnsupportedMultipleComponentKeys,
+    OpenPgp(#[from] openpgp::Error),
 }
 
 /// Credentials for a [`NetHsm`]
