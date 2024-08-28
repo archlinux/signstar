@@ -155,15 +155,19 @@ dry-update:
 lint:
     tangler bash < nethsm-cli/README.md | shellcheck --shell bash -
 
-    just -vv -n test-readme nethsm-cli 2>&1 | rg -v '===> Running recipe' | shellcheck -
-    just -vv -n check-commits 2>&1 | rg -v '===> Running recipe' | shellcheck -
-    just -vv -n check-unused-deps 2>&1 | rg -v '===> Running recipe' | shellcheck -
-    just -vv -n ci-publish 2>&1 | rg -v '===> Running recipe' | shellcheck -
-    just -vv -n generate shell_completions nethsm-cli 2>&1 | rg -v '===> Running recipe' | shellcheck -
-    just -vv -n is-workspace-member nethsm 2>&1 | rg -v '===> Running recipe' | shellcheck -
-    just -vv -n release nethsm 2>&1 | rg -v '===> Running recipe' | shellcheck -
+    just lint-recipe 'test-readme nethsm-cli'
+    just lint-recipe check-commits
+    just lint-recipe check-unused-deps
+    just lint-recipe ci-publish
+    just lint-recipe 'generate shell_completions nethsm-cli'
+    just lint-recipe 'is-workspace-member nethsm'
+    just lint-recipe 'release nethsm'
 
     cargo clippy --all -- -D warnings
+
+# Check justfile recipe for shell issues
+lint-recipe recipe:
+    just -vv -n {{ recipe }} 2>&1 | rg -v '===> Running recipe' | shellcheck -
 
 # Checks for issues with dependencies
 check-dependencies: dry-update
