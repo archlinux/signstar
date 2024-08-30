@@ -2247,8 +2247,6 @@ impl NetHsm {
 
     /// Restores NetHSM from [backup].
     ///
-    /// **WARNING**: This function has known issues and may in fact not work! <https://github.com/Nitrokey/nethsm/issues/5>
-    ///
     /// [Restores] a NetHSM from a [backup], by providing a `backup_passphrase` (see
     /// [`set_backup_passphrase`][`NetHsm::set_backup_passphrase`]) a new `system_time` for the
     /// NetHSM and a backup file (created using [`backup`][`NetHsm::backup`]).
