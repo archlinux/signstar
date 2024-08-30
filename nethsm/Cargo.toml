@@ -6,7 +6,7 @@ keywords = ["encryption", "hsm", "nethsm", "signing"]
 license = "Apache-2.0 OR MIT"
 name = "nethsm"
 repository = "https://gitlab.archlinux.org/archlinux/signstar"
-version = "0.3.0"
+version = "0.4.0"
 
 [package.metadata.cargo-machete]
 ignored = ["md-5"]

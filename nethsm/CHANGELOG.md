@@ -6,6 +6,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2024-08-30
+
+### Added
+- Validate namespace access using `UserId` method
+- Add `UserId` and `NamespaceId` types for handling User IDs
+- Add facilities for namespace administration
+- Add facilities for OpenPGP certificate creation and signing
+- Add support for PEM-encoded private keys in `key import`
+
+### Fixed
+- *(Cargo.toml)* Have cargo-machete ignore the md-5 dependency
+- Do not require `Administrator` role when executing `unlock`
+- Adjust the test to remove credentials as they are not needed in `unlock`
+- Adjust functions as `update_file` does not need to be async
+- Reduce the number of direct dependencies
+- *(README.md)* Remove license attribution as it is in reuse config
+
+### Other
+- Remove warning from `NetHsm::restore` method
+- Adapt existing documentation for the use of namespaces
+- Adapt and extend tests for use of namespaces
+- [**breaking**] Move `Credentials` and `Passphrase` to user module
+- Adjust information on output format on public key retrieval
+- Adjust documentation on authentication for unlock call
+- Split tests for retrieval of TLS public key
+- Fix user role requirements for backup retrieval
+- *(deps)* update rust crate rstest to 0.22.0
+- Pin nethsm container image version to c16fe4ed
+- *(nethsm/tests/config.rs)* Fix create_backup test
+- Simplify license attribution setup for entire project
+
 ## [0.3.0] - 2024-07-12
 
 ### Added
