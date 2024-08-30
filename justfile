@@ -306,7 +306,7 @@ release package:
     fi
 
     printf "Creating tag %s...\n" "$current_version"
-    git tag -s "$current_version"
+    git tag -s "$current_version" -m "$current_version"
     printf "Pushing tag %s...\n" "$current_version"
     git push origin refs/tags/"$current_version"
 
