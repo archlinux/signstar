@@ -42,7 +42,6 @@ url = { version = "2.5.0", features = ["serde"] }
 
 [dev-dependencies]
 ed25519-dalek = { version = "2.1.1", features = ["pkcs8", "pem", "rand_core"] }
-rand = "0.8.5"
 rsa = { version = "0.9.6", features = ["getrandom", "sha2", "pem"] }
 rstest = "0.22.0"
 rustainers = { version = "0.12.0" }
