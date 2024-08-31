@@ -47,8 +47,9 @@ async fn signing(
     // verify the ed25519 signature
     let pubkey = nethsm.get_public_key(DEFAULT_KEY_ID)?;
     println!("The default key on the NetHSM: {}", pubkey);
-    let pubkey_verifier = ed25519_compact::PublicKey::from_pem(&pubkey)?;
-    let signature_parsed = ed25519_compact::Signature::from_slice(&signature)?;
+    let pubkey_bytes = ed25519_dalek::pkcs8::PublicKeyBytes::from_public_key_pem(&pubkey)?;
+    let pubkey_verifier = ed25519_dalek::VerifyingKey::from_bytes(&pubkey_bytes.to_bytes())?;
+    let signature_parsed = ed25519_dalek::Signature::from_slice(&signature)?;
     pubkey_verifier.verify(MESSAGE, &signature_parsed)?;
 
     // use nethsm as another operator user
