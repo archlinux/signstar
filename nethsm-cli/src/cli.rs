@@ -43,6 +43,7 @@ pub enum Error {
 }
 
 #[derive(Debug, Parser)]
+#[command(name = "nethsm")]
 pub struct Cli {
     #[arg(
         env = "NETHSM_AUTH_PASSPHRASE_FILE",
