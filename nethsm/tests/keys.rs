@@ -10,10 +10,12 @@ use common::NAMESPACE1_ADMIN_USER_ID;
 use common::NAMESPACE1_OPERATOR_USER_ID;
 use common::NAMESPACE2_ADMIN_USER_ID;
 use common::NAMESPACE2_OPERATOR_USER_ID;
+use ed25519_dalek::pkcs8::EncodePrivateKey;
 use nethsm::NamespaceId;
+use nethsm::PrivateKeyImport;
 use nethsm::UserId;
 use nethsm::{KeyMechanism, KeyType, NetHsm};
-use rstest::rstest;
+use rstest::{fixture, rstest};
 use rustainers::Container;
 use testresult::TestResult;
 
@@ -190,6 +192,134 @@ async fn generate_keys(
     // access to any other key!
     assert!(nethsm.get_keys(None).is_err());
     assert!(nethsm.get_key(&ns1_key).is_err());
+
+    Ok(())
+}
+
+#[fixture]
+fn ed25519_key() -> TestResult<PrivateKeyImport> {
+    let private_key = ed25519_dalek::SigningKey::generate(&mut rand::rngs::OsRng);
+
+    Ok(PrivateKeyImport::new(
+        KeyType::Curve25519,
+        private_key.to_pkcs8_der()?.as_bytes(),
+    )?)
+}
+
+#[fixture]
+fn ecp224_key() -> TestResult<PrivateKeyImport> {
+    let private_key = p224::SecretKey::random(&mut rand::rngs::OsRng);
+
+    Ok(PrivateKeyImport::new(
+        KeyType::EcP224,
+        private_key.to_pkcs8_der()?.as_bytes(),
+    )?)
+}
+
+#[fixture]
+fn ecp256_key() -> TestResult<PrivateKeyImport> {
+    let private_key = p256::SecretKey::random(&mut rand::rngs::OsRng);
+
+    Ok(PrivateKeyImport::new(
+        KeyType::EcP256,
+        private_key.to_pkcs8_der()?.as_bytes(),
+    )?)
+}
+
+#[fixture]
+fn ecp384_key() -> TestResult<PrivateKeyImport> {
+    let private_key = p384::SecretKey::random(&mut rand::rngs::OsRng);
+
+    Ok(PrivateKeyImport::new(
+        KeyType::EcP384,
+        private_key.to_pkcs8_der()?.as_bytes(),
+    )?)
+}
+
+#[fixture]
+fn ecp521_key() -> TestResult<PrivateKeyImport> {
+    let private_key = p521::SecretKey::random(&mut rand::rngs::OsRng);
+
+    Ok(PrivateKeyImport::new(
+        KeyType::EcP521,
+        private_key.to_pkcs8_der()?.as_bytes(),
+    )?)
+}
+
+#[fixture]
+fn rsa_key() -> TestResult<PrivateKeyImport> {
+    let private_key =
+        rsa::RsaPrivateKey::new(&mut rand::rngs::OsRng, DEFAULT_RSA_BITS.try_into()?)?;
+
+    Ok(PrivateKeyImport::new(
+        KeyType::Rsa,
+        private_key.to_pkcs8_der()?.as_bytes(),
+    )?)
+}
+
+#[rstest]
+#[ignore = "requires Podman"]
+#[tokio::test]
+async fn import_keys(
+    #[future] nethsm_with_users: TestResult<(NetHsm, Container<NetHsmImage>)>,
+    ed25519_key: TestResult<PrivateKeyImport>,
+    ecp224_key: TestResult<PrivateKeyImport>,
+    ecp256_key: TestResult<PrivateKeyImport>,
+    ecp384_key: TestResult<PrivateKeyImport>,
+    ecp521_key: TestResult<PrivateKeyImport>,
+    rsa_key: TestResult<PrivateKeyImport>,
+) -> TestResult {
+    let (nethsm, _container) = nethsm_with_users.await?;
+    let ed25519_key = ed25519_key?;
+    let ecp224_key = ecp224_key?;
+    let ecp256_key = ecp256_key?;
+    let ecp384_key = ecp384_key?;
+    let ecp521_key = ecp521_key?;
+    let rsa_key = rsa_key?;
+    assert_eq!(nethsm.get_keys(None)?.len(), 0);
+
+    nethsm.import_key(
+        KeyMechanism::curve25519_mechanisms(),
+        ed25519_key,
+        None,
+        None,
+    )?;
+    assert_eq!(nethsm.get_keys(None)?.len(), 1);
+
+    nethsm.import_key(
+        KeyMechanism::elliptic_curve_mechanisms(),
+        ecp224_key,
+        None,
+        None,
+    )?;
+    assert_eq!(nethsm.get_keys(None)?.len(), 2);
+
+    nethsm.import_key(
+        KeyMechanism::elliptic_curve_mechanisms(),
+        ecp256_key,
+        None,
+        None,
+    )?;
+    assert_eq!(nethsm.get_keys(None)?.len(), 3);
+
+    nethsm.import_key(
+        KeyMechanism::elliptic_curve_mechanisms(),
+        ecp384_key,
+        None,
+        None,
+    )?;
+    assert_eq!(nethsm.get_keys(None)?.len(), 4);
+
+    nethsm.import_key(
+        KeyMechanism::elliptic_curve_mechanisms(),
+        ecp521_key,
+        None,
+        None,
+    )?;
+    assert_eq!(nethsm.get_keys(None)?.len(), 5);
+
+    nethsm.import_key(KeyMechanism::rsa_mechanisms(), rsa_key, None, None)?;
+    assert_eq!(nethsm.get_keys(None)?.len(), 6);
 
     Ok(())
 }
