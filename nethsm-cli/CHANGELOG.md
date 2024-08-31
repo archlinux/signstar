@@ -6,6 +6,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.1] - 2024-08-31
+
+### Fixed
+- Name the command explicitly so that clap_allgen can use it
+
 ## [0.2.0] - 2024-08-30
 
 ### Added
