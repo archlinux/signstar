@@ -104,6 +104,7 @@ impl<T> Display for NetHsmApiError<T> {
 /// [`nethsm_sdk_rs::models::SignMode::Ecdsa`] covers prime size specific ECDSA modes.
 #[derive(
     Clone,
+    Copy,
     Debug,
     strum::Display,
     strum::EnumString,
