@@ -100,6 +100,45 @@ impl Debug for HsmKey<'_> {
     }
 }
 
+/// Safely construct an MPI from a slice of bytes.
+#[inline]
+fn mpi(bytes: &[u8]) -> Mpi {
+    // construct an MPI using a safe function which will correctly truncate
+    // any leading zeros, see also: https://github.com/rpgp/rpgp/issues/401
+    Mpi::from_raw_slice(bytes)
+}
+
+/// Parse signature bytes into algorithm-specific vector of MPIs.
+fn parse_signature(sig_type: crate::SignatureType, sig: &[u8]) -> pgp::errors::Result<Vec<Mpi>> {
+    use crate::SignatureType::*;
+    Ok(match sig_type {
+        EcdsaP256 | EcdsaP384 | EcdsaP521 => {
+            let sig: EcdsaSignatureValue =
+                picky_asn1_der::from_bytes(sig).map_err(|_| pgp::errors::Error::InvalidInput)?;
+            vec![
+                mpi(sig.r.as_unsigned_bytes_be()),
+                mpi(sig.s.as_unsigned_bytes_be()),
+            ]
+        }
+        EdDsa => {
+            if sig.len() != 64 {
+                return Err(pgp::errors::Error::InvalidKeyLength);
+            }
+
+            vec![mpi(&sig[..32]), mpi(&sig[32..])]
+        }
+        Pkcs1 => {
+            // RSA
+            vec![mpi(sig)]
+        }
+        param => {
+            return Err(pgp::errors::Error::Unsupported(format!(
+                "Unsupoprted key type: {param:?}"
+            )))
+        }
+    })
+}
+
 impl<'a> HsmKey<'a> {
     /// Creates a new remote signing key which will use `key_id` key for signing.
     fn new(nethsm: &'a NetHsm, public_key: PublicKey, key_id: String) -> Self {
@@ -128,38 +167,6 @@ impl<'a> HsmKey<'a> {
             param => {
                 return Err(pgp::errors::Error::Unsupported(format!(
                     "Unsupported key type: {param:?}"
-                )))
-            }
-        })
-    }
-
-    /// Parse signature bytes into algorithm-specific vector of MPIs.
-    fn parse_signature(&self, sig: &[u8]) -> pgp::errors::Result<Vec<Mpi>> {
-        Ok(match self.public_key.public_params() {
-            PublicParams::ECDSA(_) => {
-                let sig: EcdsaSignatureValue = picky_asn1_der::from_bytes(sig)
-                    .map_err(|_| pgp::errors::Error::InvalidInput)?;
-                vec![
-                    Mpi::from_slice(sig.r.as_unsigned_bytes_be()),
-                    Mpi::from_slice(sig.s.as_unsigned_bytes_be()),
-                ]
-            }
-            PublicParams::EdDSA { .. } => {
-                if sig.len() != 64 {
-                    return Err(pgp::errors::Error::InvalidKeyLength);
-                }
-
-                vec![
-                    Mpi::from_raw_slice(&sig[..32]),
-                    Mpi::from_raw_slice(&sig[32..]),
-                ]
-            }
-            PublicParams::RSA { .. } => {
-                vec![sig.into()]
-            }
-            param => {
-                return Err(pgp::errors::Error::Unsupported(format!(
-                    "Unsupoprted key type: {param:?}"
                 )))
             }
         })
@@ -243,7 +250,7 @@ impl SecretKeyTrait for HsmKey<'_> {
             .sign_digest(&self.key_id, signature_type, &request_data)
             .map_err(|_| pgp::errors::Error::InvalidInput)?;
 
-        self.parse_signature(&sig)
+        parse_signature(signature_type, &sig)
     }
 
     fn public_key(&self) -> Self::PublicKey {
@@ -733,6 +740,134 @@ mod tests {
                 232, 130, 124, 74, 148, 156, 126, 169, 109, 26, 197, 55, 142, 32, 11, 43, 33, 81,
                 87, 159, 8, 247, 82, 148, 149, 119, 160, 141, 69, 81, 223, 81, 49, 21, 205, 30, 0,
                 59, 161, 187
+            ]
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn parse_rsa_signature_produces_valid_data() -> TestResult {
+        let sig = parse_signature(crate::SignatureType::Pkcs1, &[0, 1, 2])?;
+        assert_eq!(sig.len(), 1);
+        assert_eq!(&sig[0][..], &[1, 2]);
+
+        Ok(())
+    }
+
+    #[test]
+    fn parse_ed25519_signature_produces_valid_data() -> TestResult {
+        let sig = parse_signature(
+            crate::SignatureType::EdDsa,
+            &[
+                2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
+                2, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+                1, 1, 1, 1, 1, 1, 1, 1,
+            ],
+        )?;
+        assert_eq!(sig.len(), 2);
+        assert_eq!(sig[0].as_bytes(), vec![2; 32]);
+        assert_eq!(sig[1].as_bytes(), vec![1; 32]);
+
+        Ok(())
+    }
+
+    #[test]
+    fn parse_p256_signature_produces_valid_data() -> TestResult {
+        let sig = parse_signature(
+            crate::SignatureType::EcdsaP256,
+            &[
+                48, 70, 2, 33, 0, 193, 176, 219, 0, 133, 254, 212, 239, 236, 122, 85, 239, 73, 161,
+                179, 53, 100, 172, 103, 45, 123, 21, 169, 28, 59, 150, 72, 92, 242, 9, 53, 143, 2,
+                33, 0, 165, 1, 144, 97, 102, 109, 66, 50, 185, 234, 211, 150, 253, 228, 210, 126,
+                26, 0, 189, 184, 230, 163, 36, 203, 232, 161, 12, 75, 121, 171, 45, 107,
+            ],
+        )?;
+        assert_eq!(sig.len(), 2);
+        assert_eq!(
+            sig[0].as_bytes(),
+            [
+                193, 176, 219, 0, 133, 254, 212, 239, 236, 122, 85, 239, 73, 161, 179, 53, 100,
+                172, 103, 45, 123, 21, 169, 28, 59, 150, 72, 92, 242, 9, 53, 143
+            ]
+        );
+        assert_eq!(
+            sig[1].as_bytes(),
+            [
+                165, 1, 144, 97, 102, 109, 66, 50, 185, 234, 211, 150, 253, 228, 210, 126, 26, 0,
+                189, 184, 230, 163, 36, 203, 232, 161, 12, 75, 121, 171, 45, 107
+            ]
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn parse_p384_signature_produces_valid_data() -> TestResult {
+        let sig = parse_signature(
+            crate::SignatureType::EcdsaP384,
+            &[
+                48, 101, 2, 49, 0, 134, 13, 108, 74, 135, 234, 174, 105, 208, 46, 109, 18, 77, 21,
+                177, 59, 73, 150, 228, 26, 244, 134, 187, 217, 172, 34, 2, 1, 229, 123, 105, 202,
+                132, 233, 72, 41, 243, 138, 127, 107, 135, 95, 139, 19, 121, 179, 170, 27, 2, 48,
+                44, 80, 117, 90, 18, 137, 36, 190, 8, 60, 201, 235, 242, 168, 164, 245, 119, 136,
+                207, 178, 237, 64, 117, 69, 218, 189, 209, 110, 2, 9, 191, 194, 70, 50, 227, 47, 6,
+                34, 8, 135, 43, 188, 236, 192, 184, 227, 59, 40,
+            ],
+        )?;
+        assert_eq!(sig.len(), 2);
+        assert_eq!(
+            sig[0].as_bytes(),
+            [
+                134, 13, 108, 74, 135, 234, 174, 105, 208, 46, 109, 18, 77, 21, 177, 59, 73, 150,
+                228, 26, 244, 134, 187, 217, 172, 34, 2, 1, 229, 123, 105, 202, 132, 233, 72, 41,
+                243, 138, 127, 107, 135, 95, 139, 19, 121, 179, 170, 27
+            ]
+        );
+        assert_eq!(
+            sig[1].as_bytes(),
+            [
+                44, 80, 117, 90, 18, 137, 36, 190, 8, 60, 201, 235, 242, 168, 164, 245, 119, 136,
+                207, 178, 237, 64, 117, 69, 218, 189, 209, 110, 2, 9, 191, 194, 70, 50, 227, 47, 6,
+                34, 8, 135, 43, 188, 236, 192, 184, 227, 59, 40
+            ]
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn parse_p521_signature_produces_valid_data() -> TestResult {
+        let sig = parse_signature(
+            crate::SignatureType::EcdsaP521,
+            &[
+                48, 129, 136, 2, 66, 0, 203, 246, 21, 57, 217, 6, 101, 73, 103, 113, 98, 39, 223,
+                246, 199, 136, 238, 213, 134, 163, 153, 151, 116, 237, 207, 181, 107, 183, 204,
+                110, 97, 160, 95, 160, 193, 3, 219, 46, 105, 191, 0, 139, 124, 234, 90, 125, 114,
+                115, 205, 109, 15, 193, 166, 100, 224, 108, 87, 143, 240, 65, 41, 93, 164, 166, 2,
+                2, 66, 1, 203, 115, 121, 219, 49, 18, 3, 101, 130, 153, 95, 80, 27, 148, 249, 221,
+                198, 251, 149, 118, 119, 32, 44, 160, 24, 125, 72, 161, 168, 71, 48, 138, 223, 200,
+                37, 124, 234, 17, 237, 246, 13, 123, 102, 151, 83, 95, 186, 161, 112, 41, 158, 138,
+                144, 55, 23, 110, 100, 185, 237, 13, 174, 83, 4, 153, 34,
+            ],
+        )?;
+        assert_eq!(sig.len(), 2);
+        assert_eq!(
+            sig[0].as_bytes(),
+            [
+                203, 246, 21, 57, 217, 6, 101, 73, 103, 113, 98, 39, 223, 246, 199, 136, 238, 213,
+                134, 163, 153, 151, 116, 237, 207, 181, 107, 183, 204, 110, 97, 160, 95, 160, 193,
+                3, 219, 46, 105, 191, 0, 139, 124, 234, 90, 125, 114, 115, 205, 109, 15, 193, 166,
+                100, 224, 108, 87, 143, 240, 65, 41, 93, 164, 166, 2
+            ]
+        );
+        assert_eq!(
+            sig[1].as_bytes(),
+            [
+                1, 203, 115, 121, 219, 49, 18, 3, 101, 130, 153, 95, 80, 27, 148, 249, 221, 198,
+                251, 149, 118, 119, 32, 44, 160, 24, 125, 72, 161, 168, 71, 48, 138, 223, 200, 37,
+                124, 234, 17, 237, 246, 13, 123, 102, 151, 83, 95, 186, 161, 112, 41, 158, 138,
+                144, 55, 23, 110, 100, 185, 237, 13, 174, 83, 4, 153, 34
             ]
         );
 
