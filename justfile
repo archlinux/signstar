@@ -162,6 +162,7 @@ lint:
     just lint-recipe 'generate shell_completions nethsm-cli'
     just lint-recipe 'is-workspace-member nethsm'
     just lint-recipe 'release nethsm'
+    just lint-recipe flaky
 
     cargo clippy --all -- -D warnings
 
@@ -288,6 +289,18 @@ generate kind pkg:
     sed "s/PKG/{{ pkg }}/;s#PATH#$PWD/{{ pkg }}#g;s/KIND/{{ kind }}/g" > "$script" <<< '{{ render-script }}'
     rust-script "$script" "$output_dir/{{ kind }}"
     rm --force "$script"
+
+# Continuously run integration tests for a given number of rounds
+flaky test='just test-readme nethsm-cli' rounds='999999999999':
+    #!/usr/bin/bash
+    set -euo pipefail
+
+    seq 1 {{ rounds }} | while read -r counter; do
+      printf "Running flaky tests (%d/{{ rounds }})...\n" "$counter"
+      sleep 1
+      {{ test }}
+      echo
+    done
 
 # Prepares the release of a crate by updating dependencies, incrementing the crate version and creating a changelog entry
 prepare-release package:
