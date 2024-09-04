@@ -26,6 +26,7 @@ path = [
     "justfile",
     "lychee.toml",
     ".lycheeignore",
+    "nethsm/tests/*.asc",
 ]
 precedence = "aggregate"
 SPDX-FileCopyrightText = "Signstar Contributors"

@@ -44,6 +44,33 @@ pub struct PrivateKeyImport {
     key_data: PrivateKeyData,
 }
 
+/// Creates a new vector with bytes in `buf`, left-padded with zeros so
+/// that the result is exactly `len` big.
+///
+/// # Errors
+///
+/// Returns an [`crate::Error::Default`], if the input buffer `buf` is
+/// longer than the targeted `len`.
+///
+/// # Examples
+///
+/// ```no_compile
+/// let input = vec![1, 2, 3];
+/// let output = pad(&input, 4)?;
+/// assert_eq!(output, vec![0, 1, 2, 3]);
+/// ```
+fn pad(buf: &[u8], len: usize) -> Result<Vec<u8>, crate::Error> {
+    if len < buf.len() {
+        return Err(crate::Error::Default(format!(
+            "Input buffer should be upmost {len} bytes long but has {} bytes.",
+            buf.len()
+        )));
+    }
+    let mut v = vec![0; len];
+    v[len - buf.len()..].copy_from_slice(buf);
+    Ok(v)
+}
+
 impl PrivateKeyImport {
     /// Creates a new [`PrivateKeyImport`]
     ///
@@ -249,28 +276,32 @@ impl PrivateKeyImport {
     /// - the type of elliptic curve,
     /// - raw bytes in a curve-specific encoding
     ///
+    /// Elliptic curve keys require the `bytes` to be zero-padded to be of correct size.
+    /// This function automatically applies padding accordingly.
+    ///
     /// # Examples
     ///
     /// ```rust
     /// use nethsm::{KeyType, PrivateKeyImport};
     ///
     /// # fn main() -> testresult::TestResult {
-    /// let bytes = vec![0x00; 40];
+    /// let bytes = vec![0x00; 32];
     ///
-    /// let _import = PrivateKeyImport::from_raw_bytes(KeyType::Curve25519, bytes);
+    /// let _import = PrivateKeyImport::from_raw_bytes(KeyType::Curve25519, bytes)?;
     /// # Ok(()) }
     /// ```
-    pub fn from_raw_bytes(ec: KeyType, bytes: Vec<u8>) -> Self {
-        Self {
+    pub fn from_raw_bytes(ec: KeyType, bytes: impl AsRef<[u8]>) -> Result<Self, crate::Error> {
+        let bytes = bytes.as_ref();
+        Ok(Self {
             key_data: match ec {
-                KeyType::EcP224 => PrivateKeyData::EcP224(bytes),
-                KeyType::EcP256 => PrivateKeyData::EcP256(bytes),
-                KeyType::EcP384 => PrivateKeyData::EcP384(bytes),
-                KeyType::EcP521 => PrivateKeyData::EcP521(bytes),
-                KeyType::Curve25519 => PrivateKeyData::Curve25519(bytes),
-                _ => unimplemented!(),
+                KeyType::EcP224 => PrivateKeyData::EcP224(pad(bytes, 28)?),
+                KeyType::EcP256 => PrivateKeyData::EcP256(pad(bytes, 32)?),
+                KeyType::EcP384 => PrivateKeyData::EcP384(pad(bytes, 48)?),
+                KeyType::EcP521 => PrivateKeyData::EcP521(pad(bytes, 66)?),
+                KeyType::Curve25519 => PrivateKeyData::Curve25519(pad(bytes, 32)?),
+                ec => return Err(crate::Error::Default(format!("Unsupported key type: {ec}"))),
             },
-        }
+        })
     }
 
     /// Get the matching [`KeyType`] for the data contained in the [`PrivateKeyImport`]

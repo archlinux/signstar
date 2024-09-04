@@ -340,12 +340,12 @@ pub fn tsk_to_private_key_import(
             };
 
             (
-                PrivateKeyImport::from_raw_bytes(ec, bytes.as_bytes().to_vec()),
+                PrivateKeyImport::from_raw_bytes(ec, bytes)?,
                 KeyMechanism::EcdsaSignature,
             )
         }
         PlainSecretParams::EdDSA(bytes) => (
-            PrivateKeyImport::from_raw_bytes(crate::KeyType::Curve25519, bytes.as_bytes().to_vec()),
+            PrivateKeyImport::from_raw_bytes(crate::KeyType::Curve25519, bytes)?,
             KeyMechanism::EdDsaSignature,
         ),
         params => {
@@ -870,6 +870,28 @@ mod tests {
                 144, 55, 23, 110, 100, 185, 237, 13, 174, 83, 4, 153, 34
             ]
         );
+
+        Ok(())
+    }
+
+    #[test]
+    fn private_key_import_zero_padding() -> TestResult {
+        let mut key_data = vec![];
+        SignedSecretKey::from_armor_single(std::fs::File::open(
+            "tests/ed25519-key-with-31-byte-private-key-scalar.asc",
+        )?)?
+        .0
+        .to_writer(&mut key_data)?;
+
+        let import: nethsm_sdk_rs::models::KeyPrivateData =
+            tsk_to_private_key_import(&key_data)?.0.into();
+
+        let data = Base64::decode_vec(&import.data.unwrap())?;
+
+        // data needs to be zero-padded for NetHSM import even if the
+        // input is *not* zero-padded
+        assert_eq!(data.len(), 32);
+        assert_eq!(data[0], 0x00);
 
         Ok(())
     }
