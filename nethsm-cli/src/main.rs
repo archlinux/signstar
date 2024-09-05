@@ -4,12 +4,6 @@ use std::path::{Path, PathBuf};
 
 use chrono::Utc;
 use clap::Parser;
-
-mod config;
-use cli::{KeyCertCommand, KeyCommand, NamespaceCommand, SystemCommand};
-use config::Config;
-
-mod cli;
 use cli::{
     Cli,
     Command,
@@ -21,26 +15,38 @@ use cli::{
     HealthCommand,
     UserCommand,
 };
-mod passphrase_file;
-mod prompt;
-use nethsm::{DistinguishedName, KeyFormat, NetworkConfig, Passphrase, PrivateKeyImport, UserRole};
-use prompt::PassphrasePrompt;
+use cli::{KeyCertCommand, KeyCommand, NamespaceCommand, SystemCommand};
+use nethsm::{
+    DistinguishedName,
+    KeyFormat,
+    NetworkConfig,
+    Passphrase,
+    PrivateKeyImport,
+    UserId,
+    UserRole,
+};
+use nethsm_config::{
+    Config,
+    ConfigCredentials,
+    ConfigInteractivity,
+    ConfigSettings,
+    PassphrasePrompt,
+};
 
 use crate::cli::EnvCommand;
+
+mod cli;
+mod passphrase_file;
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
     /// A config error
     #[error("Configuration issue: {0}")]
-    Config(#[from] config::Error),
+    Config(#[from] nethsm_config::Error),
 
     /// A NetHsm error
     #[error("NetHsm error: {0}")]
     NetHsm(#[from] nethsm::Error),
-
-    /// A prompt error
-    #[error("Prompt error: {0}")]
-    Prompt(#[from] prompt::Error),
 
     /// An I/O error
     #[error("I/O error: {0}")]
@@ -93,7 +99,10 @@ impl FileOrStdout {
 
 fn main() -> Result<(), Error> {
     let cli = Cli::parse();
-    let config = Config::new(cli.config.as_deref())?;
+    let config = Config::new(
+        ConfigSettings::new("nethsm".to_string(), ConfigInteractivity::Interactive, None),
+        cli.config.as_deref(),
+    )?;
     let auth_passphrases: Vec<Passphrase> = cli
         .auth_passphrase_file
         .iter()
@@ -213,13 +222,17 @@ fn main() -> Result<(), Error> {
                         if let Some(passphrase_file) = command.old_passphrase_file {
                             passphrase_file.passphrase
                         } else {
-                            PassphrasePrompt::CurrentBackup.prompt()?
+                            PassphrasePrompt::CurrentBackup
+                                .prompt()
+                                .map_err(nethsm_config::Error::Prompt)?
                         };
                     let new_passphrase = if let Some(passphrase_file) = command.new_passphrase_file
                     {
                         passphrase_file.passphrase
                     } else {
-                        PassphrasePrompt::NewBackup.prompt()?
+                        PassphrasePrompt::NewBackup
+                            .prompt()
+                            .map_err(nethsm_config::Error::Prompt)?
                     };
 
                     nethsm.set_backup_passphrase(current_passphrase, new_passphrase)?;
@@ -313,13 +326,17 @@ fn main() -> Result<(), Error> {
                         if let Some(passphrase_file) = command.old_passphrase_file {
                             passphrase_file.passphrase
                         } else {
-                            PassphrasePrompt::CurrentUnlock.prompt()?
+                            PassphrasePrompt::CurrentUnlock
+                                .prompt()
+                                .map_err(nethsm_config::Error::Prompt)?
                         };
                     let new_passphrase = if let Some(passphrase_file) = command.new_passphrase_file
                     {
                         passphrase_file.passphrase
                     } else {
-                        PassphrasePrompt::NewUnlock.prompt()?
+                        PassphrasePrompt::NewUnlock
+                            .prompt()
+                            .map_err(nethsm_config::Error::Prompt)?
                     };
 
                     nethsm.set_unlock_passphrase(current_passphrase, new_passphrase)?;
@@ -340,7 +357,14 @@ fn main() -> Result<(), Error> {
                         if let Some(passphrase_file) = command.passphrase_file {
                             Some(passphrase_file.passphrase)
                         } else {
-                            Some(PassphrasePrompt::User(command.name.to_string()).prompt()?)
+                            Some(
+                                PassphrasePrompt::User {
+                                    user_id: Some(command.name.clone()),
+                                    real_name: None,
+                                }
+                                .prompt()
+                                .map_err(nethsm_config::Error::Prompt)?,
+                            )
                         }
                     } else if let Some(passphrase_file) = command.passphrase_file {
                         Some(passphrase_file.passphrase)
@@ -350,9 +374,11 @@ fn main() -> Result<(), Error> {
 
                     config.add_credentials(
                         label,
-                        command.role.unwrap_or_default(),
-                        command.name,
-                        passphrase.map(|p| p.expose_owned()),
+                        ConfigCredentials::new(
+                            command.role.unwrap_or_default(),
+                            command.name,
+                            passphrase.map(|p| p.expose_owned()),
+                        ),
                     )?;
                     config.store(cli.config.as_deref())?;
                 }
@@ -377,7 +403,7 @@ fn main() -> Result<(), Error> {
                         return Err(cli::Error::OptionMissing("label".to_string()).into());
                     };
 
-                    config.delete_credentials(label, command.name)?;
+                    config.delete_credentials(&label, &command.name)?;
                     config.store(cli.config.as_deref())?;
                 }
                 EnvDeleteCommand::Device(_command) => {
@@ -392,8 +418,6 @@ fn main() -> Result<(), Error> {
                 }
             },
             EnvCommand::List => {
-                let config = Config::new(cli.config.as_deref())?;
-
                 println!("{:#?}", config);
             }
         },
@@ -823,12 +847,19 @@ fn main() -> Result<(), Error> {
             let unlock_passphrase = if let Some(passphrase_file) = command.unlock_passphrase_file {
                 passphrase_file.passphrase
             } else {
-                PassphrasePrompt::Unlock.prompt()?
+                PassphrasePrompt::Unlock
+                    .prompt()
+                    .map_err(nethsm_config::Error::Prompt)?
             };
             let admin_passphrase = if let Some(passphrase_file) = command.admin_passphrase_file {
                 passphrase_file.passphrase
             } else {
-                PassphrasePrompt::User("admin".to_string()).prompt()?
+                PassphrasePrompt::User {
+                    user_id: Some(UserId::SystemWide("admin".to_string())),
+                    real_name: None,
+                }
+                .prompt()
+                .map_err(nethsm_config::Error::Prompt)?
             };
 
             nethsm.provision(
@@ -941,7 +972,9 @@ fn main() -> Result<(), Error> {
                     if let Some(passphrase_file) = command.backup_passphrase_file {
                         passphrase_file.passphrase
                     } else {
-                        PassphrasePrompt::Backup.prompt()?
+                        PassphrasePrompt::Backup
+                            .prompt()
+                            .map_err(nethsm_config::Error::Prompt)?
                     };
 
                 nethsm.restore(
@@ -980,7 +1013,9 @@ fn main() -> Result<(), Error> {
             let unlock_passphrase = if let Some(passphrase_file) = command.unlock_passphrase_file {
                 passphrase_file.passphrase
             } else {
-                PassphrasePrompt::Unlock.prompt()?
+                PassphrasePrompt::Unlock
+                    .prompt()
+                    .map_err(nethsm_config::Error::Prompt)?
             };
 
             nethsm.unlock(unlock_passphrase)?;
@@ -997,12 +1032,12 @@ fn main() -> Result<(), Error> {
                 let passphrase = if let Some(passphrase_file) = command.passphrase_file {
                     passphrase_file.passphrase
                 } else {
-                    PassphrasePrompt::User(if let Some(name) = command.name.as_ref() {
-                        format!("{} ({})", command.real_name, name)
-                    } else {
-                        command.real_name.clone()
-                    })
-                    .prompt()?
+                    PassphrasePrompt::User {
+                        user_id: command.name.clone(),
+                        real_name: Some(command.real_name.clone()),
+                    }
+                    .prompt()
+                    .map_err(nethsm_config::Error::Prompt)?
                 };
 
                 println!(
@@ -1056,7 +1091,9 @@ fn main() -> Result<(), Error> {
                 let passphrase = if let Some(passphrase_file) = command.passphrase_file {
                     passphrase_file.passphrase
                 } else {
-                    PassphrasePrompt::NewUser(command.name.to_string()).prompt()?
+                    PassphrasePrompt::NewUser(command.name.clone())
+                        .prompt()
+                        .map_err(nethsm_config::Error::Prompt)?
                 };
 
                 nethsm.set_user_passphrase(command.name, passphrase)?;

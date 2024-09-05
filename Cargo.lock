@@ -1484,18 +1484,14 @@ version = "0.2.1"
 dependencies = [
  "chrono",
  "clap",
- "confy",
  "nethsm",
+ "nethsm-config",
  "rand",
- "rpassword",
- "rprompt",
  "rstest",
- "serde",
  "strum",
  "testdir",
  "testresult",
  "thiserror",
- "zeroize",
 ]
 
 [[package]]

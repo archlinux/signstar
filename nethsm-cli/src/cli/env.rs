@@ -121,7 +121,7 @@ pub struct CredentialsDeleteCommand {
         env = "NETHSM_USER_NAME",
         help = "The user name matching the credentials to be deleted"
     )]
-    pub name: String,
+    pub name: UserId,
 }
 
 #[derive(Debug, Parser)]

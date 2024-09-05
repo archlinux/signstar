@@ -11,14 +11,10 @@ version = "0.2.1"
 [dependencies]
 chrono = "0.4.37"
 clap = { version = "4.5.4", features = ["derive", "env"] }
-confy = "0.6.1"
 nethsm = { path = "../nethsm", version = "0.4.0" }
-rpassword = "7.3.1"
-rprompt = "2.1.1"
-serde = { version = "1.0.197", features = ["derive"] }
+nethsm-config = { path = "../nethsm-config", version = "0.1.0" }
 strum = { version = "0.25.0", features = ["derive"] }
 thiserror = "1.0.58"
-zeroize = { version = "1.7.0", features = ["zeroize_derive", "serde"] }
 
 [[bin]]
 name = "nethsm"
