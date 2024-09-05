@@ -3,6 +3,7 @@ resolver = "2"
 members = [
   "nethsm",
   "nethsm-cli",
+  "nethsm-config",
 ]
 
 [profile.release]

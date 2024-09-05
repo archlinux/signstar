@@ -686,6 +686,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "dirs"
+version = "5.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "44c45a9d03d6676652bcb5e724c7e988de1acad23a711b5217ab9cbecbec2225"
+dependencies = [
+ "dirs-sys",
+]
+
+[[package]]
 name = "dirs-sys"
 version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1483,6 +1492,23 @@ dependencies = [
  "rstest",
  "serde",
  "strum",
+ "testdir",
+ "testresult",
+ "thiserror",
+ "zeroize",
+]
+
+[[package]]
+name = "nethsm-config"
+version = "0.1.0"
+dependencies = [
+ "confy",
+ "dirs",
+ "nethsm",
+ "rpassword",
+ "rprompt",
+ "rstest",
+ "serde",
  "testdir",
  "testresult",
  "thiserror",

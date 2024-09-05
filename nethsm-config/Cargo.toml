@@ -1,0 +1,24 @@
+[package]
+authors = ["David Runge <dvzrv@archlinux.org>"]
+description = "A library for working with application configuration files for Nitrokey NetHSM devices"
+edition = "2021"
+keywords = ["encryption", "hsm", "nethsm", "signing"]
+license = "Apache-2.0 OR MIT"
+name = "nethsm-config"
+repository = "https://gitlab.archlinux.org/archlinux/signstar"
+version = "0.1.0"
+
+[dependencies]
+confy = "0.6.1"
+nethsm = { path = "../nethsm", version = "0.4.0" }
+rpassword = "7.3.1"
+rprompt = "2.1.1"
+serde = { version = "1.0.197", features = ["derive"] }
+thiserror = "1.0.58"
+zeroize = { version = "1.7.0", features = ["zeroize_derive", "serde"] }
+
+[dev-dependencies]
+dirs = "5.0.1"
+rstest = "0.22.0"
+testdir = "0.9.1"
+testresult = "0.4.1"
