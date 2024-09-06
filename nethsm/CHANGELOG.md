@@ -6,6 +6,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] - 2024-09-06
+
+### Fixed
+- *(deps)* [**breaking**] update rust crate rustls-native-certs to 0.8.0
+- Pad secret keys with zeros before sending them to NetHSM
+- Use correct function for constructing MPIs
+
+### Other
+- Make `SignatureType` a copy type
+- Import keys of all supported types
+- *(Cargo.toml)* Remove duplicate rand development dependency
+- Replace ed25519-compact with ed25519-dalek in all tests
+
 ## [0.4.0] - 2024-08-30
 
 ### Added
