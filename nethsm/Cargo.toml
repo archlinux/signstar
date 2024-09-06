@@ -29,7 +29,7 @@ picky-asn1-x509 = "0.13.0"
 rand = "0.8.5"
 rsa = { version = "0.9.6", features = ["pem"] }
 rustls = { version = "0.23.0", default-features = false, features = ["ring"] }
-rustls-native-certs = "0.7.0"
+rustls-native-certs = "0.8.0"
 secrecy = { version = "0.8.0", features = ["alloc", "serde"] }
 serde = { version = "1.0.197", features = ["derive"] }
 serde_json = "1.0.112"

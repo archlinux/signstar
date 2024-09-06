@@ -246,8 +246,14 @@ pub enum Error {
     Default(String),
 
     /// The loading of TLS root certificates from the platform's native certificate store failed
-    #[error("Loading system TLS certs failed")]
-    CertLoading,
+    #[error("Loading system TLS certs failed: {0:?}")]
+    CertLoading(Vec<rustls_native_certs::Error>),
+
+    /// No TLS root certificates from the platform's native certificate store could be added
+    ///
+    /// Provides the number certificates that failed to be added
+    #[error("Unable to load any system TLS certs ({failed} failed)")]
+    NoSystemCertsAdded { failed: usize },
 
     /// A call to the NetHSM API failed
     #[error("NetHSM API error: {0}")]
@@ -437,19 +443,24 @@ impl NetHsm {
                         .with_no_client_auth()
                 }
                 ConnectionSecurity::Native => {
-                    let mut roots = rustls::RootCertStore::empty();
-                    let native_certs = rustls_native_certs::load_native_certs().map_err(|err| {
-                        error!("Failed to load certificates: {err}");
-                        Error::CertLoading
-                    })?;
-
-                    let (added, failed) = roots.add_parsable_certificates(native_certs);
-                    debug!("Added {added} certificates and failed to parse {failed} certificates");
-
-                    if added == 0 {
-                        error!("Added no native certificates");
-                        return Err(Error::CertLoading);
+                    let native_certs = rustls_native_certs::load_native_certs();
+                    if !native_certs.errors.is_empty() {
+                        return Err(Error::CertLoading(native_certs.errors));
                     }
+                    let native_certs = native_certs.certs;
+
+                    let roots = {
+                        let mut roots = rustls::RootCertStore::empty();
+                        let (added, failed) = roots.add_parsable_certificates(native_certs);
+                        debug!(
+                            "Added {added} certificates and failed to parse {failed} certificates"
+                        );
+                        if added == 0 {
+                            error!("Added no native certificates");
+                            return Err(Error::NoSystemCertsAdded { failed });
+                        }
+                        roots
+                    };
 
                     tls_conf.with_root_certificates(roots).with_no_client_auth()
                 }
