@@ -6,6 +6,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.2] - 2024-09-06
+
+### Fixed
+- Distinguish restore of provisioned and unprovisioned device
+
+### Other
+- Upgrade nethsm crate to 0.5.0
+- Switch to nethsm-config crate from own modules
+
 ## [0.2.1] - 2024-08-31
 
 ### Fixed
