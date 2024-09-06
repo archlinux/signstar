@@ -38,14 +38,14 @@ async fn signing(
     nethsm.use_credentials(&DEFAULT_OPERATOR_USER_ID.parse()?)?;
 
     // create an ed25519 signature
-    let signature = nethsm.sign(DEFAULT_KEY_ID, SignatureType::EdDsa, MESSAGE)?;
+    let signature = nethsm.sign(&DEFAULT_KEY_ID.parse()?, SignatureType::EdDsa, MESSAGE)?;
     println!(
         "A raw signature created using the default key on the NetHSM: {:?}",
         signature
     );
 
     // verify the ed25519 signature
-    let pubkey = nethsm.get_public_key(DEFAULT_KEY_ID)?;
+    let pubkey = nethsm.get_public_key(&DEFAULT_KEY_ID.parse()?)?;
     println!("The default key on the NetHSM: {}", pubkey);
     let pubkey_bytes = ed25519_dalek::pkcs8::PublicKeyBytes::from_public_key_pem(&pubkey)?;
     let pubkey_verifier = ed25519_dalek::VerifyingKey::from_bytes(&pubkey_bytes.to_bytes())?;
@@ -60,7 +60,7 @@ async fn signing(
     nethsm.use_credentials(&OTHER_OPERATOR_USER_ID.parse()?)?;
 
     // create an RSA PKCS1 signature
-    let signature = nethsm.sign(OTHER_KEY_ID, SignatureType::Pkcs1, MESSAGE)?;
+    let signature = nethsm.sign(&OTHER_KEY_ID.parse()?, SignatureType::Pkcs1, MESSAGE)?;
 
     println!(
         "A raw signature created using another key on the NetHSM: {:?}",
@@ -68,7 +68,7 @@ async fn signing(
     );
 
     // verify the RSA PKCS1 signature
-    let pubkey = nethsm.get_public_key(OTHER_KEY_ID)?;
+    let pubkey = nethsm.get_public_key(&OTHER_KEY_ID.parse()?)?;
     println!("The public key of another key on the NetHSM: {}", pubkey);
 
     let pubkey = RsaPublicKey::from_public_key_pem(&pubkey)?;

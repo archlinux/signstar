@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use chrono::{DateTime, Utc};
 use clap::{Parser, Subcommand};
-use nethsm::UserRole;
+use nethsm::{KeyId, UserRole};
 
 #[derive(Debug, Subcommand)]
 #[command(
@@ -33,7 +33,7 @@ Additionally, authentication of a user in the \"{}\" role is needed to import th
 )]
 pub struct OpenPgpAddCommand {
     #[arg(env = "NETHSM_KEY_ID", help = "The ID of the key to use")]
-    pub key_id: String,
+    pub key_id: KeyId,
 
     #[arg(env = "NETHSM_OPENPGP_USERID", help = "The User ID to use for the key")]
     pub user_id: String,
@@ -81,7 +81,7 @@ Requires authentication of a user in the \"{}\" role that has access to the targ
 )]
 pub struct OpenPgpSignCommand {
     #[arg(env = "NETHSM_KEY_ID", help = "The ID of the key to use")]
-    pub key_id: String,
+    pub key_id: KeyId,
 
     #[arg(
         env = "NETHSM_FORCE",
@@ -131,7 +131,7 @@ If none is provided a generic one is generated for the key.",
         long,
         short
     )]
-    pub key_id: Option<String>,
+    pub key_id: Option<KeyId>,
 
     #[arg(
         env = "NETHSM_OPENPGP_KEY_TAGS",

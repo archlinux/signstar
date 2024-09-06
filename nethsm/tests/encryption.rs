@@ -37,7 +37,10 @@ async fn symmetric_encryption_decryption(
     ));
     nethsm.use_credentials(&ENC_OPERATOR_USER_ID.parse()?)?;
 
-    println!("NetHSM key information: {:?}", nethsm.get_key(ENC_KEY_ID)?);
+    println!(
+        "NetHSM key information: {:?}",
+        nethsm.get_key(&ENC_KEY_ID.parse()?)?
+    );
 
     // prepare a raw message
     let message = MESSAGE.as_bytes();
@@ -46,7 +49,7 @@ async fn symmetric_encryption_decryption(
     println!("raw initialization vector: {:?}", initialization_vector);
 
     let encrypted_message = nethsm.encrypt(
-        ENC_KEY_ID,
+        &ENC_KEY_ID.parse()?,
         EncryptMode::AesCbc,
         message,
         initialization_vector,
@@ -55,7 +58,7 @@ async fn symmetric_encryption_decryption(
     println!("raw encrypted message: {:?}", encrypted_message);
 
     let decrypted_message = nethsm.decrypt(
-        ENC_KEY_ID,
+        &ENC_KEY_ID.parse()?,
         DecryptMode::AesCbc,
         &encrypted_message,
         initialization_vector,
@@ -80,13 +83,18 @@ async fn asymmetric_decryption(
     ));
     nethsm.use_credentials(&OTHER_OPERATOR_USER_ID.parse()?)?;
 
-    let pubkey = RsaPublicKey::from_public_key_pem(&nethsm.get_public_key(OTHER_KEY_ID)?)?;
+    let pubkey =
+        RsaPublicKey::from_public_key_pem(&nethsm.get_public_key(&OTHER_KEY_ID.parse()?)?)?;
     let mut rng = rand::thread_rng();
     let encrypted_message = pubkey.encrypt(&mut rng, Pkcs1v15Encrypt, MESSAGE.as_bytes())?;
     println!("raw encrypted message: {:?}", encrypted_message);
 
-    let decrypted_message =
-        nethsm.decrypt(OTHER_KEY_ID, DecryptMode::Pkcs1, &encrypted_message, None)?;
+    let decrypted_message = nethsm.decrypt(
+        &OTHER_KEY_ID.parse()?,
+        DecryptMode::Pkcs1,
+        &encrypted_message,
+        None,
+    )?;
     println!("raw decrypted message: {:?}", decrypted_message);
 
     assert_eq!(&decrypted_message, MESSAGE.as_bytes(),);

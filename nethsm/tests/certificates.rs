@@ -26,30 +26,30 @@ async fn generate_signing_key(nethsm: &NetHsm) -> TestResult {
         KeyType::Curve25519,
         vec![KeyMechanism::EdDsaSignature],
         None,
-        Some(DEFAULT_KEY_ID.to_string()),
+        Some(DEFAULT_KEY_ID.parse()?),
         None,
     )?;
     assert!(nethsm.get_keys(None)?.len() == 1);
 
     println!(
         "Default key on NetHSM: {:?}",
-        nethsm.get_key(DEFAULT_KEY_ID)?
+        nethsm.get_key(&DEFAULT_KEY_ID.parse()?)?
     );
     println!(
         "Public key on NetHSM: {}",
-        nethsm.get_public_key(DEFAULT_KEY_ID)?
+        nethsm.get_public_key(&DEFAULT_KEY_ID.parse()?)?
     );
 
-    nethsm.add_key_tag(DEFAULT_KEY_ID, DEFAULT_TAG)?;
+    nethsm.add_key_tag(&DEFAULT_KEY_ID.parse()?, DEFAULT_TAG)?;
     println!(
         "Default key on NetHSM with tag: {:?}",
-        nethsm.get_key(DEFAULT_KEY_ID)?
+        nethsm.get_key(&DEFAULT_KEY_ID.parse()?)?
     );
 
     println!(
         "Certificate Signing Request (CSR) from NetHSM: {}",
         nethsm.get_key_csr(
-            DEFAULT_KEY_ID,
+            &DEFAULT_KEY_ID.parse()?,
             DistinguishedName {
                 country_name: Some("DE".to_string()),
                 state_or_province_name: Some("Berlin".to_string()),
@@ -79,29 +79,29 @@ async fn import_key(nethsm: &NetHsm) -> TestResult {
     nethsm.import_key(
         vec![KeyMechanism::RsaSignaturePkcs1],
         PrivateKeyImport::new(KeyType::Rsa, private_key.as_bytes())?,
-        Some(OTHER_KEY_ID.to_string()),
+        Some(OTHER_KEY_ID.parse()?),
         Some(vec![OTHER_TAG.to_string()]),
     )?;
     assert!(nethsm.get_keys(None)?.len() == 2);
 
     println!(
         "An imported key on the NetHSM: {:?}",
-        nethsm.get_key(OTHER_KEY_ID)?
+        nethsm.get_key(&OTHER_KEY_ID.parse()?)?
     );
-    let other_public_key = nethsm.get_public_key(OTHER_KEY_ID)?;
+    let other_public_key = nethsm.get_public_key(&OTHER_KEY_ID.parse()?)?;
     println!(
         "The public key of an imported key on the NetHSM: {}",
         other_public_key
     );
 
     // import a certificate for a key, show it and delete it
-    nethsm.import_key_certificate(OTHER_KEY_ID, other_public_key.into_bytes())?;
+    nethsm.import_key_certificate(&OTHER_KEY_ID.parse()?, other_public_key.into_bytes())?;
     println!(
         "An imported key certificate on the NetHSM: {}",
-        String::from_utf8(nethsm.get_key_certificate(OTHER_KEY_ID)?)?
+        String::from_utf8(nethsm.get_key_certificate(&OTHER_KEY_ID.parse()?)?)?
     );
-    nethsm.delete_key_certificate(OTHER_KEY_ID)?;
-    assert!(nethsm.get_key_certificate(OTHER_KEY_ID).is_err());
+    nethsm.delete_key_certificate(&OTHER_KEY_ID.parse()?)?;
+    assert!(nethsm.get_key_certificate(&OTHER_KEY_ID.parse()?).is_err());
 
     Ok(())
 }
@@ -116,7 +116,7 @@ async fn generate_symmetric_encryption_key(nethsm: &NetHsm) -> TestResult {
             KeyMechanism::AesDecryptionCbc,
         ],
         Some(DEFAULT_AES_BITS),
-        Some(ENC_KEY_ID.to_string()),
+        Some(ENC_KEY_ID.parse()?),
         None,
     )?;
 
@@ -153,9 +153,9 @@ async fn user_tags(nethsm: &NetHsm) -> TestResult {
         .get_user_tags(&OTHER_OPERATOR_USER_ID.parse()?)?
         .is_empty());
 
-    nethsm.delete_key_tag(DEFAULT_KEY_ID, DEFAULT_TAG)?;
+    nethsm.delete_key_tag(&DEFAULT_KEY_ID.parse()?, DEFAULT_TAG)?;
 
-    nethsm.delete_key(DEFAULT_KEY_ID)?;
+    nethsm.delete_key(&DEFAULT_KEY_ID.parse()?)?;
     assert!(nethsm.get_keys(None)?.len() == 2);
 
     Ok(())

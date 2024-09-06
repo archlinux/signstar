@@ -5,6 +5,7 @@ use chrono::Utc;
 use nethsm::{
     ConnectionSecurity,
     Credentials,
+    KeyId,
     KeyMechanism,
     KeyType,
     NetHsm,
@@ -214,7 +215,8 @@ fn add_keys_to_nethsm(nethsm: &NetHsm) -> TestResult {
 
     println!("Adding keys to NetHSM...");
     for (mechanisms, key_type, length, key_id, tag, user_id) in keys {
-        nethsm.generate_key(key_type, mechanisms, length, Some(key_id.to_string()), None)?;
+        let key_id: &KeyId = &key_id.parse()?;
+        nethsm.generate_key(key_type, mechanisms, length, Some((*key_id).clone()), None)?;
         nethsm.add_key_tag(key_id, tag)?;
         nethsm.add_user_tag(&user_id.parse()?, tag)?;
         // skip symmetric keys, as for those we do not have a public key

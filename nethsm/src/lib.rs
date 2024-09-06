@@ -233,6 +233,7 @@ pub use tls::{ConnectionSecurity, HostCertificateFingerprints};
 use tls::{DangerIgnoreVerifier, FingerprintVerifier};
 
 mod user;
+pub use key::KeyId;
 pub use user::Error as UserError;
 use user::NamespaceSupport;
 pub use user::{Credentials, NamespaceId, Passphrase, UserId};
@@ -3714,7 +3715,7 @@ impl NetHsm {
     ///     KeyType::Curve25519,
     ///     vec![KeyMechanism::EdDsaSignature],
     ///     None,
-    ///     Some("signing1".to_string()),
+    ///     Some("signing1".parse()?),
     ///     Some(vec!["tag1".to_string()]),
     /// )?;
     ///
@@ -3732,7 +3733,7 @@ impl NetHsm {
     ///     KeyType::Curve25519,
     ///     vec![KeyMechanism::EdDsaSignature],
     ///     None,
-    ///     Some("signing2".to_string()),
+    ///     Some("signing2".parse()?),
     ///     Some(vec!["tag2".to_string()]),
     /// )?;
     /// // N-Administrators can not add tags to system-wide users
@@ -3838,7 +3839,7 @@ impl NetHsm {
     ///     KeyType::Curve25519,
     ///     vec![KeyMechanism::EdDsaSignature],
     ///     None,
-    ///     Some("signing1".to_string()),
+    ///     Some("signing1".parse()?),
     ///     Some(vec!["tag1".to_string()]),
     /// )?;
     /// // add tag for system-wide user
@@ -4034,7 +4035,7 @@ impl NetHsm {
     ///     KeyType::Curve25519,
     ///     vec![KeyMechanism::EdDsaSignature],
     ///     None,
-    ///     Some("signing1".to_string()),
+    ///     Some("signing1".parse()?),
     ///     Some(vec!["sign_tag1".to_string(), "sign_tag2".to_string()]),
     /// )?;
     ///
@@ -4046,7 +4047,7 @@ impl NetHsm {
     ///         KeyMechanism::AesDecryptionCbc,
     ///     ],
     ///     Some(128),
-    ///     Some("encryption1".to_string()),
+    ///     Some("encryption1".parse()?),
     ///     Some(vec!["encryption_tag1".to_string()]),
     /// )?;
     /// # Ok(())
@@ -4061,9 +4062,9 @@ impl NetHsm {
         key_type: KeyType,
         mechanisms: Vec<KeyMechanism>,
         length: Option<u32>,
-        key_id: Option<String>,
+        key_id: Option<KeyId>,
         tags: Option<Vec<String>>,
-    ) -> Result<String, Error> {
+    ) -> Result<KeyId, Error> {
         self.validate_namespace_access(NamespaceSupport::Supported, None, None)?;
         // ensure the key_type - mechanisms combinations are valid
         key_type_matches_mechanisms(key_type, &mechanisms)?;
@@ -4079,7 +4080,7 @@ impl NetHsm {
                     .collect(),
                 r#type: key_type.into(),
                 length: length.map(|length| length as i32),
-                id: key_id,
+                id: key_id.map(Into::into),
                 restrictions: tags.map(|tags| Box::new(KeyRestrictions { tags: Some(tags) })),
             },
         )
@@ -4090,7 +4091,8 @@ impl NetHsm {
             ))
         })?
         .entity
-        .id)
+        .id
+        .parse()?)
     }
 
     /// Imports an existing private key.
@@ -4178,7 +4180,7 @@ impl NetHsm {
     /// nethsm.import_key(
     ///     vec![KeyMechanism::RsaSignaturePkcs1],
     ///     PrivateKeyImport::new(KeyType::Rsa, private_key.as_bytes())?,
-    ///     Some("signing2".to_string()),
+    ///     Some("signing2".parse()?),
     ///     Some(vec!["signing_tag3".to_string()]),
     /// )?;
     /// # Ok(())
@@ -4192,9 +4194,9 @@ impl NetHsm {
         &self,
         mechanisms: Vec<KeyMechanism>,
         key_data: PrivateKeyImport,
-        key_id: Option<String>,
+        key_id: Option<KeyId>,
         tags: Option<Vec<String>>,
-    ) -> Result<String, Error> {
+    ) -> Result<KeyId, Error> {
         self.validate_namespace_access(NamespaceSupport::Supported, None, None)?;
         // ensure the key_type - mechanisms combinations are valid
         let key_type = key_data.key_type();
@@ -4210,7 +4212,7 @@ impl NetHsm {
         if let Some(key_id) = key_id {
             keys_key_id_put(
                 &self.create_connection_config(),
-                &key_id,
+                key_id.as_ref(),
                 nethsm_sdk_rs::apis::default_api::KeysKeyIdPutBody::ApplicationJson(PrivateKey {
                     mechanisms,
                     r#type: key_type.into(),
@@ -4242,7 +4244,8 @@ impl NetHsm {
                 ))
             })?
             .entity
-            .id)
+            .id
+            .parse()?)
         }
     }
 
@@ -4291,7 +4294,7 @@ impl NetHsm {
     /// )?;
     ///
     /// // delete a key with the Key ID "signing1"
-    /// nethsm.delete_key("signing1")?;
+    /// nethsm.delete_key(&"signing1".parse()?)?;
     /// # Ok(())
     /// # }
     /// ```
@@ -4299,9 +4302,9 @@ impl NetHsm {
     /// [namespace]: https://docs.nitrokey.com/nethsm/administration#namespaces
     /// [role]: https://docs.nitrokey.com/nethsm/administration#roles
     /// [state]: https://docs.nitrokey.com/nethsm/administration#state
-    pub fn delete_key(&self, key_id: &str) -> Result<(), Error> {
+    pub fn delete_key(&self, key_id: &KeyId) -> Result<(), Error> {
         self.validate_namespace_access(NamespaceSupport::Supported, None, None)?;
-        keys_key_id_delete(&self.create_connection_config(), key_id).map_err(|error| {
+        keys_key_id_delete(&self.create_connection_config(), key_id.as_ref()).map_err(|error| {
             Error::Api(format!(
                 "Deleting key failed: {}",
                 NetHsmApiError::from(error)
@@ -4351,7 +4354,7 @@ impl NetHsm {
     /// )?;
     ///
     /// // get details on a key with the Key ID "signing1"
-    /// println!("{:?}", nethsm.get_key("signing1")?);
+    /// println!("{:?}", nethsm.get_key(&"signing1".parse()?)?);
     /// # Ok(())
     /// # }
     /// ```
@@ -4359,16 +4362,18 @@ impl NetHsm {
     /// [namespace]: https://docs.nitrokey.com/nethsm/administration#namespaces
     /// [role]: https://docs.nitrokey.com/nethsm/administration#roles
     /// [state]: https://docs.nitrokey.com/nethsm/administration#state
-    pub fn get_key(&self, key_id: &str) -> Result<PublicKey, Error> {
+    pub fn get_key(&self, key_id: &KeyId) -> Result<PublicKey, Error> {
         self.validate_namespace_access(NamespaceSupport::Supported, None, None)?;
-        Ok(keys_key_id_get(&self.create_connection_config(), key_id)
-            .map_err(|error| {
-                Error::Api(format!(
-                    "Getting key failed: {}",
-                    NetHsmApiError::from(error)
-                ))
-            })?
-            .entity)
+        Ok(
+            keys_key_id_get(&self.create_connection_config(), key_id.as_ref())
+                .map_err(|error| {
+                    Error::Api(format!(
+                        "Getting key failed: {}",
+                        NetHsmApiError::from(error)
+                    ))
+                })?
+                .entity,
+        )
     }
 
     /// Gets a [list of Key IDs] on the NetHSM.
@@ -4484,12 +4489,12 @@ impl NetHsm {
     ///     KeyType::Curve25519,
     ///     vec![KeyMechanism::EdDsaSignature],
     ///     None,
-    ///     Some("signing1".to_string()),
+    ///     Some("signing1".parse()?),
     ///     Some(vec!["tag1".to_string()]),
     /// )?;
     ///
     /// // get public key for a key with Key ID "signing1"
-    /// println!("{:?}", nethsm.get_public_key("signing1")?);
+    /// println!("{:?}", nethsm.get_public_key(&"signing1".parse()?)?);
     /// # Ok(())
     /// # }
     /// ```
@@ -4499,10 +4504,10 @@ impl NetHsm {
     /// [namespace]: https://docs.nitrokey.com/nethsm/administration#namespaces
     /// [role]: https://docs.nitrokey.com/nethsm/administration#roles
     /// [state]: https://docs.nitrokey.com/nethsm/administration#state
-    pub fn get_public_key(&self, key_id: &str) -> Result<String, Error> {
+    pub fn get_public_key(&self, key_id: &KeyId) -> Result<String, Error> {
         self.validate_namespace_access(NamespaceSupport::Supported, None, None)?;
         Ok(
-            keys_key_id_public_pem_get(&self.create_connection_config(), key_id)
+            keys_key_id_public_pem_get(&self.create_connection_config(), key_id.as_ref())
                 .map_err(|error| {
                     Error::Api(format!(
                         "Getting public key failed: {}",
@@ -4565,12 +4570,12 @@ impl NetHsm {
     ///     KeyType::Curve25519,
     ///     vec![KeyMechanism::EdDsaSignature],
     ///     None,
-    ///     Some("signing1".to_string()),
+    ///     Some("signing1".parse()?),
     ///     Some(vec!["tag1".to_string()]),
     /// )?;
     ///
     /// // add the tag "important" to a key with Key ID "signing1"
-    /// nethsm.add_key_tag("signing1", "important")?;
+    /// nethsm.add_key_tag(&"signing1".parse()?, "important")?;
     /// # Ok(())
     /// # }
     /// ```
@@ -4578,15 +4583,19 @@ impl NetHsm {
     /// [namespace]: https://docs.nitrokey.com/nethsm/administration#namespaces
     /// [role]: https://docs.nitrokey.com/nethsm/administration#roles
     /// [state]: https://docs.nitrokey.com/nethsm/administration#state
-    pub fn add_key_tag(&self, key_id: &str, tag: &str) -> Result<(), Error> {
+    pub fn add_key_tag(&self, key_id: &KeyId, tag: &str) -> Result<(), Error> {
         self.validate_namespace_access(NamespaceSupport::Supported, None, None)?;
-        keys_key_id_restrictions_tags_tag_put(&self.create_connection_config(), tag, key_id)
-            .map_err(|error| {
-                Error::Api(format!(
-                    "Adding tag for key failed: {}",
-                    NetHsmApiError::from(error)
-                ))
-            })?;
+        keys_key_id_restrictions_tags_tag_put(
+            &self.create_connection_config(),
+            tag,
+            key_id.as_ref(),
+        )
+        .map_err(|error| {
+            Error::Api(format!(
+                "Adding tag for key failed: {}",
+                NetHsmApiError::from(error)
+            ))
+        })?;
         Ok(())
     }
 
@@ -4641,12 +4650,12 @@ impl NetHsm {
     ///     KeyType::Curve25519,
     ///     vec![KeyMechanism::EdDsaSignature],
     ///     None,
-    ///     Some("signing1".to_string()),
+    ///     Some("signing1".parse()?),
     ///     Some(vec!["tag1".to_string(), "important".to_string()]),
     /// )?;
     ///
     /// // remove the tag "important" from a key with Key ID "signing1"
-    /// nethsm.delete_key_tag("signing1", "important")?;
+    /// nethsm.delete_key_tag(&"signing1".parse()?, "important")?;
     /// # Ok(())
     /// # }
     /// ```
@@ -4654,15 +4663,19 @@ impl NetHsm {
     /// [namespace]: https://docs.nitrokey.com/nethsm/administration#namespaces
     /// [role]: https://docs.nitrokey.com/nethsm/administration#roles
     /// [state]: https://docs.nitrokey.com/nethsm/administration#state
-    pub fn delete_key_tag(&self, key_id: &str, tag: &str) -> Result<(), Error> {
+    pub fn delete_key_tag(&self, key_id: &KeyId, tag: &str) -> Result<(), Error> {
         self.validate_namespace_access(NamespaceSupport::Supported, None, None)?;
-        keys_key_id_restrictions_tags_tag_delete(&self.create_connection_config(), tag, key_id)
-            .map_err(|error| {
-                Error::Api(format!(
-                    "Deleting tag for key failed: {}",
-                    NetHsmApiError::from(error)
-                ))
-            })?;
+        keys_key_id_restrictions_tags_tag_delete(
+            &self.create_connection_config(),
+            tag,
+            key_id.as_ref(),
+        )
+        .map_err(|error| {
+            Error::Api(format!(
+                "Deleting tag for key failed: {}",
+                NetHsmApiError::from(error)
+            ))
+        })?;
         Ok(())
     }
 
@@ -4731,7 +4744,7 @@ impl NetHsm {
     ///     KeyType::Curve25519,
     ///     vec![KeyMechanism::EdDsaSignature],
     ///     None,
-    ///     Some("signing1".to_string()),
+    ///     Some("signing1".parse()?),
     ///     Some(vec!["tag1".to_string()]),
     /// )?;
     /// // tag system-wide user in Operator role for access to signing key
@@ -4739,7 +4752,7 @@ impl NetHsm {
     /// // use the Operator credentials to create an OpenPGP certificate for a key
     /// nethsm.use_credentials(&"operator1".parse()?)?;
     /// let openpgp_cert = nethsm.create_openpgp_cert(
-    ///     "signing1",
+    ///     &"signing1".parse()?,
     ///     OpenPgpKeyUsageFlags::default(),
     ///     "Test <test@example.org>",
     ///     SystemTime::now().into(),
@@ -4747,9 +4760,9 @@ impl NetHsm {
     ///
     /// // use the Administrator credentials to import the OpenPGP certificate as certificate for the key
     /// nethsm.use_credentials(&"admin".parse()?)?;
-    /// assert!(nethsm.get_key_certificate("signing1").is_err());
-    /// nethsm.import_key_certificate("signing1", openpgp_cert)?;
-    /// assert!(nethsm.get_key_certificate("signing1").is_ok());
+    /// assert!(nethsm.get_key_certificate(&"signing1".parse()?).is_err());
+    /// nethsm.import_key_certificate(&"signing1".parse()?, openpgp_cert)?;
+    /// assert!(nethsm.get_key_certificate(&"signing1".parse()?).is_ok());
     /// # Ok(())
     /// # }
     /// ```
@@ -4757,14 +4770,16 @@ impl NetHsm {
     /// [namespace]: https://docs.nitrokey.com/nethsm/administration#namespaces
     /// [role]: https://docs.nitrokey.com/nethsm/administration#roles
     /// [state]: https://docs.nitrokey.com/nethsm/administration#state
-    pub fn import_key_certificate(&self, key_id: &str, data: Vec<u8>) -> Result<(), Error> {
+    pub fn import_key_certificate(&self, key_id: &KeyId, data: Vec<u8>) -> Result<(), Error> {
         self.validate_namespace_access(NamespaceSupport::Supported, None, None)?;
-        keys_key_id_cert_put(&self.create_connection_config(), key_id, data).map_err(|error| {
-            Error::Api(format!(
-                "Importing certificate for key failed: {}",
-                NetHsmApiError::from(error)
-            ))
-        })?;
+        keys_key_id_cert_put(&self.create_connection_config(), key_id.as_ref(), data).map_err(
+            |error| {
+                Error::Api(format!(
+                    "Importing certificate for key failed: {}",
+                    NetHsmApiError::from(error)
+                ))
+            },
+        )?;
         Ok(())
     }
 
@@ -4831,7 +4846,7 @@ impl NetHsm {
     ///     KeyType::Curve25519,
     ///     vec![KeyMechanism::EdDsaSignature],
     ///     None,
-    ///     Some("signing1".to_string()),
+    ///     Some("signing1".parse()?),
     ///     Some(vec!["tag1".to_string()]),
     /// )?;
     /// // tag system-wide user in Operator role for access to signing key
@@ -4839,17 +4854,17 @@ impl NetHsm {
     /// // use the Operator credentials to create an OpenPGP certificate for a key
     /// nethsm.use_credentials(&"operator1".parse()?)?;
     /// let openpgp_cert = nethsm.create_openpgp_cert(
-    ///     "signing1",
+    ///     &"signing1".parse()?,
     ///     OpenPgpKeyUsageFlags::default(),
     ///     "Test <test@example.org>",
     ///     SystemTime::now().into(),
     /// )?;
     /// // use the Administrator credentials to import the OpenPGP certificate as certificate for the key
     /// nethsm.use_credentials(&"admin".parse()?)?;
-    /// nethsm.import_key_certificate("signing1", openpgp_cert)?;
+    /// nethsm.import_key_certificate(&"signing1".parse()?, openpgp_cert)?;
     ///
     /// // get the certificate associated with a key
-    /// println!("{:?}", nethsm.get_key_certificate("signing1")?);
+    /// println!("{:?}", nethsm.get_key_certificate(&"signing1".parse()?)?);
     /// # Ok(())
     /// # }
     /// ```
@@ -4857,10 +4872,10 @@ impl NetHsm {
     /// [namespace]: https://docs.nitrokey.com/nethsm/administration#namespaces
     /// [role]: https://docs.nitrokey.com/nethsm/administration#roles
     /// [state]: https://docs.nitrokey.com/nethsm/administration#state
-    pub fn get_key_certificate(&self, key_id: &str) -> Result<Vec<u8>, Error> {
+    pub fn get_key_certificate(&self, key_id: &KeyId) -> Result<Vec<u8>, Error> {
         self.validate_namespace_access(NamespaceSupport::Supported, None, None)?;
         Ok(
-            keys_key_id_cert_get(&self.create_connection_config(), key_id)
+            keys_key_id_cert_get(&self.create_connection_config(), key_id.as_ref())
                 .map_err(|error| {
                     Error::Api(format!(
                         "Getting certificate for key failed: {}",
@@ -4934,7 +4949,7 @@ impl NetHsm {
     ///     KeyType::Curve25519,
     ///     vec![KeyMechanism::EdDsaSignature],
     ///     None,
-    ///     Some("signing1".to_string()),
+    ///     Some("signing1".parse()?),
     ///     Some(vec!["tag1".to_string()]),
     /// )?;
     /// // tag system-wide user in Operator role for access to signing key
@@ -4942,19 +4957,19 @@ impl NetHsm {
     /// // use the Operator credentials to create an OpenPGP certificate for a key
     /// nethsm.use_credentials(&"operator1".parse()?)?;
     /// let openpgp_cert = nethsm.create_openpgp_cert(
-    ///     "signing1",
+    ///     &"signing1".parse()?,
     ///     OpenPgpKeyUsageFlags::default(),
     ///     "Test <test@example.org>",
     ///     SystemTime::now().into(),
     /// )?;
     /// // use the Administrator credentials to import the OpenPGP certificate as certificate for the key
     /// nethsm.use_credentials(&"admin".parse()?)?;
-    /// nethsm.import_key_certificate("signing1", openpgp_cert)?;
+    /// nethsm.import_key_certificate(&"signing1".parse()?, openpgp_cert)?;
     ///
     /// // delete a certificate for a key with Key ID "signing1"
-    /// assert!(nethsm.delete_key_certificate("signing1").is_ok());
-    /// nethsm.delete_key_certificate("signing1")?;
-    /// assert!(nethsm.delete_key_certificate("signing1").is_err());
+    /// assert!(nethsm.delete_key_certificate(&"signing1".parse()?).is_ok());
+    /// nethsm.delete_key_certificate(&"signing1".parse()?)?;
+    /// assert!(nethsm.delete_key_certificate(&"signing1".parse()?).is_err());
     /// # Ok(())
     /// # }
     /// ```
@@ -4962,14 +4977,16 @@ impl NetHsm {
     /// [namespace]: https://docs.nitrokey.com/nethsm/administration#namespaces
     /// [role]: https://docs.nitrokey.com/nethsm/administration#roles
     /// [state]: https://docs.nitrokey.com/nethsm/administration#state
-    pub fn delete_key_certificate(&self, key_id: &str) -> Result<(), Error> {
+    pub fn delete_key_certificate(&self, key_id: &KeyId) -> Result<(), Error> {
         self.validate_namespace_access(NamespaceSupport::Supported, None, None)?;
-        keys_key_id_cert_delete(&self.create_connection_config(), key_id).map_err(|error| {
-            Error::Api(format!(
-                "Deleting certificate for key failed: {}",
-                NetHsmApiError::from(error)
-            ))
-        })?;
+        keys_key_id_cert_delete(&self.create_connection_config(), key_id.as_ref()).map_err(
+            |error| {
+                Error::Api(format!(
+                    "Deleting certificate for key failed: {}",
+                    NetHsmApiError::from(error)
+                ))
+            },
+        )?;
         Ok(())
     }
 
@@ -5025,7 +5042,7 @@ impl NetHsm {
     ///     KeyType::Curve25519,
     ///     vec![KeyMechanism::EdDsaSignature],
     ///     None,
-    ///     Some("signing1".to_string()),
+    ///     Some("signing1".parse()?),
     ///     Some(vec!["tag1".to_string()]),
     /// )?;
     ///
@@ -5033,7 +5050,7 @@ impl NetHsm {
     /// println!(
     ///     "{}",
     ///     nethsm.get_key_csr(
-    ///         "signing1",
+    ///         &"signing1".parse()?,
     ///         DistinguishedName {
     ///             country_name: Some("DE".to_string()),
     ///             state_or_province_name: Some("Berlin".to_string()),
@@ -5056,20 +5073,22 @@ impl NetHsm {
     /// [state]: https://docs.nitrokey.com/nethsm/administration#state
     pub fn get_key_csr(
         &self,
-        key_id: &str,
+        key_id: &KeyId,
         distinguished_name: DistinguishedName,
     ) -> Result<String, Error> {
         self.validate_namespace_access(NamespaceSupport::Supported, None, None)?;
-        Ok(
-            keys_key_id_csr_pem_post(&self.create_connection_config(), key_id, distinguished_name)
-                .map_err(|error| {
-                    Error::Api(format!(
-                        "Getting CSR for key failed: {}",
-                        NetHsmApiError::from(error)
-                    ))
-                })?
-                .entity,
+        Ok(keys_key_id_csr_pem_post(
+            &self.create_connection_config(),
+            key_id.as_ref(),
+            distinguished_name,
         )
+        .map_err(|error| {
+            Error::Api(format!(
+                "Getting CSR for key failed: {}",
+                NetHsmApiError::from(error)
+            ))
+        })?
+        .entity)
     }
 
     /// [Signs] a digest using a key.
@@ -5165,7 +5184,7 @@ impl NetHsm {
     ///     KeyType::Curve25519,
     ///     vec![KeyMechanism::EdDsaSignature],
     ///     None,
-    ///     Some("signing1".to_string()),
+    ///     Some("signing1".parse()?),
     ///     Some(vec!["tag1".to_string()]),
     /// )?;
     /// // tag system-wide user in Operator role for access to signing key
@@ -5175,7 +5194,7 @@ impl NetHsm {
     /// nethsm.use_credentials(&"operator1".parse()?)?;
     /// println!(
     ///     "{:?}",
-    ///     nethsm.sign_digest("signing1", SignatureType::EdDsa, &[0, 1, 2])?
+    ///     nethsm.sign_digest(&"signing1".parse()?, SignatureType::EdDsa, &[0, 1, 2])?
     /// );
     /// # Ok(())
     /// # }
@@ -5198,7 +5217,7 @@ impl NetHsm {
     /// [state]: https://docs.nitrokey.com/nethsm/administration#state
     pub fn sign_digest(
         &self,
-        key_id: &str,
+        key_id: &KeyId,
         signature_type: SignatureType,
         digest: &[u8],
     ) -> Result<Vec<u8>, Error> {
@@ -5207,7 +5226,7 @@ impl NetHsm {
         Base64::decode_vec(
             &keys_key_id_sign_post(
                 &self.create_connection_config(),
-                key_id,
+                key_id.as_ref(),
                 SignRequestData::new(signature_type.into(), Base64::encode_string(digest)),
             )
             .map_err(|error| {
@@ -5305,7 +5324,7 @@ impl NetHsm {
     ///     KeyType::Curve25519,
     ///     vec![KeyMechanism::EdDsaSignature],
     ///     None,
-    ///     Some("signing1".to_string()),
+    ///     Some("signing1".parse()?),
     ///     Some(vec!["tag1".to_string()]),
     /// )?;
     /// // tag system-wide user in Operator role for access to signing key
@@ -5314,7 +5333,7 @@ impl NetHsm {
     /// // create an ed25519 signature
     /// println!(
     ///     "{:?}",
-    ///     nethsm.sign("signing1", SignatureType::EdDsa, b"message")?
+    ///     nethsm.sign(&"signing1".parse()?, SignatureType::EdDsa, b"message")?
     /// );
     /// # Ok(())
     /// # }
@@ -5331,7 +5350,7 @@ impl NetHsm {
     /// [state]: https://docs.nitrokey.com/nethsm/administration#state
     pub fn sign(
         &self,
-        key_id: &str,
+        key_id: &KeyId,
         signature_type: SignatureType,
         message: &[u8],
     ) -> Result<Vec<u8>, Error> {
@@ -5435,7 +5454,7 @@ impl NetHsm {
     ///     KeyType::Generic,
     ///     vec![KeyMechanism::AesDecryptionCbc, KeyMechanism::AesEncryptionCbc],
     ///     Some(128),
-    ///     Some("encryption1".to_string()),
+    ///     Some("encryption1".parse()?),
     ///     Some(vec!["tag1".to_string()]),
     /// )?;
     /// // tag system-wide user in Operator role for access to signing key
@@ -5449,7 +5468,7 @@ impl NetHsm {
     /// // encrypt message using
     /// println!(
     ///     "{:?}",
-    ///     nethsm.encrypt("encryption1", EncryptMode::AesCbc, message, Some(iv))?
+    ///     nethsm.encrypt(&"encryption1".parse()?, EncryptMode::AesCbc, message, Some(iv))?
     /// );
     /// # Ok(())
     /// # }
@@ -5461,7 +5480,7 @@ impl NetHsm {
     /// [state]: https://docs.nitrokey.com/nethsm/administration#state
     pub fn encrypt(
         &self,
-        key_id: &str,
+        key_id: &KeyId,
         mode: EncryptMode,
         message: &[u8],
         iv: Option<&[u8]>,
@@ -5475,7 +5494,7 @@ impl NetHsm {
         Base64::decode_vec(
             &keys_key_id_encrypt_post(
                 &self.create_connection_config(),
-                key_id,
+                key_id.as_ref(),
                 EncryptRequestData {
                     mode: mode.into(),
                     message,
@@ -5564,14 +5583,14 @@ impl NetHsm {
     ///     KeyType::Generic,
     ///     vec![KeyMechanism::AesDecryptionCbc, KeyMechanism::AesEncryptionCbc],
     ///     Some(128),
-    ///     Some("encryption1".to_string()),
+    ///     Some("encryption1".parse()?),
     ///     Some(vec!["tag1".to_string()]),
     /// )?;
     /// nethsm.generate_key(
     ///     KeyType::Rsa,
     ///     vec![KeyMechanism::RsaDecryptionPkcs1],
     ///     None,
-    ///     Some("encryption2".to_string()),
+    ///     Some("encryption2".parse()?),
     ///     Some(vec!["tag1".to_string()]),
     /// )?;
     /// // tag system-wide user in Operator role for access to signing key
@@ -5584,22 +5603,22 @@ impl NetHsm {
     ///
     /// // encrypt message using a symmetric key
     /// nethsm.use_credentials(&"operator1".parse()?)?;
-    /// let encrypted_message = nethsm.encrypt("encryption1", EncryptMode::AesCbc, message.as_bytes(), Some(iv.as_bytes()))?;
+    /// let encrypted_message = nethsm.encrypt(&"encryption1".parse()?, EncryptMode::AesCbc, message.as_bytes(), Some(iv.as_bytes()))?;
     ///
     /// // decrypt message using the same symmetric key and the same initialization vector
     /// assert_eq!(
     ///     message.as_bytes(),
-    ///     &nethsm.decrypt("encryption1", DecryptMode::AesCbc, &encrypted_message, Some(iv.as_bytes()))?
+    ///     &nethsm.decrypt(&"encryption1".parse()?, DecryptMode::AesCbc, &encrypted_message, Some(iv.as_bytes()))?
     /// );
     ///
     /// // get the public key of an asymmetric key and encrypt the message with it
-    /// let pubkey = RsaPublicKey::from_public_key_pem(&nethsm.get_public_key("encryption2")?)?;
+    /// let pubkey = RsaPublicKey::from_public_key_pem(&nethsm.get_public_key(&"encryption2".parse()?)?)?;
     /// let mut rng = rand::thread_rng();
     /// let encrypted_message = pubkey.encrypt(&mut rng, Pkcs1v15Encrypt, message.as_bytes())?;
     /// println!("raw encrypted message: {:?}", encrypted_message);
     ///
     /// let decrypted_message =
-    ///     nethsm.decrypt("encryption2", DecryptMode::Pkcs1, &encrypted_message, None)?;
+    ///     nethsm.decrypt(&"encryption2".parse()?, DecryptMode::Pkcs1, &encrypted_message, None)?;
     /// println!("raw decrypted message: {:?}", decrypted_message);
     ///
     /// assert_eq!(&decrypted_message, message.as_bytes());
@@ -5614,7 +5633,7 @@ impl NetHsm {
     /// [state]: https://docs.nitrokey.com/nethsm/administration#state
     pub fn decrypt(
         &self,
-        key_id: &str,
+        key_id: &KeyId,
         mode: DecryptMode,
         message: &[u8],
         iv: Option<&[u8]>,
@@ -5628,7 +5647,7 @@ impl NetHsm {
         Base64::decode_vec(
             &keys_key_id_decrypt_post(
                 &self.create_connection_config(),
-                key_id,
+                key_id.as_ref(),
                 DecryptRequestData {
                     mode: mode.into(),
                     encrypted,
@@ -5790,7 +5809,7 @@ impl NetHsm {
     ///     KeyType::Curve25519,
     ///     vec![KeyMechanism::EdDsaSignature],
     ///     None,
-    ///     Some("signing1".to_string()),
+    ///     Some("signing1".parse()?),
     ///     Some(vec!["tag1".to_string()]),
     /// )?;
     /// // tag system-wide user in Operator role for access to signing key
@@ -5800,7 +5819,7 @@ impl NetHsm {
     /// nethsm.use_credentials(&"operator1".parse()?)?;
     /// assert!(!nethsm
     ///     .create_openpgp_cert(
-    ///         "signing1",
+    ///         &"signing1".parse()?,
     ///         OpenPgpKeyUsageFlags::default(),
     ///         "Test <test@example.org>",
     ///         SystemTime::now().into()
@@ -5819,12 +5838,12 @@ impl NetHsm {
     /// [state]: https://docs.nitrokey.com/nethsm/administration#state
     pub fn create_openpgp_cert(
         &self,
-        key_id: &str,
+        key_id: &KeyId,
         flags: OpenPgpKeyUsageFlags,
         user_id: &str,
         created_at: DateTime<Utc>,
     ) -> Result<Vec<u8>, Error> {
-        openpgp::add_certificate(self, flags, key_id.into(), user_id, created_at)
+        openpgp::add_certificate(self, flags, key_id, user_id, created_at)
     }
 
     /// Creates an [OpenPGP signature] for a message.
@@ -5895,7 +5914,7 @@ impl NetHsm {
     ///     KeyType::Curve25519,
     ///     vec![KeyMechanism::EdDsaSignature],
     ///     None,
-    ///     Some("signing1".to_string()),
+    ///     Some("signing1".parse()?),
     ///     Some(vec!["tag1".to_string()]),
     /// )?;
     /// // tag system-wide user in Operator role for access to signing key
@@ -5903,19 +5922,19 @@ impl NetHsm {
     /// // create an OpenPGP certificate for the key with ID "signing1"
     /// nethsm.use_credentials(&"operator1".parse()?)?;
     /// let openpgp_cert = nethsm.create_openpgp_cert(
-    ///     "signing1",
+    ///     &"signing1".parse()?,
     ///     OpenPgpKeyUsageFlags::default(),
     ///     "Test <test@example.org>",
     ///     SystemTime::now().into(),
     /// )?;
     /// // import the OpenPGP certificate as key certificate
     /// nethsm.use_credentials(&"admin".parse()?)?;
-    /// nethsm.import_key_certificate("signing1", openpgp_cert)?;
+    /// nethsm.import_key_certificate(&"signing1".parse()?, openpgp_cert)?;
     ///
     /// // create OpenPGP signature
     /// nethsm.use_credentials(&"operator1".parse()?)?;
     /// assert!(!nethsm
-    ///     .openpgp_sign("signing1", b"sample message")?
+    ///     .openpgp_sign(&"signing1".parse()?, b"sample message")?
     ///     .is_empty());
     /// # Ok(()) }
     /// ```
@@ -5924,7 +5943,7 @@ impl NetHsm {
     /// [namespace]: https://docs.nitrokey.com/nethsm/administration#namespaces
     /// [role]: https://docs.nitrokey.com/nethsm/administration#roles
     /// [state]: https://docs.nitrokey.com/nethsm/administration#state
-    pub fn openpgp_sign(&self, key_id: &str, message: &[u8]) -> Result<Vec<u8>, Error> {
-        openpgp::sign(self, key_id.into(), message)
+    pub fn openpgp_sign(&self, key_id: &KeyId, message: &[u8]) -> Result<Vec<u8>, Error> {
+        openpgp::sign(self, key_id, message)
     }
 }

@@ -85,13 +85,13 @@ pub enum Error {
 ///
 /// All PGP-related operations executed on objects of this type will be forwarded to
 /// the NetHSM instance.
-struct HsmKey<'a> {
+struct HsmKey<'a, 'b> {
     public_key: PublicKey,
     nethsm: &'a NetHsm,
-    key_id: String,
+    key_id: &'b crate::KeyId,
 }
 
-impl Debug for HsmKey<'_> {
+impl Debug for HsmKey<'_, '_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("HsmKey")
             .field("public_key", &self.public_key)
@@ -139,9 +139,9 @@ fn parse_signature(sig_type: crate::SignatureType, sig: &[u8]) -> pgp::errors::R
     })
 }
 
-impl<'a> HsmKey<'a> {
+impl<'a, 'b> HsmKey<'a, 'b> {
     /// Creates a new remote signing key which will use `key_id` key for signing.
-    fn new(nethsm: &'a NetHsm, public_key: PublicKey, key_id: String) -> Self {
+    fn new(nethsm: &'a NetHsm, public_key: PublicKey, key_id: &'b crate::KeyId) -> Self {
         Self {
             nethsm,
             public_key,
@@ -173,7 +173,7 @@ impl<'a> HsmKey<'a> {
     }
 }
 
-impl KeyTrait for HsmKey<'_> {
+impl KeyTrait for HsmKey<'_, '_> {
     fn fingerprint(&self) -> Vec<u8> {
         self.public_key.fingerprint()
     }
@@ -187,7 +187,7 @@ impl KeyTrait for HsmKey<'_> {
     }
 }
 
-impl PublicKeyTrait for HsmKey<'_> {
+impl PublicKeyTrait for HsmKey<'_, '_> {
     fn verify_signature(
         &self,
         hash: pgp::crypto::hash::HashAlgorithm,
@@ -210,7 +210,7 @@ impl PublicKeyTrait for HsmKey<'_> {
     }
 }
 
-impl SecretKeyTrait for HsmKey<'_> {
+impl SecretKeyTrait for HsmKey<'_, '_> {
     type PublicKey = PublicKey;
 
     type Unlocked = Self;
@@ -247,7 +247,7 @@ impl SecretKeyTrait for HsmKey<'_> {
 
         let sig = self
             .nethsm
-            .sign_digest(&self.key_id, signature_type, &request_data)
+            .sign_digest(self.key_id, signature_type, &request_data)
             .map_err(|_| pgp::errors::Error::InvalidInput)?;
 
         parse_signature(signature_type, &sig)
@@ -266,11 +266,11 @@ impl SecretKeyTrait for HsmKey<'_> {
 pub fn add_certificate(
     nethsm: &NetHsm,
     flags: KeyUsageFlags,
-    key_id: String,
+    key_id: &crate::KeyId,
     user_id: &str,
     created_at: DateTime<Utc>,
 ) -> Result<Vec<u8>, crate::Error> {
-    let public_key = nethsm.get_key(&key_id)?;
+    let public_key = nethsm.get_key(key_id)?;
     let signer = HsmKey::new(nethsm, hsm_pk_to_pgp_pk(public_key, created_at)?, key_id);
     let mut keyflags: KeyFlags = flags.into();
     // the primary key always need to be certifying
@@ -369,8 +369,12 @@ pub fn tsk_to_private_key_import(
 }
 
 /// Generates an OpenPGP signature using a given NetHSM key for the message.
-pub fn sign(nethsm: &NetHsm, key_id: String, message: &[u8]) -> Result<Vec<u8>, crate::Error> {
-    let public_key = nethsm.get_key_certificate(&key_id)?;
+pub fn sign(
+    nethsm: &NetHsm,
+    key_id: &crate::KeyId,
+    message: &[u8],
+) -> Result<Vec<u8>, crate::Error> {
+    let public_key = nethsm.get_key_certificate(key_id)?;
 
     let signer = HsmKey::new(
         nethsm,

@@ -1,6 +1,7 @@
 use std::path::PathBuf;
 
 use clap::{Parser, Subcommand};
+use nethsm::KeyId;
 use nethsm::{DecryptMode, EncryptMode, KeyFormat, KeyMechanism, KeyType, SignatureType, UserRole};
 use strum::IntoEnumIterator;
 
@@ -53,7 +54,7 @@ pub struct KeyCertDeleteCommand {
         env = "NETHSM_KEY_ID",
         help = "The ID of the key, for which to delete the certificate"
     )]
-    pub key_id: String,
+    pub key_id: KeyId,
 }
 
 #[derive(Debug, Parser)]
@@ -74,7 +75,7 @@ pub struct KeyCertGetCommand {
         env = "NETHSM_KEY_ID",
         help = "The ID of the key, for which to retrieve the certificate"
     )]
-    pub key_id: String,
+    pub key_id: KeyId,
 
     #[arg(
         env = "NETHSM_FORCE",
@@ -107,7 +108,7 @@ pub struct KeyCertImportCommand {
         env = "NETHSM_KEY_ID",
         help = "The ID of the key, for which to import the certificate"
     )]
-    pub key_id: String,
+    pub key_id: KeyId,
 
     #[arg(
         env = "NETHSM_KEY_CERT_FILE",
@@ -130,7 +131,7 @@ Requires authentication of a user in the \"{}\" or \"{}\" role.", UserRole::Admi
 )]
 pub struct KeyCsrCommand {
     #[arg(env = "NETHSM_KEY_ID", help = "The key ID for which to create a CSR")]
-    pub key_id: String,
+    pub key_id: KeyId,
 
     #[arg(
         env = "NETHSM_KEY_CSR_COMMON_NAME",
@@ -226,7 +227,7 @@ pub struct KeyDecryptCommand {
         env = "NETHSM_KEY_ID",
         help = "The ID of the key to use for decryption"
     )]
-    pub key_id: String,
+    pub key_id: KeyId,
 
     #[arg(
         env = "NETHSM_KEY_DECRYPT_MESSAGE",
@@ -285,7 +286,7 @@ pub struct KeyEncryptCommand {
         env = "NETHSM_KEY_ID",
         help = "The ID of the key to use for encryption"
     )]
-    pub key_id: String,
+    pub key_id: KeyId,
 
     #[arg(
         env = "NETHSM_KEY_ENCRYPT_MESSAGE",
@@ -403,7 +404,7 @@ If none is provided a generic one is generated for the key.",
         long,
         short
     )]
-    pub key_id: Option<String>,
+    pub key_id: Option<KeyId>,
 
     #[arg(
         env = "NETHSM_KEY_TAGS",
@@ -431,7 +432,7 @@ pub struct KeyGetCommand {
         env = "NETHSM_KEY_ID",
         help = "The ID of the key, for which to show information for"
     )]
-    pub key_id: String,
+    pub key_id: KeyId,
 }
 
 #[derive(Debug, Parser)]
@@ -520,7 +521,7 @@ If none is provided a generic one is generated for the key.",
         long,
         short
     )]
-    pub key_id: Option<String>,
+    pub key_id: Option<KeyId>,
 
     #[arg(
         env = "NETHSM_KEY_TAGS",
@@ -573,7 +574,7 @@ pub struct KeyPublicKeyCommand {
         env = "NETHSM_KEY_ID",
         help = "The ID of the key to get the public key for"
     )]
-    pub key_id: String,
+    pub key_id: KeyId,
 
     #[arg(
         env = "NETHSM_FORCE",
@@ -601,7 +602,7 @@ Requires authentication of a user in the \"{}\" role.", UserRole::Administrator)
 )]
 pub struct KeyRemoveCommand {
     #[arg(env = "NETHSM_KEY_ID", help = "The ID of the key that is removed")]
-    pub key_id: String,
+    pub key_id: KeyId,
 }
 
 #[derive(Debug, Parser)]
@@ -621,7 +622,7 @@ pub struct KeySignCommand {
         env = "NETHSM_KEY_ID",
         help = "The ID of the key to use for signing the message"
     )]
-    pub key_id: String,
+    pub key_id: KeyId,
 
     #[arg(
         env = "NETHSM_KEY_SIGNATURE_TYPE",
@@ -675,7 +676,8 @@ pub struct KeyTagCommand {
         env = "NETHSM_KEY_ID",
         help = "The ID of the key for which a tag is added"
     )]
-    pub key_id: String,
+    pub key_id: KeyId,
+
     #[arg(env = "NETHSM_KEY_TAG", help = "The tag to add to the key")]
     pub tag: String,
 }
@@ -694,7 +696,8 @@ pub struct KeyUntagCommand {
         env = "NETHSM_KEY_ID",
         help = "The ID of the key for which a tag is removed"
     )]
-    pub key_id: String,
+    pub key_id: KeyId,
+
     #[arg(env = "NETHSM_KEY_TAG", help = "The tag to remove from the key")]
     pub tag: String,
 }
