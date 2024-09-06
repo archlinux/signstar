@@ -86,13 +86,23 @@ pub struct SystemRebootCommand {}
     long_about = format!("Restore the device from a backup
 
 The device may be in state \"{:?}\" or \"{:?}\".
-Any existing user data is safely removed and replaced by that of the backup.
-If the device is in state \"{:?}\" the system configuration from the backup is also used and the device is rebooted.
+In both cases, the users and keys from the backup replace those on the device (if any).
+
+If the device is in state \"{:?}\", any credentials provided for authentication are ignored, the system configuration
+(e.g. TLS certificate, unlock passphrase, etc.) from the backup is used as well, the device is rebooted and ends up in
+\"{:?}\" state.
 
 If no new system time is provided, it is derived from the caller's system time.
 If no backup passphrase is provided specifically, it is prompted for interactively.
 
-Requires authentication of a user in the \"{}\" role.", SystemState::Operational, SystemState::Unprovisioned, SystemState::Unprovisioned, UserRole::Administrator)
+Requires authentication of a user in the \"{}\" role only if the device is in \"{:?}\" state.",
+        SystemState::Operational,
+        SystemState::Unprovisioned,
+        SystemState::Unprovisioned,
+        SystemState::Locked,
+        UserRole::Administrator,
+        SystemState::Operational,
+    )
 )]
 pub struct SystemRestoreCommand {
     #[arg(

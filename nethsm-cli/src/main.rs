@@ -22,6 +22,7 @@ use nethsm::{
     NetworkConfig,
     Passphrase,
     PrivateKeyImport,
+    SystemState,
     UserId,
     UserRole,
 };
@@ -43,6 +44,10 @@ pub enum Error {
     /// A config error
     #[error("Configuration issue: {0}")]
     Config(#[from] nethsm_config::Error),
+
+    /// The NetHSM is locked
+    #[error("The NetHsm is locked")]
+    Locked,
 
     /// A NetHsm error
     #[error("NetHsm error: {0}")]
@@ -961,13 +966,25 @@ fn main() -> Result<(), Error> {
                 nethsm.reboot()?;
             }
             SystemCommand::Restore(command) => {
-                let nethsm = config
-                    .get_device(cli.label.as_deref())?
-                    .nethsm_with_matching_creds(
-                        &[UserRole::Administrator],
-                        &cli.user,
-                        &auth_passphrases,
-                    )?;
+                let nethsm = {
+                    // first check whether we need credentials or not
+                    let nethsm = config
+                        .get_device(cli.label.as_deref())?
+                        .nethsm_with_matching_creds(&[], &[], &[])?;
+                    match nethsm.state()? {
+                        SystemState::Unprovisioned => nethsm,
+                        // we only need credentials if the device is already provisioned and
+                        // operational
+                        SystemState::Operational => config
+                            .get_device(cli.label.as_deref())?
+                            .nethsm_with_matching_creds(
+                                &[UserRole::Administrator],
+                                &cli.user,
+                                &auth_passphrases,
+                            )?,
+                        SystemState::Locked => return Err(Error::Locked),
+                    }
+                };
                 let backup_passphrase =
                     if let Some(passphrase_file) = command.backup_passphrase_file {
                         passphrase_file.passphrase
