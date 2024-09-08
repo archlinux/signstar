@@ -4,8 +4,6 @@ use nethsm_sdk_rs::models::{SignMode, Switch, UnattendedBootConfig};
 use serde::{Deserialize, Serialize};
 use ureq::Response;
 
-use crate::Error;
-
 /// A representation of a message body in an HTTP response
 ///
 /// This type allows us to deserialize the message body when the NetHSM API triggers the return of a
@@ -508,89 +506,6 @@ pub enum KeyType {
 
     /// An RSA key
     Rsa,
-}
-
-impl KeyType {
-    /// Ensures that the [`KeyType`] is compatible with a list of [`KeyMechanism`]s
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if the [`KeyMechanism`] is incompatible with the [`KeyType`]
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// # use nethsm::{KeyMechanism, KeyType};
-    ///
-    /// assert!(KeyType::Curve25519
-    ///     .matches_mechanisms(&[KeyMechanism::EdDsaSignature])
-    ///     .is_ok());
-    ///
-    /// assert!(KeyType::Curve25519
-    ///     .matches_mechanisms(&[KeyMechanism::EcdsaSignature])
-    ///     .is_err());
-    ///
-    /// assert!(KeyType::EcP224
-    ///     .matches_mechanisms(&[KeyMechanism::EcdsaSignature])
-    ///     .is_ok());
-    ///
-    /// assert!(KeyType::Generic
-    ///     .matches_mechanisms(&[
-    ///         KeyMechanism::AesDecryptionCbc,
-    ///         KeyMechanism::AesEncryptionCbc,
-    ///     ])
-    ///     .is_ok());
-    ///
-    /// assert!(KeyType::Generic
-    ///     .matches_mechanisms(&[
-    ///         KeyMechanism::RsaDecryptionPkcs1,
-    ///         KeyMechanism::RsaSignaturePkcs1,
-    ///     ])
-    ///     .is_err());
-    ///
-    /// assert!(KeyType::Rsa
-    ///     .matches_mechanisms(&[
-    ///         KeyMechanism::RsaDecryptionPkcs1,
-    ///         KeyMechanism::RsaSignaturePkcs1,
-    ///     ])
-    ///     .is_ok());
-    ///
-    /// assert!(KeyType::Rsa
-    ///     .matches_mechanisms(&[
-    ///         KeyMechanism::AesDecryptionCbc,
-    ///         KeyMechanism::AesEncryptionCbc,
-    ///         KeyMechanism::EcdsaSignature
-    ///     ])
-    ///     .is_err());
-    /// ```
-    pub fn matches_mechanisms(&self, mechanisms: &[KeyMechanism]) -> Result<(), Error> {
-        let valid_mechanisms: &[KeyMechanism] = match self {
-            KeyType::Curve25519 => &KeyMechanism::curve25519_mechanisms(),
-            KeyType::EcP224 | KeyType::EcP256 | KeyType::EcP384 | KeyType::EcP521 => {
-                &KeyMechanism::elliptic_curve_mechanisms()
-            }
-            KeyType::Generic => &KeyMechanism::generic_mechanisms(),
-            KeyType::Rsa => &KeyMechanism::rsa_mechanisms(),
-        };
-
-        let mut invalid_mechanisms = mechanisms
-            .iter()
-            .filter(|mechanism| !valid_mechanisms.contains(mechanism))
-            .peekable();
-
-        if invalid_mechanisms.peek().is_none() {
-            Ok(())
-        } else {
-            Err(Error::KeyData(format!(
-                "{:?} is incompatible with {}",
-                self,
-                invalid_mechanisms
-                    .map(Into::into)
-                    .collect::<Vec<&'static str>>()
-                    .join(",")
-            )))
-        }
-    }
 }
 
 impl From<KeyType> for nethsm_sdk_rs::models::KeyType {

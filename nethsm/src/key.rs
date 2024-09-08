@@ -7,7 +7,7 @@ use rsa::{
     RsaPrivateKey,
 };
 
-use crate::KeyType;
+use crate::{KeyMechanism, KeyType};
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
@@ -17,6 +17,15 @@ pub enum Error {
     NoPrimes,
     #[error("The {0} key type is not supported")]
     UnsupportedKeyType(KeyType),
+
+    /// The key mechanisms provided for a key type are not valid
+    #[error(
+        "The key type {key_type} does not support the following key mechanisms: {invalid_mechanisms:?}"
+    )]
+    InvalidKeyMechanism {
+        key_type: KeyType,
+        invalid_mechanisms: Vec<KeyMechanism>,
+    },
 }
 
 /// The data for private key import
@@ -345,6 +354,94 @@ impl From<PrivateKeyImport> for KeyPrivateData {
                 data: Some(Base64::encode_string(&data)),
             },
         }
+    }
+}
+
+/// Ensures that a [`KeyType`] is compatible with a list of [`KeyMechanism`]s
+///
+/// # Errors
+///
+/// Returns an [`Error::Key`][`crate::Error::Key`] if any of the [`KeyMechanism`]s is incompatible
+/// with the [`KeyType`]
+///
+/// # Examples
+///
+/// ```
+/// use nethsm::{KeyMechanism, KeyType, key_type_matches_mechanisms};
+///
+/// # fn main() -> testresult::TestResult {
+/// key_type_matches_mechanisms(KeyType::Curve25519, &[KeyMechanism::EdDsaSignature])?;
+/// key_type_matches_mechanisms(KeyType::EcP224, &[KeyMechanism::EcdsaSignature])?;
+/// key_type_matches_mechanisms(
+///     KeyType::Rsa,
+///     &[
+///         KeyMechanism::RsaDecryptionPkcs1,
+///         KeyMechanism::RsaSignaturePkcs1,
+///     ],
+/// )?;
+/// key_type_matches_mechanisms(
+///     KeyType::Generic,
+///     &[
+///         KeyMechanism::AesDecryptionCbc,
+///         KeyMechanism::AesEncryptionCbc,
+///     ],
+/// )?;
+///
+/// // this fails because Curve25519 is not compatible with the Elliptic Curve Digital Signature Algorithm (ECDSA),
+/// // but instead requires the use of the Edwards-curve Digital Signature Algorithm (EdDSA)
+/// assert!(
+///     key_type_matches_mechanisms(KeyType::Curve25519, &[KeyMechanism::EcdsaSignature]).is_err()
+/// );
+///
+/// // this fails because RSA key mechanisms are not compatible with block ciphers
+/// assert!(key_type_matches_mechanisms(
+///     KeyType::Generic,
+///     &[
+///         KeyMechanism::RsaDecryptionPkcs1,
+///         KeyMechanism::RsaSignaturePkcs1,
+///     ]
+/// )
+/// .is_err());
+///
+/// // this fails because RSA keys do not support Curve25519's Edwards-curve Digital Signature Algorithm (EdDSA)
+/// assert!(key_type_matches_mechanisms(
+///     KeyType::Rsa,
+///     &[
+///         KeyMechanism::AesDecryptionCbc,
+///         KeyMechanism::AesEncryptionCbc,
+///         KeyMechanism::EcdsaSignature
+///     ]
+/// )
+/// .is_err());
+/// # Ok(())
+/// # }
+/// ```
+pub fn key_type_matches_mechanisms(
+    key_type: KeyType,
+    mechanisms: &[KeyMechanism],
+) -> Result<(), Error> {
+    let valid_mechanisms: &[KeyMechanism] = match key_type {
+        KeyType::Curve25519 => &KeyMechanism::curve25519_mechanisms(),
+        KeyType::EcP224 | KeyType::EcP256 | KeyType::EcP384 | KeyType::EcP521 => {
+            &KeyMechanism::elliptic_curve_mechanisms()
+        }
+        KeyType::Generic => &KeyMechanism::generic_mechanisms(),
+        KeyType::Rsa => &KeyMechanism::rsa_mechanisms(),
+    };
+
+    let invalid_mechanisms = mechanisms
+        .iter()
+        .filter(|mechanism| !valid_mechanisms.contains(mechanism))
+        .cloned()
+        .collect::<Vec<KeyMechanism>>();
+
+    if invalid_mechanisms.is_empty() {
+        Ok(())
+    } else {
+        Err(Error::InvalidKeyMechanism {
+            key_type,
+            invalid_mechanisms,
+        })
     }
 }
 

@@ -201,7 +201,7 @@ use sha1::Sha1;
 use sha2::{Digest, Sha224, Sha256, Sha384, Sha512};
 
 mod key;
-pub use key::PrivateKeyImport;
+pub use key::{key_type_matches_mechanisms, PrivateKeyImport};
 
 mod nethsm_sdk;
 use nethsm_sdk::NetHsmApiError;
@@ -3997,12 +3997,14 @@ impl NetHsm {
     ///
     /// Returns an [`Error::Api`] if generating the key fails:
     /// * the NetHSM is not in [`Operational`][`SystemState::Operational`] [state]
-    /// * the provided combination of `key_type` and `mechanisms` is not valid
     /// * a key identified by ` key_id` exists already
     /// * the chosen `length` or `tags` options are not valid
     /// * the used [`Credentials`] are not correct
     /// * the used [`Credentials`] are not that of a user in the
     ///   [`Administrator`][`UserRole::Administrator`] [role]
+    ///
+    /// Returns an [`Error::Key`] if the provided combination of `key_type` and `mechanisms` is not
+    /// valid.
     ///
     /// # Examples
     ///
@@ -4059,7 +4061,7 @@ impl NetHsm {
     ) -> Result<String, Error> {
         self.validate_namespace_access(NamespaceSupport::Supported, None, None)?;
         // ensure the key_type - mechanisms combinations are valid
-        key_type.matches_mechanisms(&mechanisms)?;
+        key_type_matches_mechanisms(key_type, &mechanisms)?;
 
         Ok(keys_generate_post(
             &self.create_connection_config(),
@@ -4129,13 +4131,14 @@ impl NetHsm {
     ///
     /// Returns an [`Error::Api`] if importing the key fails:
     /// * the NetHSM is not in [`Operational`][`SystemState::Operational`] [state]
-    /// * the provided combination of `key_type` and `mechanisms` is not valid
-    /// * the provided combination of `key_type` and `key_data` is not valid
     /// * a key identified by ` key_id` exists already
     /// * the chosen `tags` option is not valid
     /// * the used [`Credentials`] are not correct
     /// * the used [`Credentials`] are not that of a user in the
     ///   [`Administrator`][`UserRole::Administrator`] [role]
+    ///
+    /// Returns an [`Error::Key`] if the provided combination of `key_data` and `mechanisms` is not
+    /// valid.
     ///
     /// # Examples
     ///
@@ -4188,7 +4191,7 @@ impl NetHsm {
         self.validate_namespace_access(NamespaceSupport::Supported, None, None)?;
         // ensure the key_type - mechanisms combinations are valid
         let key_type = key_data.key_type();
-        key_type.matches_mechanisms(&mechanisms)?;
+        key_type_matches_mechanisms(key_type, &mechanisms)?;
 
         let restrictions = tags.map(|tags| Box::new(KeyRestrictions { tags: Some(tags) }));
         let private = Box::new(key_data.into());
