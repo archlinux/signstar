@@ -26,8 +26,6 @@ use rustainers::Container;
 use testdir::testdir;
 use testresult::TestResult;
 
-pub static LENGTH: i32 = 32;
-
 #[ignore = "requires Podman"]
 #[rstest]
 #[tokio::test]

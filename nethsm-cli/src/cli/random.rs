@@ -17,7 +17,7 @@ pub struct RandomCommand {
         env = "NETHSM_RANDOM_LENGTH",
         help = "The number of random bytes to return"
     )]
-    pub length: i32,
+    pub length: u32,
     #[arg(
         env = "NETHSM_FORCE",
         help = "Write to output file even if it exists already",

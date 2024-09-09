@@ -10,7 +10,7 @@ use rstest::rstest;
 use rustainers::Container;
 use testresult::TestResult;
 
-pub static LENGTH: i32 = 32;
+pub static LENGTH: u32 = 32;
 
 #[ignore = "requires Podman"]
 #[rstest]

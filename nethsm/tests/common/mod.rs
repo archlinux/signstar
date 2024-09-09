@@ -32,7 +32,7 @@ pub static BACKUP_USER_PASSPHRASE: &str = "just-a-backup-passphrase";
 pub static METRICS_USER_ID: &str = "metrics1";
 pub static METRICS_USER_REAL_NAME: &str = "Some Metrics";
 pub static METRICS_USER_PASSPHRASE: &str = "just-a-metrics-passphrase";
-pub static DEFAULT_RSA_BITS: i32 = 2048;
+pub static DEFAULT_RSA_BITS: u32 = 2048;
 pub static DEFAULT_KEY_ID: &str = "key1";
 pub static OTHER_KEY_ID: &str = "key2";
 pub static DEFAULT_TAG: &str = "tag1";
@@ -42,7 +42,7 @@ pub static ENC_TAG: &str = "enctag1";
 pub static ENC_OPERATOR_USER_ID: &str = "encoperator1";
 pub static ENC_OPERATOR_USER_REAL_NAME: &str = "Some Encryption Operator";
 pub static ENC_OPERATOR_USER_PASSPHRASE: &str = "just-an-encryption-passphrase";
-pub static DEFAULT_AES_BITS: i32 = 128;
+pub static DEFAULT_AES_BITS: u32 = 128;
 
 pub static NAMESPACE1: &str = "namespace1";
 pub static NAMESPACE1_ADMIN_USER_ID: &str = "namespace1~admin";

@@ -38,7 +38,7 @@ use testresult::TestResult;
 async fn generate_keys(
     #[case] key_type: KeyType,
     #[case] mechanisms: Vec<KeyMechanism>,
-    #[case] length: Option<i32>,
+    #[case] length: Option<u32>,
     #[future] nethsm_with_users: TestResult<(NetHsm, Container<NetHsmImage>)>,
 ) -> TestResult {
     let (nethsm, _container) = nethsm_with_users.await?;

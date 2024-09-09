@@ -1526,14 +1526,14 @@ impl NetHsm {
     pub fn generate_tls_cert(
         &self,
         tls_key_type: TlsKeyType,
-        length: Option<i32>,
+        length: Option<u32>,
     ) -> Result<(), Error> {
         self.validate_namespace_access(NamespaceSupport::Unsupported, None, None)?;
         config_tls_generate_post(
             &self.create_connection_config(),
             TlsKeyGenerateRequestData {
                 r#type: tls_key_type.into(),
-                length,
+                length: length.map(|length| length as i32),
             },
         )
         .map_err(|error| {
@@ -2024,14 +2024,14 @@ impl NetHsm {
     pub fn set_logging(
         &self,
         ip_address: Ipv4Addr,
-        port: i32,
+        port: u32,
         log_level: LogLevel,
     ) -> Result<(), Error> {
         self.validate_namespace_access(NamespaceSupport::Unsupported, None, None)?;
         let ip_address = ip_address.to_string();
         config_logging_put(
             &self.create_connection_config(),
-            LoggingConfig::new(ip_address, port, log_level.into()),
+            LoggingConfig::new(ip_address, port as i32, log_level.into()),
         )
         .map_err(|error| {
             Error::Api(format!(
@@ -4053,7 +4053,7 @@ impl NetHsm {
         &self,
         key_type: KeyType,
         mechanisms: Vec<KeyMechanism>,
-        length: Option<i32>,
+        length: Option<u32>,
         key_id: Option<String>,
         tags: Option<Vec<String>>,
     ) -> Result<String, Error> {
@@ -4069,7 +4069,7 @@ impl NetHsm {
                     .map(|mechanism| mechanism.into())
                     .collect(),
                 r#type: key_type.into(),
-                length,
+                length: length.map(|length| length as i32),
                 id: key_id,
                 restrictions: tags.map(|tags| Box::new(KeyRestrictions { tags: Some(tags) })),
             },
@@ -5688,11 +5688,11 @@ impl NetHsm {
     /// [namespace]: https://docs.nitrokey.com/nethsm/administration#namespaces
     /// [role]: https://docs.nitrokey.com/nethsm/administration#roles
     /// [state]: https://docs.nitrokey.com/nethsm/administration#state
-    pub fn random(&self, length: i32) -> Result<Vec<u8>, Error> {
+    pub fn random(&self, length: u32) -> Result<Vec<u8>, Error> {
         self.validate_namespace_access(NamespaceSupport::Supported, None, None)?;
         let base64_bytes = random_post(
             &self.create_connection_config(),
-            RandomRequestData::new(length),
+            RandomRequestData::new(length as i32),
         )
         .map_err(|error| {
             Error::Api(format!(

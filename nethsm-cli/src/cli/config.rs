@@ -328,7 +328,7 @@ pub struct SetLoggingCommand {
         env = "NETHSM_LOGGING_PORT",
         help = "The port of the host to send syslog to"
     )]
-    pub port: i32,
+    pub port: u32,
 
     #[arg(
         env = "NETHSM_LOGGING_LOG_LEVEL",
@@ -447,7 +447,7 @@ The bit length must be compatible with the chosen key type.
 
 Requires authentication of a user in the \"{}\" role.", UserRole::Administrator)
     )]
-    pub tls_key_length: Option<i32>,
+    pub tls_key_length: Option<u32>,
 }
 
 #[derive(Debug, Parser)]

@@ -392,7 +392,7 @@ If none is provided, a default is chosen.",
         long,
         short = 'L'
     )]
-    pub length: Option<i32>,
+    pub length: Option<u32>,
 
     #[arg(
         env = "NETHSM_KEY_ID",
