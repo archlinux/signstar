@@ -88,9 +88,10 @@ impl PrivateKeyImport {
     ///
     /// # Errors
     ///
-    /// Returns an [`crate::Error::KeyData`] if `key_data` can not be deserialized to a respective
-    /// private key format, an RSA private key does not have prime P or prime Q, or if an
-    /// unsupported [`KeyType`] is provided.
+    /// Returns an [`crate::Error::Key`] if
+    /// * `key_data` can not be deserialized to a respective private key format.
+    /// * an RSA private key does not have prime P or prime Q.
+    /// * `key_type` is the unsupported [`KeyType::Generic`].
     ///
     /// # Examples
     ///
@@ -172,9 +173,10 @@ impl PrivateKeyImport {
     ///
     /// # Errors
     ///
-    /// Returns an [`crate::Error::KeyData`] if `key_data` can not be deserialized to a respective
-    /// private key format, an RSA private key does not have prime P or prime Q, or if an
-    /// unsupported [`KeyType`] is provided.
+    /// Returns an [`crate::Error::Key`] if
+    /// * `key_data` can not be deserialized to a respective private key format.
+    /// * an RSA private key does not have prime P or prime Q.
+    /// * `key_type` is the unsupported [`KeyType::Generic`].
     ///
     /// # Examples
     ///
