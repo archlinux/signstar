@@ -7,7 +7,7 @@ use rsa::{
     RsaPrivateKey,
 };
 
-use crate::{KeyMechanism, KeyType};
+use crate::{KeyMechanism, KeyType, TlsKeyType};
 
 /// The minimum bit length for an RSA key
 ///
@@ -47,6 +47,18 @@ pub enum Error {
     /// RSA key is generated with unsafe key length (smaller than 2048)
     #[error("RSA keys shorter than {MIN_RSA_BIT_LENGTH} are not supported. A key length of {key_length} is unsafe!")]
     InvalidKeyLengthRsa { key_length: u32 },
+
+    /// Elliptic curve TLS keys do not support providing a length
+    #[error("Elliptic curve key ({tls_key_type}) does not support setting length")]
+    TlsKeyLengthUnsupported { tls_key_type: TlsKeyType },
+
+    /// RSA TLS key type requires setting a length
+    #[error("Generating a key of type {tls_key_type} requires setting a length")]
+    TlsKeyLengthRequired { tls_key_type: TlsKeyType },
+
+    /// RSA TLS key is generated with unsafe key length (smaller than 2048)
+    #[error("RSA keys shorter than {MIN_RSA_BIT_LENGTH} are not supported. A key length of {key_length} is unsafe!")]
+    InvalidTlsKeyLengthRsa { key_length: u32 },
 }
 
 /// The data for private key import
@@ -535,6 +547,64 @@ pub fn key_type_matches_length(key_type: KeyType, length: Option<u32>) -> Result
             Some(length) => {
                 if length < MIN_RSA_BIT_LENGTH {
                     Err(Error::InvalidKeyLengthRsa { key_length: length })
+                } else {
+                    Ok(())
+                }
+            }
+        },
+    }
+}
+
+/// Ensures that a [`TlsKeyType`] is compatible with an optional key length
+///
+/// # Errors
+///
+/// Returns an [`Error::Key`][`crate::Error::Key`] if
+/// * `tls_key_type` is one of [`TlsKeyType::Curve25519`], [`TlsKeyType::EcP224`],
+///   [`TlsKeyType::EcP256`], [`TlsKeyType::EcP384`] or [`TlsKeyType::EcP521`] and `length` is
+///   [`Some`].
+/// * `tls_key_type` is [`TlsKeyType::Rsa`] and `length` is [`None`].
+/// * `tls_key_type` is [`TlsKeyType::Rsa`] and `length` is not [`Some`] value equal to or greater
+///   than [`MIN_RSA_BIT_LENGTH`].
+///
+/// # Examples
+///
+/// ```
+/// use nethsm::{tls_key_type_matches_length, TlsKeyType};
+///
+/// # fn main() -> testresult::TestResult {
+/// tls_key_type_matches_length(TlsKeyType::Curve25519, None)?;
+/// tls_key_type_matches_length(TlsKeyType::EcP224, None)?;
+/// tls_key_type_matches_length(TlsKeyType::Rsa, Some(2048))?;
+///
+/// // this fails because elliptic curve keys have their length set intrinsically
+/// assert!(tls_key_type_matches_length(TlsKeyType::Curve25519, Some(2048)).is_err());
+/// // this fails because a bit length of 1024 is unsafe to use for RSA keys
+/// assert!(tls_key_type_matches_length(TlsKeyType::Rsa, Some(1024)).is_err());
+/// # Ok(())
+/// # }
+/// ```
+pub fn tls_key_type_matches_length(
+    tls_key_type: TlsKeyType,
+    length: Option<u32>,
+) -> Result<(), Error> {
+    match tls_key_type {
+        TlsKeyType::Curve25519
+        | TlsKeyType::EcP224
+        | TlsKeyType::EcP256
+        | TlsKeyType::EcP384
+        | TlsKeyType::EcP521 => {
+            if length.is_some() {
+                Err(Error::TlsKeyLengthUnsupported { tls_key_type })
+            } else {
+                Ok(())
+            }
+        }
+        TlsKeyType::Rsa => match length {
+            None => Err(Error::TlsKeyLengthRequired { tls_key_type }),
+            Some(length) => {
+                if length < MIN_RSA_BIT_LENGTH {
+                    Err(Error::InvalidTlsKeyLengthRsa { key_length: length })
                 } else {
                     Ok(())
                 }

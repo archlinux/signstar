@@ -204,6 +204,7 @@ mod key;
 pub use key::{
     key_type_matches_length,
     key_type_matches_mechanisms,
+    tls_key_type_matches_length,
     PrivateKeyImport,
     MIN_RSA_BIT_LENGTH,
 };
@@ -1530,6 +1531,8 @@ impl NetHsm {
         length: Option<u32>,
     ) -> Result<(), Error> {
         self.validate_namespace_access(NamespaceSupport::Unsupported, None, None)?;
+        // ensure the tls_key_type - length combination is valid
+        tls_key_type_matches_length(tls_key_type, length)?;
         config_tls_generate_post(
             &self.create_connection_config(),
             TlsKeyGenerateRequestData {
