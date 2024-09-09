@@ -259,8 +259,8 @@ pub enum Error {
     #[error("NetHSM API error: {0}")]
     Api(String),
 
-    /// Importing a key failed because of malformed data
-    #[error("Key data is invalid: {0}")]
+    /// An error with a key occurred
+    #[error("Key error: {0}")]
     Key(#[from] key::Error),
 
     /// URL is invalid
