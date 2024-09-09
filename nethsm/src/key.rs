@@ -9,6 +9,11 @@ use rsa::{
 
 use crate::{KeyMechanism, KeyType};
 
+/// The minimum bit length for an RSA key
+///
+/// This follows recommendations from [NIST Special Publication 800-57 Part 3 Revision 1](https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-57Pt3r1.pdf) (January 2015).
+pub const MIN_RSA_BIT_LENGTH: u32 = 2048;
+
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
     #[error("PKCS#8 error: {0}")]
@@ -26,6 +31,22 @@ pub enum Error {
         key_type: KeyType,
         invalid_mechanisms: Vec<KeyMechanism>,
     },
+
+    /// Elliptic curve keys do not support providing a length
+    #[error("Elliptic curve key ({key_type}) does not support setting length")]
+    KeyLengthUnsupported { key_type: KeyType },
+
+    /// Key type requires setting a length
+    #[error("Generating a key of type {key_type} requires setting a length")]
+    KeyLengthRequired { key_type: KeyType },
+
+    /// AES key is generated with unsupported key length (not 128, 192 or 256)
+    #[error("AES only defines key lengths of 128, 192 and 256. A key length of {key_length} is unsupported!")]
+    InvalidKeyLengthAes { key_length: u32 },
+
+    /// RSA key is generated with unsafe key length (smaller than 2048)
+    #[error("RSA keys shorter than {MIN_RSA_BIT_LENGTH} are not supported. A key length of {key_length} is unsafe!")]
+    InvalidKeyLengthRsa { key_length: u32 },
 }
 
 /// The data for private key import
@@ -91,6 +112,7 @@ impl PrivateKeyImport {
     /// Returns an [`crate::Error::Key`] if
     /// * `key_data` can not be deserialized to a respective private key format.
     /// * an RSA private key does not have prime P or prime Q.
+    /// * an RSA private key is shorter than [`MIN_RSA_BIT_LENGTH`].
     /// * `key_type` is the unsupported [`KeyType::Generic`].
     ///
     /// # Examples
@@ -147,6 +169,8 @@ impl PrivateKeyImport {
             KeyType::Generic => return Err(Error::UnsupportedKeyType(KeyType::Generic)),
             KeyType::Rsa => {
                 let private_key = RsaPrivateKey::from_pkcs8_der(key_data)?;
+                // ensure, that we have sufficient bit length
+                key_type_matches_length(key_type, Some(private_key.size() as u32 * 8))?;
                 Self {
                     key_data: PrivateKeyData::Rsa {
                         prime_p: private_key
@@ -176,6 +200,7 @@ impl PrivateKeyImport {
     /// Returns an [`crate::Error::Key`] if
     /// * `key_data` can not be deserialized to a respective private key format.
     /// * an RSA private key does not have prime P or prime Q.
+    /// * an RSA private key is shorter than [`MIN_RSA_BIT_LENGTH`].
     /// * `key_type` is the unsupported [`KeyType::Generic`].
     ///
     /// # Examples
@@ -234,6 +259,8 @@ impl PrivateKeyImport {
             KeyType::Generic => return Err(Error::UnsupportedKeyType(KeyType::Generic)),
             KeyType::Rsa => {
                 let private_key = RsaPrivateKey::from_pkcs8_pem(key_data)?;
+                // ensure, that we have sufficient bit length
+                key_type_matches_length(key_type, Some(private_key.size() as u32 * 8))?;
                 Self {
                     key_data: PrivateKeyData::Rsa {
                         prime_p: private_key
@@ -444,6 +471,75 @@ pub fn key_type_matches_mechanisms(
             key_type,
             invalid_mechanisms,
         })
+    }
+}
+
+/// Ensures that a [`KeyType`] is compatible with an optional key length
+///
+/// # Errors
+///
+/// Returns an [`Error::Key`][`crate::Error::Key`] if
+/// * `key_type` is one of [`KeyType::Curve25519`], [`KeyType::EcP224`], [`KeyType::EcP256`],
+///   [`KeyType::EcP384`] or [`KeyType::EcP521`] and `length` is [`Some`].
+/// * `key_type` is [`KeyType::Generic`] or [`KeyType::Rsa`] and `length` is [`None`].
+/// * `key_type` is [`KeyType::Generic`] and `length` is not [`Some`] value of `128`, `192` or
+///   `256`.
+/// * `key_type` is [`KeyType::Rsa`] and `length` is not [`Some`] value equal to or greater than
+///   [`MIN_RSA_BIT_LENGTH`].
+///
+/// # Examples
+///
+/// ```
+/// use nethsm::{key_type_matches_length, KeyType};
+///
+/// # fn main() -> testresult::TestResult {
+/// key_type_matches_length(KeyType::Curve25519, None)?;
+/// key_type_matches_length(KeyType::EcP224, None)?;
+/// key_type_matches_length(KeyType::Rsa, Some(2048))?;
+/// key_type_matches_length(KeyType::Generic, Some(256))?;
+///
+/// // this fails because elliptic curve keys have their length set intrinsically
+/// assert!(key_type_matches_length(KeyType::Curve25519, Some(2048)).is_err());
+/// // this fails because a bit length of 2048 is not defined for AES block ciphers
+/// assert!(key_type_matches_length(KeyType::Generic, Some(2048)).is_err());
+/// // this fails because a bit length of 1024 is unsafe to use for RSA keys
+/// assert!(key_type_matches_length(KeyType::Rsa, Some(1024)).is_err());
+/// # Ok(())
+/// # }
+/// ```
+pub fn key_type_matches_length(key_type: KeyType, length: Option<u32>) -> Result<(), Error> {
+    match key_type {
+        KeyType::Curve25519
+        | KeyType::EcP224
+        | KeyType::EcP256
+        | KeyType::EcP384
+        | KeyType::EcP521 => {
+            if length.is_some() {
+                Err(Error::KeyLengthUnsupported { key_type })
+            } else {
+                Ok(())
+            }
+        }
+        KeyType::Generic => match length {
+            None => Err(Error::KeyLengthRequired { key_type }),
+            Some(length) => {
+                if ![128, 192, 256].contains(&length) {
+                    Err(Error::InvalidKeyLengthAes { key_length: length })
+                } else {
+                    Ok(())
+                }
+            }
+        },
+        KeyType::Rsa => match length {
+            None => Err(Error::KeyLengthRequired { key_type }),
+            Some(length) => {
+                if length < MIN_RSA_BIT_LENGTH {
+                    Err(Error::InvalidKeyLengthRsa { key_length: length })
+                } else {
+                    Ok(())
+                }
+            }
+        },
     }
 }
 

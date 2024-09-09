@@ -201,7 +201,12 @@ use sha1::Sha1;
 use sha2::{Digest, Sha224, Sha256, Sha384, Sha512};
 
 mod key;
-pub use key::{key_type_matches_mechanisms, PrivateKeyImport};
+pub use key::{
+    key_type_matches_length,
+    key_type_matches_mechanisms,
+    PrivateKeyImport,
+    MIN_RSA_BIT_LENGTH,
+};
 
 mod nethsm_sdk;
 use nethsm_sdk::NetHsmApiError;
@@ -3999,8 +4004,9 @@ impl NetHsm {
     /// * the used [`Credentials`] are not that of a user in the
     ///   [`Administrator`][`UserRole::Administrator`] [role]
     ///
-    /// Returns an [`Error::Key`] if the provided combination of `key_type` and `mechanisms` is not
-    /// valid.
+    /// Returns an [`Error::Key`] if
+    /// * the provided combination of `key_type` and `mechanisms` is not valid.
+    /// * the provided combination of `key_type` and `length` is not valid.
     ///
     /// # Examples
     ///
@@ -4058,6 +4064,8 @@ impl NetHsm {
         self.validate_namespace_access(NamespaceSupport::Supported, None, None)?;
         // ensure the key_type - mechanisms combinations are valid
         key_type_matches_mechanisms(key_type, &mechanisms)?;
+        // ensure the key_type - length combination is valid
+        key_type_matches_length(key_type, length)?;
 
         Ok(keys_generate_post(
             &self.create_connection_config(),

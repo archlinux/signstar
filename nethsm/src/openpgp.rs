@@ -16,7 +16,7 @@ use pgp::{
         SubpacketData,
         UserId,
     },
-    ser::Serialize as _,
+    ser::Serialize,
     types::{
         CompressionAlgorithm,
         EcdsaPublicParams,
@@ -44,7 +44,7 @@ use picky_asn1_x509::{
 };
 use rand::prelude::{CryptoRng, Rng};
 
-use crate::{KeyMechanism, KeyType, NetHsm, PrivateKeyImport};
+use crate::{key_type_matches_length, KeyMechanism, KeyType, NetHsm, PrivateKeyImport};
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
@@ -315,6 +315,14 @@ fn hash_to_oid(hash: HashAlgorithm) -> pgp::errors::Result<AlgorithmIdentifier> 
 }
 
 /// Converts an OpenPGP Transferable Secret Key into [`PrivateKeyImport`] object.
+///
+/// # Errors
+///
+/// Returns an [`crate::Error::OpenPgp`] if creating a [`PrivateKeyImport`] from `key_data` is not
+/// possible.
+///
+/// Returns an [`crate::Error::Key`] if an RSA public key is shorter than
+/// [`crate::MIN_RSA_BIT_LENGTH`].
 pub fn tsk_to_private_key_import(
     key_data: &[u8],
 ) -> Result<(PrivateKeyImport, KeyMechanism), crate::Error> {
@@ -327,6 +335,10 @@ pub fn tsk_to_private_key_import(
     let SecretParams::Plain(secret) = key.primary_key.secret_params() else {
         return Err(crate::Error::OpenPgp(Error::PrivateKeyPassphraseProtected));
     };
+    // ensure, that we have sufficient bit length
+    if let PublicParams::RSA { n, .. } = key.public_params() {
+        key_type_matches_length(KeyType::Rsa, Some(n.as_bytes().len() as u32 * 8))?
+    }
     Ok(match secret {
         PlainSecretParams::RSA { p, q, .. } => (
             PrivateKeyImport::from_rsa(p.as_bytes().to_vec(), q.as_bytes().to_vec(), vec![1, 0, 1]),

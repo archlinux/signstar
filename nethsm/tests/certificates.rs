@@ -1,6 +1,7 @@
 mod common;
 use common::nethsm_with_users;
 use common::NetHsmImage;
+use common::DEFAULT_AES_BITS;
 use common::DEFAULT_KEY_ID;
 use common::DEFAULT_OPERATOR_USER_ID;
 use common::DEFAULT_RSA_BITS;
@@ -114,7 +115,7 @@ async fn generate_symmetric_encryption_key(nethsm: &NetHsm) -> TestResult {
             KeyMechanism::AesEncryptionCbc,
             KeyMechanism::AesDecryptionCbc,
         ],
-        Some(DEFAULT_RSA_BITS),
+        Some(DEFAULT_AES_BITS),
         Some(ENC_KEY_ID.to_string()),
         None,
     )?;
