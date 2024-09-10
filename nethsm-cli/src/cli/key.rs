@@ -5,12 +5,19 @@ use nethsm::KeyId;
 use nethsm::{DecryptMode, EncryptMode, KeyFormat, KeyMechanism, KeyType, SignatureType, UserRole};
 use strum::IntoEnumIterator;
 
+use super::BIN_NAME;
+
 #[derive(Debug, Subcommand)]
 #[command(
     about = "Operate on the keys of a device",
-    long_about = "Operate on the keys of a device
+    long_about = format!("Operate on the keys of a device
 
-Supports all relevant cryptographic operations (decrypt, encrypt, sign), certificate handling, importing, generation and ACL management."
+Supports all relevant cryptographic operations (decrypt, encrypt, sign), certificate handling, importing, generation and ACL management.
+
+Keys may exist in specific scopes: system-wide or in namespaces (see \"{} namespace\").
+While system-wide users only have access to system-wide keys, namespaced users only have access to keys in their own namespace.",
+        BIN_NAME,
+    )
 )]
 pub enum KeyCommand {
     #[command(subcommand)]
@@ -34,7 +41,11 @@ pub enum KeyCommand {
     about = "Operate on certificates for a key",
     long_about = "Operate on certificates for a key
 
-Supports certificate retrieval, removal and import."
+Supports certificate retrieval, removal and import.
+
+System-wide users only have access to system-wide keys.
+Namespaced users only have access to keys in their own namespace.
+"
 )]
 pub enum KeyCertCommand {
     Delete(KeyCertDeleteCommand),
@@ -47,7 +58,14 @@ pub enum KeyCertCommand {
     about = "Delete the certificate for a key",
     long_about = format!("Delete the certificate for a key
 
-Requires authentication of a user in the \"{}\" role.", UserRole::Administrator)
+System-wide users in the \"{}\" role can only delete certificates for system-wide keys.
+Namespaced users in the \"{}\" role can only delete certificates for keys in their own namespace.
+
+Requires authentication of a user in the \"{}\" role.",
+        UserRole::Administrator,
+        UserRole::Administrator,
+        UserRole::Administrator,
+)
 )]
 pub struct KeyCertDeleteCommand {
     #[arg(
@@ -62,13 +80,19 @@ pub struct KeyCertDeleteCommand {
     about = "Get the certificate for a key",
     long_about = format!("Get the certificate for a key
 
-The NetHSM backend can store binary data as the certificate and offers no guarantee for the certificate to be of any particular format.
-
-The `nethsm openpgp add` command sets the certificate to a newly generated OpenPGP certificate.
+System-wide users in the \"{}\" role can only get certificates for system-wide keys.
+Namespaced users in the \"{}\" role can only get certificates for keys in their own namespace.
 
 Unless a specific output file is specified, the certificate is written to stdout.
 
-Requires authentication of a user in the \"{}\" or \"{}\" role.", UserRole::Administrator, UserRole::Operator)
+Requires authentication of a user in the \"{}\" or \"{}\" role (with access to the key - see \"{} key tag\" and \"{} user tag\").",
+        UserRole::Administrator,
+        UserRole::Administrator,
+        UserRole::Administrator,
+        UserRole::Operator,
+        BIN_NAME,
+        BIN_NAME,
+    )
 )]
 pub struct KeyCertGetCommand {
     #[arg(
@@ -101,7 +125,14 @@ pub struct KeyCertGetCommand {
 
 The NetHSM backend can store binary data up to 1 MiB in size as certificate.
 
-Requires authentication of a user in the \"{}\" role.", UserRole::Administrator)
+System-wide users in the \"{}\" role can only import certificates for system-wide keys.
+Namespaced users in the \"{}\" role can only import certificates for keys in their own namespace.
+
+Requires authentication of a user in the \"{}\" role.",
+        UserRole::Administrator,
+        UserRole::Administrator,
+        UserRole::Administrator,
+    )
 )]
 pub struct KeyCertImportCommand {
     #[arg(
@@ -127,7 +158,19 @@ Unless a specific output file is chosen, the certificate is returned on stdout.
 
 At a minimum, the \"Common Name\" (CN) attribute for the CSR has to be provided.
 
-Requires authentication of a user in the \"{}\" or \"{}\" role.", UserRole::Administrator, UserRole::Operator)
+System-wide users in the \"{}\" or \"{}\" role can only create CSRs for system-wide keys.
+Namespaced users in the \"{}\" or \"{}\" role can only create CSRs for keys in their own namespace.
+
+Requires authentication of a user in the \"{}\" or \"{}\" role (with access to the key - see \"{} key tag\" and \"{} user tag\").",
+        UserRole::Administrator,
+        UserRole::Operator,
+        UserRole::Administrator,
+        UserRole::Operator,
+        UserRole::Administrator,
+        UserRole::Operator,
+        BIN_NAME,
+        BIN_NAME,
+    )
 )]
 pub struct KeyCsrCommand {
     #[arg(env = "NETHSM_KEY_ID", help = "The key ID for which to create a CSR")]
@@ -220,7 +263,16 @@ The organization contact, usually of the certificate administrator or IT departm
 
 The chosen decryption mode must match the targeted key and the initialization vector (if applicable) must be identical to the one used for encryption.
 
-Requires authentication of a user in the \"{}\" role that has access to the targeted key.", UserRole::Operator)
+System-wide users in the \"{}\" role can only decrypt messages using system-wide keys.
+Namespaced users in the \"{}\" role can only decrypt messages using keys in their own namespace.
+
+Requires authentication of a user in the \"{}\" role that has access (see \"{} key tag\" and \"{} user tag\") to the targeted key.",
+        UserRole::Operator,
+        UserRole::Operator,
+        UserRole::Operator,
+        BIN_NAME,
+        BIN_NAME,
+    )
 )]
 pub struct KeyDecryptCommand {
     #[arg(
@@ -279,7 +331,16 @@ The IV can only be used when choosing symmetric decryption (i.e. with \"{:?}\")"
 
 Only symmetric encryption is supported.
 
-Requires authentication of a user in the \"{}\" role that has access to the targeted key.", UserRole::Operator)
+System-wide users in the \"{}\" role can only encrypt messages using system-wide keys.
+Namespaced users in the \"{}\" role can only encrypt messages using keys in their own namespace.
+
+Requires authentication of a user in the \"{}\" role that has access (see \"{} key tag\" and \"{} user tag\") to the targeted key.",
+        UserRole::Operator,
+        UserRole::Operator,
+        UserRole::Operator,
+        BIN_NAME,
+        BIN_NAME,
+    )
 )]
 pub struct KeyEncryptCommand {
     #[arg(
@@ -342,6 +403,11 @@ The provided key type and list of key mechanisms have to match:
 * \"{}\", \"{}\", \"{}\" and \"{}\" require one of {:?}
 * \"{}\" requires at least one of {:?}
 
+System-wide users in the \"{}\" role generate system-wide keys.
+Namespaced users in the \"{}\" role generate keys in their own namespace.
+
+Note: Although assigning tags to the new key is optional, it is highly recommended as not doing so means that all users in the same scope have access to it!
+
 Requires authentication of a user in the \"{}\" role.",
         KeyType::Rsa,
         KeyMechanism::rsa_mechanisms(),
@@ -354,7 +420,9 @@ Requires authentication of a user in the \"{}\" role.",
         KeyMechanism::elliptic_curve_mechanisms(),
         KeyType::Generic,
         KeyMechanism::generic_mechanisms(),
-        UserRole::Administrator
+        UserRole::Administrator,
+        UserRole::Administrator,
+        UserRole::Administrator,
     )
 )]
 pub struct KeyGenerateCommand {
@@ -425,7 +493,19 @@ Tags on keys are used to grant access to those keys for users that carry the sam
 
 Displays information on supported key mechanisms, the key type, which restrictions apply (i.e. which tags are set for the key), information on the public key part and how many operations have been done with the key.
 
-Requires authentication of a user in the \"{}\" or \"{}\" role.", UserRole::Administrator, UserRole::Operator)
+System-wide users in the \"{}\" or \"{}\" role can only retrieve information on system-wide keys.
+Namespaced users in the \"{}\" or \"{}\" role can only retrieve information on keys in their own namespace.
+
+Requires authentication of a user in the \"{}\" or \"{}\" role (with access to the key - see \"{} key tag\" and \"{} user tag\").",
+        UserRole::Administrator,
+        UserRole::Operator,
+        UserRole::Administrator,
+        UserRole::Operator,
+        UserRole::Administrator,
+        UserRole::Operator,
+        BIN_NAME,
+        BIN_NAME,
+    )
 )]
 pub struct KeyGetCommand {
     #[arg(
@@ -440,7 +520,7 @@ pub struct KeyGetCommand {
     about = "Import a key",
     long_about = format!("Import a key
 
-The provided key data must be provided as PKCS#8 private key in ASN.1 DER-encoded format.
+The provided key data must be provided as PKCS#8 private key in ASN.1 Distinguished Encoding Rules (DER) encoded or Privacy-Enhanced Mail (PEM) format.
 The key data must match the provided key type.
 
 The provided key type and list of key mechanisms have to match:
@@ -448,6 +528,11 @@ The provided key type and list of key mechanisms have to match:
 * \"{}\" requires one of {:?}
 * \"{}\", \"{}\", \"{}\" and \"{}\" require one of {:?}
 * \"{}\" requires at least one of {:?}
+
+System-wide users in the \"{}\" role import system-wide keys.
+Namespaced users in the \"{}\" role import keys in their own namespace.
+
+Note: Although assigning tags to the new key is optional, it is highly recommended as not doing so means that all users in the same scope have access to it!
 
 Requires authentication of a user in the \"{}\" role.",
         KeyType::Rsa,
@@ -461,7 +546,9 @@ Requires authentication of a user in the \"{}\" role.",
         KeyMechanism::elliptic_curve_mechanisms(),
         KeyType::Generic,
         KeyMechanism::generic_mechanisms(),
-        UserRole::Administrator
+        UserRole::Administrator,
+        UserRole::Administrator,
+        UserRole::Administrator,
     )
 )]
 pub struct KeyImportCommand {
@@ -542,7 +629,19 @@ Tags on keys are used to grant access to those keys for users that carry the sam
 
 Optionally filter the list of key IDs by a keyword.
 
-Requires authentication of a user in the \"{}\" or \"{}\" role.", UserRole::Administrator, UserRole::Operator)
+System-wide users in the \"{}\" or \"{}\" role can only list system-wide keys.
+Namespaced users in the \"{}\" or \"{}\" role can only list keys in their own namespace.
+
+Requires authentication of a user in the \"{}\" or \"{}\" role (with access to the key - see \"{} key tag\" and \"{} user tag\").",
+        UserRole::Administrator,
+        UserRole::Operator,
+        UserRole::Administrator,
+        UserRole::Operator,
+        UserRole::Administrator,
+        UserRole::Operator,
+        BIN_NAME,
+        BIN_NAME,
+    )
 )]
 pub struct KeyListCommand {
     #[arg(
@@ -560,12 +659,21 @@ pub struct KeyListCommand {
 The public key is returned as X.509 public key certificate in Privacy-enhanced Electronic Mail (PEM) format.
 If no specific output file is chosen, the public key is emitted on stdout.
 
-Note: Keys of type \"{:?}\" do not have a public key and this command fails for them!
+Note: Keys of type \"{}\" do not have a public key and this command fails for them!
 
-Requires authentication of a user in the \"{}\" or \"{}\" role.",
+System-wide users in the \"{}\" or \"{}\" role can only get the public key for system-wide keys.
+Namespaced users in the \"{}\" or \"{}\" role can only get the public key for keys in their own namespace.
+
+Requires authentication of a user in the \"{}\" or \"{}\" role (with access to the key - see \"{} key tag\" and \"{} user tag\").",
         KeyType::Generic,
         UserRole::Administrator,
         UserRole::Operator,
+        UserRole::Administrator,
+        UserRole::Operator,
+        UserRole::Administrator,
+        UserRole::Operator,
+        BIN_NAME,
+        BIN_NAME,
     )
 
 )]
@@ -598,7 +706,14 @@ pub struct KeyPublicKeyCommand {
     about = "Remove a key",
     long_about = format!("Remove a key
 
-Requires authentication of a user in the \"{}\" role.", UserRole::Administrator)
+System-wide users in the \"{}\" role can only remove system-wide keys.
+Namespaced users in the \"{}\" role can only remove keys in their own namespace.
+
+Requires authentication of a user in the \"{}\" role.",
+        UserRole::Administrator,
+        UserRole::Administrator,
+        UserRole::Administrator,
+    )
 )]
 pub struct KeyRemoveCommand {
     #[arg(env = "NETHSM_KEY_ID", help = "The ID of the key that is removed")]
@@ -615,7 +730,16 @@ The chosen signature type must match the target key type and key mechanisms.
 
 If no specific output file is chosen, the signature is written to stdout.
 
-Requires authentication of a user in the \"{}\" role with access to the target key.", UserRole::Operator)
+System-wide users in the \"{}\" role can only create signatures for messages using system-wide keys.
+Namespaced users in the \"{}\" role can only create signatures for messages using keys in their own namespace.
+
+Requires authentication of a user in the \"{}\" role with access (see \"{} key tag\" and \"{} user tag\") to the target key.",
+        UserRole::Operator,
+        UserRole::Operator,
+        UserRole::Operator,
+        BIN_NAME,
+        BIN_NAME,
+    )
 )]
 pub struct KeySignCommand {
     #[arg(
@@ -662,12 +786,19 @@ One of {:?}", SignatureType::iter().map(Into::into).collect::<Vec<&'static str>>
     long_about = format!("Tag a key
 
 Tags are used to grant access to keys for users in the \"{}\" role.
-If users are tagged with an identical tag, they are able to use a given key.
+If a user and a key are tagged with the same tag, the user gains access to that key.
+As keys exist either system-wide or in a namespace, users in the \"{}\" role must be in the same scope as the key for this have effect!
 
-Tags on keys must be created before creating tags on users.
+Note: Tags on keys must be created before creating tags on users.
+
+System-wide users in the \"{}\" role can only tag system-wide keys.
+Namespaced users in the \"{}\" role can only tag keys in their own namespace.
 
 Requires authentication of a user in the \"{}\" role.",
         UserRole::Operator,
+        UserRole::Operator,
+        UserRole::Administrator,
+        UserRole::Administrator,
         UserRole::Administrator,
     )
 )]
@@ -687,9 +818,19 @@ pub struct KeyTagCommand {
     about = "Untag a key",
     long_about = format!("Untag a key
 
-Removes access to the key for users in the \"{}\" role with an identical tag.
+Removes access to any key for users in the \"{}\" role that have the same tag.
+As keys exist either system-wide or in a namespace, users in the \"{}\" role must be in the same scope as the key for this to have effect!
 
-Requires authentication of a user in the \"{}\" role.", UserRole::Operator, UserRole::Administrator)
+System-wide users in the \"{}\" role can only untag system-wide keys.
+Namespaced users in the \"{}\" role can only untag keys in their own namespace.
+
+Requires authentication of a user in the \"{}\" role.",
+        UserRole::Operator,
+        UserRole::Operator,
+        UserRole::Administrator,
+        UserRole::Administrator,
+        UserRole::Administrator,
+    )
 )]
 pub struct KeyUntagCommand {
     #[arg(

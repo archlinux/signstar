@@ -8,6 +8,8 @@ use nethsm::UserRole;
 
 Metrics of the target device are returned in JSON format.
 
-Requires authentication of a user in the \"{}\" role.", UserRole::Metrics),
+Requires authentication of a system-wide user in the \"{}\" role.",
+        UserRole::Metrics,
+    ),
 )]
 pub struct MetricsCommand {}

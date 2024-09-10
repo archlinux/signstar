@@ -42,7 +42,11 @@ pub enum ConfigGetCommand {
 * \"{}\" if the device needs to be unlocked during boot
 * \"{}\" if the device does not need to be unlocked during boot
 
-Requires authentication of a user in the \"{}\" role.", BootMode::Attended, BootMode::Unattended, UserRole::Administrator)
+Requires authentication of a system-wide user in the \"{}\" role.",
+        BootMode::Attended,
+        BootMode::Unattended,
+        UserRole::Administrator,
+    )
 )]
 pub struct GetBootModeCommand {}
 
@@ -53,7 +57,9 @@ pub struct GetBootModeCommand {}
 
 Shows IP address and port number of the host the target device logs to at a given log level.
 
-Requires authentication of a user in the \"{}\" role.", UserRole::Administrator)
+Requires authentication of a system-wide user in the \"{}\" role.",
+        UserRole::Administrator,
+    )
 )]
 pub struct GetLoggingCommand {}
 
@@ -64,7 +70,9 @@ pub struct GetLoggingCommand {}
 
 Shows IP address, netmask and gateway of the target device.
 
-Requires authentication of a user in the \"{}\" role.", UserRole::Administrator)
+Requires authentication of a system-wide user in the \"{}\" role.",
+        UserRole::Administrator,
+    )
 )]
 pub struct GetNetworkCommand {}
 
@@ -75,7 +83,9 @@ pub struct GetNetworkCommand {}
 
 Returns the current time as ISO 8601 formatted timestamp.
 
-Requires authentication of a user in the \"{}\" role.", UserRole::Administrator)
+Requires authentication of a system-wide user in the \"{}\" role.",
+        UserRole::Administrator,
+    )
 )]
 pub struct GetTimeCommand {}
 
@@ -87,7 +97,9 @@ pub struct GetTimeCommand {}
 The X.509 certificate is returned in Privacy-enhanced Electronic Mail (PEM) format.
 Unless a specific output file is chosen, the certificate is returned on stdout.
 
-Requires authentication of a user in the \"{}\" role.", UserRole::Administrator)
+Requires authentication of a system-wide user in the \"{}\" role.",
+        UserRole::Administrator,
+    )
 )]
 pub struct GetTlsCertificateCommand {
     #[arg(
@@ -117,7 +129,9 @@ Unless a specific output file is chosen, the certificate is returned on stdout.
 
 At a minimum, the \"Common Name\" (CN) attribute for the CSR has to be provided.
 
-Requires authentication of a user in the \"{}\" role.", UserRole::Administrator)
+Requires authentication of a system-wide user in the \"{}\" role.",
+        UserRole::Administrator,
+    )
 )]
 pub struct GetTlsCsrCommand {
     #[arg(
@@ -208,7 +222,9 @@ The organization contact, usually of the certificate administrator or IT departm
 The X.509 public key certificate is returned in Privacy-enhanced Electronic Mail (PEM) format.
 Unless a specific output file is chosen, the certificate is returned on stdout.
 
-Requires authentication of a user in the \"{}\" role.", UserRole::Administrator)
+Requires authentication of a system-wide user in the \"{}\" role.",
+        UserRole::Administrator,
+    )
 )]
 pub struct GetTlsPublicKeyCommand {
     #[arg(
@@ -252,7 +268,9 @@ The new passphrase must be >= 10 and <= 200 characters.
 
 By default the passphrases are prompted for interactively, but they can each be provided using a dedicated passphrase file instead.
 
-Requires authentication of a user in the \"{}\" role.", UserRole::Administrator)
+Requires authentication of a system-wide user in the \"{}\" role.",
+        UserRole::Administrator,
+    )
 )]
 pub struct SetBackupPassphraseCommand {
     #[arg(
@@ -285,7 +303,7 @@ The passphrase must be >= 10 and <= 200 characters long.",
 
 Sets whether the device boots into state \"{:?}\" (using boot mode \"{:?}\") or \"{:?}\" (using boot mode \"{:?}\").
 
-Requires authentication of a user in the \"{}\" role.",
+Requires authentication of a system-wide user in the \"{}\" role.",
         SystemState::Locked,
         BootMode::Attended,
         SystemState::Operational,
@@ -313,7 +331,7 @@ One of {:?} (no default).",
 
 Provide IP address and port of a host to send syslog to at a specified log level.
 
-Requires authentication of a user in the \"{}\" role.",
+Requires authentication of a system-wide user in the \"{}\" role.",
         UserRole::Administrator,
     )
 )]
@@ -350,7 +368,9 @@ One of {:?} (defaults to \"{:?}\").",
 
 Provide IPv4 address, netmask and Ipv4 gateway address for the device to use.
 
-Requires authentication of a user in the \"{}\" role.", UserRole::Administrator)
+Requires authentication of a system-wide user in the \"{}\" role.",
+        UserRole::Administrator,
+    )
 )]
 pub struct SetNetworkCommand {
     #[arg(
@@ -380,7 +400,9 @@ pub struct SetNetworkCommand {
 The time must be provided as ISO 8601 formatted UTC timestamp.
 If no timestamp is provided, the caller's current system time is used to construct a UTC timestamp.
 
-Requires authentication of a user in the \"{}\" role.", UserRole::Administrator)
+Requires authentication of a system-wide user in the \"{}\" role.",
+        UserRole::Administrator,
+    )
 )]
 pub struct SetTimeCommand {
     #[arg(
@@ -402,7 +424,9 @@ The X.509 certificate must be provided in Privacy-enhanced Electronic Mail (PEM)
 
 The certificate is only accepted if it is created using a Certificate Signing Request (CSR) generated by the target device.
 
-Requires authentication of a user in the \"{}\" role.", UserRole::Administrator)
+Requires authentication of a system-wide user in the \"{}\" role.",
+        UserRole::Administrator,
+    )
 )]
 pub struct SetTlsCertificateCommand {
     #[arg(
@@ -423,7 +447,9 @@ The X.509 certificate must be provided in Privacy-enhanced Electronic Mail (PEM)
 The current TLS certificate is replaced by the newly generated one.
 Optionally, the type of key and its length can be specified.
 
-Requires authentication of a user in the \"{}\" role.", UserRole::Administrator)
+Requires authentication of a system-wide user in the \"{}\" role.",
+        UserRole::Administrator,
+    )
 )]
 pub struct SetTlsGenerateCommand {
     #[arg(
@@ -461,7 +487,9 @@ The new passphrase must be >= 10 and <= 200 characters.
 
 By default the passphrases are prompted for interactively, but they can each be provided using a dedicated passphrase file instead.
 
-Requires authentication of a user in the \"{}\" role.", UserRole::Administrator)
+Requires authentication of a system-wide user in the \"{}\" role.",
+        UserRole::Administrator,
+    )
 )]
 pub struct SetUnlockPassphraseCommand {
     #[arg(

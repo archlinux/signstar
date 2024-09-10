@@ -8,6 +8,10 @@ use nethsm::{SystemState, UserRole};
 
 After locking, the target device is in state \"{:?}\" and the unlock passphrase needs to be provided to return to state \"{:?}\".
 
-Requires authentication of a user in the \"{}\" role.", SystemState::Locked, SystemState::Operational, UserRole::Administrator),
+Requires authentication of a system-wide user in the \"{}\" role.",
+        SystemState::Locked,
+        SystemState::Operational,
+        UserRole::Administrator,
+    ),
 )]
 pub struct LockCommand;

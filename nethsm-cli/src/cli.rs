@@ -34,6 +34,8 @@ mod system;
 mod unlock;
 mod user;
 
+pub const BIN_NAME: &str = "nethsm";
+
 /// Errors related to the CLI
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
@@ -43,7 +45,7 @@ pub enum Error {
 }
 
 #[derive(Debug, Parser)]
-#[command(name = "nethsm")]
+#[command(name = BIN_NAME)]
 pub struct Cli {
     #[arg(
         env = "NETHSM_AUTH_PASSPHRASE_FILE",

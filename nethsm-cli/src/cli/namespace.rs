@@ -1,6 +1,8 @@
 use clap::{Parser, Subcommand};
 use nethsm::{NamespaceId, SystemState, UserRole};
 
+use super::BIN_NAME;
+
 #[derive(Debug, Subcommand)]
 #[command(
     about = "Operate on namespaces of a device",
@@ -25,13 +27,14 @@ pub enum NamespaceCommand {
 
 Adds a new namespace by providing a unique name.
 
-**WARNING**: Make sure to *first* create a user in the \"{}\" role for a namespace using \"nethsm user add\".
+**WARNING**: Make sure to *first* create a user in the \"{}\" role for a namespace using \"{} user add\".
 Only afterwards add the namespace, as otherwise the new namespace does not have an administrative user!
 
 The device must be in state \"{:?}\".
 
 Requires authentication of a user in the \"{}\" role.",
         UserRole::Administrator,
+        BIN_NAME,
         SystemState::Operational,
         UserRole::Administrator
     ),
@@ -51,7 +54,10 @@ pub struct NamespaceAddCommand {
 
 The device must be in state \"{:?}\".
 
-Requires authentication of a user in the \"{}\" role.", SystemState::Operational, UserRole::Administrator),
+Requires authentication of a system-wide user in the \"{}\" role.",
+        SystemState::Operational,
+        UserRole::Administrator,
+    ),
 )]
 pub struct NamespaceListCommand {}
 
@@ -61,11 +67,15 @@ pub struct NamespaceListCommand {}
     long_about = format!("Remove a namespace
 
 **WARNING**: This command deletes **all keys** in the targeted namespace.
-It is strongly advised to first create a backup using \"nethsm system backup\" before running this command.
+It is strongly advised to first create a backup using \"{} system backup\" before running this command.
 
 The device must be in state \"{:?}\".
 
-Requires authentication of a user in the \"{}\" role.", SystemState::Operational, UserRole::Administrator),
+Requires authentication of a system-wide user in the \"{}\" role.",
+        BIN_NAME,
+        SystemState::Operational,
+        UserRole::Administrator,
+    ),
 )]
 pub struct NamespaceRemoveCommand {
     #[arg(

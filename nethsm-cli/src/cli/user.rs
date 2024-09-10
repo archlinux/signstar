@@ -2,14 +2,24 @@ use clap::{Parser, Subcommand};
 use nethsm::{SystemState, UserId, UserRole};
 use strum::IntoEnumIterator;
 
+use super::BIN_NAME;
 use crate::passphrase_file::PassphraseFile;
 
 #[derive(Debug, Subcommand)]
 #[command(
     about = "Operate on users of a device",
-    long_about = "Operate on users of a device
+    long_about = format!("Operate on users of a device
 
-Allows to add and remove users, retrieve information about them, set their passphrases and set or unset tags for them."
+Allows to add and remove users, retrieve information about them, set their passphrases and set or unset tags for them.
+
+Users may exist in specific scopes: system-wide or in namespaces (see \"{} namespace\").
+The use of a namespace is indicated by a prefix in the user name (e.g. the user name \"namespace1~user1\" indicates that the user is in \"namespace1\").
+Users in a namespace can only be administrated by users in the \"{}\" role in that same namespace.
+System-wide users can only be administratred by system-wide users in the \"{}\" role.",
+        BIN_NAME,
+        UserRole::Administrator,
+        UserRole::Administrator,
+    )
 )]
 pub enum UserCommand {
     Add(UserAddCommand),
@@ -30,9 +40,23 @@ Adds a new user by providing a real name and a user role.
 If no user name is provided specifically, a random one is generated automatically by the target device.
 If no passphrase is provided, it is prompted for interactively.
 
+New users inherit the scope of the user that created them.
+If a system-wide user in the \"{}\" role creates a new user (e.g. \"user1\"), then that new user is also a system-wide user.
+As exception to this rule, a system-wide user in the \"{}\" role can create namespaced users by providing a user name specifically (e.g. \"namespace1~user1\"), but only if the targeted namespace (i.e. \"namespace1\") does not yet exist (see \"{} namespace add\").
+If a namespaced user in the \"{}\" role creates a new user, then that new user is also a user in that namespace.
+If a namespaced user in the \"{}\" role (e.g. \"namespace1~admin1\") provides a specific user name, it must be in that same namespace (e.g. \"namespace1~user1\", not \"namespace2~user1\")!
+
 The device must be in state \"{:?}\".
 
-Requires authentication of a user in the \"{}\" role.", SystemState::Operational, UserRole::Administrator),
+Requires authentication of a user in the \"{}\" role.",
+        UserRole::Administrator,
+        UserRole::Administrator,
+        BIN_NAME,
+        UserRole::Administrator,
+        UserRole::Administrator,
+        SystemState::Operational,
+        UserRole::Administrator,
+    ),
 )]
 pub struct UserAddCommand {
     #[arg(
@@ -80,11 +104,20 @@ The passphrase must be >= 10 and <= 200 characters long.",
     long_about = format!("Get information about a user
 
 Retrieves the real name and role of a user.
-If the user is in the \"{:?}\" role, also displays tags that are assigned to the user.
+If the user is in the \"{}\" role, also displays tags that are assigned to the user.
+
+System-wide users in the \"{}\" role have access to information of system-wide and namespaced users.
+Namespaced users in the \"{}\" role only have access to information of users in the same namespace.
 
 The device must be in state \"{:?}\".
 
-Requires authentication of a user in the \"{}\" role.", UserRole::Operator, SystemState::Operational, UserRole::Administrator),
+Requires authentication of a user in the \"{}\" role.",
+        UserRole::Operator,
+        UserRole::Administrator,
+        UserRole::Administrator,
+        SystemState::Operational,
+        UserRole::Administrator,
+    ),
 )]
 pub struct UserGetCommand {
     #[arg(
@@ -99,9 +132,17 @@ pub struct UserGetCommand {
     about = "List all user names",
     long_about = format!("List all user names
 
+System-wide users in the \"{}\" role can list system-wide and namespaced users.
+Namespaced users in the \"{}\" role can only list users in the same namespace.
+
 The device must be in state \"{:?}\".
 
-Requires authentication of a user in the \"{}\" role.", SystemState::Operational, UserRole::Administrator),
+Requires authentication of a user in the \"{}\" role.",
+        UserRole::Administrator,
+        UserRole::Administrator,
+        SystemState::Operational,
+        UserRole::Administrator,
+    ),
 )]
 pub struct UserListCommand {}
 
@@ -112,9 +153,17 @@ pub struct UserListCommand {}
 
 If no passphrase is provided specifically, it is prompted for interactively.
 
+System-wide users in the \"{}\" role can only set the passphrase for system-wide users.
+Namespaced users in the \"{}\" role can only set the passphrase for users in the same namespace.
+
 The device must be in state \"{:?}\".
 
-Requires authentication of a user in the \"{}\" role.", SystemState::Operational, UserRole::Administrator),
+Requires authentication of a user in the \"{}\" role.",
+        UserRole::Administrator,
+        UserRole::Administrator,
+        SystemState::Operational,
+        UserRole::Administrator,
+    ),
 )]
 pub struct UserPassphraseCommand {
     #[arg(
@@ -140,9 +189,20 @@ The passphrase must be >= 10 and <= 200 characters long.",
     about = "Remove a user",
     long_about = format!("Remove a user
 
+System-wide users in the \"{}\" role can only remove system-wide users.
+As an exception to this rule, system-wide users in the \"{}\" role can delete users in a namespace, if the namespace is removed first (see \"{} namespace remove\").
+Namespaced users in the \"{}\" role can only remove users in the same namespace.
+
 The device must be in state \"{:?}\".
 
-Requires authentication of a user in the \"{}\" role.", SystemState::Operational, UserRole::Administrator),
+Requires authentication of a user in the \"{}\" role.",
+        UserRole::Administrator,
+        UserRole::Administrator,
+        BIN_NAME,
+        UserRole::Administrator,
+        SystemState::Operational,
+        UserRole::Administrator,
+    ),
 )]
 pub struct UserRemoveCommand {
     #[arg(env = "NETHSM_USER_NAME", help = "The name of the user to remove")]
@@ -156,10 +216,22 @@ pub struct UserRemoveCommand {
 
 Tags provide access to keys for users.
 Keys that carry identical tags to that of a user, are accessible for the user.
+Tags on a key must exist (see \"{} key tag\") before an identical tag can be added to a user.
+
+System-wide users in the \"{}\" role can only add tags for system-wide users in the \"{}\" role.
+Namespaced users in the \"{}\" role can only add tags for users in the \"{}\" role in the same namespace.
 
 The device must be in state \"{:?}\".
 
-Requires authentication of a user in the \"{}\" role.", SystemState::Operational, UserRole::Administrator),
+Requires authentication of a user in the \"{}\" role.",
+        BIN_NAME,
+        UserRole::Administrator,
+        UserRole::Operator,
+        UserRole::Administrator,
+        UserRole::Operator,
+        SystemState::Operational,
+        UserRole::Administrator,
+    ),
 )]
 pub struct UserTagCommand {
     #[arg(
@@ -180,9 +252,19 @@ pub struct UserTagCommand {
 Tags provide access to keys for users.
 Removing a tag from a user removes its access to keys that carry identical tags.
 
+System-wide users in the \"{}\" role can only remove tags for system-wide users in the \"{}\" role.
+Namespaced users in the \"{}\" role can only remove tags for users in the \"{}\" role in the same namespace.
+
 The device must be in state \"{:?}\".
 
-Requires authentication of a user in the \"{}\" role.", SystemState::Operational, UserRole::Administrator),
+Requires authentication of a user in the \"{}\" role.",
+        UserRole::Administrator,
+        UserRole::Operator,
+        UserRole::Administrator,
+        UserRole::Operator,
+        SystemState::Operational,
+        UserRole::Administrator,
+    ),
 )]
 pub struct UserUntagCommand {
     #[arg(

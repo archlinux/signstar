@@ -4,6 +4,7 @@ use chrono::{DateTime, Utc};
 use clap::{Parser, Subcommand};
 use nethsm::{SystemState, UserRole};
 
+use super::BIN_NAME;
 use crate::passphrase_file::PassphraseFile;
 
 #[derive(Debug, Subcommand)]
@@ -28,7 +29,12 @@ pub enum SystemCommand {
 Writes an encrypted backup to a file in the current working directory, named after the device label in the configuration file and the current time.
 Optionally, a specific output file can be provided.
 
-Requires authentication of a user in the \"{}\" role.", UserRole::Backup)
+Note: Requires setting the backup passphrase using \"{} config set backup-passphrase\" first!
+
+Requires authentication of a system-wide user in the \"{}\" role.",
+        BIN_NAME,
+        UserRole::Backup,
+    )
 )]
 pub struct SystemBackupCommand {
     #[arg(
@@ -54,9 +60,13 @@ pub struct SystemBackupCommand {
     long_about = format!("Reset the device to factory settings
 
 Triggers a factory reset for the device.
-This action deletes all user and system data! Make sure to create a backup first!
 
-Requires authentication of a user in the \"{}\" role.", UserRole::Administrator)
+**WARNING**: This action deletes all user and system data! Make sure to create a backup using \"{} system backup\" first!
+
+Requires authentication of a system-wide user in the \"{}\" role.",
+        BIN_NAME,
+        UserRole::Administrator,
+    )
 )]
 pub struct SystemFactoryResetCommand {}
 
@@ -67,7 +77,9 @@ pub struct SystemFactoryResetCommand {}
 
 Provides information on software version, software build, firmware version, hardware version, device ID and information related to TPM and PCR.
 
-Requires authentication of a user in the \"{}\" role.", UserRole::Administrator)
+Requires authentication of a system-wide user in the \"{}\" role.",
+        UserRole::Administrator,
+    )
 )]
 pub struct SystemInfoCommand {}
 
@@ -95,7 +107,7 @@ If the device is in state \"{:?}\", any credentials provided for authentication 
 If no new system time is provided, it is derived from the caller's system time.
 If no backup passphrase is provided specifically, it is prompted for interactively.
 
-Requires authentication of a user in the \"{}\" role only if the device is in \"{:?}\" state.",
+Requires authentication of a system-wide user in the \"{}\" role only if the device is in \"{:?}\" state.",
         SystemState::Operational,
         SystemState::Unprovisioned,
         SystemState::Unprovisioned,
@@ -138,7 +150,10 @@ Must be provided as an ISO 8601 formatted UTC timestamp.",
 
 The device must be in state \"{:?}\".
 
-Requires authentication of a user in the \"{}\" role.", SystemState::Operational, UserRole::Administrator)
+Requires authentication of a system-wide user in the \"{}\" role.",
+        SystemState::Operational,
+        UserRole::Administrator,
+    )
 )]
 pub struct SystemShutdownCommand {}
 
@@ -161,7 +176,10 @@ pub struct SystemUploadUpdateCommand {
 
 The device must be in state \"{:?}\" and an update file must have been uploaded first!
 
-Requires authentication of a user in the \"{}\" role.", SystemState::Operational, UserRole::Administrator)
+Requires authentication of a system-wide user in the \"{}\" role.",
+        SystemState::Operational,
+        UserRole::Administrator,
+    )
 )]
 pub struct SystemCancelUpdateCommand {}
 
@@ -172,6 +190,9 @@ pub struct SystemCancelUpdateCommand {}
 
 The device must be in state \"{:?}\" and an update file must have been uploaded first!
 
-Requires authentication of a user in the \"{}\" role.", SystemState::Operational, UserRole::Administrator)
+Requires authentication of a system-wide user in the \"{}\" role.",
+        SystemState::Operational,
+        UserRole::Administrator,
+    )
 )]
 pub struct SystemCommitUpdateCommand {}
