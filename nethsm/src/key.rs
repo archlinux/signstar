@@ -22,8 +22,10 @@ pub const MIN_RSA_BIT_LENGTH: u32 = 2048;
 /// A [`KeyId`]s must be in the character set `[a-z0-9]`.
 /// It is used in [key management] on a NetHSM and is unique in its scope.
 /// The same [`KeyId`] may exist system-wide and in one or several [namespaces], but no duplicate
-/// [`KeyId`] can exist system-wide or in the same namespace. [key management]: https://docs.nitrokey.com/nethsm/operation#key-management
-/// [namespace]: https://docs.nitrokey.com/nethsm/administration#namespaces
+/// [`KeyId`] can exist system-wide or in the same namespace.
+///
+/// [key management]: https://docs.nitrokey.com/nethsm/operation#key-management
+/// [namespaces]: https://docs.nitrokey.com/nethsm/administration#namespaces
 #[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 #[serde(transparent)]
 pub struct KeyId(String);
@@ -31,7 +33,7 @@ pub struct KeyId(String);
 impl KeyId {
     /// Constructs a new Key ID from a `String`.
     ///
-    /// Validates the input string and returns [`Error::InvalidKeyId`]
+    /// Validates the input string and returns [`crate::Error::Key`]
     /// if it is invalid.
     ///
     /// # Errors
