@@ -19,6 +19,7 @@ use cli::{KeyCertCommand, KeyCommand, NamespaceCommand, SystemCommand};
 use nethsm::{
     DistinguishedName,
     KeyFormat,
+    KeyMechanism,
     NetworkConfig,
     Passphrase,
     PrivateKeyImport,
@@ -585,7 +586,11 @@ fn main() -> Result<(), Error> {
                     "{}",
                     nethsm.generate_key(
                         command.key_type.unwrap_or_default(),
-                        command.key_mechanisms,
+                        if command.key_mechanisms.is_empty() {
+                            vec![KeyMechanism::default()]
+                        } else {
+                            command.key_mechanisms
+                        },
                         command.length,
                         command.key_id,
                         command.tags,
