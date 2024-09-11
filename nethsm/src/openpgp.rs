@@ -79,6 +79,10 @@ pub enum Error {
     /// Multiple component keys are unsupported
     #[error("Unsupported multiple component keys")]
     UnsupportedMultipleComponentKeys,
+
+    /// The key format used is unsupported
+    #[error("Unsupported key format: {public_params:?}")]
+    UnsupportedKeyFormat { public_params: Box<PublicParams> },
 }
 
 /// PGP-adapter for a NetHSM key.
@@ -335,16 +339,21 @@ pub fn tsk_to_private_key_import(
     let SecretParams::Plain(secret) = key.primary_key.secret_params() else {
         return Err(crate::Error::OpenPgp(Error::PrivateKeyPassphraseProtected));
     };
-    // ensure, that we have sufficient bit length
-    if let PublicParams::RSA { n, .. } = key.public_params() {
-        key_type_matches_length(KeyType::Rsa, Some(n.as_bytes().len() as u32 * 8))?
-    }
-    Ok(match secret {
-        PlainSecretParams::RSA { p, q, .. } => (
-            PrivateKeyImport::from_rsa(p.as_bytes().to_vec(), q.as_bytes().to_vec(), vec![1, 0, 1]),
-            KeyMechanism::RsaSignaturePkcs1,
-        ),
-        PlainSecretParams::ECDSA(bytes) => {
+    Ok(match (secret, key.public_params()) {
+        (PlainSecretParams::RSA { p, q, .. }, PublicParams::RSA { n, e }) => {
+            // ensure, that we have sufficient bit length
+            key_type_matches_length(KeyType::Rsa, Some(n.as_bytes().len() as u32 * 8))?;
+
+            (
+                PrivateKeyImport::from_rsa(
+                    p.as_bytes().to_vec(),
+                    q.as_bytes().to_vec(),
+                    e.as_bytes().to_vec(),
+                ),
+                KeyMechanism::RsaSignaturePkcs1,
+            )
+        }
+        (PlainSecretParams::ECDSA(bytes), _) => {
             let ec = if let PublicParams::ECDSA(pp) = key.primary_key.public_params() {
                 pp.try_into()?
             } else {
@@ -356,14 +365,14 @@ pub fn tsk_to_private_key_import(
                 KeyMechanism::EcdsaSignature,
             )
         }
-        PlainSecretParams::EdDSA(bytes) => (
+        (PlainSecretParams::EdDSA(bytes), _) => (
             PrivateKeyImport::from_raw_bytes(crate::KeyType::Curve25519, bytes)?,
             KeyMechanism::EdDsaSignature,
         ),
-        params => {
-            return Err(crate::Error::OpenPgp(Error::KeyData(format!(
-                "Unsupported key data: {params:?}"
-            ))))
+        (_, public_params) => {
+            return Err(crate::Error::OpenPgp(Error::UnsupportedKeyFormat {
+                public_params: Box::new(public_params.clone()),
+            }))
         }
     })
 }
@@ -891,10 +900,10 @@ mod tests {
     }
 
     #[test]
-    fn private_key_import_zero_padding() -> TestResult {
+    fn private_key_import_ed25199_is_correctly_zero_padded() -> TestResult {
         let mut key_data = vec![];
         SignedSecretKey::from_armor_single(std::fs::File::open(
-            "tests/ed25519-key-with-31-byte-private-key-scalar.asc",
+            "tests/fixtures/ed25519-key-with-31-byte-private-key-scalar.asc",
         )?)?
         .0
         .to_writer(&mut key_data)?;
@@ -908,6 +917,26 @@ mod tests {
         // input is *not* zero-padded
         assert_eq!(data.len(), 32);
         assert_eq!(data[0], 0x00);
+
+        Ok(())
+    }
+
+    #[test]
+    fn private_key_import_rsa_key_with_nonstandard_moduli_is_read_correctly() -> TestResult {
+        let mut key_data = vec![];
+        SignedSecretKey::from_armor_single(std::fs::File::open(
+            "tests/fixtures/rsa-key-with-modulus-e-257.asc",
+        )?)?
+        .0
+        .to_writer(&mut key_data)?;
+
+        let import: nethsm_sdk_rs::models::KeyPrivateData =
+            tsk_to_private_key_import(&key_data)?.0.into();
+
+        let data = Base64::decode_vec(&import.public_exponent.unwrap())?;
+
+        // this key used a non-standard modulus (e) of 257
+        assert_eq!(data, vec![0x01, 0x01]); // 257 in hex
 
         Ok(())
     }
