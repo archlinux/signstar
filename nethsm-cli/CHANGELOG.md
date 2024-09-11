@@ -6,6 +6,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2024-09-11
+
+### Fixed
+- Allow generating Curve25519 key by default
+
+### Other
+- Upgrade nethsm-config crate to 0.1.1
+- Upgrade nethsm crate to 0.6.0
+- Adapt subcommand documentation for the use of namespaces
+- [**breaking**] Introduce `nethsm::KeyId` type
+- [**breaking**] Use `u32` instead of `i32` for ports and lengths
+
 ## [0.2.2] - 2024-09-06
 
 ### Fixed

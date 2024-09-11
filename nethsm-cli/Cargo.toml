@@ -6,7 +6,7 @@ keywords = ["encryption", "hsm", "nethsm", "signing", "cli"]
 license = "Apache-2.0 OR MIT"
 name = "nethsm-cli"
 repository = "https://gitlab.archlinux.org/archlinux/signstar"
-version = "0.2.2"
+version = "0.3.0"
 
 [dependencies]
 chrono = "0.4.37"
