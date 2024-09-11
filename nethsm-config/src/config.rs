@@ -925,7 +925,7 @@ impl Config {
     /// );
     /// let config_from_default = Config::new(config_settings.clone(), None)?;
     ///
-    /// let tmpfile = testdir::testdir!().join("my_app.conf");
+    /// let tmpfile = testdir::testdir!().join("my_app_new.conf");
     /// let config_from_file = Config::new(config_settings, Some(&tmpfile))?;
     /// # Ok(())
     /// # }
@@ -970,7 +970,7 @@ impl Config {
     /// #        ConfigInteractivity::NonInteractive,
     /// #        None,
     /// #    ),
-    /// #    Some(&testdir::testdir!().join("my_app.conf")),
+    /// #    Some(&testdir::testdir!().join("my_app_add_device.conf")),
     /// # )?;
     ///
     /// config.add_device(
@@ -1026,7 +1026,7 @@ impl Config {
     /// #        ConfigInteractivity::NonInteractive,
     /// #        None,
     /// #    ),
-    /// #    Some(&testdir::testdir!().join("my_app.conf")),
+    /// #    Some(&testdir::testdir!().join("my_app_delete_device.conf")),
     /// # )?;
     ///
     /// config.add_device(
@@ -1077,7 +1077,7 @@ impl Config {
     /// #        ConfigInteractivity::NonInteractive,
     /// #        None,
     /// #    ),
-    /// #    Some(&testdir::testdir!().join("my_app.conf")),
+    /// #    Some(&testdir::testdir!().join("my_app_get_device.conf")),
     /// # )?;
     ///
     /// config.add_device(
@@ -1146,7 +1146,7 @@ impl Config {
     /// #        ConfigInteractivity::NonInteractive,
     /// #        None,
     /// #    ),
-    /// #    Some(&testdir::testdir!().join("my_app.conf")),
+    /// #    Some(&testdir::testdir!().join("my_app_get_single_device_label.conf")),
     /// # )?;
     ///
     /// config.add_device(
@@ -1208,7 +1208,7 @@ impl Config {
     /// #        ConfigInteractivity::NonInteractive,
     /// #        None,
     /// #    ),
-    /// #    Some(&testdir::testdir!().join("my_app.conf")),
+    /// #    Some(&testdir::testdir!().join("my_app_add_credentials.conf")),
     /// # )?;
     ///
     /// // this fails because the targeted device does not yet exist
@@ -1287,7 +1287,7 @@ impl Config {
     /// #        ConfigInteractivity::NonInteractive,
     /// #        None,
     /// #    ),
-    /// #    Some(&testdir::testdir!().join("my_app.conf")),
+    /// #    Some(&testdir::testdir!().join("my_app_delete_credentials.conf")),
     /// # )?;
     ///
     /// // this fails because the targeted device does not yet exist
@@ -1343,7 +1343,7 @@ impl Config {
     /// );
     /// let config = Config::new(
     ///     config_settings.clone(),
-    ///     Some(&testdir::testdir!().join("my_app.conf")),
+    ///     Some(&testdir::testdir!().join("my_app_get_config_settings.conf")),
     /// )?;
     ///
     /// println!("{:?}", config.get_config_settings());
@@ -1372,7 +1372,7 @@ impl Config {
     ///         ConfigInteractivity::NonInteractive,
     ///         None,
     ///     ),
-    ///     Some(&testdir::testdir!().join("my_app.conf")),
+    ///     Some(&testdir::testdir!().join("my_app_get_default_config_file_path.conf")),
     /// )?;
     ///
     /// println!("{:?}", config.get_default_config_file_path()?);
@@ -1410,7 +1410,7 @@ impl Config {
     /// use nethsm_config::{Config, ConfigInteractivity, ConfigSettings};
     ///
     /// # fn main() -> testresult::TestResult {
-    /// let config_file = testdir::testdir!().join("my_app.conf");
+    /// let config_file = testdir::testdir!().join("my_app_store.conf");
     /// # let config = Config::new(
     /// #    ConfigSettings::new(
     /// #        "my_app".to_string(),
