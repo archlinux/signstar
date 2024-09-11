@@ -6,6 +6,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0] - 2024-09-11
+
+### Added
+- Ensure valid bit length when generating RSA TLS keys
+- Ensure valid bit length for block cipher and RSA keys
+
+### Fixed
+- Adjust broken links in `KeyId` documentation
+
+### Other
+- [**breaking**] Introduce `nethsm::KeyId` type
+- Improve documentation for Error variant `Error::Key`
+- [**breaking**] Remove unused Error variant `Error::KeyData`
+- Provide function to check KeyType - KeyMechanism compatibility
+- [**breaking**] Use `u32` instead of `i32` for ports and lengths
+
 ## [0.5.0] - 2024-09-06
 
 ### Fixed

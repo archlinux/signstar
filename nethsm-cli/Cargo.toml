@@ -11,7 +11,7 @@ version = "0.2.2"
 [dependencies]
 chrono = "0.4.37"
 clap = { version = "4.5.4", features = ["derive", "env"] }
-nethsm = { path = "../nethsm", version = "0.5.0" }
+nethsm = { path = "../nethsm", version = "0.6.0" }
 nethsm-config = { path = "../nethsm-config", version = "0.1.0" }
 strum = { version = "0.25.0", features = ["derive"] }
 thiserror = "1.0.58"
