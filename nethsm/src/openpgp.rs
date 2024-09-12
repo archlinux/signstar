@@ -72,10 +72,6 @@ pub enum Error {
     #[error("Transferable Secret Key is passphrase protected")]
     PrivateKeyPassphraseProtected,
 
-    /// ECDSA parameter is unsupported
-    #[error("Unsupported ECDSA parameter")]
-    UnsupportedEcdsaParam,
-
     /// Multiple component keys are unsupported
     #[error("Unsupported multiple component keys")]
     UnsupportedMultipleComponentKeys,
@@ -355,9 +351,20 @@ pub fn tsk_to_private_key_import(
         }
         (PlainSecretParams::ECDSA(bytes), _) => {
             let ec = if let PublicParams::ECDSA(pp) = key.primary_key.public_params() {
-                pp.try_into()?
+                match pp {
+                    EcdsaPublicParams::P256 { .. } => crate::KeyType::EcP256,
+                    EcdsaPublicParams::P384 { .. } => crate::KeyType::EcP384,
+                    EcdsaPublicParams::P521 { .. } => crate::KeyType::EcP521,
+                    _ => {
+                        return Err(crate::Error::OpenPgp(Error::UnsupportedKeyFormat {
+                            public_params: Box::new(key.public_params().clone()),
+                        }))
+                    }
+                }
             } else {
-                return Err(crate::Error::OpenPgp(Error::UnsupportedEcdsaParam));
+                return Err(crate::Error::OpenPgp(Error::UnsupportedKeyFormat {
+                    public_params: Box::new(key.public_params().clone()),
+                }));
             };
 
             (
@@ -560,19 +567,6 @@ impl KeyUsageFlags {
 impl From<KeyUsageFlags> for KeyFlags {
     fn from(value: KeyUsageFlags) -> Self {
         value.0
-    }
-}
-
-impl TryFrom<&EcdsaPublicParams> for crate::KeyType {
-    type Error = Error;
-
-    fn try_from(value: &EcdsaPublicParams) -> Result<Self, Self::Error> {
-        Ok(match value {
-            EcdsaPublicParams::P256 { .. } => crate::KeyType::EcP256,
-            EcdsaPublicParams::P384 { .. } => crate::KeyType::EcP384,
-            EcdsaPublicParams::P521 { .. } => crate::KeyType::EcP521,
-            _ => return Err(Error::UnsupportedEcdsaParam),
-        })
     }
 }
 
