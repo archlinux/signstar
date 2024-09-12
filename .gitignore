@@ -1,2 +1,4 @@
+# GnuPG only supports binary keyrings, because reasons, but we don't want to add binary keyrings to the repo
+resources/mkosi/signstar/mkosi.extra/usr/lib/systemd/import-pubring.gpg
 target/
 .lycheecache
