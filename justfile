@@ -360,3 +360,21 @@ ci-publish:
 
     printf "Found tag %s (crate %s in version %s).\n" "$tag" "$crate" "$version"
     cargo publish -p "$crate"
+
+# Creates a signing key and certificate for Secure Boot and verity signing if not both `key` and `cert` exist
+create-image-signing-key key cert common_name="archlinux.org" key_settings="rsa:3072":
+    if ! {{ path_exists(key) }}; then \
+        if ! {{ path_exists(cert) }}; then \
+            openssl req -x509 -newkey {{ key_settings }} -keyout "{{ key }}" -out "{{ cert }}" -nodes -days 3650 -set_serial 01 -subj /CN={{ common_name }}; \
+        fi \
+    fi
+
+# Builds an OS image using mkosi
+build-image openpgp_signing_key signing_key="resources/mkosi/signstar/mkosi.output/signing.key" signing_cert="resources/mkosi/signstar/mkosi.output/signing.pem" mkosi_options="":
+    just create-image-signing-key {{ absolute_path(signing_key) }} {{ absolute_path(signing_cert) }}
+    gpg --export {{ openpgp_signing_key }} > {{ absolute_path("resources/mkosi/signstar/mkosi.extra/usr/lib/systemd/import-pubring.gpg") }}
+    mkosi -f -C {{ absolute_path("resources/mkosi/signstar") }} {{ mkosi_options }} --secure-boot-key={{ absolute_path(signing_key) }} --secure-boot-certificate={{ absolute_path(signing_cert) }} --verity-key={{ absolute_path(signing_key) }} --verity-certificate={{ absolute_path(signing_cert) }} --key={{ openpgp_signing_key }} build
+
+# Runs an OS image using mkosi qemu
+run-image mkosi_options="" qemu_options="":
+    mkosi -C resources/mkosi/signstar/ {{ mkosi_options }} qemu {{ qemu_options }}
