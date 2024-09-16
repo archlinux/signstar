@@ -1,5 +1,6 @@
 use clap::{Parser, Subcommand};
-use nethsm::SystemState;
+use expression_format::ex_format;
+use nethsm::SystemState::{Locked, Operational, Unprovisioned};
 
 #[derive(Debug, Subcommand)]
 #[command(
@@ -17,13 +18,11 @@ pub enum HealthCommand {
 #[derive(Debug, Parser)]
 #[command(
     about = "Check whether a device is in locked or unprovisioned state",
-    long_about = format!("Check whether a device is in locked or unprovisioned state
+    long_about = ex_format!("Check whether a device is in locked or unprovisioned state
 
-Returns an error if the target device is not in state \"{:?}\" or \"{:?}\".
+Returns an error if the target device is not in state \"{:?Locked}\" or \"{:?Unprovisioned}\".
 
-Requires no authentication.",
-        SystemState::Locked,
-        SystemState::Unprovisioned,
+Requires no authentication."
     )
 )]
 pub struct AliveCommand;
@@ -31,27 +30,23 @@ pub struct AliveCommand;
 #[derive(Debug, Parser)]
 #[command(
     about = "Check whether a device is in operational state",
-    long_about = format!("Check whether a device is in operational state
+    long_about = ex_format!("Check whether a device is in operational state
 
-Returns an error if the target device is not state \"{:?}\".
+Returns an error if the target device is not state \"{:?Operational}\".
 
-Requires no authentication.", SystemState::Operational)
+Requires no authentication.")
 )]
 pub struct ReadyCommand;
 
 #[derive(Debug, Parser)]
 #[command(
     about = "Retrieve the state for a device",
-    long_about = format!("Retrieve the state for a device
+    long_about = ex_format!("Retrieve the state for a device
 
-* \"{:?}\" if the target device is in operational state
-* \"{:?}\" if the target device is locked
-* \"{:?}\" if the target device is not yet provisioned
+* \"{:?Operational}\" if the target device is in operational state
+* \"{:?Locked}\" if the target device is locked
+* \"{:?Unprovisioned}\" if the target device is not yet provisioned
 
-Requires no authentication.",
-        SystemState::Operational,
-        SystemState::Locked,
-        SystemState::Unprovisioned,
-    )
+Requires no authentication.")
 )]
 pub struct StateCommand;

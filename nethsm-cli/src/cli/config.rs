@@ -2,7 +2,8 @@ use std::{net::Ipv4Addr, path::PathBuf};
 
 use chrono::{DateTime, Utc};
 use clap::{Parser, Subcommand};
-use nethsm::{BootMode, LogLevel, SystemState, TlsKeyType, UserRole};
+use expression_format::ex_format;
+use nethsm::{BootMode, LogLevel, SystemState, TlsKeyType, UserRole::Administrator};
 use strum::IntoEnumIterator;
 
 use crate::passphrase_file::PassphraseFile;
@@ -37,15 +38,12 @@ pub enum ConfigGetCommand {
 #[derive(Debug, Parser)]
 #[command(
     about = "Get the unattended boot configuration",
-    long_about = format!("Get the unattended boot configuration
+    long_about = ex_format!("Get the unattended boot configuration
 
-* \"{}\" if the device needs to be unlocked during boot
-* \"{}\" if the device does not need to be unlocked during boot
+* \"{BootMode::Attended}\" if the device needs to be unlocked during boot
+* \"{BootMode::Unattended}\" if the device does not need to be unlocked during boot
 
-Requires authentication of a system-wide user in the \"{}\" role.",
-        BootMode::Attended,
-        BootMode::Unattended,
-        UserRole::Administrator,
+Requires authentication of a system-wide user in the \"{Administrator}\" role."
     )
 )]
 pub struct GetBootModeCommand {}
@@ -53,12 +51,11 @@ pub struct GetBootModeCommand {}
 #[derive(Debug, Parser)]
 #[command(
     about = "Get the logging configuration",
-    long_about = format!("Get the logging configuration
+    long_about = ex_format!("Get the logging configuration
 
 Shows IP address and port number of the host the target device logs to at a given log level.
 
-Requires authentication of a system-wide user in the \"{}\" role.",
-        UserRole::Administrator,
+Requires authentication of a system-wide user in the \"{Administrator}\" role."
     )
 )]
 pub struct GetLoggingCommand {}
@@ -66,12 +63,11 @@ pub struct GetLoggingCommand {}
 #[derive(Debug, Parser)]
 #[command(
     about = "Get the network configuration",
-    long_about = format!("Get the network configuration
+    long_about = ex_format!("Get the network configuration
 
 Shows IP address, netmask and gateway of the target device.
 
-Requires authentication of a system-wide user in the \"{}\" role.",
-        UserRole::Administrator,
+Requires authentication of a system-wide user in the \"{Administrator}\" role."
     )
 )]
 pub struct GetNetworkCommand {}
@@ -79,12 +75,11 @@ pub struct GetNetworkCommand {}
 #[derive(Debug, Parser)]
 #[command(
     about = "Get the time",
-    long_about = format!("Get the time
+    long_about = ex_format!("Get the time
 
 Returns the current time as ISO 8601 formatted timestamp.
 
-Requires authentication of a system-wide user in the \"{}\" role.",
-        UserRole::Administrator,
+Requires authentication of a system-wide user in the \"{Administrator}\" role."
     )
 )]
 pub struct GetTimeCommand {}
@@ -92,13 +87,12 @@ pub struct GetTimeCommand {}
 #[derive(Debug, Parser)]
 #[command(
     about = "Get the certificate for the TLS connection",
-    long_about = format!("Get the certificate for the TLS connection
+    long_about = ex_format!("Get the certificate for the TLS connection
 
 The X.509 certificate is returned in Privacy-enhanced Electronic Mail (PEM) format.
 Unless a specific output file is chosen, the certificate is returned on stdout.
 
-Requires authentication of a system-wide user in the \"{}\" role.",
-        UserRole::Administrator,
+Requires authentication of a system-wide user in the \"{Administrator}\" role."
     )
 )]
 pub struct GetTlsCertificateCommand {
@@ -122,15 +116,14 @@ pub struct GetTlsCertificateCommand {
 #[derive(Debug, Parser)]
 #[command(
     about = "Get a Certificate Signing Request for the TLS certificate",
-    long_about = format!("Get a Certificate Signing Request for the TLS certificate
+    long_about = ex_format!("Get a Certificate Signing Request for the TLS certificate
 
 The PKCS#10 Certificate Signing Request (CSR) is returned in Privacy-enhanced Electronic Mail (PEM) format.
 Unless a specific output file is chosen, the certificate is returned on stdout.
 
 At a minimum, the \"Common Name\" (CN) attribute for the CSR has to be provided.
 
-Requires authentication of a system-wide user in the \"{}\" role.",
-        UserRole::Administrator,
+Requires authentication of a system-wide user in the \"{Administrator}\" role."
     )
 )]
 pub struct GetTlsCsrCommand {
@@ -217,13 +210,12 @@ The organization contact, usually of the certificate administrator or IT departm
 #[derive(Debug, Parser)]
 #[command(
     about = "Get the public key for the TLS connection",
-    long_about = format!("Get the public key for the TLS connection
+    long_about = ex_format!("Get the public key for the TLS connection
 
 The X.509 public key certificate is returned in Privacy-enhanced Electronic Mail (PEM) format.
 Unless a specific output file is chosen, the certificate is returned on stdout.
 
-Requires authentication of a system-wide user in the \"{}\" role.",
-        UserRole::Administrator,
+Requires authentication of a system-wide user in the \"{Administrator}\" role."
     )
 )]
 pub struct GetTlsPublicKeyCommand {
@@ -260,7 +252,7 @@ pub enum ConfigSetCommand {
 #[derive(Debug, Parser)]
 #[command(
     about = "Set the backup passphrase",
-    long_about = format!("Set the backup passphrase
+    long_about = ex_format!("Set the backup passphrase
 
 The initial backup passphrase is the empty string.
 
@@ -268,8 +260,7 @@ The new passphrase must be >= 10 and <= 200 characters.
 
 By default the passphrases are prompted for interactively, but they can each be provided using a dedicated passphrase file instead.
 
-Requires authentication of a system-wide user in the \"{}\" role.",
-        UserRole::Administrator,
+Requires authentication of a system-wide user in the \"{Administrator}\" role."
     )
 )]
 pub struct SetBackupPassphraseCommand {
@@ -299,16 +290,11 @@ The passphrase must be >= 10 and <= 200 characters long.",
 #[derive(Debug, Parser)]
 #[command(
     about = "Set the unattended boot mode",
-    long_about = format!("Set the unattended boot mode
+    long_about = ex_format!("Set the unattended boot mode
 
-Sets whether the device boots into state \"{:?}\" (using boot mode \"{:?}\") or \"{:?}\" (using boot mode \"{:?}\").
+Sets whether the device boots into state \"{:?SystemState::Locked}\" (using boot mode \"{:?BootMode::Attended}\") or \"{:?SystemState::Operational}\" (using boot mode \"{:?BootMode::Unattended}\").
 
-Requires authentication of a system-wide user in the \"{}\" role.",
-        SystemState::Locked,
-        BootMode::Attended,
-        SystemState::Operational,
-        BootMode::Unattended,
-        UserRole::Administrator
+Requires authentication of a system-wide user in the \"{Administrator}\" role."
     ),
 )]
 pub struct SetBootModeCommand {
@@ -327,12 +313,11 @@ One of {:?} (no default).",
 #[derive(Debug, Parser)]
 #[command(
     about = "Set the logging configuration",
-    long_about = format!("Set the logging configuration
+    long_about = ex_format!("Set the logging configuration
 
 Provide IP address and port of a host to send syslog to at a specified log level.
 
-Requires authentication of a system-wide user in the \"{}\" role.",
-        UserRole::Administrator,
+Requires authentication of a system-wide user in the \"{Administrator}\" role."
     )
 )]
 pub struct SetLoggingCommand {
@@ -364,12 +349,11 @@ One of {:?} (defaults to \"{:?}\").",
 #[derive(Debug, Parser)]
 #[command(
     about = "Set the network configuration",
-    long_about = format!("Set the network configuration
+    long_about = ex_format!("Set the network configuration
 
 Provide IPv4 address, netmask and Ipv4 gateway address for the device to use.
 
-Requires authentication of a system-wide user in the \"{}\" role.",
-        UserRole::Administrator,
+Requires authentication of a system-wide user in the \"{Administrator}\" role."
     )
 )]
 pub struct SetNetworkCommand {
@@ -395,13 +379,12 @@ pub struct SetNetworkCommand {
 #[derive(Debug, Parser)]
 #[command(
     about = "Set the time",
-    long_about = format!("Set the time
+    long_about = ex_format!("Set the time
 
 The time must be provided as ISO 8601 formatted UTC timestamp.
 If no timestamp is provided, the caller's current system time is used to construct a UTC timestamp.
 
-Requires authentication of a system-wide user in the \"{}\" role.",
-        UserRole::Administrator,
+Requires authentication of a system-wide user in the \"{Administrator}\" role."
     )
 )]
 pub struct SetTimeCommand {
@@ -418,14 +401,13 @@ If no timestamp is provided, the caller's current system time is used."
 #[derive(Debug, Parser)]
 #[command(
     about = "Set a new TLS certificate",
-    long_about = format!("Set a new TLS certificate
+    long_about = ex_format!("Set a new TLS certificate
 
 The X.509 certificate must be provided in Privacy-enhanced Electronic Mail (PEM) format.
 
 The certificate is only accepted if it is created using a Certificate Signing Request (CSR) generated by the target device.
 
-Requires authentication of a system-wide user in the \"{}\" role.",
-        UserRole::Administrator,
+Requires authentication of a system-wide user in the \"{Administrator}\" role."
     )
 )]
 pub struct SetTlsCertificateCommand {
@@ -442,13 +424,12 @@ The X.509 certificate must be provided in Privacy-enhanced Electronic Mail (PEM)
 #[derive(Debug, Parser)]
 #[command(
     about = "Generate a new TLS certificate",
-    long_about = format!("Generate a new TLS certificate
+    long_about = ex_format!("Generate a new TLS certificate
 
 The current TLS certificate is replaced by the newly generated one.
 Optionally, the type of key and its length can be specified.
 
-Requires authentication of a system-wide user in the \"{}\" role.",
-        UserRole::Administrator,
+Requires authentication of a system-wide user in the \"{Administrator}\" role."
     )
 )]
 pub struct SetTlsGenerateCommand {
@@ -467,11 +448,11 @@ One of {:?} (defaults to \"{}\").",
     #[arg(
         env = "NETHSM_TLS_KEY_LENGTH",
         help = "The bit length of the TLS key to generate",
-        long_help = format!("The optional bit length of the TLS key to generate
+        long_help = ex_format!("The optional bit length of the TLS key to generate
 
 The bit length must be compatible with the chosen key type.
 
-Requires authentication of a user in the \"{}\" role.", UserRole::Administrator)
+Requires authentication of a user in the \"{Administrator}\" role.")
     )]
     pub tls_key_length: Option<u32>,
 }
@@ -479,7 +460,7 @@ Requires authentication of a user in the \"{}\" role.", UserRole::Administrator)
 #[derive(Debug, Parser)]
 #[command(
     about = "Set the unlock passphrase",
-    long_about = format!("Set the unlock passphrase
+    long_about = ex_format!("Set the unlock passphrase
 
 The initial unlock passphrase is set during provisioning.
 
@@ -487,8 +468,7 @@ The new passphrase must be >= 10 and <= 200 characters.
 
 By default the passphrases are prompted for interactively, but they can each be provided using a dedicated passphrase file instead.
 
-Requires authentication of a system-wide user in the \"{}\" role.",
-        UserRole::Administrator,
+Requires authentication of a system-wide user in the \"{Administrator}\" role."
     )
 )]
 pub struct SetUnlockPassphraseCommand {

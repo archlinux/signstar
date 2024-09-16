@@ -815,6 +815,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "expression_format"
+version = "1.1.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d18d2edaf86c34c4cbd82fefe4a1b4fc4bb9e024626295b462b621153ef1c302"
+dependencies = [
+ "expression_format_impl",
+]
+
+[[package]]
+name = "expression_format_impl"
+version = "1.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d1050cd0ba85d0e5fe059de35d751d69121e884da9d315f0d6ca364c8d19ebdc"
+dependencies = [
+ "regex",
+]
+
+[[package]]
 name = "fastrand"
 version = "2.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1514,6 +1532,7 @@ version = "0.3.0"
 dependencies = [
  "chrono",
  "clap",
+ "expression_format",
  "nethsm",
  "nethsm-config",
  "rand",

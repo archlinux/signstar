@@ -1,18 +1,19 @@
 use chrono::{DateTime, Utc};
 use clap::Parser;
-use nethsm::SystemState;
+use expression_format::ex_format;
+use nethsm::SystemState::Unprovisioned;
 
 use crate::passphrase_file::PassphraseFile;
 
 #[derive(Debug, Parser)]
 #[command(
     about = "Provision a device",
-    long_about = format!("Provision a device
+    long_about = ex_format!("Provision a device
 
-Does initial provisioning of a device in state \"{:?}\" by setting unlock passphrase, admin passphrase and system time.
+Does initial provisioning of a device in state \"{:?Unprovisioned}\" by setting unlock passphrase, admin passphrase and system time.
 If none of the values are provided, the passwords are prompted for interactively, while the caller's system time is used to derive the current timestamp.
 
-Requires no authentication.", SystemState::Unprovisioned)
+Requires no authentication.")
 )]
 pub struct ProvisionCommand {
     #[arg(

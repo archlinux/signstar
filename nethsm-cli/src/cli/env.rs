@@ -1,4 +1,5 @@
 use clap::{Parser, Subcommand};
+use expression_format::ex_format;
 use nethsm::{ConnectionSecurity, Url, UserId, UserRole};
 use strum::IntoEnumIterator;
 
@@ -92,12 +93,12 @@ pub struct DeviceAddCommand {
     #[arg(
         env = "NETHSM_TLS_SECURITY",
         help = "The TLS connection security for the device",
-        long_help = format!("The TLS connection security for the device
+        long_help = ex_format!("The TLS connection security for the device
 
 One of the following:
-* \"{:?}\": the TLS connection is not validated by authenticating the target host certificate
-* \"{:?}\": the TLS connection is validated by authenticating the target host certificate against the caller's native system-wide certificate store
-* the pinned SHA-256 checksum of the target host key (prefixed with \"sha256:\") is used to validate the target host certificate", ConnectionSecurity::Unsafe, ConnectionSecurity::Native),
+* \"{:?ConnectionSecurity::Unsafe}\": the TLS connection is not validated by authenticating the target host certificate
+* \"{:?ConnectionSecurity::Native}\": the TLS connection is validated by authenticating the target host certificate against the caller's native system-wide certificate store
+* the pinned SHA-256 checksum of the target host key (prefixed with \"sha256:\") is used to validate the target host certificate"),
     )]
     pub tls_security: ConnectionSecurity,
 }

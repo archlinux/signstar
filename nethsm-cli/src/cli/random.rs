@@ -1,16 +1,17 @@
 use std::path::PathBuf;
 
 use clap::Parser;
-use nethsm::UserRole;
+use expression_format::ex_format;
+use nethsm::UserRole::Operator;
 
 #[derive(Debug, Parser)]
 #[command(
     about = "Get random bytes from a device",
-    long_about = format!("Get random bytes from a device
+    long_about = ex_format!("Get random bytes from a device
 
 Unless a specific output file is chosen, writes a given number of random bytes to stdout.
 
-Requires authentication of a user in the \"{}\" role.", UserRole::Operator)
+Requires authentication of a user in the \"{Operator}\" role.")
 )]
 pub struct RandomCommand {
     #[arg(

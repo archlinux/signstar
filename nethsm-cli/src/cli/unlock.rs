@@ -1,18 +1,19 @@
 use clap::Parser;
-use nethsm::{SystemState, UserRole};
+use expression_format::ex_format;
+use nethsm::{SystemState::Locked, UserRole::Administrator};
 
 use crate::passphrase_file::PassphraseFile;
 
 #[derive(Debug, Parser)]
 #[command(
     about = "Unlock a device",
-    long_about = format!("Unlock a device using the unlock passphrase
+    long_about = ex_format!("Unlock a device using the unlock passphrase
 
-The device must be in state \"{:?}\".
+The device must be in state \"{:?Locked}\".
 
 If no passphrase is provided it is prompted for interactively.
 
-Requires authentication of a user in the \"{}\" role.", SystemState::Locked, UserRole::Administrator),
+Requires authentication of a user in the \"{Administrator}\" role."),
 )]
 pub struct UnlockCommand {
     #[arg(

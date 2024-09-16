@@ -2,21 +2,23 @@ use std::path::PathBuf;
 
 use chrono::{DateTime, Utc};
 use clap::{Parser, Subcommand};
-use nethsm::{KeyId, UserRole};
+use expression_format::ex_format;
+use nethsm::{
+    KeyId,
+    UserRole::{Administrator, Operator},
+};
 
 use super::BIN_NAME;
 
 #[derive(Debug, Subcommand)]
 #[command(
     about = "OpenPGP operations",
-    long_about = format!("OpenPGP operations
+    long_about = ex_format!("OpenPGP operations
 
 Supports creating OpenPGP certificates for existing keys, as well as cryptographic operations using those keys.
 
-Keys may exist in specific scopes: system-wide or in namespaces (see \"{} namespace\").
-While system-wide users only have access to system-wide keys, namespaced users only have access to keys in their own namespace.",
-        BIN_NAME,
-    )
+Keys may exist in specific scopes: system-wide or in namespaces (see \"{BIN_NAME} namespace\").
+While system-wide users only have access to system-wide keys, namespaced users only have access to keys in their own namespace.")
 )]
 pub enum OpenPgpCommand {
     Add(OpenPgpAddCommand),
@@ -27,26 +29,16 @@ pub enum OpenPgpCommand {
 #[derive(Debug, Parser)]
 #[command(
     about = "Add an OpenPGP certificate for a key",
-    long_about = format!("Add an OpenPGP certificate for a key
+    long_about = ex_format!("Add an OpenPGP certificate for a key
 
 Creates an OpenPGP certificate for an existing key.
-The created certificate is then added as the key's certificate (see \"{} key cert import\").
+The created certificate is then added as the key's certificate (see \"{BIN_NAME} key cert import\").
 
-System-wide users in the \"{}\" and \"{}\" role can only add OpenPGP certificates for system-wide keys.
-Namespaced users in the \"{}\" and \"{}\" role can only add OpenPGP certificates for keys in their own namespace.
+System-wide users in the \"{Administrator}\" and \"{Operator}\" role can only add OpenPGP certificates for system-wide keys.
+Namespaced users in the \"{Administrator}\" and \"{Operator}\" role can only add OpenPGP certificates for keys in their own namespace.
 
-Requires authentication of a user in the \"{}\" role, that has access to the targeted key (see \"{} key tag\" and \"{} user tag\").
-Additionally, authentication of a user in the \"{}\" role is needed to import the certificate.",
-        BIN_NAME,
-        UserRole::Administrator,
-        UserRole::Operator,
-        UserRole::Administrator,
-        UserRole::Operator,
-        UserRole::Operator,
-        BIN_NAME,
-        BIN_NAME,
-        UserRole::Administrator,
-    )
+Requires authentication of a user in the \"{Operator}\" role, that has access to the targeted key (see \"{BIN_NAME} key tag\" and \"{BIN_NAME} user tag\").
+Additionally, authentication of a user in the \"{Administrator}\" role is needed to import the certificate.")
 )]
 pub struct OpenPgpAddCommand {
     #[arg(env = "NETHSM_KEY_ID", help = "The ID of the key to use")]
@@ -90,20 +82,14 @@ If this option is used, the key is created without a component key that has the 
 #[derive(Debug, Parser)]
 #[command(
     about = "Create an OpenPGP signature for a message",
-    long_about = format!("Create an OpenPGP signature for a message
+    long_about = ex_format!("Create an OpenPGP signature for a message
 
 The signature is written to stdout, unless a specific path to a file is provided.
 
-System-wide users in the \"{}\" role can only create OpenPGP signatures for a message using system-wide keys.
-Namespaced users in the \"{}\" role can only create OpenPGP signatures for a message using keys in their own namespace.
+System-wide users in the \"{Operator}\" role can only create OpenPGP signatures for a message using system-wide keys.
+Namespaced users in the \"{Operator}\" role can only create OpenPGP signatures for a message using keys in their own namespace.
 
-Requires authentication of a user in the \"{}\" role that has access to the targeted key (see \"{} key tag\" and \"{} user tag\").",
-        UserRole::Operator,
-        UserRole::Operator,
-        UserRole::Operator,
-        BIN_NAME,
-        BIN_NAME,
-    )
+Requires authentication of a user in the \"{Operator}\" role that has access to the targeted key (see \"{BIN_NAME} key tag\" and \"{BIN_NAME} user tag\").")
 )]
 pub struct OpenPgpSignCommand {
     #[arg(env = "NETHSM_KEY_ID", help = "The ID of the key to use")]
@@ -135,20 +121,16 @@ pub struct OpenPgpSignCommand {
 #[derive(Debug, Parser)]
 #[command(
     about = "Import OpenPGP TSK-formatted private key",
-    long_about = format!("Import OpenPGP Transferable Secret Key (TSK) formatted private key
+    long_about = ex_format!("Import OpenPGP Transferable Secret Key (TSK) formatted private key
 
 Only TSKs with a single component key are supported.
 
-System-wide users in the \"{}\" role can only import TSKs as system-wide keys.
-Namespaced users in the \"{}\" role can only import TSKs as keys in their own namespace.
+System-wide users in the \"{Administrator}\" role can only import TSKs as system-wide keys.
+Namespaced users in the \"{Administrator}\" role can only import TSKs as keys in their own namespace.
 
 Note: Although assigning tags to the new key is optional, it is highly recommended as not doing so means that all users in the same scope have access to it!
 
-Requires authentication of a user in the \"{}\" role.",
-        UserRole::Administrator,
-        UserRole::Administrator,
-        UserRole::Administrator,
-    )
+Requires authentication of a user in the \"{Administrator}\" role.")
 )]
 pub struct OpenPgpImportCommand {
     #[arg(

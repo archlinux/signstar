@@ -1,5 +1,6 @@
 use clap::{Parser, Subcommand};
-use nethsm::{NamespaceId, SystemState, UserRole};
+use expression_format::ex_format;
+use nethsm::{NamespaceId, SystemState::Operational, UserRole::Administrator};
 
 use super::BIN_NAME;
 
@@ -23,21 +24,16 @@ pub enum NamespaceCommand {
 #[derive(Debug, Parser)]
 #[command(
     about = "Add a namespace",
-    long_about = format!("Add a namespace
+    long_about = ex_format!("Add a namespace
 
 Adds a new namespace by providing a unique name.
 
-**WARNING**: Make sure to *first* create a user in the \"{}\" role for a namespace using \"{} user add\".
+**WARNING**: Make sure to *first* create a user in the \"{Administrator}\" role for a namespace using \"{BIN_NAME} user add\".
 Only afterwards add the namespace, as otherwise the new namespace does not have an administrative user!
 
-The device must be in state \"{:?}\".
+The device must be in state \"{:?Operational}\".
 
-Requires authentication of a user in the \"{}\" role.",
-        UserRole::Administrator,
-        BIN_NAME,
-        SystemState::Operational,
-        UserRole::Administrator
-    ),
+Requires authentication of a user in the \"{Administrator}\" role."),
 )]
 pub struct NamespaceAddCommand {
     #[arg(
@@ -50,32 +46,25 @@ pub struct NamespaceAddCommand {
 #[derive(Debug, Parser)]
 #[command(
     about = "List all namespace names",
-    long_about = format!("List all namespace names
+    long_about = ex_format!("List all namespace names
 
-The device must be in state \"{:?}\".
+The device must be in state \"{:?Operational}\".
 
-Requires authentication of a system-wide user in the \"{}\" role.",
-        SystemState::Operational,
-        UserRole::Administrator,
-    ),
+Requires authentication of a system-wide user in the \"{Administrator}\" role."),
 )]
 pub struct NamespaceListCommand {}
 
 #[derive(Debug, Parser)]
 #[command(
     about = "Remove a namespace",
-    long_about = format!("Remove a namespace
+    long_about = ex_format!("Remove a namespace
 
 **WARNING**: This command deletes **all keys** in the targeted namespace.
-It is strongly advised to first create a backup using \"{} system backup\" before running this command.
+It is strongly advised to first create a backup using \"{BIN_NAME} system backup\" before running this command.
 
-The device must be in state \"{:?}\".
+The device must be in state \"{:?Operational}\".
 
-Requires authentication of a system-wide user in the \"{}\" role.",
-        BIN_NAME,
-        SystemState::Operational,
-        UserRole::Administrator,
-    ),
+Requires authentication of a system-wide user in the \"{Administrator}\" role."),
 )]
 pub struct NamespaceRemoveCommand {
     #[arg(
