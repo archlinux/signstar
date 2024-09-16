@@ -255,7 +255,7 @@ render-script := '''
     //! ```cargo
     //! [dependencies]
     //! pkg = { path = "PATH", package = "PKG" }
-    //! clap_allgen = "0.2.0"
+    //! clap_allgen = "0.2.1"
     //! ```
 
     fn main() -> Result<(), Box<dyn std::error::Error>> {
