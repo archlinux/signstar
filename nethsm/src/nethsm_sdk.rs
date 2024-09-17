@@ -77,6 +77,19 @@ impl<T> From<nethsm_sdk_rs::apis::Error<T>> for NetHsmApiError<T> {
                     message: Some(format!("{}", transport)),
                 },
             },
+            nethsm_sdk_rs::apis::Error::ResponseError(resp) => Self {
+                error: None,
+                message: Some(format!(
+                    "Status code: {}: {}",
+                    resp.status,
+                    // First, try to deserialize the response as a `Message` object,
+                    // which is commonly returned by a majority of failures
+                    serde_json::from_slice::<Message>(&resp.content)
+                        .map(|m| m.message)
+                        // if that fails, as a last resort, try to return the response verbatim.
+                        .unwrap_or_else(|_| String::from_utf8_lossy(&resp.content).into())
+                )),
+            },
             _ => Self {
                 error: Some(value),
                 message: None,
