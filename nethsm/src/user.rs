@@ -448,7 +448,7 @@ impl Passphrase {
     /// let passphrase = Passphrase::new("passphrase".to_string());
     /// ```
     pub fn new(passphrase: String) -> Self {
-        Self(SecretString::new(passphrase))
+        Self(SecretString::new(passphrase.into()))
     }
 
     /// Exposes the secret passphrase as owned [`String`]
@@ -464,9 +464,7 @@ impl FromStr for Passphrase {
     type Err = Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(Self(
-            SecretString::from_str(s).map_err(|_| Error::Passphrase)?,
-        ))
+        Ok(Self(SecretString::from(s.to_string())))
     }
 }
 
