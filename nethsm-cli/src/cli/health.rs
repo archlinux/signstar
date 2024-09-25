@@ -20,7 +20,7 @@ pub enum HealthCommand {
     about = "Check whether a device is in locked or unprovisioned state",
     long_about = ex_format!("Check whether a device is in locked or unprovisioned state
 
-Returns an error if the target device is not in state \"{:?Locked}\" or \"{:?Unprovisioned}\".
+Returns an error if the target device is not in state \"{Locked}\" or \"{Unprovisioned}\".
 
 Requires no authentication."
     )
@@ -32,7 +32,7 @@ pub struct AliveCommand;
     about = "Check whether a device is in operational state",
     long_about = ex_format!("Check whether a device is in operational state
 
-Returns an error if the target device is not state \"{:?Operational}\".
+Returns an error if the target device is not state \"{Operational}\".
 
 Requires no authentication.")
 )]
@@ -43,9 +43,9 @@ pub struct ReadyCommand;
     about = "Retrieve the state for a device",
     long_about = ex_format!("Retrieve the state for a device
 
-* \"{:?Operational}\" if the target device is in operational state
-* \"{:?Locked}\" if the target device is locked
-* \"{:?Unprovisioned}\" if the target device is not yet provisioned
+* \"{Operational}\" if the target device is in operational state
+* \"{Locked}\" if the target device is locked
+* \"{Unprovisioned}\" if the target device is not yet provisioned
 
 Requires no authentication.")
 )]

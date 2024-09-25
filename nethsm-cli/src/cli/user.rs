@@ -47,7 +47,7 @@ As exception to this rule, a system-wide user in the \"{Administrator}\" role ca
 If a namespaced user in the \"{Administrator}\" role creates a new user, then that new user is also a user in that namespace.
 If a namespaced user in the \"{Administrator}\" role (e.g. \"namespace1~admin1\") provides a specific user name, it must be in that same namespace (e.g. \"namespace1~user1\", not \"namespace2~user1\")!
 
-The device must be in state \"{:?Operational}\".
+The device must be in state \"{Operational}\".
 
 Requires authentication of a user in the \"{Administrator}\" role."),
 )]
@@ -102,7 +102,7 @@ If the user is in the \"{Operator}\" role, also displays tags that are assigned 
 System-wide users in the \"{Administrator}\" role have access to information of system-wide and namespaced users.
 Namespaced users in the \"{Administrator}\" role only have access to information of users in the same namespace.
 
-The device must be in state \"{:?Operational}\".
+The device must be in state \"{Operational}\".
 
 Requires authentication of a user in the \"{Administrator}\" role."),
 )]
@@ -122,7 +122,7 @@ pub struct UserGetCommand {
 System-wide users in the \"{Administrator}\" role can list system-wide and namespaced users.
 Namespaced users in the \"{Administrator}\" role can only list users in the same namespace.
 
-The device must be in state \"{:?Operational}\".
+The device must be in state \"{Operational}\".
 
 Requires authentication of a user in the \"{Administrator}\" role."),
 )]
@@ -138,7 +138,7 @@ If no passphrase is provided specifically, it is prompted for interactively.
 System-wide users in the \"{Administrator}\" role can only set the passphrase for system-wide users.
 Namespaced users in the \"{Administrator}\" role can only set the passphrase for users in the same namespace.
 
-The device must be in state \"{:?Operational}\".
+The device must be in state \"{Operational}\".
 
 Requires authentication of a user in the \"{Administrator}\" role."),
 )]
@@ -170,7 +170,7 @@ System-wide users in the \"{Administrator}\" role can only remove system-wide us
 As an exception to this rule, system-wide users in the \"{Administrator}\" role can delete users in a namespace, if the namespace is removed first (see \"{BIN_NAME} namespace remove\").
 Namespaced users in the \"{Administrator}\" role can only remove users in the same namespace.
 
-The device must be in state \"{:?Operational}\".
+The device must be in state \"{Operational}\".
 
 Requires authentication of a user in the \"{Administrator}\" role."),
 )]
@@ -191,7 +191,7 @@ Tags on a key must exist (see \"{BIN_NAME} key tag\") before an identical tag ca
 System-wide users in the \"{Administrator}\" role can only add tags for system-wide users in the \"{Operator}\" role.
 Namespaced users in the \"{Administrator}\" role can only add tags for users in the \"{Operator}\" role in the same namespace.
 
-The device must be in state \"{:?Operational}\".
+The device must be in state \"{Operational}\".
 
 Requires authentication of a user in the \"{Administrator}\" role."),
 )]
@@ -217,7 +217,7 @@ Removing a tag from a user removes its access to keys that carry identical tags.
 System-wide users in the \"{Administrator}\" role can only remove tags for system-wide users in the \"{Operator}\" role.
 Namespaced users in the \"{Administrator}\" role can only remove tags for users in the \"{Operator}\" role in the same namespace.
 
-The device must be in state \"{:?Operational}\".
+The device must be in state \"{Operational}\".
 
 Requires authentication of a user in the \"{Administrator}\" role."),
 )]

@@ -292,7 +292,7 @@ One of {:?} (defaults to \"{:?}\").", DecryptMode::iter().map(Into::into).collec
         help = "The path to a file containing the initialization vector (IV) for symmetric decryption",
         long_help = ex_format!("The path to a file containing the initialization vector (IV) for symmetric decryption
 
-The IV can only be used when choosing symmetric decryption (i.e. with \"{:?DecryptMode::AesCbc}\")"),
+The IV can only be used when choosing symmetric decryption (i.e. with \"{DecryptMode::AesCbc}\")"),
         long,
         short
     )]
@@ -355,7 +355,7 @@ One of {:?} (defaults to \"{:?}\").", EncryptMode::iter().map(Into::into).collec
         help = "The path to a file containing the initialization vector (IV) for symmetric encryption",
         long_help = ex_format!("The path to a file containing the initialization vector (IV) for symmetric encryption
 
-The IV can only be used when choosing symmetric encryption (i.e. with \"{:?EncryptMode::AesCbc}\")"),
+The IV can only be used when choosing symmetric encryption (i.e. with \"{EncryptMode::AesCbc}\")"),
         long,
         short
     )]

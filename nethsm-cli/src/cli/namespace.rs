@@ -31,7 +31,7 @@ Adds a new namespace by providing a unique name.
 **WARNING**: Make sure to *first* create a user in the \"{Administrator}\" role for a namespace using \"{BIN_NAME} user add\".
 Only afterwards add the namespace, as otherwise the new namespace does not have an administrative user!
 
-The device must be in state \"{:?Operational}\".
+The device must be in state \"{Operational}\".
 
 Requires authentication of a user in the \"{Administrator}\" role."),
 )]
@@ -48,7 +48,7 @@ pub struct NamespaceAddCommand {
     about = "List all namespace names",
     long_about = ex_format!("List all namespace names
 
-The device must be in state \"{:?Operational}\".
+The device must be in state \"{Operational}\".
 
 Requires authentication of a system-wide user in the \"{Administrator}\" role."),
 )]
@@ -62,7 +62,7 @@ pub struct NamespaceListCommand {}
 **WARNING**: This command deletes **all keys** in the targeted namespace.
 It is strongly advised to first create a backup using \"{BIN_NAME} system backup\" before running this command.
 
-The device must be in state \"{:?Operational}\".
+The device must be in state \"{Operational}\".
 
 Requires authentication of a system-wide user in the \"{Administrator}\" role."),
 )]

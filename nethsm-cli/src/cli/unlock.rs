@@ -9,7 +9,7 @@ use crate::passphrase_file::PassphraseFile;
     about = "Unlock a device",
     long_about = ex_format!("Unlock a device using the unlock passphrase
 
-The device must be in state \"{:?Locked}\".
+The device must be in state \"{Locked}\".
 
 If no passphrase is provided it is prompted for interactively.
 

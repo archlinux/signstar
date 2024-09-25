@@ -93,17 +93,17 @@ pub struct SystemRebootCommand {}
     about = "Restore the device from a backup",
     long_about = ex_format!("Restore the device from a backup
 
-The device may be in state \"{:?Operational}\" or \"{:?Unprovisioned}\".
+The device may be in state \"{Operational}\" or \"{Unprovisioned}\".
 In both cases, the users and keys from the backup replace those on the device (if any).
 
-If the device is in state \"{:?Unprovisioned}\", any credentials provided for authentication are ignored, the system configuration
+If the device is in state \"{Unprovisioned}\", any credentials provided for authentication are ignored, the system configuration
 (e.g. TLS certificate, unlock passphrase, etc.) from the backup is used as well, the device is rebooted and ends up in
-\"{:?Locked}\" state.
+\"{Locked}\" state.
 
 If no new system time is provided, it is derived from the caller's system time.
 If no backup passphrase is provided specifically, it is prompted for interactively.
 
-Requires authentication of a system-wide user in the \"{Administrator}\" role only if the device is in \"{:?Operational}\" state.")
+Requires authentication of a system-wide user in the \"{Administrator}\" role only if the device is in \"{Operational}\" state.")
 )]
 pub struct SystemRestoreCommand {
     #[arg(
@@ -137,7 +137,7 @@ Must be provided as an ISO 8601 formatted UTC timestamp.",
     about = "Shut down the device",
     long_about = ex_format!("Shut down the device
 
-The device must be in state \"{:?Operational}\".
+The device must be in state \"{Operational}\".
 
 Requires authentication of a system-wide user in the \"{Administrator}\" role.")
 )]
@@ -160,7 +160,7 @@ pub struct SystemUploadUpdateCommand {
     about = "Cancel an uploaded update on the device",
     long_about = ex_format!("Cancel an uploaded update on the device
 
-The device must be in state \"{:?Operational}\" and an update file must have been uploaded first!
+The device must be in state \"{Operational}\" and an update file must have been uploaded first!
 
 Requires authentication of a system-wide user in the \"{Administrator}\" role.")
 )]
@@ -171,7 +171,7 @@ pub struct SystemCancelUpdateCommand {}
     about = "Commit an uploaded update on the device",
     long_about = ex_format!("Commit an uploaded update on the device
 
-The device must be in state \"{:?Operational}\" and an update file must have been uploaded first!
+The device must be in state \"{Operational}\" and an update file must have been uploaded first!
 
 Requires authentication of a system-wide user in the \"{Administrator}\" role.")
 )]

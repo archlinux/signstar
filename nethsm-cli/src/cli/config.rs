@@ -292,7 +292,7 @@ The passphrase must be >= 10 and <= 200 characters long.",
     about = "Set the unattended boot mode",
     long_about = ex_format!("Set the unattended boot mode
 
-Sets whether the device boots into state \"{:?SystemState::Locked}\" (using boot mode \"{:?BootMode::Attended}\") or \"{:?SystemState::Operational}\" (using boot mode \"{:?BootMode::Unattended}\").
+Sets whether the device boots into state \"{SystemState::Locked}\" (using boot mode \"{BootMode::Attended}\") or \"{SystemState::Operational}\" (using boot mode \"{BootMode::Unattended}\").
 
 Requires authentication of a system-wide user in the \"{Administrator}\" role."
     ),
