@@ -19,6 +19,6 @@ zeroize = { version = "1.7.0", features = ["zeroize_derive", "serde"] }
 
 [dev-dependencies]
 dirs = "5.0.1"
-rstest = "0.22.0"
+rstest = "0.23.0"
 testdir = "0.9.1"
 testresult = "0.4.1"

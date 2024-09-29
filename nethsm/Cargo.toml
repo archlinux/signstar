@@ -43,7 +43,7 @@ url = { version = "2.5.0", features = ["serde"] }
 [dev-dependencies]
 ed25519-dalek = { version = "2.1.1", features = ["pkcs8", "pem", "rand_core"] }
 rsa = { version = "0.9.6", features = ["getrandom", "sha2", "pem"] }
-rstest = "0.22.0"
+rstest = "0.23.0"
 rustainers = { version = "0.13.0" }
 testdir = "0.9.1"
 testresult = "0.4.0"
