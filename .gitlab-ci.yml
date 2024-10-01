@@ -65,6 +65,26 @@ integration-test:
   tags:
     - vm
 
+build-image:
+  before_script:
+    - pacman-key --init
+    - pacman -Sy --needed --noconfirm archlinux-keyring
+    - source .env && pacman -Syu --needed --noconfirm $PACMAN_PACKAGES
+    - useradd -m testuser
+    - chown -R testuser:testuser .
+    # prepare an ephemeral OpenPGP signing key
+    - WORKDIR="$(pwd)" runuser -w WORKDIR -l testuser -c 'cd "$WORKDIR" && rsop generate-key test > test.tsk && rsop extract-cert > test.pgp < test.tsk && echo msg | rsop sign test.tsk > msg.sig && echo msg | rsop verify msg.sig test.pgp | cut -d " " -f2 > fingerprint.txt && gpg --import test.tsk'
+    # clone latest mkosi as we currently require some of its features and fixes
+    - WORKDIR="$(pwd)" runuser -w WORKDIR -l testuser -c 'cd "$WORKDIR" && git clone https://github.com/systemd/mkosi'
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+  script:
+    - WORKDIR="$(pwd)" runuser -w WORKDIR -l testuser -c 'cd "$WORKDIR" && PATH="$(pwd)/mkosi/bin:$PATH" mkosi --version && PATH="$(pwd)/mkosi/bin:$PATH" just build-image "$(cat fingerprint.txt)"'
+  stage: test
+  tags:
+    - vm
+
 crates_publish:
   before_script:
     - pacman-key --init
