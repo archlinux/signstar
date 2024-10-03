@@ -50,11 +50,11 @@
 //! ```
 //! [Nitrokey NetHSM]: https://docs.nitrokey.com/nethsm/
 mod config;
+mod credentials;
 mod prompt;
 
 pub use config::{
     Config,
-    ConfigCredentials,
     ConfigInteractivity,
     ConfigName,
     ConfigSettings,
@@ -62,4 +62,5 @@ pub use config::{
     DeviceConfig,
     Error,
 };
+pub use credentials::ConfigCredentials;
 pub use prompt::{PassphrasePrompt, UserPrompt};

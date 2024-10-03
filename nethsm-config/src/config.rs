@@ -8,8 +8,8 @@ use std::{
 
 use nethsm::{ConnectionSecurity, Credentials, NetHsm, Passphrase, Url, UserId, UserRole};
 use serde::{Deserialize, Serialize};
-use zeroize::Zeroize;
 
+use crate::credentials::ConfigCredentials;
 use crate::prompt::{PassphrasePrompt, UserPrompt};
 
 /// Errors related to configuration
@@ -206,75 +206,6 @@ impl ConfigSettings {
     }
 }
 
-/// A set of credentials for a [`NetHsm`]
-///
-/// Tracks the [`UserRole`], name and optionally the passphrase of the user.
-#[derive(Clone, Debug, Deserialize, Hash, PartialEq, Eq, Serialize, Zeroize)]
-pub struct ConfigCredentials {
-    #[zeroize(skip)]
-    role: UserRole,
-    #[zeroize(skip)]
-    name: UserId,
-    passphrase: Option<String>,
-}
-
-impl ConfigCredentials {
-    /// Creates a new [`ConfigCredentials`]
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use nethsm::UserRole;
-    /// use nethsm_config::{ConfigCredentials, ConfigInteractivity};
-    ///
-    /// # fn main() -> testresult::TestResult {
-    /// // credentials for an Operator user with passphrase
-    /// ConfigCredentials::new(
-    ///     UserRole::Operator,
-    ///     "user1".parse()?,
-    ///     Some("my-passphrase".into()),
-    /// );
-    ///
-    /// // credentials for an Administrator user without passphrase
-    /// ConfigCredentials::new(UserRole::Administrator, "admin1".parse()?, None);
-    /// # Ok(())
-    /// # }
-    /// ```
-    pub fn new(role: UserRole, name: UserId, passphrase: Option<String>) -> Self {
-        Self {
-            role,
-            name,
-            passphrase,
-        }
-    }
-
-    /// Returns the name (a [`UserId`]) of the [`ConfigCredentials`]
-    pub fn get_name(&self) -> UserId {
-        self.name.clone()
-    }
-
-    /// Returns the passphrase of the [`ConfigCredentials`]
-    pub fn get_passphrase(&self) -> Option<String> {
-        self.passphrase.as_ref().cloned()
-    }
-
-    /// Sets the passphrase of the [`ConfigCredentials`]
-    pub fn set_passphrase(&mut self, passphrase: String) {
-        self.passphrase = Some(passphrase)
-    }
-
-    /// Returns whether a passphrase is set for the [`ConfigCredentials`]
-    pub fn has_passphrase(&self) -> bool {
-        self.passphrase.is_some()
-    }
-}
-
-impl From<ConfigCredentials> for Credentials {
-    fn from(value: ConfigCredentials) -> Self {
-        Self::new(value.name, value.passphrase.map(Passphrase::new))
-    }
-}
-
 /// The configuration for a [`NetHsm`]
 ///
 /// Tracks the [`Connection`] for a [`NetHsm`] as well as a set of [`ConfigCredentials`].
@@ -421,12 +352,12 @@ impl DeviceConfig {
             .credentials
             .borrow()
             .iter()
-            .any(|creds| creds.name == credentials.name)
+            .any(|creds| creds.get_name() == credentials.get_name())
         {
             self.credentials.borrow_mut().insert(credentials);
             Ok(())
         } else {
-            Err(Error::CredentialsExist(credentials.name))
+            Err(Error::CredentialsExist(credentials.get_name()))
         }
     }
 
@@ -474,7 +405,7 @@ impl DeviceConfig {
             .credentials
             .borrow()
             .iter()
-            .find(|creds| &creds.name == name)
+            .find(|creds| &creds.get_name() == name)
         {
             Ok(creds.clone())
         } else {
@@ -523,7 +454,7 @@ impl DeviceConfig {
         let before = self.credentials.borrow().len();
         self.credentials
             .borrow_mut()
-            .retain(|creds| &creds.name != name);
+            .retain(|creds| &creds.get_name() != name);
         let after = self.credentials.borrow().len();
         if before == after {
             Err(Error::CredentialsMissing(name.to_owned()))
@@ -623,7 +554,7 @@ impl DeviceConfig {
                 .borrow()
                 .iter()
                 .filter_map(|creds| {
-                    if roles.contains(&creds.role) {
+                    if roles.contains(&creds.get_role()) {
                         Some(creds.clone())
                     } else {
                         None
@@ -638,7 +569,7 @@ impl DeviceConfig {
 
         for name in names {
             if let Ok(creds) = &self.get_credentials(name) {
-                if roles.contains(&creds.role) {
+                if roles.contains(&creds.get_role()) {
                     return Ok(creds.clone());
                 }
             } else {
@@ -798,7 +729,7 @@ impl DeviceConfig {
             // if no passphrase is set for the credentials, attempt to set it
             let credentials = if !creds.has_passphrase() {
                 // get index of the found credentials name in the input names
-                let name_index = names.iter().position(|name| name == &creds.name);
+                let name_index = names.iter().position(|name| name == &creds.get_name());
                 if let Some(name_index) = name_index {
                     // if a passphrase index in passphrases matches the index of the user, use it
                     if let Some(passphrase) = passphrases.get(name_index) {
