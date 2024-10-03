@@ -11,7 +11,7 @@ use sha2::{Digest, Sha256};
 use crate::Error;
 
 /// The fingerprint of a TLS certificate (as hex)
-#[derive(Clone, Debug, Deserialize, PartialEq, Eq, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 pub struct CertFingerprint(
     #[serde(
         deserialize_with = "hex::serde::deserialize",
@@ -35,14 +35,14 @@ impl From<Vec<u8>> for CertFingerprint {
 
 /// Certificate fingerprints to use for matching against a host's TLS
 /// certificate
-#[derive(Clone, Debug, Deserialize, PartialEq, Eq, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 pub struct HostCertificateFingerprints {
     /// An optional list of SHA-256 checksums
     sha256: Option<Vec<CertFingerprint>>,
 }
 
 /// The security model chosen for a [`crate::NetHsm`]'s TLS connection
-#[derive(Clone, Debug, Deserialize, PartialEq, Eq, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 pub enum ConnectionSecurity {
     /// Always trust the TLS certificate associated with a host
     Unsafe,

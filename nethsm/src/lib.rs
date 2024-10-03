@@ -290,7 +290,7 @@ pub enum Error {
 /// * must use https
 /// * must have a host
 /// * must not contain a password, user or query
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq, Serialize)]
 pub struct Url(url::Url);
 
 impl Url {
