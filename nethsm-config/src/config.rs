@@ -105,7 +105,8 @@ pub enum ConfigInteractivity {
     /// The configuration may spawn interactive prompts to request more data (e.g. usernames or
     /// passphrases)
     Interactive,
-    /// The configuration will return an [`Error`] if there
+    /// The configuration will return an [`Error`] if interactive prompts need to be spawned to
+    /// request more data (e.g. usernames or passphrases)
     #[default]
     NonInteractive,
 }
