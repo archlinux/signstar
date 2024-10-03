@@ -870,7 +870,11 @@ impl Config {
         let mut config: Config = if let Some(path) = path {
             confy::load_path(path).map_err(Error::Load)?
         } else {
-            confy::load(&config_settings.app_name, "config").map_err(Error::Load)?
+            confy::load(
+                &config_settings.app_name,
+                Some(config_settings.config_name.0.as_str()),
+            )
+            .map_err(Error::Load)?
         };
         for (_label, device) in config.devices.borrow_mut().iter_mut() {
             device.set_config_interactivity(config_settings.interactivity);
