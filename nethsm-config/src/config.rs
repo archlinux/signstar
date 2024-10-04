@@ -7,11 +7,10 @@ use std::{
     str::FromStr,
 };
 
-use nethsm::{ConnectionSecurity, Credentials, NetHsm, Passphrase, Url, UserId, UserRole};
+use nethsm::{ConnectionSecurity, Credentials, KeyId, NetHsm, Passphrase, Url, UserId, UserRole};
 use serde::{Deserialize, Serialize};
 
-use crate::credentials::ConfigCredentials;
-use crate::prompt::{PassphrasePrompt, UserPrompt};
+use crate::{ConfigCredentials, PassphrasePrompt, SystemUserId, UserMapping, UserPrompt};
 
 /// Errors related to configuration
 #[derive(Debug, thiserror::Error)]
@@ -62,6 +61,50 @@ pub enum Error {
     /// Device does not exist
     #[error("Device does not exist: {0}")]
     DeviceMissing(String),
+
+    /// Duplicate NetHsm user names
+    #[error("The NetHsm user ID {nethsm_user_id} is used more than once!")]
+    DuplicateNetHsmUserId { nethsm_user_id: UserId },
+
+    /// Duplicate system user names
+    #[error("The authorized SSH key {ssh_authorized_key} is used more than once!")]
+    DuplicateSshAuthorizedKey { ssh_authorized_key: String },
+
+    /// Duplicate key ID
+    #[error("The key ID {key_id} is used more than once!")]
+    DuplicateKeyId { key_id: KeyId },
+
+    /// Duplicate key ID in a namespace
+    #[error("The key ID {key_id} is used more than once in namespace {namespace}!")]
+    DuplicateKeyIdInNamespace { key_id: KeyId, namespace: String },
+
+    /// Duplicate system user names
+    #[error("The system user ID {system_user_id} is used more than once!")]
+    DuplicateSystemUserId { system_user_id: SystemUserId },
+
+    /// Duplicate tag
+    #[error("The tag {tag} is used more than once!")]
+    DuplicateTag { tag: String },
+
+    /// Duplicate tag
+    #[error("The tag {tag} is used more than once in namespace {namespace}!")]
+    DuplicateTagInNamespace { tag: String, namespace: String },
+
+    /// Missing system-wide user in the Administrator role (R-Administrator)
+    #[error("No system-wide user in the Administrator role exists.")]
+    MissingAdministrator,
+
+    /// Missing user in the Administrator role for a namespace (N-Administrator)
+    #[error("No user in the Administrator role exist for the namespaces {namespaces:?}")]
+    MissingNamespaceAdministrators { namespaces: Vec<String> },
+
+    /// Missing system user for downloading shares of a shared secret
+    #[error("No system user for downloading shares of a shared secret exists.")]
+    MissingShareDownloadUser,
+
+    /// Missing system user for uploading shares of a shared secret
+    #[error("No system user for uploading shares of a shared secret exists.")]
+    MissingShareUploadUser,
 
     /// There is more than one device (but none has been specified)
     #[error("There is more than one device")]
@@ -1405,8 +1448,792 @@ impl Config {
     }
 }
 
+/// A configuration for parallel use of connections with a set of system and NetHSM users.
+///
+/// This configuration type is meant to be used in a read-only fashion and does not support tracking
+/// the passphrases for users.
+/// As such, it is useful for tools, that create system users, as well as NetHSM users and keys
+/// according to it.
+///
+/// Various mappings of system and [`NetHsm`] users exist, that are defined by the variants of
+/// [`UserMapping`].
+///
+/// Some system users require providing SSH authorized key(s), while others do not allow that at
+/// all.
+/// NetHSM users can be added in namespaces, or system-wide, depending on their use-case.
+/// System and NetHSM users must be unique.
+///
+/// Key IDs must be unique per namespace or system-wide (depending on where they are used).
+/// Tags, used to provide access to keys for NetHSM users must be unique per namespace or
+/// system-wide (depending on in which scope the user and key are used)
+///
+/// # Examples
+///
+/// The below example provides a fully functional TOML configuration, outlining all available
+/// functionalities.
+///
+/// ```
+/// # use std::io::Write;
+/// #
+/// # use nethsm_config::{ConfigInteractivity, ConfigName, ConfigSettings, HermeticParallelConfig};
+/// #
+/// # fn main() -> testresult::TestResult {
+/// # let config_file = testdir::testdir!().join("basic_parallel_config_example.conf");
+/// # {
+/// let config_string = r#"
+/// ## A non-negative integer, that describes the iteration of the configuration.
+/// ## The iteration should only ever be increased between changes to the config and only under the circumstance,
+/// ## that user mappings are removed and should also be removed from the state of the system making use of this
+/// ## configuration.
+/// ## Applications reading the configuration are thereby enabled to compare existing state on the system with the
+/// ## current iteration and remove user mappings and accompanying data accordingly.
+/// iteration = 1
+///
+/// [[connections]]
+/// url = "https://localhost:8443/api/v1/"
+/// tls_security = "Unsafe"
+///
+/// ## The NetHSM user "admin" is a system-wide Administrator
+/// [[users]]
+/// nethsm_only_admin = "admin"
+///
+/// ## The SSH-accessible system user "ssh-backup1" is used in conjunction with
+/// ## the NetHSM user "backup1" (system-wide Backup)
+/// [[users]]
+///
+/// [users.system_nethsm_backup]
+/// nethsm_user = "backup1"
+/// ssh_authorized_key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPkpXKiNhy39A3bZ1u19a5d4sFwYMBkWQyCbzgUfdKBm user@host"
+/// system_user = "ssh-backup1"
+///
+/// ## The SSH-accessible system user "ssh-metrics1" is used with several NetHSM users:
+/// ## - "metrics1" (system-wide Metrics)
+/// ## - "keymetrics1" (system-wide Operator)
+/// ## - "ns1~keymetrics1" (namespace Operator)
+/// [[users]]
+///
+/// [users.system_nethsm_metrics]
+/// ssh_authorized_key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPDgwGfIRBAsOUuDEZw/uJQZSwOYr4sg2DAZpcc7MfOj user@host"
+/// system_user = "ssh-metrics1"
+///
+/// [users.system_nethsm_metrics.nethsm_users]
+/// metrics_user = "metrics1"
+/// operator_users = ["keymetrics1", "ns1~keymetrics1"]
+///
+/// ## The SSH-accessible system user "ssh-operator1" is used in conjunction with
+/// ## the NetHSM user "operator1" (system-wide Operator).
+/// ## User "operator1" shares tag "tag1" with key "key1" and can therefore use it
+/// ## (for OpenPGP signing).
+/// [[users]]
+///
+/// [users.system_nethsm_operator_signing]
+/// nethsm_user = "operator1"
+/// ssh_authorized_key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAN54Gd1jMz+yNDjBRwX1SnOtWuUsVF64RJIeYJ8DI7b user@host"
+/// system_user = "ssh-operator1"
+/// tag = "tag1"
+///
+/// [users.system_nethsm_operator_signing.nethsm_key_setup]
+/// key_id = "key1"
+/// key_type = "Curve25519"
+/// key_mechanisms = ["EdDsaSignature"]
+/// signature_type = "EdDsa"
+///
+/// [users.system_nethsm_operator_signing.nethsm_key_setup.key_context.openpgp]
+/// user_ids = ["Foobar McFooface <foobar@mcfooface.org>"]
+/// version = "4"
+///
+/// ## The SSH-accessible system user "ssh-operator2" is used in conjunction with
+/// ## the NetHSM user "operator2" (system-wide Operator).
+/// ## User "operator2" shares tag "tag2" with key "key2" and can therefore use it
+/// ## (for OpenPGP signing).
+/// [[users]]
+///
+/// [users.system_nethsm_operator_signing]
+/// nethsm_user = "operator2"
+/// ssh_authorized_key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOh9BTe81DC6A0YZALsq9dWcyl6xjjqlxWPwlExTFgBt user@host"
+/// system_user = "ssh-operator2"
+/// tag = "tag2"
+///
+/// [users.system_nethsm_operator_signing.nethsm_key_setup]
+/// key_id = "key2"
+/// key_type = "Curve25519"
+/// key_mechanisms = ["EdDsaSignature"]
+/// signature_type = "EdDsa"
+///
+/// [users.system_nethsm_operator_signing.nethsm_key_setup.key_context.openpgp]
+/// user_ids = ["Foobar McFooface <foobar@mcfooface.org>"]
+/// version = "4"
+///
+/// ## The NetHSM user "ns1~admin" is a namespace Administrator
+/// [[users]]
+/// nethsm_only_admin = "ns1~admin"
+///
+/// ## The SSH-accessible system user "ns1-ssh-operator1" is used in conjunction with
+/// ## the NetHSM user "ns1~operator1" (namespace Operator).
+/// ## User "ns1~operator1" shares tag "tag1" with key "key1" and can therefore use it
+/// ## in its namespace (for OpenPGP signing).
+/// [[users]]
+///
+/// [users.system_nethsm_operator_signing]
+/// nethsm_user = "ns1~operator1"
+/// ssh_authorized_key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILWqWyMCk5BdSl1c3KYoLEokKr7qNVPbI1IbBhgEBQj5 user@host"
+/// system_user = "ns1-ssh-operator1"
+/// tag = "tag1"
+///
+/// [users.system_nethsm_operator_signing.nethsm_key_setup]
+/// key_id = "key1"
+/// key_type = "Curve25519"
+/// key_mechanisms = ["EdDsaSignature"]
+/// signature_type = "EdDsa"
+///
+/// [users.system_nethsm_operator_signing.nethsm_key_setup.key_context.openpgp]
+/// user_ids = ["Foobar McFooface <foobar@mcfooface.org>"]
+/// version = "4"
+///
+/// ## The SSH-accessible system user "ns1-ssh-operator2" is used in conjunction with
+/// ## the NetHSM user "ns2~operator1" (namespace Operator).
+/// ## User "ns1~operator2" shares tag "tag2" with key "key1" and can therefore use it
+/// ## in its namespace (for OpenPGP signing).
+/// [[users]]
+///
+/// [users.system_nethsm_operator_signing]
+/// nethsm_user = "ns1~operator2"
+/// ssh_authorized_key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINrIYA+bfMBThUP5lKbMFEHiytmcCPhpkGrB/85n0mAN user@host"
+/// system_user = "ns1-ssh-operator2"
+/// tag = "tag2"
+///
+/// [users.system_nethsm_operator_signing.nethsm_key_setup]
+/// key_id = "key2"
+/// key_type = "Curve25519"
+/// key_mechanisms = ["EdDsaSignature"]
+/// signature_type = "EdDsa"
+///
+/// [users.system_nethsm_operator_signing.nethsm_key_setup.key_context.openpgp]
+/// user_ids = ["Foobar McFooface <foobar@mcfooface.org>"]
+/// version = "4"
+///
+/// ## The hermetic system user "local-metrics1" is used with several NetHSM users:
+/// ## - "metrics2" (system-wide Metrics)
+/// ## - "keymetrics2" (system-wide Operator)
+/// ## - "ns1~keymetrics2" (namespace Operator)
+/// [[users]]
+///
+/// [users.hermetic_system_nethsm_metrics]
+/// system_user = "local-metrics1"
+///
+/// [users.hermetic_system_nethsm_metrics.nethsm_users]
+/// metrics_user = "metrics2"
+/// operator_users = ["keymetrics2", "ns1~keymetrics2"]
+///
+/// ## The SSH-accessible system user "ssh-share-down" is used for the
+/// ## download of shares of a shared secret (divided by Shamir's Secret Sharing).
+/// [[users]]
+///
+/// [users.system_only_share_download]
+/// ssh_authorized_keys = ["ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOh96uFTnvX6P1ebbLxXFvy6sK7qFqlMHDOuJ0TmuXQQ user@host"]
+/// system_user = "ssh-share-down"
+///
+/// ## The SSH-accessible system user "ssh-share-up" is used for the
+/// ## upload of shares of a shared secret (divided by Shamir's Secret Sharing).
+/// [[users]]
+///
+/// [users.system_only_share_upload]
+/// ssh_authorized_keys = ["ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOh96uFTnvX6P1ebbLxXFvy6sK7qFqlMHDOuJ0TmuXQQ user@host"]
+/// system_user = "ssh-share-up"
+///
+/// ## The SSH-accessible system user "ssh-wireguard-down" is used for the
+/// ## download of WireGuard configuration, used on the host.
+/// [[users]]
+///
+/// [users.system_only_wireguard_download]
+/// ssh_authorized_keys = ["ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIClIXZdx0aDOPcIQA+6Qx68cwSUgGTL3TWzDSX3qUEOQ user@host"]
+/// system_user = "ssh-wireguard-down"
+/// "#;
+/// #
+/// #    let mut buffer = std::fs::File::create(&config_file)?;
+/// #    buffer.write_all(config_string.as_bytes())?;
+/// # }
+/// # HermeticParallelConfig::new_from_file(
+/// #    ConfigSettings::new(
+/// #        "my_app".to_string(),
+/// #        ConfigInteractivity::NonInteractive,
+/// #        None,
+/// #    ),
+/// #    Some(&config_file),
+/// # )?;
+/// # Ok(())
+/// # }
+/// ```
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+pub struct HermeticParallelConfig {
+    iteration: u32,
+    connections: HashSet<Connection>,
+    users: HashSet<UserMapping>,
+    #[serde(skip)]
+    settings: ConfigSettings,
+}
+
+impl HermeticParallelConfig {
+    /// Creates a new [`HermeticParallelConfig`] from a configuration file.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the configuration file can not be loaded.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use std::io::Write;
+    ///
+    /// use nethsm_config::{ConfigInteractivity, ConfigName, ConfigSettings, HermeticParallelConfig};
+    ///
+    /// # fn main() -> testresult::TestResult {
+    /// let config_file = testdir::testdir!().join("basic_parallel_config_new.conf");
+    /// {
+    ///     #[rustfmt::skip]
+    ///     let config_string = r#"
+    /// iteration = 1
+    /// [[connections]]
+    /// url = "https://localhost:8443/api/v1/"
+    /// tls_security = "Unsafe"
+    ///
+    /// [[users]]
+    /// nethsm_only_admin = "admin"
+    ///
+    /// [[users]]
+    /// [users.system_nethsm_backup]
+    /// nethsm_user = "backup1"
+    /// ssh_authorized_key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPkpXKiNhy39A3bZ1u19a5d4sFwYMBkWQyCbzgUfdKBm user@host"
+    /// system_user = "ssh-backup1"
+    ///
+    /// [[users]]
+    ///
+    /// [users.system_nethsm_metrics]
+    /// ssh_authorized_key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPDgwGfIRBAsOUuDEZw/uJQZSwOYr4sg2DAZpcc7MfOj user@host"
+    /// system_user = "ssh-metrics1"
+    ///
+    /// [users.system_nethsm_metrics.nethsm_users]
+    /// metrics_user = "metrics1"
+    /// operator_users = ["operator1metrics1"]
+    ///
+    /// [[users]]
+    /// [users.system_nethsm_operator_signing]
+    /// nethsm_user = "operator1"
+    /// ssh_authorized_key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAN54Gd1jMz+yNDjBRwX1SnOtWuUsVF64RJIeYJ8DI7b user@host"
+    /// system_user = "ssh-operator1"
+    /// tag = "tag1"
+    ///
+    /// [users.system_nethsm_operator_signing.nethsm_key_setup]
+    /// key_id = "key1"
+    /// key_type = "Curve25519"
+    /// key_mechanisms = ["EdDsaSignature"]
+    /// signature_type = "EdDsa"
+    ///
+    /// [users.system_nethsm_operator_signing.nethsm_key_setup.key_context.openpgp]
+    /// user_ids = ["Foobar McFooface <foobar@mcfooface.org>"]
+    /// version = "4"
+    ///
+    /// [[users]]
+    /// [users.system_nethsm_operator_signing]
+    /// nethsm_user = "operator2"
+    /// ssh_authorized_key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOh9BTe81DC6A0YZALsq9dWcyl6xjjqlxWPwlExTFgBt user@host"
+    /// system_user = "ssh-operator2"
+    /// tag = "tag2"
+    ///
+    /// [users.system_nethsm_operator_signing.nethsm_key_setup]
+    /// key_id = "key2"
+    /// key_type = "Curve25519"
+    /// key_mechanisms = ["EdDsaSignature"]
+    /// signature_type = "EdDsa"
+    ///
+    /// [users.system_nethsm_operator_signing.nethsm_key_setup.key_context.openpgp]
+    /// user_ids = ["Foobar McFooface <foobar@mcfooface.org>"]
+    /// version = "4"
+    ///
+    /// [[users]]
+    ///
+    /// [users.hermetic_system_nethsm_metrics]
+    /// system_user = "local-metrics1"
+    ///
+    /// [users.hermetic_system_nethsm_metrics.nethsm_users]
+    /// metrics_user = "metrics2"
+    /// operator_users = ["operator2metrics1"]
+    ///
+    /// [[users]]
+    /// [users.system_only_share_download]
+    /// ssh_authorized_keys = ["ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOh96uFTnvX6P1ebbLxXFvy6sK7qFqlMHDOuJ0TmuXQQ user@host"]
+    /// system_user = "ssh-share-down"
+    ///
+    /// [[users]]
+    /// [users.system_only_share_upload]
+    /// ssh_authorized_keys = ["ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOh96uFTnvX6P1ebbLxXFvy6sK7qFqlMHDOuJ0TmuXQQ user@host"]
+    /// system_user = "ssh-share-up"
+    ///
+    /// [[users]]
+    /// [users.system_only_wireguard_download]
+    /// ssh_authorized_keys = ["ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIClIXZdx0aDOPcIQA+6Qx68cwSUgGTL3TWzDSX3qUEOQ user@host"]
+    /// system_user = "ssh-wireguard-down"
+    /// "#;
+    ///     let mut buffer = std::fs::File::create(&config_file)?;
+    ///     buffer.write_all(config_string.as_bytes())?;
+    /// }
+    /// HermeticParallelConfig::new_from_file(
+    ///     ConfigSettings::new(
+    ///         "my_app".to_string(),
+    ///         ConfigInteractivity::NonInteractive,
+    ///         None,
+    ///     ),
+    ///     Some(&config_file),
+    /// )?;
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn new_from_file(
+        config_settings: ConfigSettings,
+        path: Option<&Path>,
+    ) -> Result<Self, Error> {
+        let mut config: HermeticParallelConfig = if let Some(path) = path {
+            confy::load_path(path).map_err(|error| Error::Load {
+                description: if let Some(error) = error.source() {
+                    error.to_string()
+                } else {
+                    "".to_string()
+                },
+                source: error,
+            })?
+        } else {
+            confy::load(
+                &config_settings.app_name,
+                Some(config_settings.config_name.0.as_str()),
+            )
+            .map_err(|error| Error::Load {
+                description: if let Some(error) = error.source() {
+                    error.to_string()
+                } else {
+                    "".to_string()
+                },
+                source: error,
+            })?
+        };
+        config.settings = config_settings;
+        config.validate()?;
+
+        Ok(config)
+    }
+
+    /// Creates a new [`HermeticParallelConfig`].
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the configuration file can not be loaded.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use std::collections::HashSet;
+    ///
+    /// use nethsm::UserRole;
+    /// use nethsm_config::{
+    ///     AuthorizedKeyEntryList,
+    ///     ConfigCredentials,
+    ///     ConfigInteractivity,
+    ///     ConfigName,
+    ///     ConfigSettings,
+    ///     Connection,
+    ///     HermeticParallelConfig,
+    ///     UserMapping,
+    /// };
+    ///
+    /// # fn main() -> testresult::TestResult {
+    /// HermeticParallelConfig::new(
+    ///     ConfigSettings::new(
+    ///         "my_app".to_string(),
+    ///         ConfigInteractivity::NonInteractive,
+    ///         None,
+    ///     ),
+    ///     1,
+    ///     HashSet::from([Connection::new(
+    ///         "https://localhost:8443/api/v1/".parse()?,
+    ///         "Unsafe".parse()?,
+    ///     )]),
+    ///     HashSet::from([
+    ///         UserMapping::NetHsmOnlyAdmin("admin".parse()?),
+    ///         UserMapping::SystemOnlyShareDownload {
+    ///             system_user: "ssh-share-down".parse()?,
+    ///             ssh_authorized_keys: AuthorizedKeyEntryList::new(vec!["ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOh96uFTnvX6P1ebbLxXFvy6sK7qFqlMHDOuJ0TmuXQQ user@host".parse()?])?,
+    ///         },
+    ///         UserMapping::SystemOnlyShareUpload {
+    ///             system_user: "ssh-share-up".parse()?,
+    ///             ssh_authorized_keys: AuthorizedKeyEntryList::new(vec!["ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOh96uFTnvX6P1ebbLxXFvy6sK7qFqlMHDOuJ0TmuXQQ user@host".parse()?])?,
+    ///         }]),
+    /// )?;
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn new(
+        config_settings: ConfigSettings,
+        iteration: u32,
+        connections: HashSet<Connection>,
+        users: HashSet<UserMapping>,
+    ) -> Result<Self, Error> {
+        let config = Self {
+            iteration,
+            connections,
+            users,
+            settings: config_settings,
+        };
+        config.validate()?;
+        Ok(config)
+    }
+
+    /// Writes a [`HermeticParallelConfig`] to file.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the configuration file can not be written.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use std::collections::HashSet;
+    ///
+    /// use nethsm::{CryptographicKeyContext, OpenPgpUserIdList, SigningKeySetup, UserRole};
+    /// use nethsm_config::{
+    ///     AuthorizedKeyEntryList,
+    ///     ConfigCredentials,
+    ///     ConfigInteractivity,
+    ///     ConfigName,
+    ///     ConfigSettings,
+    ///     Connection,
+    ///     HermeticParallelConfig,
+    ///     NetHsmMetricsUsers,
+    ///     UserMapping,
+    /// };
+    ///
+    /// # fn main() -> testresult::TestResult {
+    /// let config = HermeticParallelConfig::new(
+    ///     ConfigSettings::new(
+    ///         "my_app".to_string(),
+    ///         ConfigInteractivity::NonInteractive,
+    ///         None,
+    ///     ),
+    ///     1,
+    ///     HashSet::from([Connection::new(
+    ///         "https://localhost:8443/api/v1/".parse()?,
+    ///         "Unsafe".parse()?,
+    ///     )]),
+    ///     HashSet::from([UserMapping::NetHsmOnlyAdmin("admin".parse()?),
+    ///         UserMapping::SystemNetHsmBackup {
+    ///             nethsm_user: "backup1".parse()?,
+    ///             ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPkpXKiNhy39A3bZ1u19a5d4sFwYMBkWQyCbzgUfdKBm user@host".parse()?,
+    ///             system_user: "ssh-backup1".parse()?,
+    ///         },
+    ///         UserMapping::SystemNetHsmMetrics {
+    ///             nethsm_users: NetHsmMetricsUsers::new("metrics1".parse()?, vec!["operator2metrics1".parse()?])?,
+    ///             ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIioJ9uvAxUPunFh89T+ENo7OQerqHE8SQ+2v4VWbfUZ user@host".parse()?,
+    ///             system_user: "ssh-metrics1".parse()?,
+    ///         },
+    ///         UserMapping::SystemNetHsmOperatorSigning {
+    ///             nethsm_user: "operator1".parse()?,
+    ///             nethsm_key_setup: SigningKeySetup::new(
+    ///                 "key1".parse()?,
+    ///                 "Curve25519".parse()?,
+    ///                 vec!["EdDsaSignature".parse()?],
+    ///                 None,
+    ///                 "EdDsa".parse()?,
+    ///                 CryptographicKeyContext::OpenPgp{
+    ///                     user_ids: OpenPgpUserIdList::new(vec!["Foobar McFooface <foobar@mcfooface.org>".parse()?])?,
+    ///                     version: "4".parse()?,
+    ///                 })?,
+    ///             ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAN54Gd1jMz+yNDjBRwX1SnOtWuUsVF64RJIeYJ8DI7b user@host".parse()?,
+    ///             system_user: "ssh-operator1".parse()?,
+    ///             tag: "tag1".to_string(),
+    ///         },
+    ///         UserMapping::HermeticSystemNetHsmMetrics {
+    ///             nethsm_users: NetHsmMetricsUsers::new("metrics2".parse()?, vec!["operator1metrics1".parse()?])?,
+    ///             system_user: "local-metrics1".parse()?,
+    ///         },
+    ///         UserMapping::SystemOnlyShareDownload {
+    ///             system_user: "ssh-share-down".parse()?,
+    ///             ssh_authorized_keys: AuthorizedKeyEntryList::new(
+    ///                 vec!["ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOh96uFTnvX6P1ebbLxXFvy6sK7qFqlMHDOuJ0TmuXQQ user@host".parse()?],
+    ///             )?,
+    ///         },
+    ///         UserMapping::SystemOnlyShareUpload {
+    ///             system_user: "ssh-share-up".parse()?,
+    ///             ssh_authorized_keys: AuthorizedKeyEntryList::new(
+    ///                 vec!["ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOh96uFTnvX6P1ebbLxXFvy6sK7qFqlMHDOuJ0TmuXQQ user@host".parse()?],
+    ///             )?,
+    ///         },
+    ///         UserMapping::SystemOnlyWireGuardDownload {
+    ///             system_user: "ssh-wireguard-down".parse()?,
+    ///             ssh_authorized_keys: AuthorizedKeyEntryList::new(
+    ///                 vec!["ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIClIXZdx0aDOPcIQA+6Qx68cwSUgGTL3TWzDSX3qUEOQ user@host".parse()?],
+    ///             )?,
+    ///         },
+    ///     ]),
+    /// )?;
+    ///
+    /// let config_file = testdir::testdir!().join("basic_parallel_config_store.conf");
+    /// config.store(Some(&config_file))?;
+    /// # println!("{}", std::fs::read_to_string(&config_file)?);
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn store(&self, path: Option<&Path>) -> Result<(), Error> {
+        if let Some(path) = path {
+            confy::store_path(path, self).map_err(Error::Store)
+        } else {
+            confy::store(&self.settings.app_name, "config", self).map_err(Error::Store)
+        }
+    }
+
+    /// Returns an Iterator over the available [`Connection`]s.
+    pub fn iter_connections(&self) -> impl Iterator<Item = &Connection> {
+        self.connections.iter()
+    }
+
+    /// Returns an Iterator over the available [`UserMapping`]s.
+    pub fn iter_user_mappings(&self) -> impl Iterator<Item = &UserMapping> {
+        self.users.iter()
+    }
+
+    /// Validates the components of the [`HermeticParallelConfig`].
+    fn validate(&self) -> Result<(), Error> {
+        // ensure there are no duplicate system users
+        {
+            let mut system_users = HashSet::new();
+            for system_user_id in self
+                .users
+                .iter()
+                .filter_map(|mapping| mapping.get_system_user())
+            {
+                if !system_users.insert(system_user_id.clone()) {
+                    return Err(Error::DuplicateSystemUserId {
+                        system_user_id: system_user_id.clone(),
+                    });
+                }
+            }
+        }
+
+        // ensure there are no duplicate NetHsm users
+        {
+            let mut nethsm_users = HashSet::new();
+            for nethsm_user_id in self
+                .users
+                .iter()
+                .flat_map(|mapping| mapping.get_nethsm_users())
+            {
+                if !nethsm_users.insert(nethsm_user_id.clone()) {
+                    return Err(Error::DuplicateNetHsmUserId {
+                        nethsm_user_id: nethsm_user_id.clone(),
+                    });
+                }
+            }
+        }
+
+        // ensure that there is at least one system-wide administrator
+        if self
+            .users
+            .iter()
+            .filter_map(|mapping| {
+                if let UserMapping::NetHsmOnlyAdmin(user_id) = mapping {
+                    if !user_id.is_namespaced() {
+                        Some(user_id)
+                    } else {
+                        None
+                    }
+                } else {
+                    None
+                }
+            })
+            .next()
+            .is_none()
+        {
+            return Err(Error::MissingAdministrator);
+        }
+
+        // ensure that there is an Administrator in each used namespace
+        {
+            // namespaces for all users, that are not in the Administrator role
+            let namespaces_users = self
+                .users
+                .iter()
+                .filter(|mapping| !matches!(mapping, UserMapping::NetHsmOnlyAdmin(_)))
+                .flat_map(|mapping| mapping.get_namespaces())
+                .collect::<HashSet<String>>();
+            // namespaces for all users, that are in the Administrator role
+            let namespaces_admins = self
+                .users
+                .iter()
+                .filter(|mapping| matches!(mapping, UserMapping::NetHsmOnlyAdmin(_)))
+                .flat_map(|mapping| mapping.get_namespaces())
+                .collect::<HashSet<String>>();
+
+            let namespaces: Vec<String> = namespaces_users
+                .difference(&namespaces_admins)
+                .cloned()
+                .collect();
+            if !namespaces.is_empty() {
+                return Err(Error::MissingNamespaceAdministrators { namespaces });
+            }
+        }
+
+        // ensure there are is at least one system user for downloading shares of a shared secret
+        if !self
+            .users
+            .iter()
+            .any(|mapping| matches!(mapping, UserMapping::SystemOnlyShareDownload { .. }))
+        {
+            return Err(Error::MissingShareDownloadUser);
+        }
+
+        // ensure there are is at least one system user for uploading shares of a shared secret
+        if !self
+            .users
+            .iter()
+            .any(|mapping| matches!(mapping, UserMapping::SystemOnlyShareUpload { .. }))
+        {
+            return Err(Error::MissingShareUploadUser);
+        }
+
+        // ensure there are no duplicate authorized SSH keys in the set of uploading shareholders
+        // and the rest (minus downloading shareholders)
+        {
+            let mut ssh_authorized_keys = HashSet::new();
+            for ssh_authorized_key in self
+                .users
+                .iter()
+                .filter(|mapping| {
+                    !matches!(
+                        mapping,
+                        UserMapping::SystemOnlyShareDownload {
+                            system_user: _,
+                            ssh_authorized_keys: _,
+                        }
+                    )
+                })
+                .flat_map(|mapping| mapping.get_ssh_authorized_keys())
+                // we know a valid Entry can be created from AuthorizedKeyEntry, because its
+                // constructor ensures it, hence we discard Errors
+                .filter_map(|authorized_key| {
+                    ssh_key::authorized_keys::Entry::try_from(&authorized_key).ok()
+                })
+            {
+                if !ssh_authorized_keys.insert(ssh_authorized_key.public_key().clone()) {
+                    return Err(Error::DuplicateSshAuthorizedKey {
+                        ssh_authorized_key: ssh_authorized_key.public_key().to_string(),
+                    });
+                }
+            }
+        }
+
+        // ensure there are no duplicate authorized SSH keys in the set of downloading shareholders
+        // and the rest (minus uploading shareholders)
+        {
+            let mut ssh_authorized_keys = HashSet::new();
+            for ssh_authorized_key in self
+                .users
+                .iter()
+                .filter(|mapping| {
+                    !matches!(
+                        mapping,
+                        UserMapping::SystemOnlyShareUpload {
+                            system_user: _,
+                            ssh_authorized_keys: _,
+                        }
+                    )
+                })
+                .flat_map(|mapping| mapping.get_ssh_authorized_keys())
+                // we know a valid Entry can be created from AuthorizedKeyEntry, because its
+                // constructor ensures it, hence we discard Errors
+                .filter_map(|authorized_key| {
+                    ssh_key::authorized_keys::Entry::try_from(&authorized_key).ok()
+                })
+            {
+                if !ssh_authorized_keys.insert(ssh_authorized_key.public_key().clone()) {
+                    return Err(Error::DuplicateSshAuthorizedKey {
+                        ssh_authorized_key: ssh_authorized_key.public_key().to_string(),
+                    });
+                }
+            }
+        }
+
+        // ensure that only one-to-one relationships between users in the Operator role and keys
+        // exist (system-wide and per-namespace)
+        {
+            // ensure that KeyIds are not re-used system-wide
+            let mut set = HashSet::new();
+            for key_id in self
+                .users
+                .iter()
+                .flat_map(|mapping| mapping.get_key_ids(None))
+            {
+                if !set.insert(key_id.clone()) {
+                    return Err(Error::DuplicateKeyId { key_id });
+                }
+            }
+
+            // ensure that KeyIds are not re-used per namespace
+            for namespace in self
+                .users
+                .iter()
+                .flat_map(|mapping| mapping.get_namespaces())
+            {
+                let mut set = HashSet::new();
+                for key_id in self
+                    .users
+                    .iter()
+                    .flat_map(|mapping| mapping.get_key_ids(Some(&namespace)))
+                {
+                    if !set.insert(key_id.clone()) {
+                        return Err(Error::DuplicateKeyIdInNamespace { key_id, namespace });
+                    }
+                }
+            }
+        }
+
+        // ensure unique tags system-wide and per namespace
+        {
+            // ensure that tags are unique system-wide
+            let mut set = HashSet::new();
+            for tag in self.users.iter().flat_map(|mapping| mapping.get_tags(None)) {
+                if !set.insert(tag) {
+                    return Err(Error::DuplicateTag {
+                        tag: tag.to_string(),
+                    });
+                }
+            }
+
+            // ensure that tags are unique in each namespace
+            for namespace in self
+                .users
+                .iter()
+                .flat_map(|mapping| mapping.get_namespaces())
+            {
+                let mut set = HashSet::new();
+                for tag in self
+                    .users
+                    .iter()
+                    .flat_map(|mapping| mapping.get_tags(Some(&namespace)))
+                {
+                    if !set.insert(tag) {
+                        return Err(Error::DuplicateTagInNamespace {
+                            tag: tag.to_string(),
+                            namespace,
+                        });
+                    }
+                }
+            }
+        }
+
+        Ok(())
+    }
+}
+
 #[cfg(test)]
 mod tests {
+    use core::panic;
     use std::path::PathBuf;
 
     use rstest::rstest;
@@ -1457,5 +2284,1241 @@ passphrase = "my-very-unsafe-admin-passphrase"
         assert_eq!(config_string, std::fs::read_to_string(&config_file)?);
 
         Ok(())
+    }
+
+    #[rstest]
+    fn basic_parallel_config_new_from_file() -> TestResult {
+        use std::fs::File;
+        use std::io::Write;
+
+        let config_string = r#"
+iteration = 1
+[[connections]]
+url = "https://localhost:8443/api/v1/"
+tls_security = "Unsafe"
+
+[[users]]
+nethsm_only_admin = "admin"
+
+[[users]]
+
+[users.system_nethsm_backup]
+nethsm_user = "backup1"
+ssh_authorized_key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPkpXKiNhy39A3bZ1u19a5d4sFwYMBkWQyCbzgUfdKBm user@host"
+system_user = "ssh-backup1"
+
+[[users]]
+
+[users.system_nethsm_metrics]
+ssh_authorized_key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPDgwGfIRBAsOUuDEZw/uJQZSwOYr4sg2DAZpcc7MfOj user@host"
+system_user = "ssh-metrics1"
+
+[users.system_nethsm_metrics.nethsm_users]
+metrics_user = "metrics1"
+operator_users = ["operator1metrics1", "ns1~operator1metrics1"]
+
+[[users]]
+
+[users.system_nethsm_operator_signing]
+nethsm_user = "operator1"
+ssh_authorized_key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAN54Gd1jMz+yNDjBRwX1SnOtWuUsVF64RJIeYJ8DI7b user@host"
+system_user = "ssh-operator1"
+tag = "tag1"
+
+[users.system_nethsm_operator_signing.nethsm_key_setup]
+key_id = "key1"
+key_type = "Curve25519"
+key_mechanisms = ["EdDsaSignature"]
+signature_type = "EdDsa"
+
+[users.system_nethsm_operator_signing.nethsm_key_setup.key_context.openpgp]
+user_ids = ["Foobar McFooface <foobar@mcfooface.org>"]
+version = "4"
+
+[[users]]
+
+[users.system_nethsm_operator_signing]
+nethsm_user = "operator2"
+ssh_authorized_key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOh9BTe81DC6A0YZALsq9dWcyl6xjjqlxWPwlExTFgBt user@host"
+system_user = "ssh-operator2"
+tag = "tag2"
+
+[users.system_nethsm_operator_signing.nethsm_key_setup]
+key_id = "key2"
+key_type = "Curve25519"
+key_mechanisms = ["EdDsaSignature"]
+signature_type = "EdDsa"
+
+[users.system_nethsm_operator_signing.nethsm_key_setup.key_context.openpgp]
+user_ids = ["Foobar McFooface <foobar@mcfooface.org>"]
+version = "4"
+
+[[users]]
+nethsm_only_admin = "ns1~admin"
+
+[[users]]
+
+[users.system_nethsm_operator_signing]
+nethsm_user = "ns1~operator1"
+ssh_authorized_key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILWqWyMCk5BdSl1c3KYoLEokKr7qNVPbI1IbBhgEBQj5 user@host"
+system_user = "ns1-ssh-operator1"
+tag = "tag1"
+
+[users.system_nethsm_operator_signing.nethsm_key_setup]
+key_id = "key1"
+key_type = "Curve25519"
+key_mechanisms = ["EdDsaSignature"]
+signature_type = "EdDsa"
+
+[users.system_nethsm_operator_signing.nethsm_key_setup.key_context.openpgp]
+user_ids = ["Foobar McFooface <foobar@mcfooface.org>"]
+version = "4"
+
+[[users]]
+
+[users.system_nethsm_operator_signing]
+nethsm_user = "ns1~operator2"
+ssh_authorized_key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINrIYA+bfMBThUP5lKbMFEHiytmcCPhpkGrB/85n0mAN user@host"
+system_user = "ns1-ssh-operator2"
+tag = "tag2"
+
+[users.system_nethsm_operator_signing.nethsm_key_setup]
+key_id = "key2"
+key_type = "Curve25519"
+key_mechanisms = ["EdDsaSignature"]
+signature_type = "EdDsa"
+
+[users.system_nethsm_operator_signing.nethsm_key_setup.key_context.openpgp]
+user_ids = ["Foobar McFooface <foobar@mcfooface.org>"]
+version = "4"
+
+[[users]]
+
+[users.hermetic_system_nethsm_metrics]
+system_user = "local-metrics1"
+
+[users.hermetic_system_nethsm_metrics.nethsm_users]
+metrics_user = "metrics2"
+operator_users = ["operator2metrics1"]
+
+[[users]]
+
+[users.system_only_share_download]
+ssh_authorized_keys = ["ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOh96uFTnvX6P1ebbLxXFvy6sK7qFqlMHDOuJ0TmuXQQ user@host"]
+system_user = "ssh-share-down"
+
+[[users]]
+
+[users.system_only_share_upload]
+ssh_authorized_keys = ["ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOh96uFTnvX6P1ebbLxXFvy6sK7qFqlMHDOuJ0TmuXQQ user@host"]
+system_user = "ssh-share-up"
+
+[[users]]
+
+[users.system_only_wireguard_download]
+ssh_authorized_keys = ["ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIClIXZdx0aDOPcIQA+6Qx68cwSUgGTL3TWzDSX3qUEOQ user@host"]
+system_user = "ssh-wireguard-down"
+"#;
+        let config_file = {
+            let config_file: PathBuf = testdir!().join("config.toml");
+            let mut buffer = File::create(&config_file)?;
+            buffer.write_all(config_string.as_bytes())?;
+            config_file
+        };
+
+        HermeticParallelConfig::new_from_file(
+            ConfigSettings::new(
+                "test".to_string(),
+                ConfigInteractivity::NonInteractive,
+                None,
+            ),
+            Some(&config_file),
+        )?;
+
+        Ok(())
+    }
+
+    #[rstest]
+    fn basic_parallel_config_duplicate_system_user() -> TestResult {
+        use std::fs::File;
+        use std::io::Write;
+
+        let config_string = r#"
+iteration = 1
+[[connections]]
+url = "https://localhost:8443/api/v1/"
+tls_security = "Unsafe"
+
+[[users]]
+nethsm_only_admin = "admin"
+
+[[users]]
+
+[users.system_nethsm_operator_signing]
+nethsm_user = "operator1"
+ssh_authorized_key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAN54Gd1jMz+yNDjBRwX1SnOtWuUsVF64RJIeYJ8DI7b user@host"
+system_user = "ssh-operator1"
+tag = "tag1"
+
+[users.system_nethsm_operator_signing.nethsm_key_setup]
+key_id = "key1"
+key_type = "Curve25519"
+key_mechanisms = ["EdDsaSignature"]
+signature_type = "EdDsa"
+
+[users.system_nethsm_operator_signing.nethsm_key_setup.key_context.openpgp]
+user_ids = ["Foobar McFooface <foobar@mcfooface.org>"]
+version = "4"
+
+[[users]]
+
+[users.system_nethsm_operator_signing]
+nethsm_user = "operator2"
+ssh_authorized_key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOh9BTe81DC6A0YZALsq9dWcyl6xjjqlxWPwlExTFgBt user@host"
+# NOTE: this is a duplicate and triggers an error
+system_user = "ssh-operator1"
+tag = "tag2"
+
+[users.system_nethsm_operator_signing.nethsm_key_setup]
+key_id = "key2"
+key_type = "Curve25519"
+key_mechanisms = ["EdDsaSignature"]
+signature_type = "EdDsa"
+
+[users.system_nethsm_operator_signing.nethsm_key_setup.key_context.openpgp]
+user_ids = ["Foobar McFooface <foobar@mcfooface.org>"]
+version = "4"
+
+[[users]]
+
+[users.system_only_share_download]
+ssh_authorized_keys = ["ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOh96uFTnvX6P1ebbLxXFvy6sK7qFqlMHDOuJ0TmuXQQ user@host"]
+system_user = "ssh-share-down"
+
+[[users]]
+
+[users.system_only_share_upload]
+ssh_authorized_keys = ["ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOh96uFTnvX6P1ebbLxXFvy6sK7qFqlMHDOuJ0TmuXQQ user@host"]
+system_user = "ssh-share-up"
+"#;
+        let config_file = {
+            let config_file: PathBuf = testdir!().join("config.toml");
+            let mut buffer = File::create(&config_file)?;
+            buffer.write_all(config_string.as_bytes())?;
+            config_file
+        };
+
+        if let Err(Error::DuplicateSystemUserId { .. }) = HermeticParallelConfig::new_from_file(
+            ConfigSettings::new(
+                "test".to_string(),
+                ConfigInteractivity::NonInteractive,
+                None,
+            ),
+            Some(&config_file),
+        ) {
+            Ok(())
+        } else {
+            panic!("Did not trigger the correct Error!")
+        }
+    }
+
+    #[rstest]
+    fn basic_parallel_config_duplicate_nethsm_user() -> TestResult {
+        use std::fs::File;
+        use std::io::Write;
+
+        let config_string = r#"
+iteration = 1
+[[connections]]
+url = "https://localhost:8443/api/v1/"
+tls_security = "Unsafe"
+
+[[users]]
+nethsm_only_admin = "admin"
+
+[[users]]
+
+[users.system_nethsm_operator_signing]
+nethsm_user = "operator1"
+ssh_authorized_key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAN54Gd1jMz+yNDjBRwX1SnOtWuUsVF64RJIeYJ8DI7b user@host"
+system_user = "ssh-operator1"
+tag = "tag1"
+
+[users.system_nethsm_operator_signing.nethsm_key_setup]
+key_id = "key1"
+key_type = "Curve25519"
+key_mechanisms = ["EdDsaSignature"]
+signature_type = "EdDsa"
+
+[users.system_nethsm_operator_signing.nethsm_key_setup.key_context.openpgp]
+user_ids = ["Foobar McFooface <foobar@mcfooface.org>"]
+version = "4"
+
+[[users]]
+
+[users.system_nethsm_operator_signing]
+# NOTE: this is a duplicate and triggers an error
+nethsm_user = "operator1"
+ssh_authorized_key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOh9BTe81DC6A0YZALsq9dWcyl6xjjqlxWPwlExTFgBt user@host"
+system_user = "ssh-operator2"
+tag = "tag1"
+
+[users.system_nethsm_operator_signing.nethsm_key_setup]
+key_id = "key2"
+key_type = "Curve25519"
+key_mechanisms = ["EdDsaSignature"]
+signature_type = "EdDsa"
+
+[users.system_nethsm_operator_signing.nethsm_key_setup.key_context.openpgp]
+user_ids = ["Foobar McFooface <foobar@mcfooface.org>"]
+version = "4"
+
+[[users]]
+
+[users.system_only_share_download]
+ssh_authorized_keys = ["ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOh96uFTnvX6P1ebbLxXFvy6sK7qFqlMHDOuJ0TmuXQQ user@host"]
+system_user = "ssh-share-down"
+
+[[users]]
+
+[users.system_only_share_upload]
+ssh_authorized_keys = ["ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOh96uFTnvX6P1ebbLxXFvy6sK7qFqlMHDOuJ0TmuXQQ user@host"]
+system_user = "ssh-share-up"
+"#;
+        let config_file = {
+            let config_file: PathBuf = testdir!().join("config.toml");
+            let mut buffer = File::create(&config_file)?;
+            buffer.write_all(config_string.as_bytes())?;
+            config_file
+        };
+
+        if let Err(Error::DuplicateNetHsmUserId { .. }) = HermeticParallelConfig::new_from_file(
+            ConfigSettings::new(
+                "test".to_string(),
+                ConfigInteractivity::NonInteractive,
+                None,
+            ),
+            Some(&config_file),
+        ) {
+            Ok(())
+        } else {
+            panic!("Did not trigger the correct Error!")
+        }
+    }
+
+    #[rstest]
+    fn basic_parallel_config_missing_administrator() -> TestResult {
+        use std::fs::File;
+        use std::io::Write;
+
+        let config_string = r#"
+iteration = 1
+[[connections]]
+url = "https://localhost:8443/api/v1/"
+tls_security = "Unsafe"
+
+# NOTE: The system-wide Administrator is missing, which triggers an error
+
+[[users]]
+
+[users.system_nethsm_operator_signing]
+nethsm_user = "operator1"
+ssh_authorized_key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAN54Gd1jMz+yNDjBRwX1SnOtWuUsVF64RJIeYJ8DI7b user@host"
+system_user = "ssh-operator1"
+tag = "tag1"
+
+[users.system_nethsm_operator_signing.nethsm_key_setup]
+key_id = "key1"
+key_type = "Curve25519"
+key_mechanisms = ["EdDsaSignature"]
+signature_type = "EdDsa"
+
+[users.system_nethsm_operator_signing.nethsm_key_setup.key_context.openpgp]
+user_ids = ["Foobar McFooface <foobar@mcfooface.org>"]
+version = "4"
+
+[[users]]
+
+[users.system_nethsm_operator_signing]
+nethsm_user = "operator2"
+ssh_authorized_key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOh9BTe81DC6A0YZALsq9dWcyl6xjjqlxWPwlExTFgBt user@host"
+system_user = "ssh-operator2"
+tag = "tag2"
+
+[users.system_nethsm_operator_signing.nethsm_key_setup]
+key_id = "key2"
+key_type = "Curve25519"
+key_mechanisms = ["EdDsaSignature"]
+signature_type = "EdDsa"
+
+[users.system_nethsm_operator_signing.nethsm_key_setup.key_context.openpgp]
+user_ids = ["Foobar McFooface <foobar@mcfooface.org>"]
+version = "4"
+
+[[users]]
+
+[users.system_only_share_download]
+ssh_authorized_keys = ["ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOh96uFTnvX6P1ebbLxXFvy6sK7qFqlMHDOuJ0TmuXQQ user@host"]
+system_user = "ssh-share-down"
+
+[[users]]
+
+[users.system_only_share_upload]
+ssh_authorized_keys = ["ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOh96uFTnvX6P1ebbLxXFvy6sK7qFqlMHDOuJ0TmuXQQ user@host"]
+system_user = "ssh-share-up"
+"#;
+        let config_file = {
+            let config_file: PathBuf = testdir!().join("config.toml");
+            let mut buffer = File::create(&config_file)?;
+            buffer.write_all(config_string.as_bytes())?;
+            config_file
+        };
+        if let Err(Error::MissingAdministrator { .. }) = HermeticParallelConfig::new_from_file(
+            ConfigSettings::new(
+                "test".to_string(),
+                ConfigInteractivity::NonInteractive,
+                None,
+            ),
+            Some(&config_file),
+        ) {
+            Ok(())
+        } else {
+            panic!("Did not trigger the correct Error!")
+        }
+    }
+
+    #[rstest]
+    fn basic_parallel_config_missing_namespace_administrators() -> TestResult {
+        use std::fs::File;
+        use std::io::Write;
+
+        let config_string = r#"
+iteration = 1
+[[connections]]
+url = "https://localhost:8443/api/v1/"
+tls_security = "Unsafe"
+
+[[users]]
+nethsm_only_admin = "admin"
+
+# NOTE: The namespace Administrator is missing, which triggers an error
+
+[[users]]
+
+[users.system_nethsm_operator_signing]
+nethsm_user = "ns1~operator1"
+ssh_authorized_key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAN54Gd1jMz+yNDjBRwX1SnOtWuUsVF64RJIeYJ8DI7b user@host"
+system_user = "ssh-operator1"
+tag = "tag1"
+
+[users.system_nethsm_operator_signing.nethsm_key_setup]
+key_id = "key1"
+key_type = "Curve25519"
+key_mechanisms = ["EdDsaSignature"]
+signature_type = "EdDsa"
+
+[users.system_nethsm_operator_signing.nethsm_key_setup.key_context.openpgp]
+user_ids = ["Foobar McFooface <foobar@mcfooface.org>"]
+version = "4"
+
+[[users]]
+
+[users.system_nethsm_operator_signing]
+nethsm_user = "ns1~operator2"
+ssh_authorized_key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOh9BTe81DC6A0YZALsq9dWcyl6xjjqlxWPwlExTFgBt user@host"
+system_user = "ssh-operator2"
+tag = "tag2"
+
+[users.system_nethsm_operator_signing.nethsm_key_setup]
+key_id = "key2"
+key_type = "Curve25519"
+key_mechanisms = ["EdDsaSignature"]
+signature_type = "EdDsa"
+
+[users.system_nethsm_operator_signing.nethsm_key_setup.key_context.openpgp]
+user_ids = ["Foobar McFooface <foobar@mcfooface.org>"]
+version = "4"
+
+[[users]]
+
+[users.system_only_share_download]
+ssh_authorized_keys = ["ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOh96uFTnvX6P1ebbLxXFvy6sK7qFqlMHDOuJ0TmuXQQ user@host"]
+system_user = "ssh-share-down"
+
+[[users]]
+
+[users.system_only_share_upload]
+ssh_authorized_keys = ["ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOh96uFTnvX6P1ebbLxXFvy6sK7qFqlMHDOuJ0TmuXQQ user@host"]
+system_user = "ssh-share-up"
+"#;
+        let config_file = {
+            let config_file: PathBuf = testdir!().join("config.toml");
+            let mut buffer = File::create(&config_file)?;
+            buffer.write_all(config_string.as_bytes())?;
+            config_file
+        };
+
+        if let Err(Error::MissingNamespaceAdministrators { .. }) =
+            HermeticParallelConfig::new_from_file(
+                ConfigSettings::new(
+                    "test".to_string(),
+                    ConfigInteractivity::NonInteractive,
+                    None,
+                ),
+                Some(&config_file),
+            )
+        {
+            Ok(())
+        } else {
+            panic!("Did not trigger the correct Error!")
+        }
+    }
+
+    #[rstest]
+    fn basic_parallel_config_duplicate_authorized_keys_share_uploader() -> TestResult {
+        use std::fs::File;
+        use std::io::Write;
+
+        let config_string = r#"
+iteration = 1
+[[connections]]
+url = "https://localhost:8443/api/v1/"
+tls_security = "Unsafe"
+
+[[users]]
+nethsm_only_admin = "admin"
+
+[[users]]
+
+[users.system_nethsm_operator_signing]
+nethsm_user = "operator1"
+ssh_authorized_key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAN54Gd1jMz+yNDjBRwX1SnOtWuUsVF64RJIeYJ8DI7b user@host"
+system_user = "ssh-operator1"
+tag = "tag1"
+
+[users.system_nethsm_operator_signing.nethsm_key_setup]
+key_id = "key1"
+key_type = "Curve25519"
+key_mechanisms = ["EdDsaSignature"]
+signature_type = "EdDsa"
+
+[users.system_nethsm_operator_signing.nethsm_key_setup.key_context.openpgp]
+user_ids = ["Foobar McFooface <foobar@mcfooface.org>"]
+version = "4"
+
+[[users]]
+
+[users.system_nethsm_operator_signing]
+nethsm_user = "operator2"
+ssh_authorized_key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOh9BTe81DC6A0YZALsq9dWcyl6xjjqlxWPwlExTFgBt user@host"
+system_user = "ssh-operator2"
+tag = "tag2"
+
+[users.system_nethsm_operator_signing.nethsm_key_setup]
+key_id = "key2"
+key_type = "Curve25519"
+key_mechanisms = ["EdDsaSignature"]
+signature_type = "EdDsa"
+
+[users.system_nethsm_operator_signing.nethsm_key_setup.key_context.openpgp]
+user_ids = ["Foobar McFooface <foobar@mcfooface.org>"]
+version = "4"
+
+[[users]]
+
+[users.system_only_share_download]
+ssh_authorized_keys = ["ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOh96uFTnvX6P1ebbLxXFvy6sK7qFqlMHDOuJ0TmuXQQ user@host"]
+system_user = "ssh-share-down"
+
+[[users]]
+
+[users.system_only_share_upload]
+# NOTE: this is a duplicate and triggers an error
+ssh_authorized_keys = ["ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOh9BTe81DC6A0YZALsq9dWcyl6xjjqlxWPwlExTFgBt user@host"]
+system_user = "ssh-share-up"
+"#;
+        let config_file = {
+            let config_file: PathBuf = testdir!().join("config.toml");
+            let mut buffer = File::create(&config_file)?;
+            buffer.write_all(config_string.as_bytes())?;
+            config_file
+        };
+
+        if let Err(Error::DuplicateSshAuthorizedKey { .. }) = HermeticParallelConfig::new_from_file(
+            ConfigSettings::new(
+                "test".to_string(),
+                ConfigInteractivity::NonInteractive,
+                None,
+            ),
+            Some(&config_file),
+        ) {
+            Ok(())
+        } else {
+            panic!("Did not trigger the correct Error!")
+        }
+    }
+
+    #[rstest]
+    fn basic_parallel_config_duplicate_authorized_keys_share_downloader() -> TestResult {
+        use std::fs::File;
+        use std::io::Write;
+
+        let config_string = r#"
+iteration = 1
+[[connections]]
+url = "https://localhost:8443/api/v1/"
+tls_security = "Unsafe"
+
+[[users]]
+nethsm_only_admin = "admin"
+
+[[users]]
+
+[users.system_nethsm_operator_signing]
+nethsm_user = "operator1"
+ssh_authorized_key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAN54Gd1jMz+yNDjBRwX1SnOtWuUsVF64RJIeYJ8DI7b user@host"
+system_user = "ssh-operator1"
+tag = "tag1"
+
+[users.system_nethsm_operator_signing.nethsm_key_setup]
+key_id = "key1"
+key_type = "Curve25519"
+key_mechanisms = ["EdDsaSignature"]
+signature_type = "EdDsa"
+
+[users.system_nethsm_operator_signing.nethsm_key_setup.key_context.openpgp]
+user_ids = ["Foobar McFooface <foobar@mcfooface.org>"]
+version = "4"
+
+[[users]]
+
+[users.system_nethsm_operator_signing]
+nethsm_user = "operator2"
+ssh_authorized_key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOh9BTe81DC6A0YZALsq9dWcyl6xjjqlxWPwlExTFgBt user@host"
+system_user = "ssh-operator2"
+tag = "tag2"
+
+[users.system_nethsm_operator_signing.nethsm_key_setup]
+key_id = "key2"
+key_type = "Curve25519"
+key_mechanisms = ["EdDsaSignature"]
+signature_type = "EdDsa"
+
+[users.system_nethsm_operator_signing.nethsm_key_setup.key_context.openpgp]
+user_ids = ["Foobar McFooface <foobar@mcfooface.org>"]
+version = "4"
+
+[[users]]
+
+[users.system_only_share_download]
+# NOTE: this is a duplicate and triggers an error
+ssh_authorized_keys = ["ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAN54Gd1jMz+yNDjBRwX1SnOtWuUsVF64RJIeYJ8DI7b user@host"]
+system_user = "ssh-share-down"
+
+[[users]]
+
+[users.system_only_share_upload]
+ssh_authorized_keys = ["ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOh96uFTnvX6P1ebbLxXFvy6sK7qFqlMHDOuJ0TmuXQQ user@host"]
+system_user = "ssh-share-up"
+"#;
+        let config_file = {
+            let config_file: PathBuf = testdir!().join("config.toml");
+            let mut buffer = File::create(&config_file)?;
+            buffer.write_all(config_string.as_bytes())?;
+            config_file
+        };
+
+        if let Err(Error::DuplicateSshAuthorizedKey { .. }) = HermeticParallelConfig::new_from_file(
+            ConfigSettings::new(
+                "test".to_string(),
+                ConfigInteractivity::NonInteractive,
+                None,
+            ),
+            Some(&config_file),
+        ) {
+            Ok(())
+        } else {
+            panic!("Did not trigger the correct Error!")
+        }
+    }
+
+    #[rstest]
+    fn basic_parallel_config_duplicate_authorized_keys_users() -> TestResult {
+        use std::fs::File;
+        use std::io::Write;
+
+        let config_string = r#"
+iteration = 1
+[[connections]]
+url = "https://localhost:8443/api/v1/"
+tls_security = "Unsafe"
+
+[[users]]
+nethsm_only_admin = "admin"
+
+[[users]]
+
+[users.system_nethsm_operator_signing]
+nethsm_user = "operator1"
+ssh_authorized_key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAN54Gd1jMz+yNDjBRwX1SnOtWuUsVF64RJIeYJ8DI7b user@host"
+system_user = "ssh-operator1"
+tag = "tag1"
+
+[users.system_nethsm_operator_signing.nethsm_key_setup]
+key_id = "key1"
+key_type = "Curve25519"
+key_mechanisms = ["EdDsaSignature"]
+signature_type = "EdDsa"
+
+[users.system_nethsm_operator_signing.nethsm_key_setup.key_context.openpgp]
+user_ids = ["Foobar McFooface <foobar@mcfooface.org>"]
+version = "4"
+
+[[users]]
+
+[users.system_nethsm_operator_signing]
+nethsm_user = "operator2"
+# NOTE: this is a duplicate and triggers an error
+ssh_authorized_key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAN54Gd1jMz+yNDjBRwX1SnOtWuUsVF64RJIeYJ8DI7b user@host"
+system_user = "ssh-operator2"
+tag = "tag2"
+
+[users.system_nethsm_operator_signing.nethsm_key_setup]
+key_id = "key2"
+key_type = "Curve25519"
+key_mechanisms = ["EdDsaSignature"]
+signature_type = "EdDsa"
+
+[users.system_nethsm_operator_signing.nethsm_key_setup.key_context.openpgp]
+user_ids = ["Foobar McFooface <foobar@mcfooface.org>"]
+version = "4"
+
+[[users]]
+
+[users.system_only_share_download]
+ssh_authorized_keys = ["ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOh96uFTnvX6P1ebbLxXFvy6sK7qFqlMHDOuJ0TmuXQQ user@host"]
+system_user = "ssh-share-down"
+
+[[users]]
+
+[users.system_only_share_upload]
+ssh_authorized_keys = ["ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOh96uFTnvX6P1ebbLxXFvy6sK7qFqlMHDOuJ0TmuXQQ user@host"]
+system_user = "ssh-share-up"
+"#;
+        let config_file = {
+            let config_file: PathBuf = testdir!().join("config.toml");
+            let mut buffer = File::create(&config_file)?;
+            buffer.write_all(config_string.as_bytes())?;
+            config_file
+        };
+
+        if let Err(Error::DuplicateSshAuthorizedKey { .. }) = HermeticParallelConfig::new_from_file(
+            ConfigSettings::new(
+                "test".to_string(),
+                ConfigInteractivity::NonInteractive,
+                None,
+            ),
+            Some(&config_file),
+        ) {
+            Ok(())
+        } else {
+            panic!("Did not trigger the correct Error!")
+        }
+    }
+
+    #[rstest]
+    fn basic_parallel_config_missing_share_download_user() -> TestResult {
+        use std::fs::File;
+        use std::io::Write;
+
+        let config_string = r#"
+iteration = 1
+[[connections]]
+url = "https://localhost:8443/api/v1/"
+tls_security = "Unsafe"
+
+[[users]]
+nethsm_only_admin = "admin"
+
+[[users]]
+
+[users.system_nethsm_operator_signing]
+nethsm_user = "operator1"
+ssh_authorized_key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAN54Gd1jMz+yNDjBRwX1SnOtWuUsVF64RJIeYJ8DI7b user@host"
+system_user = "ssh-operator1"
+tag = "tag1"
+
+[users.system_nethsm_operator_signing.nethsm_key_setup]
+key_id = "key1"
+key_type = "Curve25519"
+key_mechanisms = ["EdDsaSignature"]
+signature_type = "EdDsa"
+
+[users.system_nethsm_operator_signing.nethsm_key_setup.key_context.openpgp]
+user_ids = ["Foobar McFooface <foobar@mcfooface.org>"]
+version = "4"
+
+[[users]]
+
+[users.system_nethsm_operator_signing]
+nethsm_user = "operator2"
+ssh_authorized_key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOh9BTe81DC6A0YZALsq9dWcyl6xjjqlxWPwlExTFgBt user@host"
+system_user = "ssh-operator2"
+tag = "tag2"
+
+[users.system_nethsm_operator_signing.nethsm_key_setup]
+key_id = "key2"
+key_type = "Curve25519"
+key_mechanisms = ["EdDsaSignature"]
+signature_type = "EdDsa"
+
+[users.system_nethsm_operator_signing.nethsm_key_setup.key_context.openpgp]
+user_ids = ["Foobar McFooface <foobar@mcfooface.org>"]
+version = "4"
+
+# NOTE: The share download user is missing and this triggers an error.
+
+[[users]]
+
+[users.system_only_share_upload]
+ssh_authorized_keys = ["ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOh96uFTnvX6P1ebbLxXFvy6sK7qFqlMHDOuJ0TmuXQQ user@host"]
+system_user = "ssh-share-up"
+"#;
+        let config_file = {
+            let config_file: PathBuf = testdir!().join("config.toml");
+            let mut buffer = File::create(&config_file)?;
+            buffer.write_all(config_string.as_bytes())?;
+            config_file
+        };
+
+        if let Err(Error::MissingShareDownloadUser) = HermeticParallelConfig::new_from_file(
+            ConfigSettings::new(
+                "test".to_string(),
+                ConfigInteractivity::NonInteractive,
+                None,
+            ),
+            Some(&config_file),
+        ) {
+            Ok(())
+        } else {
+            panic!("Did not trigger the correct Error!")
+        }
+    }
+
+    #[rstest]
+    fn basic_parallel_config_missing_share_upload_user() -> TestResult {
+        use std::fs::File;
+        use std::io::Write;
+
+        let config_string = r#"
+iteration = 1
+[[connections]]
+url = "https://localhost:8443/api/v1/"
+tls_security = "Unsafe"
+
+[[users]]
+nethsm_only_admin = "admin"
+
+[[users]]
+
+[users.system_nethsm_operator_signing]
+nethsm_user = "operator1"
+ssh_authorized_key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAN54Gd1jMz+yNDjBRwX1SnOtWuUsVF64RJIeYJ8DI7b user@host"
+system_user = "ssh-operator1"
+tag = "tag1"
+
+[users.system_nethsm_operator_signing.nethsm_key_setup]
+key_id = "key1"
+key_type = "Curve25519"
+key_mechanisms = ["EdDsaSignature"]
+signature_type = "EdDsa"
+
+[users.system_nethsm_operator_signing.nethsm_key_setup.key_context.openpgp]
+user_ids = ["Foobar McFooface <foobar@mcfooface.org>"]
+version = "4"
+
+[[users]]
+
+[users.system_nethsm_operator_signing]
+nethsm_user = "operator2"
+ssh_authorized_key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOh9BTe81DC6A0YZALsq9dWcyl6xjjqlxWPwlExTFgBt user@host"
+system_user = "ssh-operator2"
+tag = "tag2"
+
+[users.system_nethsm_operator_signing.nethsm_key_setup]
+key_id = "key2"
+key_type = "Curve25519"
+key_mechanisms = ["EdDsaSignature"]
+signature_type = "EdDsa"
+
+[users.system_nethsm_operator_signing.nethsm_key_setup.key_context.openpgp]
+user_ids = ["Foobar McFooface <foobar@mcfooface.org>"]
+version = "4"
+
+[[users]]
+
+[users.system_only_share_download]
+ssh_authorized_keys = ["ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOh96uFTnvX6P1ebbLxXFvy6sK7qFqlMHDOuJ0TmuXQQ user@host"]
+system_user = "ssh-share-down"
+
+# NOTE: The share upload user is missing and this triggers an error.
+"#;
+        let config_file = {
+            let config_file: PathBuf = testdir!().join("config.toml");
+            let mut buffer = File::create(&config_file)?;
+            buffer.write_all(config_string.as_bytes())?;
+            config_file
+        };
+
+        if let Err(Error::MissingShareUploadUser) = HermeticParallelConfig::new_from_file(
+            ConfigSettings::new(
+                "test".to_string(),
+                ConfigInteractivity::NonInteractive,
+                None,
+            ),
+            Some(&config_file),
+        ) {
+            Ok(())
+        } else {
+            panic!("Did not trigger the correct Error!")
+        }
+    }
+
+    #[rstest]
+    fn basic_parallel_config_duplicate_key_id() -> TestResult {
+        use std::fs::File;
+        use std::io::Write;
+
+        let config_string = r#"
+iteration = 1
+[[connections]]
+url = "https://localhost:8443/api/v1/"
+tls_security = "Unsafe"
+
+[[users]]
+nethsm_only_admin = "admin"
+
+[[users]]
+
+[users.system_nethsm_operator_signing]
+nethsm_user = "operator1"
+ssh_authorized_key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAN54Gd1jMz+yNDjBRwX1SnOtWuUsVF64RJIeYJ8DI7b user@host"
+system_user = "ssh-operator1"
+tag = "tag1"
+
+[users.system_nethsm_operator_signing.nethsm_key_setup]
+key_id = "key1"
+key_type = "Curve25519"
+key_mechanisms = ["EdDsaSignature"]
+signature_type = "EdDsa"
+
+[users.system_nethsm_operator_signing.nethsm_key_setup.key_context.openpgp]
+user_ids = ["Foobar McFooface <foobar@mcfooface.org>"]
+version = "4"
+
+[[users]]
+
+[users.system_nethsm_operator_signing]
+nethsm_user = "operator2"
+ssh_authorized_key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOh9BTe81DC6A0YZALsq9dWcyl6xjjqlxWPwlExTFgBt user@host"
+system_user = "ssh-operator2"
+tag = "tag2"
+
+[users.system_nethsm_operator_signing.nethsm_key_setup]
+# NOTE: This key ID is a duplicate, which triggers an error
+key_id = "key1"
+key_type = "Curve25519"
+key_mechanisms = ["EdDsaSignature"]
+signature_type = "EdDsa"
+
+[users.system_nethsm_operator_signing.nethsm_key_setup.key_context.openpgp]
+user_ids = ["Foobar McFooface <foobar@mcfooface.org>"]
+version = "4"
+
+[[users]]
+
+[users.system_only_share_download]
+ssh_authorized_keys = ["ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOh96uFTnvX6P1ebbLxXFvy6sK7qFqlMHDOuJ0TmuXQQ user@host"]
+system_user = "ssh-share-down"
+
+[[users]]
+
+[users.system_only_share_upload]
+ssh_authorized_keys = ["ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOh96uFTnvX6P1ebbLxXFvy6sK7qFqlMHDOuJ0TmuXQQ user@host"]
+system_user = "ssh-share-up"
+"#;
+        let config_file = {
+            let config_file: PathBuf = testdir!().join("config.toml");
+            let mut buffer = File::create(&config_file)?;
+            buffer.write_all(config_string.as_bytes())?;
+            config_file
+        };
+        if let Err(Error::DuplicateKeyId { .. }) = HermeticParallelConfig::new_from_file(
+            ConfigSettings::new(
+                "test".to_string(),
+                ConfigInteractivity::NonInteractive,
+                None,
+            ),
+            Some(&config_file),
+        ) {
+            Ok(())
+        } else {
+            panic!("Did not trigger the correct Error!")
+        }
+    }
+
+    #[rstest]
+    fn basic_parallel_config_duplicate_key_id_in_namespace() -> TestResult {
+        use std::fs::File;
+        use std::io::Write;
+
+        let config_string = r#"
+iteration = 1
+[[connections]]
+url = "https://localhost:8443/api/v1/"
+tls_security = "Unsafe"
+
+[[users]]
+nethsm_only_admin = "admin"
+
+[[users]]
+nethsm_only_admin = "ns1~admin"
+
+[[users]]
+
+[users.system_nethsm_operator_signing]
+nethsm_user = "ns1~operator1"
+ssh_authorized_key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAN54Gd1jMz+yNDjBRwX1SnOtWuUsVF64RJIeYJ8DI7b user@host"
+system_user = "ssh-operator1"
+tag = "tag1"
+
+[users.system_nethsm_operator_signing.nethsm_key_setup]
+key_id = "key1"
+key_type = "Curve25519"
+key_mechanisms = ["EdDsaSignature"]
+signature_type = "EdDsa"
+
+[users.system_nethsm_operator_signing.nethsm_key_setup.key_context.openpgp]
+user_ids = ["Foobar McFooface <foobar@mcfooface.org>"]
+version = "4"
+
+[[users]]
+
+[users.system_nethsm_operator_signing]
+nethsm_user = "ns1~operator2"
+ssh_authorized_key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOh9BTe81DC6A0YZALsq9dWcyl6xjjqlxWPwlExTFgBt user@host"
+system_user = "ssh-operator2"
+tag = "tag2"
+
+[users.system_nethsm_operator_signing.nethsm_key_setup]
+# NOTE: This key ID is a duplicate, which triggers an error
+key_id = "key1"
+key_type = "Curve25519"
+key_mechanisms = ["EdDsaSignature"]
+signature_type = "EdDsa"
+
+[users.system_nethsm_operator_signing.nethsm_key_setup.key_context.openpgp]
+user_ids = ["Foobar McFooface <foobar@mcfooface.org>"]
+version = "4"
+
+[[users]]
+
+[users.system_only_share_download]
+ssh_authorized_keys = ["ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOh96uFTnvX6P1ebbLxXFvy6sK7qFqlMHDOuJ0TmuXQQ user@host"]
+system_user = "ssh-share-down"
+
+[[users]]
+
+[users.system_only_share_upload]
+ssh_authorized_keys = ["ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOh96uFTnvX6P1ebbLxXFvy6sK7qFqlMHDOuJ0TmuXQQ user@host"]
+system_user = "ssh-share-up"
+"#;
+        let config_file = {
+            let config_file: PathBuf = testdir!().join("config.toml");
+            let mut buffer = File::create(&config_file)?;
+            buffer.write_all(config_string.as_bytes())?;
+            config_file
+        };
+        if let Err(Error::DuplicateKeyIdInNamespace { .. }) = HermeticParallelConfig::new_from_file(
+            ConfigSettings::new(
+                "test".to_string(),
+                ConfigInteractivity::NonInteractive,
+                None,
+            ),
+            Some(&config_file),
+        ) {
+            Ok(())
+        } else {
+            panic!("Did not trigger the correct Error!")
+        }
+    }
+
+    #[rstest]
+    fn basic_parallel_config_duplicate_tag() -> TestResult {
+        use std::fs::File;
+        use std::io::Write;
+
+        let config_string = r#"
+iteration = 1
+[[connections]]
+url = "https://localhost:8443/api/v1/"
+tls_security = "Unsafe"
+
+[[users]]
+nethsm_only_admin = "admin"
+
+[[users]]
+
+[users.system_nethsm_operator_signing]
+nethsm_user = "operator1"
+ssh_authorized_key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAN54Gd1jMz+yNDjBRwX1SnOtWuUsVF64RJIeYJ8DI7b user@host"
+system_user = "ssh-operator1"
+tag = "tag1"
+
+[users.system_nethsm_operator_signing.nethsm_key_setup]
+key_id = "key1"
+key_type = "Curve25519"
+key_mechanisms = ["EdDsaSignature"]
+signature_type = "EdDsa"
+
+[users.system_nethsm_operator_signing.nethsm_key_setup.key_context.openpgp]
+user_ids = ["Foobar McFooface <foobar@mcfooface.org>"]
+version = "4"
+
+[[users]]
+
+[users.system_nethsm_operator_signing]
+nethsm_user = "operator2"
+ssh_authorized_key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOh9BTe81DC6A0YZALsq9dWcyl6xjjqlxWPwlExTFgBt user@host"
+system_user = "ssh-operator2"
+# NOTE: This tag is a duplicate, which triggers an error
+tag = "tag1"
+
+[users.system_nethsm_operator_signing.nethsm_key_setup]
+key_id = "key2"
+key_type = "Curve25519"
+key_mechanisms = ["EdDsaSignature"]
+signature_type = "EdDsa"
+
+[users.system_nethsm_operator_signing.nethsm_key_setup.key_context.openpgp]
+user_ids = ["Foobar McFooface <foobar@mcfooface.org>"]
+version = "4"
+
+[[users]]
+
+[users.system_only_share_download]
+ssh_authorized_keys = ["ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOh96uFTnvX6P1ebbLxXFvy6sK7qFqlMHDOuJ0TmuXQQ user@host"]
+system_user = "ssh-share-down"
+
+[[users]]
+
+[users.system_only_share_upload]
+ssh_authorized_keys = ["ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOh96uFTnvX6P1ebbLxXFvy6sK7qFqlMHDOuJ0TmuXQQ user@host"]
+system_user = "ssh-share-up"
+"#;
+        let config_file = {
+            let config_file: PathBuf = testdir!().join("config.toml");
+            let mut buffer = File::create(&config_file)?;
+            buffer.write_all(config_string.as_bytes())?;
+            config_file
+        };
+        if let Err(Error::DuplicateTag { .. }) = HermeticParallelConfig::new_from_file(
+            ConfigSettings::new(
+                "test".to_string(),
+                ConfigInteractivity::NonInteractive,
+                None,
+            ),
+            Some(&config_file),
+        ) {
+            Ok(())
+        } else {
+            panic!("Did not trigger the correct Error!")
+        }
+    }
+
+    #[rstest]
+    fn basic_parallel_config_duplicate_tag_in_namespace() -> TestResult {
+        use std::fs::File;
+        use std::io::Write;
+
+        let config_string = r#"
+iteration = 1
+[[connections]]
+url = "https://localhost:8443/api/v1/"
+tls_security = "Unsafe"
+
+[[users]]
+nethsm_only_admin = "admin"
+
+[[users]]
+nethsm_only_admin = "ns1~admin"
+
+[[users]]
+
+[users.system_nethsm_operator_signing]
+nethsm_user = "ns1~operator1"
+ssh_authorized_key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAN54Gd1jMz+yNDjBRwX1SnOtWuUsVF64RJIeYJ8DI7b user@host"
+system_user = "ssh-operator1"
+tag = "tag1"
+
+[users.system_nethsm_operator_signing.nethsm_key_setup]
+key_id = "key1"
+key_type = "Curve25519"
+key_mechanisms = ["EdDsaSignature"]
+signature_type = "EdDsa"
+
+[users.system_nethsm_operator_signing.nethsm_key_setup.key_context.openpgp]
+user_ids = ["Foobar McFooface <foobar@mcfooface.org>"]
+version = "4"
+
+[[users]]
+
+[users.system_nethsm_operator_signing]
+nethsm_user = "ns1~operator2"
+ssh_authorized_key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOh9BTe81DC6A0YZALsq9dWcyl6xjjqlxWPwlExTFgBt user@host"
+system_user = "ssh-operator2"
+# NOTE: This tag is a duplicate, which triggers an error
+tag = "tag1"
+
+[users.system_nethsm_operator_signing.nethsm_key_setup]
+key_id = "key2"
+key_type = "Curve25519"
+key_mechanisms = ["EdDsaSignature"]
+signature_type = "EdDsa"
+
+[users.system_nethsm_operator_signing.nethsm_key_setup.key_context.openpgp]
+user_ids = ["Foobar McFooface <foobar@mcfooface.org>"]
+version = "4"
+
+[[users]]
+
+[users.system_only_share_download]
+ssh_authorized_keys = ["ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOh96uFTnvX6P1ebbLxXFvy6sK7qFqlMHDOuJ0TmuXQQ user@host"]
+system_user = "ssh-share-down"
+
+[[users]]
+
+[users.system_only_share_upload]
+ssh_authorized_keys = ["ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOh96uFTnvX6P1ebbLxXFvy6sK7qFqlMHDOuJ0TmuXQQ user@host"]
+system_user = "ssh-share-up"
+"#;
+        let config_file = {
+            let config_file: PathBuf = testdir!().join("config.toml");
+            let mut buffer = File::create(&config_file)?;
+            buffer.write_all(config_string.as_bytes())?;
+            config_file
+        };
+        if let Err(Error::DuplicateTagInNamespace { .. }) = HermeticParallelConfig::new_from_file(
+            ConfigSettings::new(
+                "test".to_string(),
+                ConfigInteractivity::NonInteractive,
+                None,
+            ),
+            Some(&config_file),
+        ) {
+            Ok(())
+        } else {
+            panic!("Did not trigger the correct Error!")
+        }
     }
 }
