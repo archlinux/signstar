@@ -14,7 +14,7 @@ run-pre-commit-hook: check test
 check: check-spelling check-formatting lint check-unused-deps check-dependencies check-licenses check-links
 
 # Faster checks need to be executed first for better UX.  For example
-# codespell is very fast. cargo fmt does not need to download crates etc.
+# typos is very fast. cargo fmt does not need to download crates etc.
 
 # Installs all tools required for development
 dev-install: install-pacman-dev-packages install-rust-dev-tools
@@ -60,13 +60,11 @@ check-commits:
         printf "Checking commit %s\n" "$commit"
 
         commit_message="$(git show -s --format=%B "$commit")"
-        codespell_config="$(mktemp --tmpdir="$check_tmpdir")"
+        typos_config="$(mktemp --tmpdir="$check_tmpdir")"
 
-        # either use the commit's .codespellrc or create one
-        if git show "$commit:.codespellrc" > /dev/null 2>&1; then
-            git show "$commit:.codespellrc" > "$codespell_config"
-        else
-            printf "[codespell]\nskip = .cargo,.git,target,.env,Cargo.lock\nignore-words-list = crate,passt\n" > "$codespell_config"
+        # either use the commit's .typos.toml or create one
+        if git show "$commit:.typos.toml" > /dev/null 2>&1; then
+            git show "$commit:.typos.toml" > "$typos_config"
         fi
 
         if ! rg -q "Signed-off-by: " <<< "$commit_message"; then
@@ -77,7 +75,7 @@ check-commits:
                 "    git rebase --signoff main && git push --force-with-lease" \
                 "  See https://developercertificate.org/ for more details." >&2
             exit 1
-        elif ! codespell --config "$codespell_config" - <<< "$commit_message"; then
+        elif ! typos --config "$typos_config" - <<< "$commit_message"; then
             printf "Commit %s ❌️\n" "$commit" >&2
             printf "The spelling of the commit message needs improvement.\n" >&2
             exit 1
@@ -98,7 +96,7 @@ run-pre-push-hook: check-commits
 
 # Checks common spelling mistakes
 check-spelling:
-    codespell
+    typos
 
 # Gets names of all workspace members
 get-workspace-members:
@@ -244,7 +242,7 @@ fix:
         exit 1
     fi
 
-    codespell --write-changes
+    typos --write-changes
     just --unstable --fmt
     cargo clippy --fix --allow-staged
 
