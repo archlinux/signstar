@@ -202,6 +202,7 @@ use sha2::{Digest, Sha224, Sha256, Sha384, Sha512};
 
 mod key;
 pub use key::{
+    key_type_and_mechanisms_match_signature_type,
     key_type_matches_length,
     key_type_matches_mechanisms,
     tls_key_type_matches_length,
