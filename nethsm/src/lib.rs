@@ -208,6 +208,7 @@ pub use key::{
     tls_key_type_matches_length,
     CryptographicKeyContext,
     PrivateKeyImport,
+    SigningKeySetup,
     MIN_RSA_BIT_LENGTH,
 };
 
