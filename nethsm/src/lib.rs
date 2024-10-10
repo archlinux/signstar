@@ -206,6 +206,7 @@ pub use key::{
     key_type_matches_length,
     key_type_matches_mechanisms,
     tls_key_type_matches_length,
+    CryptographicKeyContext,
     PrivateKeyImport,
     MIN_RSA_BIT_LENGTH,
 };

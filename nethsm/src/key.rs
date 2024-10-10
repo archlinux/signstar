@@ -10,7 +10,7 @@ use rsa::{
 };
 use serde::{Deserialize, Serialize};
 
-use crate::{KeyMechanism, KeyType, SignatureType, TlsKeyType};
+use crate::{KeyMechanism, KeyType, OpenPgpUserIdList, OpenPgpVersion, SignatureType, TlsKeyType};
 
 /// The minimum bit length for an RSA key
 ///
@@ -187,6 +187,163 @@ pub enum Error {
         required_key_mechanism: KeyMechanism,
         signature_type: SignatureType,
     },
+
+    /// A valid cryptographic key use can not be derived from a String
+    #[error("Unable to derive a valid cryptography key use from string: {0}")]
+    InvalidCryptograhicKeyUse(String),
+
+    /// A signing key setup is not compatible with raw cryptographic signing
+    #[error("The key type {key_type}, key mechanisms {key_mechanisms:?} and signature type {signature_type} are incompatible with raw cryptographic signing")]
+    InvalidRawSigningKeySetup {
+        key_type: KeyType,
+        key_mechanisms: Vec<KeyMechanism>,
+        signature_type: SignatureType,
+    },
+
+    /// A signing key setup is not compatible with OpenPGP signing
+    #[error("The key type {key_type}, key mechanisms {key_mechanisms:?} and signature type {signature_type} are incompatible with OpenPGP signing")]
+    InvalidOpenPgpSigningKeySetup {
+        key_type: KeyType,
+        key_mechanisms: Vec<KeyMechanism>,
+        signature_type: SignatureType,
+    },
+}
+
+/// The cryptographic context in which a key is used
+///
+/// Each key can only be used in one cryptographic context.
+/// This is because the NetHSM offers only a single certificate slot per key, which can be used to
+/// attach certificates for a specific cryptographic use.
+#[derive(Clone, Debug, Deserialize, Hash, Eq, PartialEq, Serialize)]
+pub enum CryptographicKeyContext {
+    /// A key is used in an OpenPGP context
+    #[serde(rename = "openpgp")]
+    OpenPgp {
+        user_ids: OpenPgpUserIdList,
+        version: OpenPgpVersion,
+    },
+
+    /// A key is used in a raw cryptographic context
+    #[serde(rename = "raw")]
+    Raw,
+}
+
+impl CryptographicKeyContext {
+    /// Validates the cryptographic context against a signing key setup
+    ///
+    /// # Errors
+    ///
+    /// Returns an [`Error::Key`][`crate::Error::Key`] if the key setup can not be used for signing
+    /// operations in the respective cryptographic context.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use nethsm::{
+    ///     CryptographicKeyContext,
+    ///     KeyMechanism,
+    ///     KeyType,
+    ///     OpenPgpUserIdList,
+    ///     OpenPgpVersion,
+    ///     SignatureType,
+    /// };
+    ///
+    /// # fn main() -> testresult::TestResult {
+    /// CryptographicKeyContext::Raw.validate_signing_key_setup(
+    ///     KeyType::Curve25519,
+    ///     &[KeyMechanism::EdDsaSignature],
+    ///     SignatureType::EdDsa,
+    /// )?;
+    ///
+    /// CryptographicKeyContext::OpenPgp {
+    ///     user_ids: OpenPgpUserIdList::new(vec!["Foobar McFooface <foobar@mcfooface.org>".parse()?])?,
+    ///     version: OpenPgpVersion::V4,
+    /// }
+    /// .validate_signing_key_setup(
+    ///     KeyType::Curve25519,
+    ///     &[KeyMechanism::EdDsaSignature],
+    ///     SignatureType::EdDsa,
+    /// )?;
+    ///
+    /// // OpenPGP does not support ECDSA P224
+    /// assert!(CryptographicKeyContext::OpenPgp {
+    ///     user_ids: OpenPgpUserIdList::new(vec!["Foobar McFooface <foobar@mcfooface.org>".parse()?])?,
+    ///     version: OpenPgpVersion::V4,
+    /// }
+    /// .validate_signing_key_setup(
+    ///     KeyType::EcP224,
+    ///     &[KeyMechanism::EcdsaSignature],
+    ///     SignatureType::EcdsaP224,
+    /// )
+    /// .is_err());
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn validate_signing_key_setup(
+        &self,
+        key_type: KeyType,
+        key_mechanisms: &[KeyMechanism],
+        signature_type: SignatureType,
+    ) -> Result<(), Error> {
+        match self {
+            Self::Raw => match (key_type, signature_type) {
+                (KeyType::Curve25519, SignatureType::EdDsa)
+                    if key_mechanisms.contains(&KeyMechanism::EdDsaSignature) => {}
+                (KeyType::EcP224, SignatureType::EcdsaP224)
+                    if key_mechanisms.contains(&KeyMechanism::EcdsaSignature) => {}
+                (KeyType::EcP256, SignatureType::EcdsaP256)
+                    if key_mechanisms.contains(&KeyMechanism::EcdsaSignature) => {}
+                (KeyType::EcP384, SignatureType::EcdsaP384)
+                    if key_mechanisms.contains(&KeyMechanism::EcdsaSignature) => {}
+                (KeyType::EcP521, SignatureType::EcdsaP521)
+                    if key_mechanisms.contains(&KeyMechanism::EcdsaSignature) => {}
+                (KeyType::Rsa, SignatureType::Pkcs1)
+                    if key_mechanisms.contains(&KeyMechanism::RsaSignaturePkcs1) => {}
+                (KeyType::Rsa, SignatureType::PssMd5)
+                    if key_mechanisms.contains(&KeyMechanism::RsaSignaturePssMd5) => {}
+                (KeyType::Rsa, SignatureType::PssSha1)
+                    if key_mechanisms.contains(&KeyMechanism::RsaSignaturePssSha1) => {}
+                (KeyType::Rsa, SignatureType::PssSha224)
+                    if key_mechanisms.contains(&KeyMechanism::RsaSignaturePssSha224) => {}
+                (KeyType::Rsa, SignatureType::PssSha256)
+                    if key_mechanisms.contains(&KeyMechanism::RsaSignaturePssSha256) => {}
+                (KeyType::Rsa, SignatureType::PssSha384)
+                    if key_mechanisms.contains(&KeyMechanism::RsaSignaturePssSha384) => {}
+                (KeyType::Rsa, SignatureType::PssSha512)
+                    if key_mechanisms.contains(&KeyMechanism::RsaSignaturePssSha512) => {}
+                _ => {
+                    return Err(Error::InvalidRawSigningKeySetup {
+                        key_type,
+                        key_mechanisms: key_mechanisms.to_vec(),
+                        signature_type,
+                    })
+                }
+            },
+            Self::OpenPgp {
+                user_ids: _,
+                version: _,
+            } => match (key_type, signature_type) {
+                (KeyType::Curve25519, SignatureType::EdDsa)
+                    if key_mechanisms.contains(&KeyMechanism::EdDsaSignature) => {}
+                (KeyType::EcP256, SignatureType::EcdsaP256)
+                    if key_mechanisms.contains(&KeyMechanism::EcdsaSignature) => {}
+                (KeyType::EcP384, SignatureType::EcdsaP384)
+                    if key_mechanisms.contains(&KeyMechanism::EcdsaSignature) => {}
+                (KeyType::EcP521, SignatureType::EcdsaP521)
+                    if key_mechanisms.contains(&KeyMechanism::EcdsaSignature) => {}
+                (KeyType::Rsa, SignatureType::Pkcs1)
+                    if key_mechanisms.contains(&KeyMechanism::RsaSignaturePkcs1) => {}
+                _ => {
+                    return Err(Error::InvalidOpenPgpSigningKeySetup {
+                        key_type,
+                        key_mechanisms: key_mechanisms.to_vec(),
+                        signature_type,
+                    })
+                }
+            },
+        }
+        Ok(())
+    }
 }
 
 /// The data for private key import
