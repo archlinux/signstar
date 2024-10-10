@@ -117,6 +117,7 @@ impl<T> Display for NetHsmApiError<T> {
     Clone,
     Copy,
     Debug,
+    Deserialize,
     strum::Display,
     strum::EnumString,
     strum::EnumIter,
@@ -126,6 +127,7 @@ impl<T> Display for NetHsmApiError<T> {
     Ord,
     PartialOrd,
     Hash,
+    Serialize,
 )]
 #[strum(ascii_case_insensitive)]
 pub enum SignatureType {
