@@ -225,9 +225,13 @@ pub use nethsm_sdk::{
     UserRole,
 };
 mod openpgp;
-pub use openpgp::extract_certificate as extract_openpgp_certificate;
-pub use openpgp::tsk_to_private_key_import;
-pub use openpgp::KeyUsageFlags as OpenPgpKeyUsageFlags;
+pub use openpgp::{
+    extract_certificate as extract_openpgp_certificate,
+    tsk_to_private_key_import,
+    KeyUsageFlags as OpenPgpKeyUsageFlags,
+    OpenPgpUserId,
+    OpenPgpUserIdList,
+};
 
 mod tls;
 pub use tls::{ConnectionSecurity, HostCertificateFingerprints};

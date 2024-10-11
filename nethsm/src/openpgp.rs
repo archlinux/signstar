@@ -1,9 +1,15 @@
 //! OpenPGP-related functions.
 
-use std::fmt::Debug;
+use std::{
+    borrow::Borrow,
+    collections::HashSet,
+    fmt::{Debug, Display},
+    str::FromStr,
+};
 
 use base64ct::{Base64, Encoding as _};
 use chrono::{DateTime, Utc};
+use email_address::{EmailAddress, Options};
 use pgp::{
     crypto::{ecc_curve::ECCCurve, hash::HashAlgorithm, public_key::PublicKeyAlgorithm},
     packet::{
@@ -57,6 +63,10 @@ pub enum Error {
     #[error("Elliptic curve error: {0}")]
     EllipticCurve(#[from] p256::elliptic_curve::Error),
 
+    /// Duplicate OpenPGP User ID
+    #[error("The OpenPGP User ID {user_id} is used more than once!")]
+    DuplicateUserId { user_id: OpenPgpUserId },
+
     /// Provided key data is invalid
     #[error("Key data invalid: {0}")]
     KeyData(String),
@@ -80,6 +90,224 @@ pub enum Error {
     /// The key format used is unsupported
     #[error("Unsupported key format: {public_params:?}")]
     UnsupportedKeyFormat { public_params: Box<PublicParams> },
+
+    /// The User ID is too large
+    #[error("The OpenPGP User ID is too large: {user_id}")]
+    UserIdTooLarge { user_id: String },
+}
+
+/// A distinction between types of OpenPGP User IDs
+#[derive(Clone, Debug, Hash, Eq, PartialEq)]
+enum OpenPgpUserIdType {
+    /// An OpenPGP User ID that contains a valid e-mail address (e.g. "John Doe
+    /// <john@example.org>")
+    ///
+    /// The e-mail address must use a top-level domain (TLD) and no domain literal (e.g. an IP
+    /// address) is allowed.
+    Email(EmailAddress),
+
+    /// A plain OpenPGP User ID
+    ///
+    /// The User ID may contain any UTF-8 character, but does not represent a valid e-mail address.
+    Plain(String),
+}
+
+/// A basic representation of a User ID for OpenPGP
+///
+/// While [OpenPGP User IDs] are loosely defined to be UTF-8 strings, they do not enforce
+/// particular rules around the use of e-mail addresses or their general length.
+/// This type allows to distinguish between plain UTF-8 strings and valid e-mail addresses.
+/// Valid e-mail addresses must provide a display part, use a top-level domain (TLD) and not rely on
+/// domain literals (e.g. IP address).
+/// The length of a User ID is implicitly limited by the maximum length of an OpenPGP packet (8192
+/// bytes).
+/// As such, this type only allows a maximum length of 4096 bytes as middle ground.
+///
+/// [OpenPGP User IDs]: https://www.rfc-editor.org/rfc/rfc9580.html#name-user-id-packet-type-id-13
+#[derive(Clone, Debug, serde::Deserialize, Hash, Eq, PartialEq, serde::Serialize)]
+#[serde(into = "String", try_from = "String")]
+pub struct OpenPgpUserId(OpenPgpUserIdType);
+
+impl OpenPgpUserId {
+    /// Creates a new [`OpenPgpUserId`] from a String
+    ///
+    /// # Errors
+    ///
+    /// Returns an [`Error::Key`][`crate::Error::Key`] if the chars of the provided String exceed
+    /// 4096 bytes. This ensures to stay below the valid upper limit defined by the maximum OpenPGP
+    /// packet size of 8192 bytes.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use std::str::FromStr;
+    ///
+    /// use nethsm::OpenPgpUserId;
+    ///
+    /// # fn main() -> testresult::TestResult {
+    /// assert!(!OpenPgpUserId::new("🤡".to_string())?.is_email());
+    ///
+    /// assert!(OpenPgpUserId::new("🤡 <foo@xn--rl8h.org>".to_string())?.is_email());
+    ///
+    /// // an e-mail without a display name is not considered a valid e-mail
+    /// assert!(!OpenPgpUserId::new("<foo@xn--rl8h.org>".to_string())?.is_email());
+    ///
+    /// // this fails because the provided String is too long
+    /// assert!(OpenPgpUserId::new("U".repeat(4097)).is_err());
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn new(user_id: String) -> Result<Self, Error> {
+        if user_id.len() > 4096 {
+            return Err(Error::UserIdTooLarge { user_id });
+        }
+        if let Ok(email) = EmailAddress::parse_with_options(
+            &user_id,
+            Options::default()
+                .with_required_tld()
+                .without_domain_literal(),
+        ) {
+            Ok(Self(OpenPgpUserIdType::Email(email)))
+        } else {
+            Ok(Self(OpenPgpUserIdType::Plain(user_id)))
+        }
+    }
+
+    /// Returns whether the [`OpenPgpUserId`] is a valid e-mail address
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use nethsm::OpenPgpUserId;
+    ///
+    /// # fn main() -> testresult::TestResult {
+    /// assert!(!OpenPgpUserId::new("🤡".to_string())?.is_email());
+    ///
+    /// assert!(OpenPgpUserId::new("🤡 <foo@xn--rl8h.org>".to_string())?.is_email());
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn is_email(&self) -> bool {
+        matches!(self.0, OpenPgpUserIdType::Email(..))
+    }
+}
+
+impl AsRef<str> for OpenPgpUserId {
+    fn as_ref(&self) -> &str {
+        match self.0.borrow() {
+            OpenPgpUserIdType::Email(user_id) => user_id.as_str(),
+            OpenPgpUserIdType::Plain(user_id) => user_id.as_str(),
+        }
+    }
+}
+
+impl Display for OpenPgpUserId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.as_ref())
+    }
+}
+
+impl FromStr for OpenPgpUserId {
+    type Err = Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Self::new(s.to_string())
+    }
+}
+
+impl From<OpenPgpUserId> for String {
+    fn from(value: OpenPgpUserId) -> Self {
+        value.to_string()
+    }
+}
+
+impl TryFrom<String> for OpenPgpUserId {
+    type Error = Error;
+
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        Self::new(value)
+    }
+}
+
+/// A list of [`OpenPgpUserId`]
+///
+/// The items of the list are guaranteed to be unique.
+#[derive(Clone, Debug, serde::Deserialize, Hash, Eq, PartialEq, serde::Serialize)]
+#[serde(into = "Vec<String>", try_from = "Vec<String>")]
+pub struct OpenPgpUserIdList(Vec<OpenPgpUserId>);
+
+impl OpenPgpUserIdList {
+    /// Creates a new [`OpenPgpUserIdList`]
+    ///
+    /// # Errors
+    ///
+    /// Returns an error, if one of the provided [`OpenPgpUserId`]s is a duplicate.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use nethsm::OpenPgpUserIdList;
+    ///
+    /// # fn main() -> testresult::TestResult {
+    /// OpenPgpUserIdList::new(vec![
+    ///     "🤡 <foo@xn--rl8h.org>".parse()?,
+    ///     "🤡 <bar@xn--rl8h.org>".parse()?,
+    /// ])?;
+    ///
+    /// // this fails because the two OpenPgpUserIds are the same
+    /// assert!(OpenPgpUserIdList::new(vec![
+    ///     "🤡 <foo@xn--rl8h.org>".parse()?,
+    ///     "🤡 <foo@xn--rl8h.org>".parse()?,
+    /// ])
+    /// .is_err());
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn new(user_ids: Vec<OpenPgpUserId>) -> Result<Self, Error> {
+        let mut set = HashSet::new();
+        for user_id in user_ids.iter() {
+            if !set.insert(user_id) {
+                return Err(Error::DuplicateUserId {
+                    user_id: user_id.to_owned(),
+                });
+            }
+        }
+        Ok(Self(user_ids))
+    }
+
+    pub fn iter(&self) -> impl Iterator<Item = &OpenPgpUserId> {
+        self.0.iter()
+    }
+}
+
+impl AsRef<[OpenPgpUserId]> for OpenPgpUserIdList {
+    fn as_ref(&self) -> &[OpenPgpUserId] {
+        &self.0
+    }
+}
+
+impl From<OpenPgpUserIdList> for Vec<String> {
+    fn from(value: OpenPgpUserIdList) -> Self {
+        value
+            .iter()
+            .map(|user_id| user_id.to_string())
+            .collect::<Vec<String>>()
+    }
+}
+
+impl TryFrom<Vec<String>> for OpenPgpUserIdList {
+    type Error = Error;
+
+    fn try_from(value: Vec<String>) -> Result<Self, Self::Error> {
+        let user_ids = {
+            let mut user_ids: Vec<OpenPgpUserId> = vec![];
+            for user_id in value {
+                user_ids.push(OpenPgpUserId::new(user_id)?)
+            }
+            user_ids
+        };
+        OpenPgpUserIdList::new(user_ids)
+    }
 }
 
 /// PGP-adapter for a NetHSM key.
