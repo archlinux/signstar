@@ -139,7 +139,7 @@ impl TryFrom<&str> for NamespaceId {
 ///
 /// [user management]: https://docs.nitrokey.com/nethsm/administration#user-management
 #[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
-#[serde(untagged)]
+#[serde(into = "String", try_from = "String")]
 pub enum UserId {
     /// A system-wide user
     SystemWide(String),
@@ -354,6 +354,12 @@ impl Display for UserId {
             UserId::SystemWide(user_id) => user_id.fmt(f),
             UserId::Namespace(namespace, name) => write!(f, "{namespace}~{name}"),
         }
+    }
+}
+
+impl From<UserId> for String {
+    fn from(value: UserId) -> Self {
+        value.to_string()
     }
 }
 
