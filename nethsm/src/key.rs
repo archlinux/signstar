@@ -27,7 +27,7 @@ pub const MIN_RSA_BIT_LENGTH: u32 = 2048;
 /// [key management]: https://docs.nitrokey.com/nethsm/operation#key-management
 /// [namespaces]: https://docs.nitrokey.com/nethsm/administration#namespaces
 #[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
-#[serde(transparent)]
+#[serde(into = "String", try_from = "String")]
 pub struct KeyId(String);
 
 impl KeyId {
