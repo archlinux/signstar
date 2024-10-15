@@ -67,6 +67,10 @@ pub enum Error {
     #[error("The OpenPGP User ID {user_id} is used more than once!")]
     DuplicateUserId { user_id: OpenPgpUserId },
 
+    /// Provided OpenPGP version is invalid
+    #[error("Invalid OpenPGP version: {0}")]
+    InvalidOpenPgpVersion(String),
+
     /// Provided key data is invalid
     #[error("Key data invalid: {0}")]
     KeyData(String),
@@ -94,6 +98,102 @@ pub enum Error {
     /// The User ID is too large
     #[error("The OpenPGP User ID is too large: {user_id}")]
     UserIdTooLarge { user_id: String },
+}
+
+/// The OpenPGP version
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    Default,
+    serde::Deserialize,
+    strum::Display,
+    strum::EnumIter,
+    Hash,
+    strum::IntoStaticStr,
+    Eq,
+    PartialEq,
+    serde::Serialize,
+)]
+#[serde(into = "String", try_from = "String")]
+pub enum OpenPgpVersion {
+    /// OpenPGP version 4 as defined in [RFC 4880]
+    ///
+    /// [RFC 4880]: https://www.rfc-editor.org/rfc/rfc4880.html
+    #[default]
+    #[strum(to_string = "4")]
+    V4,
+
+    /// OpenPGP version 6 as defined in [RFC 9580]
+    ///
+    /// [RFC 9580]: https://www.rfc-editor.org/rfc/rfc9580.html
+    #[strum(to_string = "6")]
+    V6,
+}
+
+impl AsRef<str> for OpenPgpVersion {
+    fn as_ref(&self) -> &str {
+        match self {
+            Self::V4 => "4",
+            Self::V6 => "6",
+        }
+    }
+}
+
+impl FromStr for OpenPgpVersion {
+    type Err = Error;
+
+    /// Creates an [`OpenPgpVersion`] from a string slice
+    ///
+    /// Only valid OpenPGP versions are considered:
+    /// * [RFC 4880] aka "v4"
+    /// * [RFC 9580] aka "v6"
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the provided string slice does not represent a valid OpenPGP version.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use std::str::FromStr;
+    ///
+    /// use nethsm::OpenPgpVersion;
+    ///
+    /// # fn main() -> testresult::TestResult {
+    /// assert_eq!(OpenPgpVersion::from_str("4")?, OpenPgpVersion::V4);
+    /// assert_eq!(OpenPgpVersion::from_str("6")?, OpenPgpVersion::V6);
+    ///
+    /// assert!(OpenPgpVersion::from_str("5").is_err());
+    /// # Ok(())
+    /// # }
+    /// ```
+    /// [RFC 4880]: https://www.rfc-editor.org/rfc/rfc4880.html
+    /// [RFC 9580]: https://www.rfc-editor.org/rfc/rfc9580.html
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "4" | "v4" | "V4" | "OpenPGPv4" => Ok(Self::V4),
+            "5" | "v5" | "V5" | "OpenPGPv5" => Err(Error::InvalidOpenPgpVersion(format!(
+                "{s} (\"we don't do these things around here\")"
+            ))),
+            "6" | "v6" | "V6" | "OpenPGPv6" => Ok(Self::V6),
+            _ => Err(Error::InvalidOpenPgpVersion(s.to_string())),
+        }
+    }
+}
+
+impl From<OpenPgpVersion> for String {
+    fn from(value: OpenPgpVersion) -> Self {
+        value.to_string()
+    }
+}
+
+impl TryFrom<String> for OpenPgpVersion {
+    type Error = Error;
+
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        Self::from_str(&value)
+    }
 }
 
 /// A distinction between types of OpenPGP User IDs

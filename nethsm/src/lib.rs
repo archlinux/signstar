@@ -231,6 +231,7 @@ pub use openpgp::{
     KeyUsageFlags as OpenPgpKeyUsageFlags,
     OpenPgpUserId,
     OpenPgpUserIdList,
+    OpenPgpVersion,
 };
 
 mod tls;
