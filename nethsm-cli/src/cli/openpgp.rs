@@ -5,6 +5,7 @@ use clap::{Parser, Subcommand};
 use expression_format::ex_format;
 use nethsm::{
     KeyId,
+    OpenPgpUserId,
     UserRole::{Administrator, Operator},
 };
 
@@ -45,7 +46,7 @@ pub struct OpenPgpAddCommand {
     pub key_id: KeyId,
 
     #[arg(env = "NETHSM_OPENPGP_USERID", help = "The User ID to use for the key")]
-    pub user_id: String,
+    pub user_id: OpenPgpUserId,
 
     #[arg(
         env = "NETHSM_OPENPGP_CREATED_AT",

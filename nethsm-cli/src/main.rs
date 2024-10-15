@@ -796,7 +796,7 @@ fn main() -> Result<(), Error> {
                 let cert = nethsm.create_openpgp_cert(
                     &command.key_id,
                     flags,
-                    &command.user_id,
+                    command.user_id,
                     command.time.unwrap_or_else(Utc::now),
                 )?;
 

@@ -599,7 +599,7 @@ pub fn add_certificate(
     nethsm: &NetHsm,
     flags: KeyUsageFlags,
     key_id: &crate::KeyId,
-    user_id: &str,
+    user_id: OpenPgpUserId,
     created_at: DateTime<Utc>,
 ) -> Result<Vec<u8>, crate::Error> {
     let public_key = nethsm.get_key(key_id)?;
@@ -611,7 +611,7 @@ pub fn add_certificate(
     let composed_pk = pgp::PublicKey::new(
         signer.public_key(),
         KeyDetails::new(
-            UserId::from_str(Default::default(), user_id),
+            UserId::from_str(Default::default(), user_id.as_ref()),
             vec![],
             vec![],
             keyflags,

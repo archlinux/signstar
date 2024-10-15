@@ -4760,7 +4760,7 @@ impl NetHsm {
     /// let openpgp_cert = nethsm.create_openpgp_cert(
     ///     &"signing1".parse()?,
     ///     OpenPgpKeyUsageFlags::default(),
-    ///     "Test <test@example.org>",
+    ///     "Test <test@example.org>".parse()?,
     ///     SystemTime::now().into(),
     /// )?;
     ///
@@ -4862,7 +4862,7 @@ impl NetHsm {
     /// let openpgp_cert = nethsm.create_openpgp_cert(
     ///     &"signing1".parse()?,
     ///     OpenPgpKeyUsageFlags::default(),
-    ///     "Test <test@example.org>",
+    ///     "Test <test@example.org>".parse()?,
     ///     SystemTime::now().into(),
     /// )?;
     /// // use the Administrator credentials to import the OpenPGP certificate as certificate for the key
@@ -4965,7 +4965,7 @@ impl NetHsm {
     /// let openpgp_cert = nethsm.create_openpgp_cert(
     ///     &"signing1".parse()?,
     ///     OpenPgpKeyUsageFlags::default(),
-    ///     "Test <test@example.org>",
+    ///     "Test <test@example.org>".parse()?,
     ///     SystemTime::now().into(),
     /// )?;
     /// // use the Administrator credentials to import the OpenPGP certificate as certificate for the key
@@ -5827,7 +5827,7 @@ impl NetHsm {
     ///     .create_openpgp_cert(
     ///         &"signing1".parse()?,
     ///         OpenPgpKeyUsageFlags::default(),
-    ///         "Test <test@example.org>",
+    ///         "Test <test@example.org>".parse()?,
     ///         SystemTime::now().into()
     ///     )?
     ///     .is_empty());
@@ -5846,7 +5846,7 @@ impl NetHsm {
         &self,
         key_id: &KeyId,
         flags: OpenPgpKeyUsageFlags,
-        user_id: &str,
+        user_id: OpenPgpUserId,
         created_at: DateTime<Utc>,
     ) -> Result<Vec<u8>, Error> {
         openpgp::add_certificate(self, flags, key_id, user_id, created_at)
@@ -5930,7 +5930,7 @@ impl NetHsm {
     /// let openpgp_cert = nethsm.create_openpgp_cert(
     ///     &"signing1".parse()?,
     ///     OpenPgpKeyUsageFlags::default(),
-    ///     "Test <test@example.org>",
+    ///     "Test <test@example.org>".parse()?,
     ///     SystemTime::now().into(),
     /// )?;
     /// // import the OpenPGP certificate as key certificate
