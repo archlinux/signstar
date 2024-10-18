@@ -1,6 +1,16 @@
+use std::{fmt::Display, str::FromStr};
+
 use nethsm::{Credentials, Passphrase, UserId, UserRole};
 use serde::{Deserialize, Serialize};
 use zeroize::Zeroize;
+
+/// Errors related to credentials
+#[derive(Debug, thiserror::Error)]
+pub enum Error {
+    /// A system username is invalid
+    #[error("Invalid system user name: {0}")]
+    InvalidSystemUserName(String),
+}
 
 /// A set of credentials for a [`NetHsm`][`nethsm::NetHsm`]
 ///
@@ -73,5 +83,78 @@ impl ConfigCredentials {
 impl From<ConfigCredentials> for Credentials {
     fn from(value: ConfigCredentials) -> Self {
         Self::new(value.name, value.passphrase.map(Passphrase::new))
+    }
+}
+
+/// The name of a user on a Unix system
+///
+/// The username may only contain characters in the set of alphanumeric characters and the `'_'`
+/// character.
+#[derive(Clone, Debug, Deserialize, Hash, Eq, PartialEq, Serialize, Zeroize)]
+#[serde(into = "String", try_from = "String")]
+pub struct SystemUserId(String);
+
+impl SystemUserId {
+    /// Creates a new [`SystemUserId`]
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if `user` contains chars other than alphanumeric ones, `-`, or `_`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use nethsm_config::SystemUserId;
+    ///
+    /// # fn main() -> testresult::TestResult {
+    /// SystemUserId::new("user1".to_string())?;
+    /// SystemUserId::new("User_1".to_string())?;
+    /// assert!(SystemUserId::new("?ser-1".to_string()).is_err());
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn new(user: String) -> Result<Self, Error> {
+        if user.is_empty()
+            || !(user
+                .chars()
+                .all(|char| char.is_alphanumeric() || char == '_' || char == '-'))
+        {
+            return Err(Error::InvalidSystemUserName(user));
+        }
+        Ok(Self(user))
+    }
+}
+
+impl AsRef<str> for SystemUserId {
+    fn as_ref(&self) -> &str {
+        &self.0
+    }
+}
+
+impl Display for SystemUserId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.0.fmt(f)
+    }
+}
+
+impl From<SystemUserId> for String {
+    fn from(value: SystemUserId) -> Self {
+        value.to_string()
+    }
+}
+
+impl FromStr for SystemUserId {
+    type Err = Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Self::new(s.to_string())
+    }
+}
+
+impl TryFrom<String> for SystemUserId {
+    type Error = Error;
+
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        Self::new(value)
     }
 }
