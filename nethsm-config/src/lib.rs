@@ -62,5 +62,10 @@ pub use config::{
     DeviceConfig,
     Error,
 };
-pub use credentials::{ConfigCredentials, SystemUserId};
+pub use credentials::{
+    AuthorizedKeyEntry,
+    AuthorizedKeyEntryList,
+    ConfigCredentials,
+    SystemUserId,
+};
 pub use prompt::{PassphrasePrompt, UserPrompt};
