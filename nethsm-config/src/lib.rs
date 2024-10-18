@@ -70,5 +70,5 @@ pub use credentials::{
     SystemUserId,
     SystemWideUserId,
 };
-pub use mapping::NetHsmMetricsUsers;
+pub use mapping::{NetHsmMetricsUsers, UserMapping};
 pub use prompt::{PassphrasePrompt, UserPrompt};

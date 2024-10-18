@@ -1,11 +1,23 @@
-use nethsm::UserId;
+use nethsm::{KeyId, SigningKeySetup, UserId};
 use serde::{Deserialize, Serialize};
 
-use crate::SystemWideUserId;
+use crate::{AuthorizedKeyEntry, AuthorizedKeyEntryList, SystemUserId, SystemWideUserId};
 
 /// Errors related to mapping
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
+    /// A duplicate top-level [`KeyId`]
+    #[error("Duplicate top-level NetHsm key {key}")]
+    DuplicateKey { key: KeyId },
+
+    /// A duplicate namespaced [`KeyId`]
+    #[error("Duplicate NetHsm key {key} in namespace {namespace}")]
+    DuplicateKeyInNamespace { namespace: String, key: KeyId },
+
+    /// A duplicate [`UserId`]
+    #[error("Duplicate NetHsm user {nethsm_user}")]
+    DuplicateNetHsmUser { nethsm_user: UserId },
+
     /// A [`UserId`] is used both for a user in the [`Metrics`][`nethsm::UserRole::Metrics`] and
     /// [`Operator`][`nethsm::UserRole::Operator`] role
     #[error("The NetHsm user {metrics_user} is both in the Metrics and Operator role!")]
@@ -94,5 +106,512 @@ impl NetHsmMetricsUsers {
             self.operator_users.clone(),
         ]
         .concat()
+    }
+}
+
+/// User mapping between system users and [`NetHsm`][`nethsm::NetHsm`] users
+#[derive(Clone, Debug, Deserialize, Hash, Eq, PartialEq, Serialize)]
+pub enum UserMapping {
+    /// A NetHsm user in the Administrator role, without a system user mapped to it
+    #[serde(rename = "nethsm_only_admin")]
+    NetHsmOnlyAdmin(UserId),
+
+    /// A system user, with SSH access, mapped to a system-wide [`NetHsm`][`nethsm::NetHsm`] user
+    /// in the Backup role
+    #[serde(rename = "system_nethsm_backup")]
+    SystemNetHsmBackup {
+        nethsm_user: SystemWideUserId,
+        ssh_authorized_key: AuthorizedKeyEntry,
+        system_user: SystemUserId,
+    },
+
+    /// A system user, with SSH access, mapped to a system-wide [`NetHsm`][`nethsm::NetHsm`] user
+    /// in the Metrics role and `n` users in the Operator role with read-only access to zero or
+    /// more keys
+    #[serde(rename = "system_nethsm_metrics")]
+    SystemNetHsmMetrics {
+        nethsm_users: NetHsmMetricsUsers,
+        ssh_authorized_key: AuthorizedKeyEntry,
+        system_user: SystemUserId,
+    },
+
+    /// A system user, with SSH access, mapped to a [`NetHsm`][`nethsm::NetHsm`] user in the
+    /// Operator role with access to a single signing key.
+    ///
+    /// Signing key and NetHSM user are mapped using a tag.
+    #[serde(rename = "system_nethsm_operator_signing")]
+    SystemNetHsmOperatorSigning {
+        nethsm_user: UserId,
+        nethsm_key_setup: SigningKeySetup,
+        ssh_authorized_key: AuthorizedKeyEntry,
+        system_user: SystemUserId,
+        tag: String,
+    },
+
+    /// A system user, without SSH access, mapped to a system-wide [`NetHsm`][`nethsm::NetHsm`]
+    /// user in the Metrics role and one or more NetHsm users in the Operator role with
+    /// read-only access to zero or more keys
+    #[serde(rename = "hermetic_system_nethsm_metrics")]
+    HermeticSystemNetHsmMetrics {
+        nethsm_users: NetHsmMetricsUsers,
+        system_user: SystemUserId,
+    },
+
+    /// A system user, with SSH access for one or more SSH keys, not mapped to any NetHsm user,
+    /// used for downloading shares of a shared secret
+    #[serde(rename = "system_only_share_download")]
+    SystemOnlyShareDownload {
+        system_user: SystemUserId,
+        ssh_authorized_keys: AuthorizedKeyEntryList,
+    },
+
+    /// A system user, with SSH access for one or more SSH keys, not mapped to any NetHsm user,
+    /// used for uploading shares of a shared secret
+    #[serde(rename = "system_only_share_upload")]
+    SystemOnlyShareUpload {
+        system_user: SystemUserId,
+        ssh_authorized_keys: AuthorizedKeyEntryList,
+    },
+
+    /// A system user, with SSH access for one or more SSH keys, not mapped to any NetHsm user,
+    /// used for downloading WireGuard configuration
+    #[serde(rename = "system_only_wireguard_download")]
+    SystemOnlyWireGuardDownload {
+        system_user: SystemUserId,
+        ssh_authorized_keys: AuthorizedKeyEntryList,
+    },
+}
+
+impl UserMapping {
+    /// Returns the optional system user of the mapping
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use nethsm_config::{AuthorizedKeyEntryList, SystemUserId, UserMapping};
+    ///
+    /// # fn main() -> testresult::TestResult {
+    /// let mapping = UserMapping::SystemOnlyShareDownload {
+    ///     system_user: "user1".parse()?,
+    ///     ssh_authorized_keys: AuthorizedKeyEntryList::new(vec!["ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?])?,
+    /// };
+    /// assert_eq!(mapping.get_system_user(), Some(&SystemUserId::new("user1".to_string())?));
+    ///
+    /// let mapping = UserMapping::NetHsmOnlyAdmin("user1".parse()?);
+    /// assert_eq!(mapping.get_system_user(), None);
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn get_system_user(&self) -> Option<&SystemUserId> {
+        match self {
+            UserMapping::NetHsmOnlyAdmin(_) => None,
+            UserMapping::SystemNetHsmBackup {
+                nethsm_user: _,
+                ssh_authorized_key: _,
+                system_user,
+            }
+            | UserMapping::SystemNetHsmOperatorSigning {
+                nethsm_user: _,
+                nethsm_key_setup: _,
+                ssh_authorized_key: _,
+                system_user,
+                tag: _,
+            }
+            | UserMapping::SystemNetHsmMetrics {
+                nethsm_users: _,
+                ssh_authorized_key: _,
+                system_user,
+            }
+            | UserMapping::HermeticSystemNetHsmMetrics {
+                nethsm_users: _,
+                system_user,
+            }
+            | UserMapping::SystemOnlyShareDownload {
+                system_user,
+                ssh_authorized_keys: _,
+            }
+            | UserMapping::SystemOnlyShareUpload {
+                system_user,
+                ssh_authorized_keys: _,
+            }
+            | UserMapping::SystemOnlyWireGuardDownload {
+                system_user,
+                ssh_authorized_keys: _,
+            } => Some(system_user),
+        }
+    }
+
+    /// Returns the NetHsm users of the mapping
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use nethsm::UserId;
+    /// use nethsm_config::{AuthorizedKeyEntryList, UserMapping};
+    ///
+    /// # fn main() -> testresult::TestResult {
+    /// let mapping = UserMapping::SystemOnlyShareDownload {
+    ///     system_user: "user1".parse()?,
+    ///     ssh_authorized_keys: AuthorizedKeyEntryList::new(vec!["ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?])?,
+    /// };
+    /// assert!(mapping.get_nethsm_users().is_empty());
+    ///
+    /// let mapping = UserMapping::NetHsmOnlyAdmin("user1".parse()?);
+    /// assert_eq!(mapping.get_nethsm_users(), vec![UserId::new("user1".to_string())?]);
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn get_nethsm_users(&self) -> Vec<UserId> {
+        match self {
+            UserMapping::SystemNetHsmBackup {
+                nethsm_user,
+                system_user: _,
+                ssh_authorized_key: _,
+            } => vec![nethsm_user.clone().into()],
+            UserMapping::NetHsmOnlyAdmin(nethsm_user)
+            | UserMapping::SystemNetHsmOperatorSigning {
+                nethsm_user,
+                nethsm_key_setup: _,
+                system_user: _,
+                ssh_authorized_key: _,
+                tag: _,
+            } => vec![nethsm_user.clone()],
+            UserMapping::SystemNetHsmMetrics {
+                nethsm_users,
+                system_user: _,
+                ssh_authorized_key: _,
+            }
+            | UserMapping::HermeticSystemNetHsmMetrics {
+                nethsm_users,
+                system_user: _,
+            } => nethsm_users.get_users(),
+            UserMapping::SystemOnlyShareDownload {
+                system_user: _,
+                ssh_authorized_keys: _,
+            }
+            | UserMapping::SystemOnlyShareUpload {
+                system_user: _,
+                ssh_authorized_keys: _,
+            }
+            | UserMapping::SystemOnlyWireGuardDownload {
+                system_user: _,
+                ssh_authorized_keys: _,
+            } => vec![],
+        }
+    }
+
+    /// Returns the SSH authorized keys of the mapping
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use nethsm_config::{AuthorizedKeyEntry, AuthorizedKeyEntryList, UserMapping};
+    ///
+    /// # fn main() -> testresult::TestResult {
+    /// let mapping = UserMapping::SystemOnlyShareDownload {
+    ///     system_user: "user1".parse()?,
+    ///     ssh_authorized_keys: AuthorizedKeyEntryList::new(vec!["ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?])?,
+    /// };
+    /// assert_eq!(mapping.get_ssh_authorized_keys(), vec![AuthorizedKeyEntry::new("ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".to_string())?]);
+    ///
+    /// let mapping = UserMapping::NetHsmOnlyAdmin("user1".parse()?);
+    /// assert_eq!(mapping.get_ssh_authorized_keys(), vec![]);
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn get_ssh_authorized_keys(&self) -> Vec<AuthorizedKeyEntry> {
+        match self {
+            UserMapping::NetHsmOnlyAdmin(_) => vec![],
+            UserMapping::SystemNetHsmBackup {
+                nethsm_user: _,
+                system_user: _,
+                ssh_authorized_key,
+            }
+            | UserMapping::SystemNetHsmOperatorSigning {
+                nethsm_user: _,
+                nethsm_key_setup: _,
+                system_user: _,
+                ssh_authorized_key,
+                tag: _,
+            } => vec![ssh_authorized_key.clone()],
+            UserMapping::SystemNetHsmMetrics {
+                nethsm_users: _,
+                system_user: _,
+                ssh_authorized_key,
+            } => vec![ssh_authorized_key.clone()],
+            UserMapping::HermeticSystemNetHsmMetrics {
+                nethsm_users: _,
+                system_user: _,
+            } => vec![],
+            UserMapping::SystemOnlyShareDownload {
+                system_user: _,
+                ssh_authorized_keys,
+            }
+            | UserMapping::SystemOnlyShareUpload {
+                system_user: _,
+                ssh_authorized_keys,
+            }
+            | UserMapping::SystemOnlyWireGuardDownload {
+                system_user: _,
+                ssh_authorized_keys,
+            } => ssh_authorized_keys.into(),
+        }
+    }
+
+    /// Returns all used [`KeyId`]s of the mapping
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use nethsm::{CryptographicKeyContext, KeyId, OpenPgpUserIdList, SigningKeySetup};
+    /// use nethsm_config::{AuthorizedKeyEntryList, UserMapping};
+    ///
+    /// # fn main() -> testresult::TestResult {
+    /// let mapping = UserMapping::SystemNetHsmOperatorSigning {
+    ///     nethsm_user: "user1".parse()?,
+    ///     nethsm_key_setup: SigningKeySetup::new(
+    ///         "key1".parse()?,
+    ///         "Curve25519".parse()?,
+    ///         vec!["EdDsaSignature".parse()?],
+    ///         None,
+    ///         "EdDsa".parse()?,
+    ///         CryptographicKeyContext::OpenPgp{
+    ///             user_ids: OpenPgpUserIdList::new(vec!["John Doe <john@example.org>".parse()?])?,
+    ///             version: "v4".parse()?,
+    ///         },
+    ///     )?,
+    ///     system_user: "ssh-user1".parse()?,
+    ///     ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+    ///     tag: "tag1".to_string(),
+    /// };
+    /// assert_eq!(mapping.get_key_ids(None), vec![KeyId::new("key1".to_string())?]);
+    ///
+    /// let mapping = UserMapping::SystemOnlyShareDownload {
+    ///     system_user: "user1".parse()?,
+    ///     ssh_authorized_keys: AuthorizedKeyEntryList::new(vec!["ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?])?,
+    /// };
+    /// assert_eq!(mapping.get_key_ids(None), vec![]);
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn get_key_ids(&self, namespace: Option<&str>) -> Vec<KeyId> {
+        match self {
+            UserMapping::SystemNetHsmOperatorSigning {
+                nethsm_user,
+                nethsm_key_setup,
+                system_user: _,
+                ssh_authorized_key: _,
+                tag: _,
+            } => {
+                if nethsm_user.namespace().as_deref() == namespace {
+                    vec![nethsm_key_setup.get_key_id()]
+                } else {
+                    vec![]
+                }
+            }
+            UserMapping::SystemNetHsmMetrics {
+                nethsm_users: _,
+                system_user: _,
+                ssh_authorized_key: _,
+            }
+            | UserMapping::NetHsmOnlyAdmin(_)
+            | UserMapping::HermeticSystemNetHsmMetrics {
+                nethsm_users: _,
+                system_user: _,
+            }
+            | UserMapping::SystemNetHsmBackup {
+                nethsm_user: _,
+                system_user: _,
+                ssh_authorized_key: _,
+            }
+            | UserMapping::SystemOnlyShareDownload {
+                system_user: _,
+                ssh_authorized_keys: _,
+            }
+            | UserMapping::SystemOnlyShareUpload {
+                system_user: _,
+                ssh_authorized_keys: _,
+            }
+            | UserMapping::SystemOnlyWireGuardDownload {
+                system_user: _,
+                ssh_authorized_keys: _,
+            } => vec![],
+        }
+    }
+
+    /// Returns tags for keys and users
+    ///
+    /// Tags can be filtered by [namespace] by providing [`Some`] `namespace`.
+    /// Providing [`None`] implies that the context is system-wide.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use nethsm::{CryptographicKeyContext, OpenPgpUserIdList, SigningKeySetup};
+    /// use nethsm_config::{AuthorizedKeyEntryList, UserMapping};
+    ///
+    /// # fn main() -> testresult::TestResult {
+    /// let mapping = UserMapping::SystemOnlyShareDownload {
+    ///     system_user: "user1".parse()?,
+    ///     ssh_authorized_keys: AuthorizedKeyEntryList::new(vec!["ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?])?,
+    /// };
+    /// assert!(mapping.get_tags(None).is_empty());
+    ///
+    /// let mapping = UserMapping::NetHsmOnlyAdmin("user1".parse()?);
+    /// assert!(mapping.get_tags(None).is_empty());
+    ///
+    /// let mapping = UserMapping::SystemNetHsmOperatorSigning{
+    ///     nethsm_user: "ns1~user1".parse()?,
+    ///     nethsm_key_setup: SigningKeySetup::new(
+    ///         "key1".parse()?,
+    ///         "Curve25519".parse()?,
+    ///         vec!["EdDsaSignature".parse()?],
+    ///         None,
+    ///         "EdDsa".parse()?,
+    ///         CryptographicKeyContext::OpenPgp{
+    ///             user_ids: OpenPgpUserIdList::new(vec!["John Doe <john@example.org>".parse()?])?,
+    ///             version: "4".parse()?,
+    ///     })?,
+    ///     system_user: "user1".parse()?,
+    ///     ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+    ///     tag: "tag1".to_string(),
+    /// };
+    /// assert!(mapping.get_tags(None).is_empty());
+    /// assert_eq!(mapping.get_tags(Some("ns1")), vec!["tag1"]);
+    /// # Ok(())
+    /// # }
+    /// ```
+    /// [namespace]: https://docs.nitrokey.com/nethsm/administration#namespaces
+    pub fn get_tags(&self, namespace: Option<&str>) -> Vec<&str> {
+        match self {
+            UserMapping::SystemNetHsmOperatorSigning {
+                nethsm_user,
+                nethsm_key_setup: _,
+                system_user: _,
+                ssh_authorized_key: _,
+                tag,
+            } => {
+                if nethsm_user.namespace().as_deref() == namespace {
+                    vec![tag.as_str()]
+                } else {
+                    vec![]
+                }
+            }
+            UserMapping::SystemNetHsmMetrics {
+                nethsm_users: _,
+                system_user: _,
+                ssh_authorized_key: _,
+            }
+            | UserMapping::NetHsmOnlyAdmin(_)
+            | UserMapping::HermeticSystemNetHsmMetrics {
+                nethsm_users: _,
+                system_user: _,
+            }
+            | UserMapping::SystemNetHsmBackup {
+                nethsm_user: _,
+                system_user: _,
+                ssh_authorized_key: _,
+            }
+            | UserMapping::SystemOnlyShareDownload {
+                system_user: _,
+                ssh_authorized_keys: _,
+            }
+            | UserMapping::SystemOnlyShareUpload {
+                system_user: _,
+                ssh_authorized_keys: _,
+            }
+            | UserMapping::SystemOnlyWireGuardDownload {
+                system_user: _,
+                ssh_authorized_keys: _,
+            } => vec![],
+        }
+    }
+
+    /// Returns all [`NetHsm`][`nethsm::NetHsm`] [namespaces] of the mapping
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use nethsm::{CryptographicKeyContext, OpenPgpUserIdList, SigningKeySetup};
+    /// use nethsm_config::{AuthorizedKeyEntryList, UserMapping};
+    ///
+    /// # fn main() -> testresult::TestResult {
+    /// let mapping = UserMapping::SystemOnlyShareDownload {
+    ///     system_user: "user1".parse()?,
+    ///     ssh_authorized_keys: AuthorizedKeyEntryList::new(vec!["ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?])?,
+    /// };
+    /// assert!(mapping.get_namespaces().is_empty());
+    ///
+    /// let mapping = UserMapping::NetHsmOnlyAdmin("user1".parse()?);
+    /// assert!(mapping.get_namespaces().is_empty());
+    ///
+    /// let mapping = UserMapping::SystemNetHsmOperatorSigning{
+    ///     nethsm_user: "ns1~user1".parse()?,
+    ///     nethsm_key_setup: SigningKeySetup::new(
+    ///         "key1".parse()?,
+    ///         "Curve25519".parse()?,
+    ///         vec!["EdDsaSignature".parse()?],
+    ///         None,
+    ///         "EdDsa".parse()?,
+    ///         CryptographicKeyContext::OpenPgp{
+    ///             user_ids: OpenPgpUserIdList::new(vec!["John Doe <john@example.org>".parse()?])?,
+    ///             version: "4".parse()?,
+    ///     })?,
+    ///     system_user: "user1".parse()?,
+    ///     ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+    ///     tag: "tag1".to_string(),
+    /// };
+    /// assert_eq!(mapping.get_namespaces(), vec!["ns1".to_string()]);
+    /// # Ok(())
+    /// # }
+    /// ```
+    /// [namespaces]: https://docs.nitrokey.com/nethsm/administration#namespaces
+    pub fn get_namespaces(&self) -> Vec<String> {
+        match self {
+            UserMapping::NetHsmOnlyAdmin(nethsm_user)
+            | UserMapping::SystemNetHsmOperatorSigning {
+                nethsm_user,
+                nethsm_key_setup: _,
+                system_user: _,
+                ssh_authorized_key: _,
+                tag: _,
+            } => {
+                if let Some(namespace) = nethsm_user.namespace() {
+                    vec![namespace]
+                } else {
+                    vec![]
+                }
+            }
+            UserMapping::HermeticSystemNetHsmMetrics {
+                nethsm_users,
+                system_user: _,
+            }
+            | UserMapping::SystemNetHsmMetrics {
+                nethsm_users,
+                system_user: _,
+                ssh_authorized_key: _,
+            } => nethsm_users
+                .get_users()
+                .iter()
+                .filter_map(|user_id| user_id.namespace())
+                .collect(),
+            UserMapping::SystemOnlyShareDownload {
+                system_user: _,
+                ssh_authorized_keys: _,
+            }
+            | UserMapping::SystemNetHsmBackup {
+                nethsm_user: _,
+                system_user: _,
+                ssh_authorized_key: _,
+            }
+            | UserMapping::SystemOnlyShareUpload {
+                system_user: _,
+                ssh_authorized_keys: _,
+            }
+            | UserMapping::SystemOnlyWireGuardDownload {
+                system_user: _,
+                ssh_authorized_keys: _,
+            } => vec![],
+        }
     }
 }
