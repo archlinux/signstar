@@ -51,6 +51,7 @@
 //! [Nitrokey NetHSM]: https://docs.nitrokey.com/nethsm/
 mod config;
 mod credentials;
+mod mapping;
 mod prompt;
 
 pub use config::{
@@ -69,4 +70,5 @@ pub use credentials::{
     SystemUserId,
     SystemWideUserId,
 };
+pub use mapping::NetHsmMetricsUsers;
 pub use prompt::{PassphrasePrompt, UserPrompt};
