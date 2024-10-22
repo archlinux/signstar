@@ -121,10 +121,15 @@ impl TryFrom<String> for KeyId {
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
+    /// Importing from PKCS#8 DER or PEM failed
     #[error("PKCS#8 error: {0}")]
     Pkcs8(#[from] rsa::pkcs8::Error),
+
+    /// No primes found when importing an RSA key
     #[error("No primes found")]
     NoPrimes,
+
+    /// The [`KeyType`] is not supported
     #[error("The {0} key type is not supported")]
     UnsupportedKeyType(KeyType),
 
