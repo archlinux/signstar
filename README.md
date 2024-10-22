@@ -10,6 +10,7 @@ Signstar consists of several loosely coupled components, some of which are used 
 
 - [nethsm]: A library to provide interaction with the [Nitrokey NetHSM] to applications
 - [nethsm-cli]: A dedicated commandline interface to the [Nitrokey NetHSM], akin to Nitrokey's [pynitrokey], useful for general purpose, interactive use of the HSM
+- [signstar-configure-build]: A commandline interface for the configuration of Signstar system during build-time
 - *signstar-sign*: An executable, that allows signing of messages with the help of a [Nitrokey NetHSM], based on a configuration ([#34])
 - *signstar-configure*: An executable, that allows non-interactive configuration of a [Nitrokey NetHSM] based on a configuration ([#48])
 - *signstar-request-signature*: An executable, run on a client host, that prepares data to be signed and retrieves a signature for it from a Signstar setup ([#49])
@@ -71,6 +72,7 @@ Changes to this project - unless stated otherwise - automatically fall under the
 [nethsm]: nethsm/
 [nethsm-cli]: nethsm-cli/
 [pynitrokey]: https://github.com/Nitrokey/pynitrokey
+[signstar-configure-build]: signstar-configure-build/
 [#34]: https://gitlab.archlinux.org/archlinux/signstar/-/issues/34
 [#48]: https://gitlab.archlinux.org/archlinux/signstar/-/issues/48
 [#49]: https://gitlab.archlinux.org/archlinux/signstar/-/issues/49

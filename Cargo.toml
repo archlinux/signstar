@@ -5,12 +5,15 @@ members = [
   "nethsm-cli",
   "nethsm-config",
   "nethsm-tests",
+  "signstar-configure-build",
 ]
 
 [workspace.dependencies]
 chrono = "0.4.38"
+clap = { version = "4.5.19", features = ["derive", "env"] }
 ed25519-dalek = "2.1.1"
 nethsm = { path = "nethsm", version = "0.6.0" }
+nethsm-config = { path = "nethsm-config", version = "0.1.1" }
 rand = "0.8.5"
 rsa = "0.9.6"
 rstest = "0.23.0"
