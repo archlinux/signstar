@@ -6,8 +6,10 @@ use expression_format::ex_format;
 use nethsm::{
     KeyId,
     OpenPgpUserId,
+    OpenPgpVersion,
     UserRole::{Administrator, Operator},
 };
+use strum::IntoEnumIterator;
 
 use super::BIN_NAME;
 
@@ -55,6 +57,19 @@ pub struct OpenPgpAddCommand {
         short
     )]
     pub time: Option<DateTime<Utc>>,
+
+    #[arg(
+        env = "NETHSM_OPENPGP_VERSION",
+        help = ex_format!("The OpenPGP version the certificate is created with (defaults to \"{OpenPgpVersion::default()}\")"),
+        long_help = ex_format!(
+            "The OpenPGP version the certificate is created with (defaults to \"{OpenPgpVersion::default()}\")
+
+One of {:?OpenPgpVersion::iter().map(Into::into).collect::<Vec<&'static str>>()}."
+        ),
+        long,
+        short
+    )]
+    pub version: Option<OpenPgpVersion>,
 
     #[arg(
         env = "NETHSM_OPENPGP_CERT_GENERATE_CAN_SIGN",

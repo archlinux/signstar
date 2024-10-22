@@ -4722,6 +4722,7 @@ impl NetHsm {
     ///     KeyType,
     ///     NetHsm,
     ///     OpenPgpKeyUsageFlags,
+    ///     OpenPgpVersion,
     ///     Passphrase,
     ///     UserRole,
     /// };
@@ -4762,6 +4763,7 @@ impl NetHsm {
     ///     OpenPgpKeyUsageFlags::default(),
     ///     "Test <test@example.org>".parse()?,
     ///     SystemTime::now().into(),
+    ///     OpenPgpVersion::V4,
     /// )?;
     ///
     /// // use the Administrator credentials to import the OpenPGP certificate as certificate for the key
@@ -4824,6 +4826,7 @@ impl NetHsm {
     ///     KeyType,
     ///     NetHsm,
     ///     OpenPgpKeyUsageFlags,
+    ///     OpenPgpVersion,
     ///     Passphrase,
     ///     UserRole,
     /// };
@@ -4864,6 +4867,7 @@ impl NetHsm {
     ///     OpenPgpKeyUsageFlags::default(),
     ///     "Test <test@example.org>".parse()?,
     ///     SystemTime::now().into(),
+    ///     OpenPgpVersion::V4,
     /// )?;
     /// // use the Administrator credentials to import the OpenPGP certificate as certificate for the key
     /// nethsm.use_credentials(&"admin".parse()?)?;
@@ -4927,6 +4931,7 @@ impl NetHsm {
     ///     KeyType,
     ///     NetHsm,
     ///     OpenPgpKeyUsageFlags,
+    ///     OpenPgpVersion,
     ///     Passphrase,
     ///     UserRole,
     /// };
@@ -4967,6 +4972,7 @@ impl NetHsm {
     ///     OpenPgpKeyUsageFlags::default(),
     ///     "Test <test@example.org>".parse()?,
     ///     SystemTime::now().into(),
+    ///     OpenPgpVersion::V4,
     /// )?;
     /// // use the Administrator credentials to import the OpenPGP certificate as certificate for the key
     /// nethsm.use_credentials(&"admin".parse()?)?;
@@ -5746,6 +5752,8 @@ impl NetHsm {
     /// those for the [User ID] defined by `user_id`).
     /// Using `flags` it is possible to define the key's [capabilities] and with `created_at` to
     /// provide the certificate's creation time.
+    /// Using `version` the OpenPGP version is provided (currently only [`OpenPgpVersion::V4`] is
+    /// supported).
     /// The resulting [OpenPGP certificate] is returned as vector of bytes.
     ///
     /// To make use of the [OpenPGP certificate] (e.g. with
@@ -5775,6 +5783,10 @@ impl NetHsm {
     /// * the used [`Credentials`] are not those of a user in the [`Operator`][`UserRole::Operator`]
     ///   [role]
     ///
+    /// # Panics
+    ///
+    /// Panics if the currently unimplemented [`OpenPgpVersion::V6`] is provided as `version`.
+    ///
     /// # Examples
     ///
     /// ```no_run
@@ -5787,6 +5799,7 @@ impl NetHsm {
     ///     KeyType,
     ///     NetHsm,
     ///     OpenPgpKeyUsageFlags,
+    ///     OpenPgpVersion,
     ///     Passphrase,
     ///     UserRole,
     /// };
@@ -5828,7 +5841,8 @@ impl NetHsm {
     ///         &"signing1".parse()?,
     ///         OpenPgpKeyUsageFlags::default(),
     ///         "Test <test@example.org>".parse()?,
-    ///         SystemTime::now().into()
+    ///         SystemTime::now().into(),
+    ///         OpenPgpVersion::V4,
     ///     )?
     ///     .is_empty());
     /// # Ok(())
@@ -5848,8 +5862,9 @@ impl NetHsm {
         flags: OpenPgpKeyUsageFlags,
         user_id: OpenPgpUserId,
         created_at: DateTime<Utc>,
+        version: OpenPgpVersion,
     ) -> Result<Vec<u8>, Error> {
-        openpgp::add_certificate(self, flags, key_id, user_id, created_at)
+        openpgp::add_certificate(self, flags, key_id, user_id, created_at, version)
     }
 
     /// Creates an [OpenPGP signature] for a message.
@@ -5892,6 +5907,7 @@ impl NetHsm {
     ///     KeyType,
     ///     NetHsm,
     ///     OpenPgpKeyUsageFlags,
+    ///     OpenPgpVersion,
     ///     Passphrase,
     ///     UserRole,
     /// };
@@ -5932,6 +5948,7 @@ impl NetHsm {
     ///     OpenPgpKeyUsageFlags::default(),
     ///     "Test <test@example.org>".parse()?,
     ///     SystemTime::now().into(),
+    ///     OpenPgpVersion::V4,
     /// )?;
     /// // import the OpenPGP certificate as key certificate
     /// nethsm.use_credentials(&"admin".parse()?)?;

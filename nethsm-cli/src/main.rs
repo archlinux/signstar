@@ -798,6 +798,7 @@ fn main() -> Result<(), Error> {
                     flags,
                     command.user_id,
                     command.time.unwrap_or_else(Utc::now),
+                    command.version.unwrap_or_default(),
                 )?;
 
                 let nethsm = config

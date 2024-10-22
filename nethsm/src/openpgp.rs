@@ -601,7 +601,14 @@ pub fn add_certificate(
     key_id: &crate::KeyId,
     user_id: OpenPgpUserId,
     created_at: DateTime<Utc>,
+    version: OpenPgpVersion,
 ) -> Result<Vec<u8>, crate::Error> {
+    if version != OpenPgpVersion::V4 {
+        unimplemented!(
+            "Support for creating OpenPGP {version} certificates is not yet implemented!"
+        );
+    }
+
     let public_key = nethsm.get_key(key_id)?;
     let signer = HsmKey::new(nethsm, hsm_pk_to_pgp_pk(public_key, created_at)?, key_id);
     let mut keyflags: KeyFlags = flags.into();
