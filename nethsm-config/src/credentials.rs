@@ -29,6 +29,14 @@ pub enum Error {
     /// An SSH key error
     #[error("SSH key error: {0}")]
     SshKey(#[from] ssh_key::Error),
+
+    /// A system-wide [`UserId`] has a namespace
+    #[error("The system-wide User ID has a namespace: {0}")]
+    SystemWideUserIdWithNamespace(UserId),
+
+    /// A [`NetHsm`][`nethsm::NetHsm`] user error
+    #[error("NetHSM user error: {0}")]
+    NetHsmUser(#[from] nethsm::UserError),
 }
 
 /// A set of credentials for a [`NetHsm`][`nethsm::NetHsm`]
@@ -352,5 +360,72 @@ impl TryFrom<Vec<String>> for AuthorizedKeyEntryList {
         };
 
         Self::new(authorized_keys)
+    }
+}
+
+/// A guaranteed to be system-wide [`NetHsm`][`nethsm::NetHsm`] user
+#[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
+#[serde(into = "String", try_from = "String")]
+pub struct SystemWideUserId(UserId);
+
+impl SystemWideUserId {
+    /// Creates a new [`SystemWideUserId`] from an owned string
+    ///
+    /// # Errors
+    ///
+    /// Returns an error, if the provided `user_id` contains a namespace.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use nethsm_config::SystemWideUserId;
+    ///
+    /// # fn main() -> testresult::TestResult {
+    /// SystemWideUserId::new("user1".to_string())?;
+    ///
+    /// // this fails because the User ID contains a namespace
+    /// assert!(SystemWideUserId::new("ns1~user1".to_string()).is_err());
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn new(user_id: String) -> Result<Self, Error> {
+        let user_id = UserId::new(user_id)?;
+        if user_id.is_namespaced() {
+            return Err(Error::SystemWideUserIdWithNamespace(user_id));
+        }
+        Ok(Self(user_id))
+    }
+}
+
+impl Display for SystemWideUserId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.0.fmt(f)
+    }
+}
+
+impl FromStr for SystemWideUserId {
+    type Err = Error;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Self::new(s.to_string())
+    }
+}
+
+impl From<SystemWideUserId> for String {
+    fn from(value: SystemWideUserId) -> Self {
+        value.to_string()
+    }
+}
+
+impl From<SystemWideUserId> for UserId {
+    fn from(value: SystemWideUserId) -> Self {
+        value.0
+    }
+}
+
+impl TryFrom<String> for SystemWideUserId {
+    type Error = Error;
+
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        Self::new(value)
     }
 }

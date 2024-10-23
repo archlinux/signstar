@@ -67,5 +67,6 @@ pub use credentials::{
     AuthorizedKeyEntryList,
     ConfigCredentials,
     SystemUserId,
+    SystemWideUserId,
 };
 pub use prompt::{PassphrasePrompt, UserPrompt};
