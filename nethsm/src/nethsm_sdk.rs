@@ -681,6 +681,7 @@ impl From<TlsKeyType> for nethsm_sdk_rs::models::TlsKeyType {
 /// The role of a user on a NetHSM device
 #[derive(
     Clone,
+    Copy,
     Debug,
     Default,
     Deserialize,

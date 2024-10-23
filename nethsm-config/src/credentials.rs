@@ -51,7 +51,7 @@ impl ConfigCredentials {
 
     /// Returns the role (a [`UserRole`])
     pub fn get_role(&self) -> UserRole {
-        self.role.clone()
+        self.role
     }
 
     /// Returns the passphrase of the [`ConfigCredentials`]

@@ -723,7 +723,11 @@ impl DeviceConfig {
                 }
 
                 let role = roles.first().expect("We have at least one user role");
-                ConfigCredentials::new(role.clone(), UserPrompt::new(role.clone()).prompt()?, None)
+                ConfigCredentials::new(
+                    role.to_owned(),
+                    UserPrompt::new(role.to_owned()).prompt()?,
+                    None,
+                )
             };
 
             // if no passphrase is set for the credentials, attempt to set it
