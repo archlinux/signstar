@@ -103,6 +103,12 @@ impl NamespaceId {
     }
 }
 
+impl AsRef<str> for NamespaceId {
+    fn as_ref(&self) -> &str {
+        self.0.as_str()
+    }
+}
+
 impl FromStr for NamespaceId {
     type Err = Error;
     fn from_str(s: &str) -> Result<Self, Self::Err> {

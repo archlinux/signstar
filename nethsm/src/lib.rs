@@ -2942,7 +2942,7 @@ impl NetHsm {
     /// [state]: https://docs.nitrokey.com/nethsm/administration#state
     pub fn add_namespace(&self, namespace_id: &NamespaceId) -> Result<(), Error> {
         self.validate_namespace_access(NamespaceSupport::Unsupported, None, None)?;
-        namespaces_namespace_id_put(&self.create_connection_config(), &namespace_id.to_string())
+        namespaces_namespace_id_put(&self.create_connection_config(), namespace_id.as_ref())
             .map_err(|error| {
                 Error::Api(format!(
                     "Adding namespace failed: {}",
@@ -3083,7 +3083,7 @@ impl NetHsm {
     /// [state]: https://docs.nitrokey.com/nethsm/administration#state
     pub fn delete_namespace(&self, namespace_id: &NamespaceId) -> Result<(), Error> {
         self.validate_namespace_access(NamespaceSupport::Unsupported, None, None)?;
-        namespaces_namespace_id_delete(&self.create_connection_config(), &namespace_id.to_string())
+        namespaces_namespace_id_delete(&self.create_connection_config(), namespace_id.as_ref())
             .map_err(|error| {
                 Error::Api(format!(
                     "Deleting namespace failed: {}",
