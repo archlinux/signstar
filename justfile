@@ -234,11 +234,38 @@ test-readme project:
     #!/usr/bin/env bash
     set -euxo pipefail
 
-    just ensure-command cargo mold podman tangler
-
-    CARGO_HOME="${CARGO_HOME:-$HOME/.cargo}"
-
+    readonly project="{{ project }}"
+    readonly cargo_home="${CARGO_HOME:-$HOME/.cargo}"
     container_id=""
+    podman_create_options=(
+        --rm
+        '--network=pasta:-t,auto,-u,auto,-T,auto,-U,auto'
+    )
+    podman_start_options=()
+
+    case "$project" in
+        signstar-configure-build)
+            podman_create_options+=(
+                --interactive
+                --tty
+                "--mount=type=bind,source=$cargo_home/bin,destination=/usr/local/bin,ro=true"
+                "--mount=type=bind,source=$project,destination=/mnt,ro=true"
+                --workdir=/mnt
+                docker.io/archlinux
+                sh -c 'pacman-key --init && pacman -Sy --needed --noconfirm archlinux-keyring && pacman -Syu --needed --noconfirm tangler && tangler bash < /mnt/README.md | bash -euxo pipefail -'
+            )
+            podman_start_options+=(
+                --attach
+            )
+        ;;
+        *)
+            podman_create_options+=(
+                docker.io/nitrokey/nethsm:testing
+            )
+        ;;
+    esac
+
+    just ensure-command cargo mold podman tangler
 
     install_executables() {
         printf "Installing executables of %s...\n" "{{ project }}"
@@ -246,27 +273,42 @@ test-readme project:
     }
 
     create_container() {
-        container_id="$(podman container create --rm --network=pasta:-t,auto,-u,auto,-T,auto,-U,auto docker.io/nitrokey/nethsm:testing)"
+        container_id="$(podman container create "${podman_create_options[@]}")"
     }
 
     start_container() {
-        podman container start "$container_id" > /dev/null
+        podman container start "${podman_start_options[@]}" "$container_id"
     }
 
     stop_container() {
-        podman container stop "$container_id" > /dev/null
+        if podman container exists "$container_id" > /dev/null; then
+            # NOTE: Due to podman's state handling the container may just not be entirely gone when checking for its existence.
+            #       Relying on the status code of `podman container stop` would lead to flaky behavior, as sometimes the container is already gone when trying to stop it.
+            set +e
+            podman container stop "$container_id" >/dev/null 2>&1
+            set -e
+        fi
+    }
+
+    run_test() {
+        start_container
+        case "$project" in
+            signstar-configure-build)
+                # NOTE: the test is run by starting the container
+                exit 0
+            ;;
+            *)
+                # NOTE: the test is run on the calling host against a nethsm container
+                cd "$project" && tangler bash < README.md | PATH="$cargo_home/bin:$PATH" bash -euxo pipefail -
+            ;;
+        esac
     }
 
     trap stop_container EXIT
 
     install_executables
     create_container
-    start_container
-
-    PATH="$CARGO_HOME/bin:$PATH"
-    printf "PATH=%s\n" "$PATH"
-
-    cd {{ project }} && PATH="$PATH" tangler bash < README.md | bash -euxo pipefail -
+    run_test
 
 # Adds pre-commit and pre-push git hooks
 add-hooks:
