@@ -55,8 +55,8 @@ impl ConfigCredentials {
     }
 
     /// Returns the passphrase of the [`ConfigCredentials`]
-    pub fn get_passphrase(&self) -> Option<String> {
-        self.passphrase.as_ref().cloned()
+    pub fn get_passphrase(&self) -> Option<&str> {
+        self.passphrase.as_deref()
     }
 
     /// Sets the passphrase of the [`ConfigCredentials`]
