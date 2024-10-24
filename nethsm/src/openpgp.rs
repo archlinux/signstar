@@ -1,7 +1,7 @@
 //! OpenPGP-related functions.
 
 use std::{
-    borrow::Borrow,
+    borrow::{Borrow, Cow},
     collections::HashSet,
     fmt::{Debug, Display},
     str::FromStr,
@@ -546,6 +546,44 @@ impl PublicKeyTrait for HsmKey<'_, '_> {
     }
 }
 
+/// Transforms the raw digest data for cryptographic signing.
+///
+/// Raw cryptographic signing primitives have special provisions that
+/// need to be taken care of when using certain combinations of
+/// signing schemes and hashing algorithms.
+///
+/// This function transforms the digest into bytes that are ready to
+/// be passed to raw cryptographic functions. The exact specifics of
+/// the transformations are documented inside the function.
+fn prepare_digest_data(
+    signature_type: crate::SignatureType,
+    hash: HashAlgorithm,
+    digest: &[u8],
+) -> pgp::errors::Result<Cow<'_, [u8]>> {
+    Ok(match signature_type {
+        // RSA-PKCS#1 signing scheme needs to wrap the digest value
+        // in an DER-encoded ASN.1 DigestInfo structure which captures
+        // the hash used.
+        // See: https://www.rfc-editor.org/rfc/rfc8017#appendix-A.2.4
+        crate::SignatureType::Pkcs1 => picky_asn1_der::to_vec(&DigestInfo {
+            oid: hash_to_oid(hash)?,
+            digest: digest.to_vec().into(),
+        })
+        .map_err(|_| pgp::errors::Error::InvalidInput)?
+        .into(),
+
+        // ECDSA may need to truncate the digest if it's too long
+        // See: https://www.rfc-editor.org/rfc/rfc9580#section-5.2.3.2
+        crate::SignatureType::EcdsaP224 => digest[..usize::min(28, digest.len())].into(),
+        crate::SignatureType::EcdsaP256 => digest[..usize::min(32, digest.len())].into(),
+        crate::SignatureType::EcdsaP384 => digest[..usize::min(48, digest.len())].into(),
+
+        // All other schemes that we use will not need any kind of
+        // digest transformations.
+        _ => digest.into(),
+    })
+}
+
 impl SecretKeyTrait for HsmKey<'_, '_> {
     type PublicKey = PublicKey;
 
@@ -569,17 +607,7 @@ impl SecretKeyTrait for HsmKey<'_, '_> {
         F: FnOnce() -> String,
     {
         let signature_type = self.sign_mode()?;
-        // https://www.rfc-editor.org/rfc/rfc8017#appendix-A.2.4
-        let request_data = if signature_type == crate::SignatureType::Pkcs1 {
-            let pdata = &picky_asn1_der::to_vec(&DigestInfo {
-                oid: hash_to_oid(hash)?,
-                digest: data.to_vec().into(),
-            })
-            .map_err(|_| pgp::errors::Error::InvalidInput)?;
-            pdata.to_vec()
-        } else {
-            data.to_vec()
-        };
+        let request_data = prepare_digest_data(signature_type, hash, data)?;
 
         let sig = self
             .nethsm
@@ -910,6 +938,7 @@ mod tests {
         crypto::ecc_curve::ECCCurve,
         types::{EcdsaPublicParams, PublicParams},
     };
+    use rstest::rstest;
     use testresult::TestResult;
 
     use super::*;
@@ -1264,6 +1293,60 @@ mod tests {
 
         // this key used a non-standard modulus (e) of 257
         assert_eq!(data, vec![0x01, 0x01]); // 257 in hex
+
+        Ok(())
+    }
+
+    #[test]
+    fn rsa_digest_info_is_wrapped() -> TestResult {
+        let data = prepare_digest_data(crate::SignatureType::Pkcs1, HashAlgorithm::SHA1, &[0; 20])?;
+
+        assert_eq!(
+            data,
+            vec![
+                48, 33, 48, 9, 6, 5, 43, 14, 3, 2, 26, 5, 0, 4, 20, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+            ]
+        );
+
+        Ok(())
+    }
+
+    #[rstest]
+    #[case(crate::SignatureType::EcdsaP224, 28)]
+    #[case(crate::SignatureType::EcdsaP256, 32)]
+    #[case(crate::SignatureType::EcdsaP384, 48)]
+    #[case(crate::SignatureType::EcdsaP521, 64)]
+    fn ecdsa_wrapped_up_to_max_len(
+        #[case] sig_type: crate::SignatureType,
+        #[case] max_len: usize,
+        #[values(HashAlgorithm::SHA1, HashAlgorithm::SHA2_256, HashAlgorithm::SHA2_512)] hash_algo: HashAlgorithm,
+    ) -> TestResult {
+        // the digest value is irrelevant - just the size of the digest
+        let digest = hash_algo.new_hasher()?.finish();
+        let data = prepare_digest_data(sig_type, hash_algo, &digest)?;
+
+        // The data to be signed size needs to be truncated to the value specific the the curve
+        // being used. If the digest is short enough to be smaller than the curve specific field
+        // size the digest is used as a whole.
+        assert_eq!(
+            data.len(), usize::min(max_len, digest.len()),
+            "the data to be signed's length ({}) cannot exceed maximum length imposed by the curve ({})", data.len(), max_len
+        );
+
+        Ok(())
+    }
+
+    #[rstest]
+    fn eddsa_is_not_wrapped(
+        #[values(HashAlgorithm::SHA1, HashAlgorithm::SHA2_256, HashAlgorithm::SHA2_512)] hash_algo: HashAlgorithm,
+    ) -> TestResult {
+        // the digest value is irrelevant - just the size of the digest
+        let digest = hash_algo.new_hasher()?.finish();
+
+        let data = prepare_digest_data(crate::SignatureType::EdDsa, hash_algo, &digest)?;
+
+        assert_eq!(data, digest);
 
         Ok(())
     }
