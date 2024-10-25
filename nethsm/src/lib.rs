@@ -298,7 +298,8 @@ pub enum Error {
 /// * must use https
 /// * must have a host
 /// * must not contain a password, user or query
-#[derive(Clone, Debug, Eq, Hash, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
+#[serde(try_from = "String")]
 pub struct Url(url::Url);
 
 impl Url {
@@ -340,37 +341,6 @@ impl Url {
         } else {
             Ok(Self(url))
         }
-    }
-}
-
-impl<'de> Deserialize<'de> for Url {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        use serde::de::{Error, Unexpected, Visitor};
-
-        struct UrlVisitor;
-
-        impl<'de> Visitor<'de> for UrlVisitor {
-            type Value = Url;
-
-            fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
-                formatter.write_str("a string representing an URL")
-            }
-
-            fn visit_str<E>(self, s: &str) -> Result<Self::Value, E>
-            where
-                E: Error,
-            {
-                Url::new(s).map_err(|err| {
-                    let err_s = format!("{}", err);
-                    Error::invalid_value(Unexpected::Str(s), &err_s.as_str())
-                })
-            }
-        }
-
-        deserializer.deserialize_str(UrlVisitor)
     }
 }
 
