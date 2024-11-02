@@ -1,6 +1,7 @@
 use std::{
     cell::RefCell,
     collections::{hash_map::Entry, HashMap, HashSet},
+    error::Error as StdError,
     fmt::Display,
     path::{Path, PathBuf},
     str::FromStr,
@@ -20,8 +21,16 @@ pub enum Error {
     ConfigFileLocation(#[source] confy::ConfyError),
 
     /// A config loading error
-    #[error("Config loading issue: {0}")]
-    Load(#[source] confy::ConfyError),
+    ///
+    /// The variant tracks a [`ConfyError`][`confy::ConfyError`] and an optional
+    /// description of an inner Error type.
+    /// The description is tracked separately, as otherwise we do not get to useful error messages
+    /// of wrapped Error types (e.g. those for loading TOML files).
+    #[error("Config loading issue: {source}\n{description}")]
+    Load {
+        source: confy::ConfyError,
+        description: String,
+    },
 
     /// A config storing error
     #[error("Config storing issue: {0}")]
@@ -868,13 +877,27 @@ impl Config {
     /// ```
     pub fn new(config_settings: ConfigSettings, path: Option<&Path>) -> Result<Self, Error> {
         let mut config: Config = if let Some(path) = path {
-            confy::load_path(path).map_err(Error::Load)?
+            confy::load_path(path).map_err(|error| Error::Load {
+                description: if let Some(error) = error.source() {
+                    error.to_string()
+                } else {
+                    "".to_string()
+                },
+                source: error,
+            })?
         } else {
             confy::load(
                 &config_settings.app_name,
                 Some(config_settings.config_name.0.as_str()),
             )
-            .map_err(Error::Load)?
+            .map_err(|error| Error::Load {
+                description: if let Some(error) = error.source() {
+                    error.to_string()
+                } else {
+                    "".to_string()
+                },
+                source: error,
+            })?
         };
         for (_label, device) in config.devices.borrow_mut().iter_mut() {
             device.set_config_interactivity(config_settings.interactivity);
