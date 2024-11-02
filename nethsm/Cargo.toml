@@ -1,11 +1,12 @@
 [package]
-authors = ["David Runge <dvzrv@archlinux.org>"]
+authors.workspace = true
 description = "A high-level library to interact with the API of a Nitrokey NetHSM"
-edition = "2021"
+edition.workspace = true
+homepage.workspace = true
 keywords = ["encryption", "hsm", "nethsm", "signing"]
-license = "Apache-2.0 OR MIT"
+license.workspace = true
 name = "nethsm"
-repository = "https://gitlab.archlinux.org/archlinux/signstar"
+repository.workspace = true
 version = "0.6.0"
 
 [package.metadata.cargo-machete]

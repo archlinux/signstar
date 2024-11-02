@@ -1,11 +1,12 @@
 [package]
-authors = ["David Runge <dvzrv@archlinux.org>"]
+authors.workspace = true
 description = "A library for working with application configuration files for Nitrokey NetHSM devices"
-edition = "2021"
+edition.workspace = true
+homepage.workspace = true
 keywords = ["encryption", "hsm", "nethsm", "signing"]
-license = "Apache-2.0 OR MIT"
+license.workspace = true
 name = "nethsm-config"
-repository = "https://gitlab.archlinux.org/archlinux/signstar"
+repository.workspace = true
 version = "0.1.1"
 
 [dependencies]

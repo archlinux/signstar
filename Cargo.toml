@@ -6,6 +6,16 @@ members = [
   "nethsm-config",
 ]
 
+[workspace.package]
+authors = [
+  "David Runge <dvzrv@archlinux.org>",
+  "Wiktor Kwapisiewicz <wiktor@archlinux.org>",
+]
+edition = "2021"
+homepage = "https://gitlab.archlinux.org/archlinux/signstar"
+license = "Apache-2.0 OR MIT"
+repository = "https://gitlab.archlinux.org/archlinux/signstar"
+
 [profile.release]
 lto = true
 codegen-units = 1
