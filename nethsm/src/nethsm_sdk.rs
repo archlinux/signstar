@@ -7,7 +7,7 @@ use ureq::Response;
 /// A representation of a message body in an HTTP response
 ///
 /// This type allows us to deserialize the message body when the NetHSM API triggers the return of a
-/// [`nethsm_sdk_rs::models::Error::Ureq`].
+/// [`nethsm_sdk_rs::apis::Error::Ureq`].
 #[derive(Debug, Deserialize)]
 pub struct Message {
     message: String,
