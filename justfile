@@ -31,12 +31,28 @@ install-rust-dev-tools:
     rustup toolchain install nightly
     rustup component add --toolchain nightly rustfmt
 
+# Ensures that one or more required commands are installed
+ensure-command +command:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    read -r -a commands <<< "{{ command }}"
+
+    for cmd in "${commands[@]}"; do
+        if ! command -v "$cmd" > /dev/null 2>&1 ; then
+            printf "Couldn't find required executable '%s'\n" "$cmd" >&2
+            exit 1
+        fi
+    done
+
 # Checks commit messages for correctness
 check-commits:
     #!/usr/bin/env bash
     set -euo pipefail
 
     readonly default_branch="${CI_DEFAULT_BRANCH:-main}"
+
+    just ensure-command codespell cog git rg
 
     if ! git rev-parse --verify "origin/$default_branch" > /dev/null 2>&1; then
         printf "The default branch '%s' does not exist!\n" "$default_branch" >&2
@@ -98,10 +114,12 @@ run-pre-push-hook: check-commits
 
 # Checks common spelling mistakes
 check-spelling:
+    just ensure-command codespell
     codespell
 
 # Gets names of all workspace members
 get-workspace-members:
+    just ensure-command cargo jq
     cargo metadata --format-version=1 |jq -r '.workspace_members[] | capture("/(?<name>[a-z-]+)#.*").name'
 
 # Checks if a string matches a workspace member exactly
@@ -123,6 +141,8 @@ get-workspace-member-version package:
     #!/usr/bin/env bash
     set -euo pipefail
 
+    just ensure-command cargo jq
+
     readonly version="$(cargo metadata --format-version=1 |jq -r --arg pkg {{ package }} '.workspace_members[] | capture("/(?<name>[a-z-]+)#(?<version>[0-9.]+)") | select(.name == $pkg).version')"
 
     if [[ -z "$version" ]]; then
@@ -137,22 +157,28 @@ check-unused-deps:
     #!/usr/bin/env bash
     set -euxo pipefail
 
+    just ensure-command cargo-machete
+
     for name in $(just get-workspace-members); do
         cargo machete "$name"
     done
 
 # Checks source code formatting
 check-formatting:
+    just ensure-command rustup
     just --unstable --fmt --check
     # We're using nightly to properly group imports, see rustfmt.toml
     cargo +nightly fmt -- --check
 
 # Updates the local cargo index and displays which crates would be updated
 dry-update:
+    just ensure-command cargo
     cargo update --dry-run --verbose
 
 # Lints the source code
 lint:
+    just ensure-command cargo cargo-clippy mold tangler
+
     tangler bash < nethsm-cli/README.md | shellcheck --shell bash -
 
     just lint-recipe 'test-readme nethsm-cli'
@@ -164,23 +190,28 @@ lint:
     just lint-recipe 'release nethsm'
     just lint-recipe flaky
     just lint-recipe test
+    just lint-recipe 'ensure-command test'
 
     cargo clippy --tests --all -- -D warnings
 
 # Check justfile recipe for shell issues
 lint-recipe recipe:
+    just ensure-command rg shellcheck
     just -vv -n {{ recipe }} 2>&1 | rg -v '===> Running recipe' | shellcheck -
 
 # Checks for issues with dependencies
 check-dependencies: dry-update
+    just ensure-command cargo-deny
     cargo deny --all-features check
 
 # Checks licensing status
 check-licenses:
+    just ensure-command reuse
     reuse lint
 
 # Build local documentation
 docs:
+    just ensure-command cargo mold
     RUSTDOCFLAGS='-D warnings' cargo doc --document-private-items --no-deps
 
 # Runs all unit tests. By default ignored tests are not run. Run with `ignored=true` to run only ignored tests
@@ -189,6 +220,7 @@ test:
     set -euxo pipefail
 
     readonly ignored="{{ ignored }}"
+    just ensure-command cargo mold
 
     if [[ "$ignored" == "true" ]]; then
         cargo test --all -- --ignored
@@ -201,6 +233,8 @@ test:
 test-readme project:
     #!/usr/bin/env bash
     set -euxo pipefail
+
+    just ensure-command cargo mold podman tangler
 
     CARGO_HOME="${CARGO_HOME:-$HOME/.cargo}"
 
@@ -247,12 +281,15 @@ add-hooks:
 
 # Check for stale links in documentation
 check-links:
+    just ensure-command lychee
     lychee .
 
 # Fixes common issues. Files need to be git add'ed
 fix:
     #!/usr/bin/env bash
     set -euo pipefail
+
+    just ensure-command cargo-clippy codespell git mold rustup
 
     if ! git diff-files --quiet ; then
         echo "Working tree has changes. Please stage them: git add ."
@@ -292,6 +329,8 @@ generate kind pkg:
 
     readonly kind="{{ kind }}"
 
+    just ensure-command rust-script sed
+
     case "$kind" in
       manpages|shell_completions)
           ;;
@@ -319,6 +358,7 @@ flaky test='just test-readme nethsm-cli' rounds='999999999999':
 
 # Prepares the release of a crate by updating dependencies, incrementing the crate version and creating a changelog entry
 prepare-release package:
+    just ensure-command release-plz
     release-plz update -u -p {{ package }}
 
 # Creates a release of a crate in the workspace by creating a tag and pushing it
@@ -331,6 +371,8 @@ release package:
         exit 1
     fi
     readonly current_version="{{ package }}/$package_version"
+
+    just ensure-command git
 
     if [[ -n "$(git tag -l "$current_version")" ]]; then
         printf "The tag %s exists already!\n" "$current_version" >&2
@@ -353,6 +395,8 @@ ci-publish:
     readonly tag="${CI_COMMIT_TAG:-}"
     readonly crate="${tag//\/*/}"
     readonly version="${tag#*/}"
+
+    just ensure-command cargo-publish git mold
 
     if [[ -z "$tag" ]]; then
         printf "There is no tag!\n" >&2
@@ -380,16 +424,20 @@ ci-publish:
 create-image-signing-key key cert common_name="archlinux.org" key_settings="rsa:3072":
     if ! {{ path_exists(key) }}; then \
         if ! {{ path_exists(cert) }}; then \
+            just ensure-command openssl; \
             openssl req -x509 -newkey {{ key_settings }} -keyout "{{ key }}" -out "{{ cert }}" -nodes -days 3650 -set_serial 01 -subj /CN={{ common_name }}; \
         fi \
     fi
 
 # Builds an OS image using mkosi
 build-image openpgp_signing_key signing_key="resources/mkosi/signstar/mkosi.output/signing.key" signing_cert="resources/mkosi/signstar/mkosi.output/signing.pem" mkosi_options="":
+    just ensure-command gpg mkosi
+
     just create-image-signing-key {{ absolute_path(signing_key) }} {{ absolute_path(signing_cert) }}
     gpg --export {{ openpgp_signing_key }} > {{ absolute_path("resources/mkosi/signstar/mkosi.extra/usr/lib/systemd/import-pubring.gpg") }}
     mkosi -f -C {{ absolute_path("resources/mkosi/signstar") }} {{ mkosi_options }} --secure-boot-key={{ absolute_path(signing_key) }} --secure-boot-certificate={{ absolute_path(signing_cert) }} --verity-key={{ absolute_path(signing_key) }} --verity-certificate={{ absolute_path(signing_cert) }} --key={{ openpgp_signing_key }} build
 
 # Runs an OS image using mkosi qemu
 run-image mkosi_options="" qemu_options="":
+    just ensure-command mkosi
     mkosi -C resources/mkosi/signstar/ {{ mkosi_options }} qemu {{ qemu_options }}
