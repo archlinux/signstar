@@ -178,6 +178,10 @@ check-dependencies: dry-update
 check-licenses:
     reuse lint
 
+# Build local documentation
+docs:
+    RUSTDOCFLAGS='-D warnings' cargo doc --document-private-items --no-deps
+
 # Runs all unit tests. By default ignored tests are not run. Run with `ignored=true` to run only ignored tests
 test:
     {{ if ignored == "true" { "cargo test --all -- --ignored" } else { "cargo test --all && RUSTFLAGS='-D warnings' cargo doc --no-deps" } }}
