@@ -163,6 +163,7 @@ lint:
     just lint-recipe 'is-workspace-member nethsm'
     just lint-recipe 'release nethsm'
     just lint-recipe flaky
+    just lint-recipe test
 
     cargo clippy --all -- -D warnings
 
@@ -184,7 +185,17 @@ docs:
 
 # Runs all unit tests. By default ignored tests are not run. Run with `ignored=true` to run only ignored tests
 test:
-    {{ if ignored == "true" { "cargo test --all -- --ignored" } else { "cargo test --all && RUSTFLAGS='-D warnings' cargo doc --no-deps" } }}
+    #!/usr/bin/env bash
+    set -euxo pipefail
+
+    readonly ignored="{{ ignored }}"
+
+    if [[ "$ignored" == "true" ]]; then
+        cargo test --all -- --ignored
+    else
+        cargo test --all
+        just docs
+    fi
 
 # Runs per project end-to-end tests found in a project README.md
 test-readme project:
