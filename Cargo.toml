@@ -6,6 +6,12 @@ members = [
   "nethsm-config",
 ]
 
+[workspace.dependencies]
+rstest = "0.23.0"
+testdir = "0.9.1"
+testresult = "0.4.1"
+thiserror = "1.0.64"
+
 [workspace.package]
 authors = [
   "David Runge <dvzrv@archlinux.org>",

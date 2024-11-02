@@ -16,11 +16,11 @@ rpassword = "7.3.1"
 rprompt = "2.1.1"
 serde = { version = "1.0.210", features = ["derive"] }
 ssh-key = "0.6.6"
-thiserror = "1.0.64"
+thiserror.workspace = true
 zeroize = { version = "1.8.1", features = ["zeroize_derive", "serde"] }
 
 [dev-dependencies]
 dirs = "5.0.1"
-rstest = "0.23.0"
-testdir = "0.9.1"
-testresult = "0.4.1"
+rstest.workspace = true
+testdir.workspace = true
+testresult.workspace = true
