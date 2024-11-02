@@ -247,7 +247,7 @@ add-hooks:
 
 # Check for stale links in documentation
 check-links:
-    lychee -- '**/*.md' '**/*.rs'
+    lychee .
 
 # Fixes common issues. Files need to be git add'ed
 fix:
