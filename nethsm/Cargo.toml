@@ -15,7 +15,7 @@ ignored = ["md-5"]
 [dependencies]
 base64ct = { version = "1.6.0", features = ["alloc", "std"] }
 chrono = { workspace = true, features = ["alloc"] }
-ed25519-dalek = { version = "2.1.1", features = ["pkcs8", "pem"] }
+ed25519-dalek = { workspace = true, features = ["pkcs8", "pem"] }
 email_address = "0.2.8"
 hex = { version = "0.4.3", features = ["serde"] }
 log = "0.4.22"
@@ -29,7 +29,7 @@ pgp = "0.14"
 picky-asn1-der = "0.5.0"
 picky-asn1-x509 = "0.13.0"
 rand.workspace = true
-rsa = { version = "0.9.6", features = ["pem"] }
+rsa = { workspace = true, features = ["pem"] }
 rustls = { version = "0.23.14", default-features = false, features = ["ring"] }
 rustls-native-certs = "0.8.0"
 secrecy = { version = "0.10.2", features = ["serde"] }
@@ -43,8 +43,8 @@ ureq = { version = "2.10.1", features = ["json"] }
 url = { version = "2.5.2", features = ["serde"] }
 
 [dev-dependencies]
-ed25519-dalek = { version = "2.1.1", features = ["pkcs8", "pem", "rand_core"] }
-rsa = { version = "0.9.6", features = ["getrandom", "sha2", "pem"] }
+ed25519-dalek = { workspace = true, features = ["pkcs8", "pem", "rand_core"] }
+rsa = { workspace = true, features = ["getrandom", "sha2", "pem"] }
 rstest.workspace = true
 rustainers = { version = "0.13.1" }
 testdir.workspace = true
