@@ -396,7 +396,7 @@ ci-publish:
     readonly crate="${tag//\/*/}"
     readonly version="${tag#*/}"
 
-    just ensure-command cargo-publish git mold
+    just ensure-command cargo mold
 
     if [[ -z "$tag" ]]; then
         printf "There is no tag!\n" >&2
