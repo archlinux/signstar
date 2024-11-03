@@ -432,7 +432,7 @@ Work on attestation log integration is tracked in [#43].
 
 #### Threshold signatures
 
-To further manifest and strengthen a [reproducible builds] effort, it is possible to build a system in the future in which only reproducible artifacts are eligible for a signature.
+To further manifest and strengthen the [Arch Linux reproducible builds] effort, it is possible to build a system in the future in which only reproducible artifacts are eligible for a signature.
 
 In such a system, `m` build machines create the artifact in question and each request a signature from the Signstar system.
 Only if a threshold of `n` (where `n <= m`) identical artifacts is met, a signature is created.
@@ -625,7 +625,7 @@ sequenceDiagram
 [packet structure of data signatures]: https://openpgp.dev/book/zoom/signatures.html
 [previous setup]: previous-setup.md
 [repository sync databases]: previous-setup.md#repository-sync-databases
-[reproducible builds]: https://reproducible-builds.org/
+[Arch Linux reproducible builds]: https://wiki.archlinux.org/title/Reproducible_builds
 [shim]: https://archlinux.org/packages/extra/any/shim/
 [signing key]: https://openpgp.dev/book/glossary.html#term-Signing-Key-Flag
 [sigul]: https://pagure.io/sigul/
