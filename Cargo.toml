@@ -7,7 +7,12 @@ members = [
 ]
 
 [workspace.dependencies]
+chrono = "0.4.38"
+nethsm = { path = "nethsm", version = "0.6.0" }
+rand = "0.8.5"
 rstest = "0.23.0"
+serde = { version = "1.0.210", features = ["derive"] }
+strum = { version = "0.26.3", features = ["derive"] }
 testdir = "0.9.1"
 testresult = "0.4.1"
 thiserror = "1.0.64"

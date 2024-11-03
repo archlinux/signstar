@@ -11,10 +11,10 @@ version = "0.1.1"
 
 [dependencies]
 confy = "0.6.1"
-nethsm = { path = "../nethsm", version = "0.6.0" }
+nethsm.workspace = true
 rpassword = "7.3.1"
 rprompt = "2.1.1"
-serde = { version = "1.0.210", features = ["derive"] }
+serde.workspace = true
 ssh-key = "0.6.6"
 thiserror.workspace = true
 zeroize = { version = "1.8.1", features = ["zeroize_derive", "serde"] }
