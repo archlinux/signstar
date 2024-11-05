@@ -2,6 +2,7 @@
 resolver = "2"
 members = [
   "nethsm",
+  "nethsm-backup",
   "nethsm-cli",
   "nethsm-config",
   "nethsm-tests",
@@ -37,3 +38,11 @@ repository = "https://gitlab.archlinux.org/archlinux/signstar"
 lto = true
 codegen-units = 1
 opt-level = "z"
+
+# Enable optimizations for crates that are extremely slow unoptimized
+# scrypt opt-level provides 30x increase of performance, while aes-gcm 2x
+[profile.dev.package.scrypt]
+opt-level = 3
+
+[profile.dev.package.aes-gcm]
+opt-level = 3
