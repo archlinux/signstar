@@ -1,7 +1,12 @@
-mod common;
 use chrono::Utc;
-use common::{nethsm_with_users, unprovisioned_nethsm, NetHsmImage, ADMIN_USER_ID, BACKUP_USER_ID};
 use nethsm::{NetHsm, Passphrase, UserId};
+use nethsm_tests::{
+    nethsm_with_users,
+    unprovisioned_nethsm,
+    NetHsmImage,
+    ADMIN_USER_ID,
+    BACKUP_USER_ID,
+};
 use rstest::rstest;
 use rustainers::Container;
 use testdir::testdir;

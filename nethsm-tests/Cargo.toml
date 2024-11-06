@@ -1,0 +1,21 @@
+[package]
+name = "nethsm-tests"
+description = "Containerized testing environments for NetHSM related projects"
+version = "0.1.0"
+authors.workspace = true
+edition.workspace = true
+homepage.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+chrono.workspace = true
+nethsm.workspace = true
+rstest.workspace = true
+rustainers = "0.13.1"
+testresult.workspace = true
+ureq = "2.10.1"
+uuid = { version = "1.11.0", features = ["v7"] }
+
+[dev-dependencies]
+tokio = { version = "1.41.1", features = ["macros"] }

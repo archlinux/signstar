@@ -4,6 +4,7 @@ members = [
   "nethsm",
   "nethsm-cli",
   "nethsm-config",
+  "nethsm-tests",
 ]
 
 [workspace.dependencies]

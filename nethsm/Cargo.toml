@@ -44,6 +44,7 @@ url = { version = "2.5.2", features = ["serde"] }
 
 [dev-dependencies]
 ed25519-dalek = { workspace = true, features = ["pkcs8", "pem", "rand_core"] }
+nethsm-tests = { path = "../nethsm-tests" }
 rsa = { workspace = true, features = ["getrandom", "sha2", "pem"] }
 rstest.workspace = true
 rustainers = { version = "0.13.1" }
@@ -51,4 +52,3 @@ testdir.workspace = true
 testresult.workspace = true
 tokio = { version = "1.40.0", features = ["macros"] }
 uuid = { version = "1.10.0", features = ["v7"] }
-

@@ -1,15 +1,14 @@
 use std::time::Duration;
 
-mod common;
 use chrono::Utc;
-use common::unprovisioned_nethsm;
-use common::NetHsmImage;
-use common::ADMIN_USER_ID;
-use common::ADMIN_USER_PASSPHRASE;
-use common::UNLOCK_PASSPHRASE;
 use nethsm::Credentials;
 use nethsm::Passphrase;
 use nethsm::{NetHsm, SystemState};
+use nethsm_tests::unprovisioned_nethsm;
+use nethsm_tests::NetHsmImage;
+use nethsm_tests::ADMIN_USER_ID;
+use nethsm_tests::ADMIN_USER_PASSPHRASE;
+use nethsm_tests::UNLOCK_PASSPHRASE;
 use rstest::rstest;
 use rustainers::Container;
 use testresult::TestResult;

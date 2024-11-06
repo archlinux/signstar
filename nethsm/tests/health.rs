@@ -1,6 +1,5 @@
-mod common;
-use common::{nethsm_with_users, unprovisioned_nethsm, NetHsmImage};
 use nethsm::{NetHsm, SystemState};
+use nethsm_tests::{nethsm_with_users, unprovisioned_nethsm, NetHsmImage};
 use rstest::rstest;
 use rustainers::Container;
 use testresult::TestResult;

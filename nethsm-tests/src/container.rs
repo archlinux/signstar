@@ -12,20 +12,25 @@ use uuid::{timestamp::Timestamp, NoContext, Uuid};
 
 /// The NetHSM container image and specific tag
 ///
-/// We are currently pinning to "c16fe4ed" due to https://gitlab.archlinux.org/archlinux/signstar/-/issues/32
+/// We are currently pinning to "c16fe4ed" due to <https://gitlab.archlinux.org/archlinux/signstar/-/issues/32>
 /// In the future we will probably want to stick to a specific release tag (representing an actual
 /// upstream release) and not "testing"
 const IMAGE_NAME: &str = "docker.io/nitrokey/nethsm:c16fe4ed";
 const DEFAULT_PORT: u16 = 8443;
 const DEFAULT_PATH: &str = "/api/v1";
 
+/// An image of NetHSM used to create a running container.
 #[derive(Debug)]
 pub struct NetHsmImage {
+    /// Image name that is used to start the container.
     pub image: ImageName,
+
+    /// Exposed port which will be used for communication with the NetHSM.
     pub port: ExposedPort,
 }
 
 impl NetHsmImage {
+    /// Returns an base URL for the virtualized NetHSM.
     pub async fn url(&self) -> TestResult<Url> {
         Ok(Url::new(&format!(
             "https://localhost:{}{}",

@@ -1,3 +1,14 @@
+# NetHSM containerized tests
+
+Containerized testing environments for NetHSM related projects.
+
+This project contains types which start virtual NetHSM instances using Podman.
+
+## Example
+
+The following integration test starts a NetHSM container with users to retrieve several random bytes:
+
+```rust no_run
 use nethsm::Credentials;
 use nethsm::NetHsm;
 use nethsm::Passphrase;
@@ -5,14 +16,13 @@ use nethsm_tests::nethsm_with_users;
 use nethsm_tests::NetHsmImage;
 use nethsm_tests::DEFAULT_OPERATOR_USER_ID;
 use nethsm_tests::DEFAULT_OPERATOR_USER_PASSPHRASE;
-use rstest::rstest;
 use rustainers::Container;
 use testresult::TestResult;
 
 pub static LENGTH: u32 = 32;
 
 #[ignore = "requires Podman"]
-#[rstest]
+#[rstest::rstest]
 #[tokio::test]
 async fn get_random_bytes(
     #[future] nethsm_with_users: TestResult<(NetHsm, Container<NetHsmImage>)>,
@@ -33,3 +43,4 @@ async fn get_random_bytes(
 
     Ok(())
 }
+```

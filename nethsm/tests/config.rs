@@ -1,17 +1,7 @@
-mod common;
 use std::net::Ipv4Addr;
 use std::path::PathBuf;
 
 use chrono::Utc;
-use common::{
-    nethsm_with_users,
-    unprovisioned_nethsm,
-    update_file,
-    NetHsmImage,
-    ADMIN_USER_ID,
-    NAMESPACE1_ADMIN_USER_ID,
-    UNLOCK_PASSPHRASE,
-};
 use nethsm::{
     BootMode,
     DistinguishedName,
@@ -20,6 +10,15 @@ use nethsm::{
     NetworkConfig,
     Passphrase,
     TlsKeyType,
+};
+use nethsm_tests::{
+    nethsm_with_users,
+    unprovisioned_nethsm,
+    update_file,
+    NetHsmImage,
+    ADMIN_USER_ID,
+    NAMESPACE1_ADMIN_USER_ID,
+    UNLOCK_PASSPHRASE,
 };
 use rstest::rstest;
 use rustainers::Container;

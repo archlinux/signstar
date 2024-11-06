@@ -1,12 +1,11 @@
-mod common;
-use common::{
+use nethsm::{NetHsm, Passphrase, SystemState, UserId};
+use nethsm_tests::{
     nethsm_with_users,
     NetHsmImage,
     ADMIN_USER_ID,
     NAMESPACE1_ADMIN_USER_ID,
     UNLOCK_PASSPHRASE,
 };
-use nethsm::{NetHsm, Passphrase, SystemState, UserId};
 use rstest::rstest;
 use rustainers::Container;
 use testresult::TestResult;
