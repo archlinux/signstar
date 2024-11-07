@@ -489,6 +489,14 @@ build-image openpgp_signing_key signing_key="resources/mkosi/signstar/mkosi.outp
     gpg --export {{ openpgp_signing_key }} > {{ absolute_path("resources/mkosi/signstar/mkosi.extra/usr/lib/systemd/import-pubring.gpg") }}
     mkosi -f -C {{ absolute_path("resources/mkosi/signstar") }} {{ mkosi_options }} --secure-boot-key={{ absolute_path(signing_key) }} --secure-boot-certificate={{ absolute_path(signing_cert) }} --verity-key={{ absolute_path(signing_key) }} --verity-certificate={{ absolute_path(signing_cert) }} --key={{ openpgp_signing_key }} build
 
+# Builds an OS image using mkosi
+build-test-image openpgp_signing_key signing_key="resources/mkosi/signstar/mkosi.output/signing.key" signing_cert="resources/mkosi/signstar/mkosi.output/signing.pem" mkosi_options="":
+    just build signstar-configure-build
+    cp -v "${CARGO_TARGET_DIR:-target}/debug/signstar-configure-build" resources/mkosi/signstar/mkosi.profiles/local-testing/mkosi.extra/usr/local/bin/
+    cp -v signstar-configure-build/tests/fixtures/example.toml resources/mkosi/signstar/mkosi.profiles/local-testing/mkosi.extra/usr/local/share/signstar/config.toml
+    just build-image {{ openpgp_signing_key }} {{ signing_key }} {{ signing_cert }} "--profile local-testing"
+    # mkosi -f -C {{ absolute_path("resources/mkosi/signstar") }} {{ mkosi_options }} --secure-boot-key={{ absolute_path(signing_key) }} --secure-boot-certificate={{ absolute_path(signing_cert) }} --verity-key={{ absolute_path(signing_key) }} --verity-certificate={{ absolute_path(signing_cert) }} --key={{ openpgp_signing_key }} --profile local-testing build
+
 # Runs an OS image using mkosi qemu
 run-image mkosi_options="" qemu_options="":
     just ensure-command mkosi
