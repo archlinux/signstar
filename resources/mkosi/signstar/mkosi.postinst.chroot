@@ -2,23 +2,13 @@
 
 set -Eeuo pipefail
 
-declare -A users_keys=(
-  ["test1"]="ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHTjZNraF2KN/whbJKX7GQ/b5YzQYUVsrzhY/XVFhHaK"
-  ["test2"]="ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHTjZNraF2KN/whbJKX7GQ/b5YzQYUVsrzhY/XVFhHaK"
-)
-readonly home_base="${HOME_BASE:-}"
-readonly authorized_keys="/etc/ssh/authorized_keys"
+export PATH="$PATH:/usr/local/bin"
 
-touch "$authorized_keys"
-for user in "${!users_keys[@]}"; do
-  # add test user, but do not create its home
-  useradd --base-dir "$home_base" --user-group --shell /usr/bin/bash --password "$(openssl passwd -6 "$user")" "$user"
-  # create tmpfiles.d integration to create the user home upon boot
-  mkdir -p /etc/tmpfiles.d/
-  printf "d %s/%s 700 %s %s\n" "$home_base" "$user" "$user" "$user" > /etc/tmpfiles.d/signstar-user-"$user".conf
-  printf "Match user %s\n  ForceCommand /usr/bin/true\n" "$user" > /etc/ssh/sshd_config.d/00-signstar-user-"$user".conf
-  printf "%s\n" "${users_keys[$user]}" >> "$authorized_keys"
-done
+if command -v signstar-configure-build > /dev/null; then
+  printf "Configure users...\n"
+  signstar-configure-build --version
+  signstar-configure-build
+fi
 
 printf "Setup resolv.conf\n"
 ln -sf /run/systemd/resolve/stub-resolv.conf /etc/resolv.conf
