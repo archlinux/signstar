@@ -6,7 +6,7 @@ A command line interface (CLI) for the Nitrokey [NetHSM] based on the [nethsm cr
 
 This crate can be installed using `cargo`:
 
-```sh
+```bash no_run
 cargo install nethsm-cli
 ```
 
@@ -20,7 +20,7 @@ The following assumes a recent version of `openssl` and `podman`.
 
 ### Start a test container
 
-```sh
+```bash no_run
 podman run --rm -ti --network=pasta:-t,auto,-u,auto,-T,auto,-U,auto docker.io/nitrokey/nethsm:testing
 ```
 
@@ -691,17 +691,17 @@ nethsm --user admin1 health ready
 
 The devices offer various system level actions, e.g.:
 
-```sh
+```bash no_run
 # reset device to factory settings
 nethsm --user admin1 system factory-reset
 ```
 
-```sh
+```bash no_run
 # reboot device
 nethsm --user admin1 system reboot
 ```
 
-```sh
+```bash no_run
 # shut down device
 nethsm --user admin1 system shutdown
 ```
@@ -723,7 +723,7 @@ nethsm system backup
 
 A backup can later on be used to restore a device, using an "R-Administrator":
 
-```sh
+```bash no_run
 export NETHSM_BACKUP_PASSPHRASE_FILE="$nethsm_backup_passphrase_file"
 nethsm --user admin1 system restore "$NETHSM_BACKUP_OUTPUT_FILE"
 ```
@@ -732,7 +732,7 @@ nethsm --user admin1 system restore "$NETHSM_BACKUP_OUTPUT_FILE"
 
 Updates for the operating system/ firmware of the device are uploaded to the device and then applied or aborted.
 
-```sh
+```bash no_run
 nethsm --user admin1 system upload-update my-update-file.bin
 # apply the update
 nethsm --user admin1 system commit-update
