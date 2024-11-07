@@ -209,6 +209,11 @@ check-licenses:
     just ensure-command reuse
     reuse lint
 
+# Build project and optionally provide further `cargo-build` options
+build project *cargo_build_options:
+    just ensure-command cargo
+    cargo build -p {{ project }} {{ cargo_build_options }}
+
 # Build local documentation
 docs:
     just ensure-command cargo mold
