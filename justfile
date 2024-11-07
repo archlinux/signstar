@@ -225,7 +225,7 @@ test:
     if [[ "$ignored" == "true" ]]; then
         cargo test --all -- --ignored
     else
-        cargo test --all
+        cargo nextest run --all
         just docs
     fi
 
