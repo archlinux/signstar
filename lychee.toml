@@ -11,3 +11,6 @@ cache = true
 
 # discard all cached requests older than this duration.
 max_cache_age = "2d"
+
+# only check 15 URLs at a time
+max_concurrency = 15
