@@ -17,7 +17,7 @@ serde = { version = "1.0.210", features = ["derive"] }
 strum = { version = "0.26.3", features = ["derive"] }
 testdir = "0.9.1"
 testresult = "0.4.1"
-thiserror = "1.0.64"
+thiserror = "2.0.0"
 
 [workspace.package]
 authors = [
