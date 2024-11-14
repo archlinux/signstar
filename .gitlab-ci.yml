@@ -75,7 +75,9 @@ build-image:
     # prepare an ephemeral OpenPGP signing key
     - WORKDIR="$(pwd)" runuser -w WORKDIR -l testuser -c 'cd "$WORKDIR" && rsop generate-key test > test.tsk && rsop extract-cert > test.pgp < test.tsk && echo msg | rsop sign test.tsk > msg.sig && echo msg | rsop verify msg.sig test.pgp | cut -d " " -f2 > fingerprint.txt && gpg --import test.tsk'
     # clone latest mkosi as we currently require some of its features and fixes
-    - WORKDIR="$(pwd)" runuser -w WORKDIR -l testuser -c 'cd "$WORKDIR" && git clone https://github.com/systemd/mkosi'
+    # use a fixed version due to issue with signing
+    # see: https://gitlab.archlinux.org/archlinux/signstar/-/issues/102
+    - WORKDIR="$(pwd)" runuser -w WORKDIR -l testuser -c 'cd "$WORKDIR" && git clone https://github.com/systemd/mkosi && cd mkosi && git reset --hard c1766d1d3346d095ecb3664d74b9a590c897b455'
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
