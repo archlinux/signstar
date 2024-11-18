@@ -17,6 +17,7 @@ use cli::{
 };
 use cli::{KeyCertCommand, KeyCommand, NamespaceCommand, SystemCommand};
 use nethsm::{
+    validate_backup,
     DistinguishedName,
     KeyFormat,
     KeyMechanism,
@@ -73,6 +74,10 @@ pub enum Error {
     /// Unable to open output file
     #[error("The output file exists already: {0}")]
     OutputFileExists(PathBuf),
+
+    /// Error processing backup file
+    #[error("Backup file is corrupted: {0}")]
+    Backup(#[from] nethsm_backup::Error),
 }
 
 struct FileOrStdout {
@@ -1027,6 +1032,14 @@ fn main() -> Result<(), Error> {
                     )?;
 
                 println!("{:?}", nethsm.upload_update(read(command.input)?)?);
+            }
+            SystemCommand::ValidateBackup(command) => {
+                validate_backup(
+                    &mut std::fs::File::open(command.input)?,
+                    command
+                        .backup_passphrase_file
+                        .map(|passphrase_file| passphrase_file.passphrase),
+                )?;
             }
         },
         Command::Unlock(command) => {

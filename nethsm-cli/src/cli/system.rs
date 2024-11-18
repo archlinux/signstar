@@ -23,6 +23,7 @@ pub enum SystemCommand {
     UploadUpdate(SystemUploadUpdateCommand),
     CancelUpdate(SystemCancelUpdateCommand),
     CommitUpdate(SystemCommitUpdateCommand),
+    ValidateBackup(SystemValidateBackupCommand),
 }
 
 #[derive(Debug, Parser)]
@@ -176,3 +177,30 @@ The device must be in state \"{Operational}\" and an update file must have been 
 Requires authentication of a system-wide user in the \"{Administrator}\" role.")
 )]
 pub struct SystemCommitUpdateCommand {}
+
+#[derive(Debug, Parser)]
+#[command(
+    about = "Validate a backup file",
+    long_about = ex_format!("Validate a backup file
+
+Parse an encrypted backup file to ensure general properties.
+If a passphrase is provided, decrypting the backup file and validating its version number is attempted.
+This command exits with a non-zero exit code, if the file is corrupted, decryption or validation fails.
+
+Note: Backups are created using \"{BIN_NAME} system backup\"")
+)]
+pub struct SystemValidateBackupCommand {
+    #[arg(
+        env = "NETHSM_VALIDATE_BACKUP_PASSPHRASE_FILE",
+        help = "The path to a file containing the backup passphrase",
+        long,
+        short
+    )]
+    pub backup_passphrase_file: Option<PassphraseFile>,
+
+    #[arg(
+        env = "NETHSM_VALIDATE_BACKUP_FILE",
+        help = "The path to the backup file to validate"
+    )]
+    pub input: PathBuf,
+}

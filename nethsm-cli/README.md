@@ -728,6 +728,13 @@ export NETHSM_BACKUP_PASSPHRASE_FILE="$nethsm_backup_passphrase_file"
 nethsm --user admin1 system restore "$NETHSM_BACKUP_OUTPUT_FILE"
 ```
 
+Backups can be validated offline:
+
+```bash
+export NETHSM_VALIDATE_BACKUP_PASSPHRASE_FILE="$nethsm_backup_passphrase_file"
+nethsm system validate-backup "$NETHSM_BACKUP_OUTPUT_FILE"
+```
+
 #### Updates
 
 Updates for the operating system/ firmware of the device are uploaded to the device and then applied or aborted.
