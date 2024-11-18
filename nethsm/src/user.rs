@@ -470,6 +470,11 @@ impl Passphrase {
     pub fn expose_owned(&self) -> String {
         self.0.expose_secret().to_owned()
     }
+
+    /// Exposes the secret passphrase as borrowed [`str`]
+    pub fn expose_borrowed(&self) -> &str {
+        self.0.expose_secret()
+    }
 }
 
 impl FromStr for Passphrase {
