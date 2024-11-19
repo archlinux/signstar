@@ -1942,6 +1942,7 @@ impl HermeticParallelConfig {
     ///                 None,
     ///                 "EdDsa".parse()?,
     ///                 CryptographicKeyContext::OpenPgp{
+    ///                     notation_settings: None,
     ///                     user_ids: OpenPgpUserIdList::new(vec!["Foobar McFooface <foobar@mcfooface.org>".parse()?])?,
     ///                     version: "4".parse()?,
     ///                 })?,

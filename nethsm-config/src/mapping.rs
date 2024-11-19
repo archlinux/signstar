@@ -376,6 +376,7 @@ impl UserMapping {
     ///         None,
     ///         "EdDsa".parse()?,
     ///         CryptographicKeyContext::OpenPgp{
+    ///             notation_settings: None,
     ///             user_ids: OpenPgpUserIdList::new(vec!["John Doe <john@example.org>".parse()?])?,
     ///             version: "v4".parse()?,
     ///         },
@@ -469,6 +470,7 @@ impl UserMapping {
     ///         None,
     ///         "EdDsa".parse()?,
     ///         CryptographicKeyContext::OpenPgp{
+    ///             notation_settings: None,
     ///             user_ids: OpenPgpUserIdList::new(vec!["John Doe <john@example.org>".parse()?])?,
     ///             version: "4".parse()?,
     ///     })?,
@@ -554,6 +556,7 @@ impl UserMapping {
     ///         None,
     ///         "EdDsa".parse()?,
     ///         CryptographicKeyContext::OpenPgp{
+    ///             notation_settings: None,
     ///             user_ids: OpenPgpUserIdList::new(vec!["John Doe <john@example.org>".parse()?])?,
     ///             version: "4".parse()?,
     ///     })?,

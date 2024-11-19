@@ -285,6 +285,7 @@ pub enum CryptographicKeyContext {
     /// A key is used in an OpenPGP context
     #[serde(rename = "openpgp")]
     OpenPgp {
+        notation_settings: Option<OpenPgpNotationSettings>,
         user_ids: OpenPgpUserIdList,
         version: OpenPgpVersion,
     },
@@ -322,6 +323,7 @@ impl CryptographicKeyContext {
     /// )?;
     ///
     /// CryptographicKeyContext::OpenPgp {
+    ///     notation_settings: None,
     ///     user_ids: OpenPgpUserIdList::new(vec!["Foobar McFooface <foobar@mcfooface.org>".parse()?])?,
     ///     version: OpenPgpVersion::V4,
     /// }
@@ -333,6 +335,7 @@ impl CryptographicKeyContext {
     ///
     /// // OpenPGP does not support ECDSA P224
     /// assert!(CryptographicKeyContext::OpenPgp {
+    ///     notation_settings: None,
     ///     user_ids: OpenPgpUserIdList::new(vec!["Foobar McFooface <foobar@mcfooface.org>".parse()?])?,
     ///     version: OpenPgpVersion::V4,
     /// }
@@ -386,6 +389,7 @@ impl CryptographicKeyContext {
                 }
             },
             Self::OpenPgp {
+                notation_settings: _,
                 user_ids: _,
                 version: _,
             } => match (key_type, signature_type) {
@@ -460,6 +464,7 @@ impl SigningKeySetup {
     ///     None,
     ///     SignatureType::EdDsa,
     ///     CryptographicKeyContext::OpenPgp {
+    ///         notation_settings: None,
     ///         user_ids: OpenPgpUserIdList::new(vec![
     ///             "Foobar McFooface <foobar@mcfooface.org>".parse()?
     ///         ])?,
@@ -475,6 +480,7 @@ impl SigningKeySetup {
     ///     None,
     ///     SignatureType::EdDsa,
     ///     CryptographicKeyContext::OpenPgp {
+    ///         notation_settings: None,
     ///         user_ids: OpenPgpUserIdList::new(vec![
     ///             "Foobar McFooface <foobar@mcfooface.org>".parse()?
     ///         ])?,
@@ -491,6 +497,7 @@ impl SigningKeySetup {
     ///     None,
     ///     SignatureType::EcdsaP224,
     ///     CryptographicKeyContext::OpenPgp {
+    ///         notation_settings: None,
     ///         user_ids: OpenPgpUserIdList::new(vec![
     ///             "Foobar McFooface <foobar@mcfooface.org>".parse()?
     ///         ])?,
