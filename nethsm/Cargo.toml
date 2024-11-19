@@ -17,6 +17,7 @@ base64ct = { version = "1.6.0", features = ["alloc", "std"] }
 chrono = { workspace = true, features = ["alloc"] }
 ed25519-dalek = { workspace = true, features = ["pkcs8", "pem"] }
 email_address = "0.2.8"
+fqdn = { version = "0.4.2", features = ["strict-rfc"] }
 hex = { version = "0.4.3", features = ["serde"] }
 log = "0.4.22"
 md-5 = "0.10.6"

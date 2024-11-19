@@ -1,6 +1,7 @@
 use std::{fmt::Display, str::FromStr};
 
 use base64ct::{Base64, Encoding};
+use fqdn::FQDN;
 use nethsm_sdk_rs::models::KeyPrivateData;
 use rsa::{
     pkcs8::DecodePrivateKey,
@@ -207,6 +208,65 @@ pub enum Error {
         key_mechanisms: Vec<KeyMechanism>,
         signature_type: SignatureType,
     },
+
+    /// A signing key setup is not compatible with OpenPGP signing
+    #[error("The string \"{domain}\" is not a valid FQDN.")]
+    InvalidOpenPgpNotationDomain { domain: String, source: fqdn::Error },
+}
+
+/// The domain part of [OpenPGP notation data]
+///
+/// Represents the domain part of an [OpenPGP notation data].
+///
+/// [OpenPGP notation data]: https://www.rfc-editor.org/rfc/rfc9580#name-notation-data
+#[derive(Clone, Debug, Deserialize, Hash, Eq, PartialEq, Serialize)]
+#[serde(into = "String", try_from = "String")]
+pub struct OpenPgpNotationDomain(String);
+
+impl OpenPgpNotationDomain {
+    pub fn new(s: String) -> Result<Self, Error> {
+        if let Err(error) = FQDN::new(s.as_bytes()) {
+            return Err(Error::InvalidOpenPgpNotationDomain {
+                domain: s,
+                source: error,
+            });
+        }
+
+        Ok(Self(s))
+    }
+}
+
+impl AsRef<str> for OpenPgpNotationDomain {
+    fn as_ref(&self) -> &str {
+        &self.0
+    }
+}
+
+impl Display for OpenPgpNotationDomain {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+impl FromStr for OpenPgpNotationDomain {
+    type Err = Error;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Self::new(s.to_string())
+    }
+}
+
+impl From<OpenPgpNotationDomain> for String {
+    fn from(value: OpenPgpNotationDomain) -> Self {
+        value.0
+    }
+}
+
+impl TryFrom<String> for OpenPgpNotationDomain {
+    type Error = Error;
+
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        Self::new(value)
+    }
 }
 
 /// The cryptographic context in which a key is used

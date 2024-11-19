@@ -951,6 +951,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "fqdn"
+version = "0.4.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "28d649848b92394c9e1357f6574e48ba9b073a20ceac342f7fbfd0ab5f12524d"
+
+[[package]]
 name = "futures"
 version = "0.3.31"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1550,6 +1556,7 @@ dependencies = [
  "chrono",
  "ed25519-dalek",
  "email_address",
+ "fqdn",
  "hex",
  "log",
  "md-5",
