@@ -269,6 +269,12 @@ impl TryFrom<String> for OpenPgpNotationDomain {
     }
 }
 
+/// Settings for OpenPGP notations
+#[derive(Clone, Debug, Deserialize, Hash, Eq, PartialEq, Serialize)]
+pub struct OpenPgpNotationSettings {
+    domain: OpenPgpNotationDomain,
+}
+
 /// The cryptographic context in which a key is used
 ///
 /// Each key can only be used in one cryptographic context.
