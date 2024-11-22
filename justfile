@@ -310,6 +310,11 @@ test-readme project:
     create_container
     run_test
 
+# Runs end-to-end tests found in project README.md files for all projects supporting it
+test-readmes:
+    just test-readme nethsm-cli
+    just test-readme signstar-configure-build
+
 # Adds pre-commit and pre-push git hooks
 add-hooks:
     #!/usr/bin/env bash
