@@ -2013,9 +2013,9 @@ dependencies = [
 
 [[package]]
 name = "picky-asn1-x509"
-version = "0.13.0"
+version = "0.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f3384ff768b1c4a04532916be77935f634a4738d3b2138da98798e90352fadf4"
+checksum = "125a5aad54be4c07253cdfc64c480d636a60f216cb5853f03d84e12f3b6ec5f8"
 dependencies = [
  "base64 0.22.1",
  "oid",

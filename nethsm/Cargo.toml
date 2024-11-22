@@ -27,7 +27,7 @@ p384 = { version = "0.13.0", features = ["pem", "pkcs8"] }
 p521 = { version = "0.13.3", features = ["pem", "pkcs8"] }
 pgp = "0.14"
 picky-asn1-der = "0.5.0"
-picky-asn1-x509 = "0.13.0"
+picky-asn1-x509 = "0.14.0"
 rand.workspace = true
 rsa = { workspace = true, features = ["pem"] }
 rustls = { version = "0.23.14", default-features = false, features = ["ring"] }
