@@ -477,6 +477,7 @@ create-image-signing-key key cert common_name="archlinux.org" key_settings="rsa:
     if ! {{ path_exists(key) }}; then \
         if ! {{ path_exists(cert) }}; then \
             just ensure-command openssl; \
+            mkdir -p resources/mkosi/signstar/mkosi.output/; \
             openssl req -x509 -newkey {{ key_settings }} -keyout "{{ key }}" -out "{{ cert }}" -nodes -days 3650 -set_serial 01 -subj /CN={{ common_name }}; \
         fi \
     fi
@@ -492,6 +493,7 @@ build-image openpgp_signing_key signing_key="resources/mkosi/signstar/mkosi.outp
 # Builds an OS image using mkosi
 build-test-image openpgp_signing_key signing_key="resources/mkosi/signstar/mkosi.output/signing.key" signing_cert="resources/mkosi/signstar/mkosi.output/signing.pem" mkosi_options="":
     just build signstar-configure-build
+    mkdir -p resources/mkosi/signstar/mkosi.profiles/local-testing/mkosi.extra/usr/local/bin/ resources/mkosi/signstar/mkosi.profiles/local-testing/mkosi.extra/usr/local/share/signstar/
     cp -v "${CARGO_TARGET_DIR:-target}/debug/signstar-configure-build" resources/mkosi/signstar/mkosi.profiles/local-testing/mkosi.extra/usr/local/bin/
     cp -v signstar-configure-build/tests/fixtures/example.toml resources/mkosi/signstar/mkosi.profiles/local-testing/mkosi.extra/usr/local/share/signstar/config.toml
     just build-image {{ openpgp_signing_key }} {{ signing_key }} {{ signing_cert }} "--profile local-testing"
