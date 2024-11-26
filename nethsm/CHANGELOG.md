@@ -6,6 +6,48 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.0] - 2024-11-26
+
+### Added
+- Introduce `nethsm-tests` for easier integration testing
+- Derive `Copy` for `nethsm::UserRole`
+- Implement `AsRef<str>` for `NamespaceId` to return string slice
+- Rely on `serde`'s `into` and `try_from` attributes for `KeyId`
+- Rely on `serde`'s `into` and `try_from` attributes  for `UserId`
+- Add `SigningKeySetup` struct to track key setups for signing
+- Add `CryptographicKeyContext` to track a key's crypto context
+- [**breaking**] Provide version with `OpenPgpVersion` when creating OpenPGP certificate
+- [**breaking**] Use `OpenPgpUserId` for User ID when creating OpenPGP certificate
+- Add `OpenPgpVersion` to track OpenPGP version
+- Add `OpenPgpUserId` and `OpenPgpUserIdList` for OpenPGP User IDs
+- Add function to validate `SignatureType` against other key data
+- Derive `Deserialize` and `Serialize` for `SignatureType`
+- Derive `Hash`, `Eq` and `PartialEq` for some types
+
+### Fixed
+- *(deps)* update rust crate picky-asn1-x509 to 0.14.0
+- Properly truncate digests for ECDSA signing schemes
+- Make serde use `TryFrom<String>` for deserialization
+- *(deps)* Update dependencies removing yanked crate
+- *(deps)* Migrate to rpgp v0.14.0
+- Print more details on errors
+- *(deps)* Update `secrecy` to version `0.10.2`
+- *(deps)* update rust crate strum to 0.26.0
+- Read real value of the RSA modulus instead of using a hardcoded one
+
+### Other
+- Consolidate contributing and licensing information
+- *(deps)* Update dependencies and fix license ID
+- *(cargo)* Move same-crate, feature-incompatible crates to workspace
+- *(cargo)* Move common dependencies to workspace dependencies
+- *(cargo)* Move shared dependencies to workspace dependencies
+- *(cargo)* Move package metadata to workspace
+- Use correct link to upstream Error type in `nethsm_sdk::Message`
+- Add docs for and spacing between `nethsm::key::Error` variants
+- *(deps)* update rust crate rstest to 0.23.0
+- Refactor error cases to use `Error::UnsupportedKeyFormat`
+- *(deps)* update rust crate rustainers to 0.13.0
+
 ## [0.6.0] - 2024-09-11
 
 ### Added
