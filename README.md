@@ -55,14 +55,16 @@ The target directory is created automatically.
 
 ## Contributing
 
-Please refer to the [contributing guidelines].
+Please refer to the [contributing guidelines] to learn how to contribute to this project.
 
 ## License
 
-This project may be used under the terms of the [Apache-2.0](https://www.apache.org/licenses/LICENSE-2.0) or [MIT](https://opensource.org/licenses/MIT) license.
+This project may be used under the terms of the [Apache-2.0] or [MIT] license.
 
 Changes to this project - unless stated otherwise - automatically fall under the terms of both of the aforementioned licenses.
 
+[Apache-2.0]: https://www.apache.org/licenses/LICENSE-2.0
+[MIT]: https://opensource.org/licenses/MIT
 [Nitrokey NetHSM]: https://www.nitrokey.com/products/nethsm
 [OpenPGP data signatures]: https://openpgp.dev/book/signing_data.html
 [SignstarOS]: resources/mkosi/signstar/README.md

@@ -76,8 +76,21 @@ done
 ```
 -->
 
+## Contributing
+
+Please refer to the [contributing guidelines] to learn how to contribute to this project.
+
+## License
+
+This project may be used under the terms of the [Apache-2.0] or [MIT] license.
+
+Changes to this project - unless stated otherwise - automatically fall under the terms of both of the aforementioned licenses.
+
+[Apache-2.0]: https://www.apache.org/licenses/LICENSE-2.0
+[MIT]: https://opensource.org/licenses/MIT
 [tmpfiles.d]: https://man.archlinux.org/man/tmpfiles.d.5
 [authorized_keys]: https://man.archlinux.org/man/sshd.8#AUTHORIZED_KEYS_FILE_FORMAT
+[contributing guidelines]: ../CONTRIBUTING.md
 [sshd_config]: https://man.archlinux.org/man/sshd_config.5
 [ForceCommand]: https://man.archlinux.org/man/sshd_config.5#ForceCommand
 [example.toml]: tests/fixtures/example.toml
