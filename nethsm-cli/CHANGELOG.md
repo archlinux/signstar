@@ -6,6 +6,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2024-11-26
+
+### Added
+- [**breaking**] Provide version with `OpenPgpVersion` when creating OpenPGP certificate
+- [**breaking**] Use `OpenPgpUserId` for User ID when creating OpenPGP certificate
+
+### Fixed
+- *(deps)* Update dependencies removing yanked crate
+- *(deps)* update rust crate strum to 0.26.0
+
+### Other
+- Consolidate contributing and licensing information
+- *(cargo)* Use workspace dependencies for `clap` and `nethsm-config`
+- *(deps)* Update dependencies and fix license ID
+- Use easier to understand `no_run` attribute
+- *(cargo)* Move common dependencies to workspace dependencies
+- *(cargo)* Move shared dependencies to workspace dependencies
+- *(cargo)* Move package metadata to workspace
+- Use `Display` in rendered docs instead of `Debug` representation
+- *(deps)* update rust crate rstest to 0.23.0
+- Use `expression_format` for easier to read help strings
+
 ## [0.3.0] - 2024-09-11
 
 ### Fixed
