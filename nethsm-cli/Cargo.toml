@@ -11,7 +11,7 @@ version = "0.3.0"
 
 [dependencies]
 chrono.workspace = true
-clap = { version = "4.5.19", features = ["derive", "env"] }
+clap = { version = "4.5.21", features = ["derive", "env"] }
 expression_format = "1.1.3"
 nethsm.workspace = true
 nethsm-config = { path = "../nethsm-config", version = "0.1.1" }
