@@ -408,10 +408,41 @@ flaky test='just test-readme nethsm-cli' rounds='999999999999':
       echo
     done
 
-# Prepares the release of a crate by updating dependencies, incrementing the crate version and creating a changelog entry
-prepare-release package:
-    just ensure-command release-plz
-    release-plz update -u -p {{ package }}
+# Prepares the release of a crate by updating dependencies, incrementing the crate version and creating a changelog entry (optionally, the version can be set explicitly)
+prepare-release package version="":
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    readonly package_name="{{ package }}"
+    if [[ -z "$package_name" ]]; then
+        printf "No package name provided!\n"
+        exit 1
+    fi
+    readonly package_version="{{ version }}"
+    readonly current_package_version="$(just get-workspace-member-version {{ package }})"
+    branch_name=""
+
+    just ensure-command git release-plz
+
+    release-plz update -u -p "$package_name"
+
+    # NOTE: When setting the version specifically, we are likely in a situation where `release-plz` did not detect a version change (e.g. when only changes to top-level files took place since last release).
+    # In this case we are fine to potentially have no changes in the CHANGELOG.md or having to adjust it manually afterwards.
+    if [[ -n "$package_version" ]]; then
+        release-plz set-version "${package_name}@${package_version}"
+    fi
+    readonly updated_package_version="$(just get-workspace-member-version {{ package }})"
+
+    if [[ -n "$package_version" ]]; then
+        branch_name="release/$package_name/$package_version"
+    else
+        branch_name="release/$package_name/$current_package_version"
+    fi
+    git checkout -b "$branch_name"
+
+    git add Cargo.* "$package_name"/{Cargo.toml,CHANGELOG.md}
+    git commit --gpg-sign --signoff --message "chore: Upgrade $package_name crate to $updated_package_version"
+    git push --set-upstream origin "$branch_name"
 
 # Creates a release of a crate in the workspace by creating a tag and pushing it
 release package:
