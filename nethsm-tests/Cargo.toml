@@ -1,7 +1,7 @@
 [package]
 name = "nethsm-tests"
 description = "Containerized testing environments for NetHSM related projects"
-version = "0.1.0"
+version = "0.1.1"
 authors.workspace = true
 edition.workspace = true
 homepage.workspace = true
