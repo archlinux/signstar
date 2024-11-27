@@ -7,7 +7,7 @@ keywords = ["user", "signstar", "nethsm", "cli"]
 license.workspace = true
 name = "signstar-configure-build"
 repository.workspace = true
-version = "0.1.0"
+version = "0.1.1"
 
 [dependencies]
 clap = { workspace = true, features = ["cargo", "derive", "env"] }
