@@ -7,7 +7,7 @@ keywords = ["encryption", "hsm", "nethsm", "signing"]
 license.workspace = true
 name = "nethsm"
 repository.workspace = true
-version = "0.7.0"
+version = "0.7.1"
 
 [package.metadata.cargo-machete]
 ignored = ["md-5"]

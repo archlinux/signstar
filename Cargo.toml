@@ -12,7 +12,7 @@ members = [
 chrono = "0.4.38"
 clap = { version = "4.5.19", features = ["derive", "env"] }
 ed25519-dalek = "2.1.1"
-nethsm = { path = "nethsm", version = "0.7.0" }
+nethsm = { path = "nethsm", version = "0.7.1" }
 nethsm-config = { path = "nethsm-config", version = "0.2.0" }
 rand = "0.8.5"
 rsa = "0.9.6"
