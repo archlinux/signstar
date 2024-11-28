@@ -4,6 +4,9 @@ variables:
 stages:
   - check
   - test
+  - library-integration
+  - executables
+  - signstaros
   - publish
   - report
 
@@ -61,7 +64,7 @@ integration-test:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
   script:
     - WORKDIR="$(pwd)" runuser -w WORKDIR -l testuser -c 'env && cd "$WORKDIR" && just install-rust-dev-tools && just ignored=true test'
-  stage: test
+  stage: library-integration
   tags:
     - vm
 
@@ -77,7 +80,7 @@ test-readmes:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
   script:
     - WORKDIR="$(pwd)" runuser -w WORKDIR -l testuser -c 'env && cd "$WORKDIR" && just install-rust-dev-tools && just test-readmes'
-  stage: test
+  stage: executables
   tags:
     - vm
 
@@ -97,7 +100,7 @@ build-image:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
   script:
     - WORKDIR="$(pwd)" runuser -w WORKDIR -l testuser -c 'cd "$WORKDIR" && PATH="$(pwd)/mkosi/bin:$PATH" mkosi --version && PATH="$(pwd)/mkosi/bin:$PATH" just build-image "$(cat fingerprint.txt)"'
-  stage: test
+  stage: signstaros
   tags:
     - vm
 
@@ -119,7 +122,7 @@ build-test-image:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
   script:
     - WORKDIR="$(pwd)" runuser -w WORKDIR -l testuser -c 'cd "$WORKDIR" && PATH="$(pwd)/mkosi/bin:$PATH" mkosi --version && PATH="$(pwd)/mkosi/bin:$PATH" just build-test-image "$(cat fingerprint.txt)"'
-  stage: test
+  stage: signstaros
   tags:
     - vm
 
