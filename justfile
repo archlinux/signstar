@@ -274,6 +274,7 @@ test-readme project:
 
     install_executables() {
         printf "Installing executables of %s...\n" "{{ project }}"
+        cargo install --locked --path signstar-request-signature
         cargo install --locked --path {{ project }}
     }
 

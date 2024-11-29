@@ -34,6 +34,7 @@ use nethsm_config::{
     ConfigSettings,
     PassphrasePrompt,
 };
+use signstar_request_signature::{Request, Sha512};
 
 use crate::cli::EnvCommand;
 
@@ -73,6 +74,13 @@ pub enum Error {
     /// Unable to open output file
     #[error("The output file exists already: {0}")]
     OutputFileExists(PathBuf),
+
+    /// Request deserialization error
+    #[error("Request deserialization failed: {0}")]
+    Request(#[from] signstar_request_signature::Error),
+
+    #[error("Signing request processing error: {0}")]
+    SigningRequest(String),
 }
 
 struct FileOrStdout {
@@ -847,6 +855,39 @@ fn main() -> Result<(), Error> {
                 output.output().write_all(
                     nethsm
                         .openpgp_sign(&command.key_id, &read(command.message)?)?
+                        .as_slice(),
+                )?;
+            }
+            cli::OpenPgpCommand::SignState(command) => {
+                let nethsm = config
+                    .get_device(cli.label.as_deref())?
+                    .nethsm_with_matching_creds(
+                        &[UserRole::Operator],
+                        &cli.user,
+                        &auth_passphrases,
+                    )?;
+
+                let output = FileOrStdout::new(command.output.as_deref(), command.force)?;
+
+                let req = Request::from_reader(std::fs::File::open(command.input)?)?;
+
+                if !req.required.output.is_openpgp_v4() {
+                    return Err(Error::SigningRequest(
+                        "The only supported signature format is OpenPGP v4.".into(),
+                    ));
+                }
+
+                if req.version.major != 1 {
+                    return Err(Error::SigningRequest(
+                        "This command supports version 1 signing requests only.".into(),
+                    ));
+                }
+
+                let hasher: Sha512 = req.required.input.try_into()?;
+
+                output.output().write_all(
+                    nethsm
+                        .openpgp_sign_state(&command.key_id, hasher)?
                         .as_slice(),
                 )?;
             }
