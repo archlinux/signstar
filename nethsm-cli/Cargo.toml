@@ -18,6 +18,7 @@ nethsm-config.workspace = true
 nethsm.workspace = true
 strum.workspace = true
 thiserror.workspace = true
+signstar-request-signature = { path = "../signstar-request-signature" }
 
 [[bin]]
 name = "nethsm"
