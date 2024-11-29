@@ -37,7 +37,7 @@ secrecy = { version = "0.10.3", features = ["serde"] }
 serde.workspace = true
 serde_json = "1.0.133"
 sha1 = "0.10.6"
-sha2 = { version = "0.10.8", features = ["oid"] }
+sha2.workspace = true
 strum.workspace = true
 thiserror.workspace = true
 ureq = { workspace = true, features = ["json"] }

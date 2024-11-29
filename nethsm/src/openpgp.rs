@@ -14,6 +14,7 @@ use pgp::{
     crypto::{ecc_curve::ECCCurve, hash::HashAlgorithm, public_key::PublicKeyAlgorithm},
     packet::{
         KeyFlags,
+        Notation,
         PublicKey,
         SignatureConfig,
         SignatureType,
@@ -620,6 +621,10 @@ impl SecretKeyTrait for HsmKey<'_, '_> {
     fn public_key(&self) -> Self::PublicKey {
         self.public_key.clone()
     }
+
+    fn hash_alg(&self) -> HashAlgorithm {
+        HashAlgorithm::SHA2_512
+    }
 }
 
 /// Generates an OpenPGP certificate for the given NetHSM key.
@@ -802,6 +807,105 @@ pub fn sign(
 
     let mut out = vec![];
     pgp::packet::write_packet(&mut out, &signature).map_err(Error::Pgp)?;
+
+    Ok(out)
+}
+
+/// Generates an OpenPGP signature based on provided hasher state.
+///
+/// Signs the hasher `state` using the key identified by `key_id`
+/// and returns a binary [OpenPGP data signature].
+///
+/// This call requires using a user in the [`Operator`][`crate::UserRole::Operator`] [role], which
+/// carries a tag (see [`add_user_tag`][`NetHsm::add_user_tag`]) matching one of the tags of
+/// the targeted key (see [`add_key_tag`][`NetHsm::add_key_tag`]).
+///
+/// ## Namespaces
+///
+/// * [`Operator`][`crate::UserRole::Operator`] users in a [namespace] only have access to keys in
+///   their own [namespace].
+/// * System-wide [`Operator`][`crate::UserRole::Operator`] users only have access to system-wide
+///   keys.
+///
+/// # Errors
+///
+/// Returns an [`crate::Error::Api`] if creating an [OpenPGP signature] for the hasher state fails:
+/// * the NetHSM is not in [`Operational`][`crate::SystemState::Operational`] [state]
+/// * no key identified by `key_id` exists on the NetHSM
+/// * the [`Operator`][`crate::UserRole::Operator`] user does not have access to the key (e.g.
+///   different [namespace])
+/// * the [`Operator`][`crate::UserRole::Operator`] user does not carry a tag matching one of the
+///   key tags
+/// * the used [`Credentials`][`crate::Credentials`] are not correct
+/// * the used [`Credentials`][`crate::Credentials`] are not those of a user in the
+///   [`Operator`][`crate::UserRole::Operator`] [role]
+///
+/// [OpenPGP signature]: https://openpgp.dev/book/signing_data.html
+/// [OpenPGP data signature]: https://openpgp.dev/book/signing_data.html
+/// [namespace]: https://docs.nitrokey.com/nethsm/administration#namespaces
+/// [role]: https://docs.nitrokey.com/nethsm/administration#roles
+/// [state]: https://docs.nitrokey.com/nethsm/administration#state
+pub fn sign_hasher_state(
+    nethsm: &NetHsm,
+    key_id: &crate::KeyId,
+    state: impl sha2::Digest + Clone + std::io::Write,
+) -> Result<Vec<u8>, crate::Error> {
+    let public_key = nethsm.get_key_certificate(key_id)?;
+
+    let signer = HsmKey::new(
+        nethsm,
+        SignedPublicKey::from_bytes(public_key.as_slice())
+            .map_err(Error::Pgp)?
+            .primary_key,
+        key_id,
+    );
+
+    let hasher = state.clone();
+    let file_hash = hasher.finalize();
+
+    let sig_config = {
+        let mut sig_config =
+            SignatureConfig::v4(SignatureType::Binary, signer.algorithm(), signer.hash_alg());
+        sig_config.hashed_subpackets = vec![
+            Subpacket::regular(SubpacketData::SignatureCreationTime(
+                std::time::SystemTime::now().into(),
+            )),
+            Subpacket::regular(SubpacketData::Issuer(signer.key_id())),
+            Subpacket::regular(SubpacketData::IssuerFingerprint(signer.fingerprint())),
+            Subpacket::regular(SubpacketData::Notation(Notation {
+                readable: false,
+                name: "data-digest@archlinux.org".into(),
+                value: file_hash[..].into(),
+            })),
+        ];
+        sig_config
+    };
+
+    let hasher = {
+        let mut hasher = state.clone();
+        let write: &mut dyn std::io::Write = &mut hasher;
+
+        let len = sig_config.hash_signature_data(write).map_err(Error::Pgp)?;
+
+        hasher.update(&sig_config.trailer(len).map_err(Error::Pgp)?);
+        hasher
+    };
+
+    let hash = &hasher.finalize()[..];
+
+    let signed_hash_value = [hash[0], hash[1]];
+
+    let raw_sig = signer
+        .create_signature(String::new, sig_config.hash_alg, hash)
+        .map_err(Error::Pgp)?;
+
+    let signature = pgp::Signature::from_config(sig_config, signed_hash_value, raw_sig);
+
+    let out = {
+        let mut out = vec![];
+        pgp::packet::write_packet(&mut out, &signature).map_err(Error::Pgp)?;
+        out
+    };
 
     Ok(out)
 }
