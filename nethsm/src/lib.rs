@@ -97,7 +97,7 @@ use std::time::Duration;
 use base64ct::{Base64, Encoding};
 use chrono::{DateTime, Utc};
 use log::{debug, error, info};
-use md5::Md5;
+use md5::{Digest as _, Md5};
 use nethsm_sdk_rs::apis::configuration::Configuration;
 use nethsm_sdk_rs::apis::default_api::{
     config_backup_passphrase_put,
@@ -5940,5 +5940,14 @@ impl NetHsm {
     /// [state]: https://docs.nitrokey.com/nethsm/administration#state
     pub fn openpgp_sign(&self, key_id: &KeyId, message: &[u8]) -> Result<Vec<u8>, Error> {
         openpgp::sign(self, key_id, message)
+    }
+
+    /// Generates an OpenPGP signature based on provided hasher state.
+    pub fn openpgp_sign_state(
+        &self,
+        key_id: &KeyId,
+        state: impl sha2::Digest + Clone + std::io::Write,
+    ) -> Result<Vec<u8>, crate::Error> {
+        openpgp::sign_hasher_state(self, key_id, state)
     }
 }
