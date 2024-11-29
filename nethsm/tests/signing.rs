@@ -11,11 +11,11 @@ use nethsm_tests::OTHER_OPERATOR_USER_ID;
 use nethsm_tests::OTHER_OPERATOR_USER_PASSPHRASE;
 use rsa::pkcs1v15::VerifyingKey;
 use rsa::pkcs8::DecodePublicKey;
+use rsa::sha2::Sha256;
 use rsa::signature::Verifier;
 use rsa::RsaPublicKey;
 use rstest::rstest;
 use rustainers::Container;
-use sha2::Sha256;
 use testresult::TestResult;
 
 pub static MESSAGE: &[u8] = b"Hello World!";
