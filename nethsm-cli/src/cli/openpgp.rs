@@ -27,6 +27,7 @@ pub enum OpenPgpCommand {
     Add(OpenPgpAddCommand),
     Import(OpenPgpImportCommand),
     Sign(OpenPgpSignCommand),
+    SignState(OpenPgpSignStateCommand),
 }
 
 #[derive(Debug, Parser)]
@@ -124,6 +125,44 @@ pub struct OpenPgpSignCommand {
         help = "The path to a message for which to create a signature"
     )]
     pub message: PathBuf,
+
+    #[arg(
+        env = "NETHSM_OPENPGP_SIGNATURE_OUTPUT_FILE",
+        help = "The optional path to a specific output file",
+        long,
+        short
+    )]
+    pub output: Option<PathBuf>,
+}
+
+#[derive(Debug, Parser)]
+#[command(
+    about = "Create an OpenPGP signature for a hasher state",
+    long_about = ex_format!("Create an OpenPGP signature for a hasher's state
+
+Requires a valid hasher state payload on stdin as produced by the `signstar-request-signature` binary.
+
+The signature is written to stdout, unless a specific path to a file is provided.
+
+Requires authentication of a user in the \"{Operator}\" role that has access to the targeted key.")
+)]
+pub struct OpenPgpSignStateCommand {
+    #[arg(env = "NETHSM_KEY_ID", help = "The ID of the key to use")]
+    pub key_id: KeyId,
+
+    #[arg(
+        env = "NETHSM_OPENPGP_REQUEST_SIGNATURE_FILE",
+        help = "The path to a valid signature request file"
+    )]
+    pub input: PathBuf,
+
+    #[arg(
+        env = "NETHSM_FORCE",
+        help = "Write to output file even if it exists already",
+        long,
+        short
+    )]
+    pub force: bool,
 
     #[arg(
         env = "NETHSM_OPENPGP_SIGNATURE_OUTPUT_FILE",
