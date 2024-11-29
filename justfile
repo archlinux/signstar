@@ -300,6 +300,11 @@ test-readme project:
 
     install_executables() {
         printf "Installing executables of %s...\n" "{{ project }}"
+        case "$project" in
+            nethsm-cli)
+                cargo install --locked --path signstar-request-signature
+            ;;
+        esac
         cargo install --locked --path {{ project }}
     }
 

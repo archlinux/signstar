@@ -468,6 +468,13 @@ for key in signing1 signing3 signing4 signing5 signing8 signing10; do
   nethsm --user namespace1~operator1 key cert get --force "$key"
   rsop verify "$NETHSM_OPENPGP_SIGNATURE_OUTPUT_FILE" "$NETHSM_KEY_CERT_OUTPUT_FILE" < "$NETHSM_OPENPGP_SIGNATURE_MESSAGE"
 done
+
+signstar-request-signature "$NETHSM_OPENPGP_SIGNATURE_MESSAGE" | tee "${NETHSM_OPENPGP_SIGNATURE_MESSAGE}.json"
+nethsm openpgp sign-state --force "signing1" "${NETHSM_OPENPGP_SIGNATURE_MESSAGE}.json"
+gpg --verify "$NETHSM_OPENPGP_SIGNATURE_OUTPUT_FILE" "$NETHSM_OPENPGP_SIGNATURE_MESSAGE"
+sq toolbox packet dump "$NETHSM_OPENPGP_SIGNATURE_OUTPUT_FILE"
+sha512sum "$NETHSM_OPENPGP_SIGNATURE_MESSAGE"
+jq < "${NETHSM_OPENPGP_SIGNATURE_MESSAGE}.json"
 ```
 
 

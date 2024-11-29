@@ -23,6 +23,7 @@ rsa = "0.9.7"
 rstest = "0.23.0"
 rustainers = { version = "0.13.1" }
 serde = { version = "1.0.215", features = ["derive"] }
+signstar-request-signature = { path = "signstar-request-signature", version = "0.1.0" }
 strum = { version = "0.26.3", features = ["derive"] }
 testdir = "0.9.3"
 testresult = "0.4.1"
