@@ -1,19 +1,27 @@
 #![doc = include_str!("../README.md")]
 #![deny(missing_debug_implementations)]
 #![deny(missing_docs)]
+#![deny(clippy::unwrap_used)]
+#![deny(clippy::expect_used)]
 
 use std::collections::HashMap;
+use std::path::Path;
+use std::time::SystemTime;
 
+use rand::Rng;
 use semver::Version;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use sha2::Digest;
 pub use sha2::Sha512;
 use sha2::digest::crypto_common::hazmat::SerializableState;
 
 pub mod cli;
+pub mod ssh;
 
 /// Signature request processing error.
 #[derive(Debug, thiserror::Error)]
+#[non_exhaustive]
 pub enum Error {
     /// Invalid content type.
     #[error("Invalid content type. Found {actual:?} but expected {expected:?}.")]
@@ -36,6 +44,14 @@ pub enum Error {
     /// Request deserialization failed.
     #[error("Could not deserialize request: {0}")]
     RequestDeserialization(#[from] serde_json::Error),
+
+    /// Input/output error.
+    #[error("I/O error: {0}")]
+    Io(#[from] std::io::Error),
+
+    /// System time error.
+    #[error("Time before the Unix epoch: {0}")]
+    Time(#[from] std::time::SystemTimeError),
 }
 
 /// Type of the input hash.
@@ -159,6 +175,92 @@ impl Request {
     /// Write the request as a JSON serialized form.
     pub fn to_writer(&self, writer: impl std::io::Write) -> Result<(), Error> {
         serde_json::to_writer(writer, &self)?;
+        Ok(())
+    }
+
+    /// Prepare signing request for a file.
+    pub fn for_file(input: impl AsRef<Path>) -> Result<Request, Error> {
+        let input = input.as_ref();
+        let hasher = {
+            let mut hasher = sha2::Sha512::new();
+            std::io::copy(&mut std::fs::File::open(input)?, &mut hasher)?;
+            hasher
+        };
+        let required = Required {
+            input: hasher.into(),
+            output: SignatureRequestOutput::new_openpgp_v4(),
+        };
+
+        // Add "grease" so that the server can handle any optional data
+        // See: https://lobste.rs/s/utmsph/age_plugins#c_i76hkd
+        // See: https://community.letsencrypt.org/t/adding-random-entries-to-the-directory/33417
+        let grease: String = rand::thread_rng()
+            .sample_iter(&rand::distributions::Alphanumeric)
+            .take(7)
+            .map(char::from)
+            .collect();
+
+        Ok(Request {
+            version: semver::Version::new(1, 0, 0),
+            required,
+            optional: vec![
+                (
+                    grease,
+                    Value::String(
+                        "https://gitlab.archlinux.org/archlinux/signstar/-/merge_requests/43"
+                            .to_string(),
+                    ),
+                ),
+                (
+                    "request-time".into(),
+                    Value::Number(
+                        SystemTime::now()
+                            .duration_since(SystemTime::UNIX_EPOCH)?
+                            .as_secs()
+                            .into(),
+                    ),
+                ),
+                (
+                    "file-name".into(),
+                    input
+                        .file_name()
+                        .and_then(|s| s.to_str())
+                        .map(Into::into)
+                        .unwrap_or(Value::Null),
+                ),
+            ]
+            .into_iter()
+            .collect(),
+        })
+    }
+}
+
+/// Signing response.
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Response {
+    /// Version of this signing response.
+    pub version: Version,
+
+    /// Raw content of the signature.
+    content: String,
+}
+
+impl Response {
+    /// Read the response from a JSON serialized bytes.
+    pub fn from_reader(reader: impl std::io::Read) -> Result<Self, Error> {
+        let resp: Self = serde_json::from_reader(reader)?;
+        Ok(resp)
+    }
+
+    /// Write the response as a JSON serialized form.
+    pub fn to_writer(&self, writer: impl std::io::Write) -> Result<(), Error> {
+        serde_json::to_writer(writer, &self)?;
+        Ok(())
+    }
+
+    /// Write raw signature to a writer.
+    pub fn signature_to_writer(&self, mut writer: impl std::io::Write) -> Result<(), Error> {
+        writer.write_all(self.content.as_bytes())?;
         Ok(())
     }
 }
