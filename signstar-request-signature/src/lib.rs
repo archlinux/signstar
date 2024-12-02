@@ -1,19 +1,27 @@
 #![doc = include_str!("../README.md")]
 #![deny(missing_debug_implementations)]
 #![deny(missing_docs)]
+#![deny(clippy::unwrap_used)]
+#![deny(clippy::expect_used)]
 
-use std::collections::HashMap;
+use std::path::Path;
+use std::time::SystemTime;
+use std::{collections::HashMap, path::PathBuf};
 
+use rand::Rng;
 use semver::Version;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use sha2::Digest;
 pub use sha2::Sha512;
 use sha2::digest::crypto_common::hazmat::SerializableState;
 
 pub mod cli;
+pub mod ssh;
 
 /// Signature request processing error.
 #[derive(Debug, thiserror::Error)]
+#[non_exhaustive]
 pub enum Error {
     /// Invalid content type.
     #[error("Invalid content type. Found {actual:?} but expected {expected:?}.")]
@@ -36,6 +44,32 @@ pub enum Error {
     /// Request deserialization failed.
     #[error("Could not deserialize request: {0}")]
     RequestDeserialization(#[from] serde_json::Error),
+
+    /// I/O error occurred.
+    #[error("I/O error: {source} when processing {file}")]
+    Io {
+        /// File being processed.
+        ///
+        /// This field will be empty ([`PathBuf::new`]) if the error
+        /// was encountered when processing generic I/O streams.
+        file: PathBuf,
+
+        /// Source error.
+        source: std::io::Error,
+    },
+
+    /// System time error that occurs when the current time is before the reference time.
+    #[error("Current time is before reference time {reference_time:?}: {source}")]
+    CurrentTimeBeforeReference {
+        /// The reference time.
+        reference_time: SystemTime,
+        /// The error source.
+        source: std::time::SystemTimeError,
+    },
+
+    /// Requesting signing via SSH failed.
+    #[error("SSH client error: {0}")]
+    SshClient(#[from] crate::ssh::client::Error),
 }
 
 /// Type of the input hash.
@@ -159,6 +193,147 @@ impl Request {
     /// Write the request as a JSON serialized form.
     pub fn to_writer(&self, writer: impl std::io::Write) -> Result<(), Error> {
         serde_json::to_writer(writer, &self)?;
+        Ok(())
+    }
+
+    /// Prepares a signing request for a file.
+    ///
+    /// Given a file as an `input` this function creates a well-formed request.
+    /// That request is of latest known version and contains all necessary fields.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if reading the file fails or forming the request encounters
+    /// an error.
+    ///
+    /// # Examples
+    ///
+    /// The following example creates a signing request for `Cargo.toml`:
+    ///
+    /// ```
+    /// # fn main() -> testresult::TestResult {
+    /// use signstar_request_signature::Request;
+    ///
+    /// let signing_request = Request::for_file("Cargo.toml")?;
+    /// # Ok(()) }
+    /// ```
+    pub fn for_file(input: impl AsRef<Path>) -> Result<Self, Error> {
+        let input = input.as_ref();
+        let pack_err = |source| Error::Io {
+            file: input.into(),
+            source,
+        };
+        let hasher = {
+            let mut hasher = sha2::Sha512::new();
+            std::io::copy(
+                &mut std::fs::File::open(input).map_err(pack_err)?,
+                &mut hasher,
+            )
+            .map_err(pack_err)?;
+            hasher
+        };
+        let required = Required {
+            input: hasher.into(),
+            output: SignatureRequestOutput::new_openpgp_v4(),
+        };
+
+        // Add "grease" so that the server can handle any optional data
+        // See: https://lobste.rs/s/utmsph/age_plugins#c_i76hkd
+        // See: https://community.letsencrypt.org/t/adding-random-entries-to-the-directory/33417
+        let grease: String = rand::thread_rng()
+            .sample_iter(&rand::distributions::Alphanumeric)
+            .take(7)
+            .map(char::from)
+            .collect();
+
+        Ok(Self {
+            version: semver::Version::new(1, 0, 0),
+            required,
+            optional: vec![
+                (
+                    grease,
+                    Value::String(
+                        "https://gitlab.archlinux.org/archlinux/signstar/-/merge_requests/43"
+                            .to_string(),
+                    ),
+                ),
+                (
+                    "request-time".into(),
+                    Value::Number(
+                        SystemTime::now()
+                            .duration_since(SystemTime::UNIX_EPOCH)
+                            .map_err(|source| crate::Error::CurrentTimeBeforeReference {
+                                reference_time: SystemTime::UNIX_EPOCH,
+                                source,
+                            })?
+                            .as_secs()
+                            .into(),
+                    ),
+                ),
+                (
+                    "file-name".into(),
+                    input
+                        .file_name()
+                        .and_then(|s| s.to_str())
+                        .map(Into::into)
+                        .unwrap_or(Value::Null),
+                ),
+            ]
+            .into_iter()
+            .collect(),
+        })
+    }
+}
+
+/// The response to a signing request.
+///
+/// Tracks the `version` of the signing response and the signature as `signature`.
+///
+/// The details of the format are documented in the [response specification].
+///
+/// [response specification]: https://signstar.archlinux.page/signstar-request-signature/resources/docs/response.html
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Response {
+    /// Version of this signing response.
+    pub version: Version,
+
+    /// Raw content of the signature.
+    signature: String,
+}
+
+impl Response {
+    /// Creates a [`Response`] from a `reader` of JSON formatted bytes.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if deserialization from `reader` fails.
+    pub fn from_reader(reader: impl std::io::Read) -> Result<Self, Error> {
+        let resp: Self = serde_json::from_reader(reader)?;
+        Ok(resp)
+    }
+
+    /// Writes the [`Response`] to a `writer` in JSON serialized form.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if `self` can not be serialized or if writing to `writer` fails.
+    pub fn to_writer(&self, writer: impl std::io::Write) -> Result<(), Error> {
+        serde_json::to_writer(writer, &self)?;
+        Ok(())
+    }
+
+    /// Writes the raw signature of the [`Response`] to a `writer`.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the signature can not be written to the `writer`.
+    pub fn signature_to_writer(&self, mut writer: impl std::io::Write) -> Result<(), Error> {
+        writer
+            .write_all(self.signature.as_bytes())
+            .map_err(|source| Error::Io {
+                file: PathBuf::new(),
+                source,
+            })?;
         Ok(())
     }
 }
