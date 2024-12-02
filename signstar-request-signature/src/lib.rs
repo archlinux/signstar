@@ -11,6 +11,7 @@ pub use sha2::Sha512;
 use sha2::digest::crypto_common::hazmat::SerializableState;
 
 pub mod cli;
+pub mod ssh;
 
 /// Signature request processing error.
 #[derive(Debug, thiserror::Error)]
