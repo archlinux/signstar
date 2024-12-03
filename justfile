@@ -188,6 +188,7 @@ lint:
     just lint-recipe 'generate shell_completions nethsm-cli'
     just lint-recipe 'is-workspace-member nethsm'
     just lint-recipe 'release nethsm'
+    just lint-recipe docs
     just lint-recipe flaky
     just lint-recipe test
     just lint-recipe 'ensure-command test'
@@ -216,8 +217,29 @@ build project *cargo_build_options:
 
 # Build local documentation
 docs:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
     just ensure-command cargo mold
-    RUSTDOCFLAGS='-D warnings' cargo doc --document-private-items --no-deps
+
+    readonly target_dir="${CARGO_TARGET_DIR:-$PWD/target}"
+    mapfile -t workspace_members < <(just get-workspace-members 2>/dev/null)
+
+    # NOTE: nethsm-cli's executable documentation shadows the nethsm documentation (because of cargo bug: https://github.com/rust-lang/cargo/issues/6313)
+    for name in "${workspace_members[@]}"; do
+        RUSTDOCFLAGS='-D warnings' cargo doc --document-private-items --no-deps --package "$name"
+        case "$name" in
+            nethsm)
+                mv "$target_dir/doc/nethsm" "$target_dir/doc/nethsm.tmp"
+            ;;
+            nethsm-cli)
+                rm -rf "$target_dir/doc/nethsm"
+            ;;
+            *)
+            ;;
+        esac
+    done
+    mv "$target_dir/doc/nethsm.tmp" "$target_dir/doc/nethsm"
 
 # Runs all unit tests. By default ignored tests are not run. Run with `ignored=true` to run only ignored tests
 test:
