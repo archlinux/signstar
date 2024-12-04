@@ -14,5 +14,5 @@ clap = { workspace = true, features = ["cargo", "derive", "env"] }
 nethsm-config.workspace = true
 nix = { version = "0.29.0", features = ["user"] }
 strum.workspace = true
-sysinfo = "0.32.0"
+sysinfo = "0.33.0"
 thiserror.workspace = true
