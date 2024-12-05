@@ -6,6 +6,11 @@ The scope of this project is to read a dedicated configuration file, derive syst
 
 The `signstar-configure-build` executable must be run as root.
 
+## Documentation
+
+- <https://signstar.archlinux.page/rustdoc/signstar_configure_build/> for development version of the crate
+- <https://docs.rs/signstar_configure_build/latest/signstar_configure_build/> for released versions of the crate
+
 ## Configuration file
 
 By default `signstar-configure-build` relies on the configuration file `/usr/share/signstar/config.toml` and will fail if it is not found or not valid.

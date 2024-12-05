@@ -4,6 +4,11 @@ Containerized testing environments for NetHSM related projects.
 
 This project contains types which start virtual NetHSM instances using Podman.
 
+## Documentation
+
+- <https://signstar.archlinux.page/rustdoc/nethsm_tests/> for development version of the crate
+- <https://docs.rs/nethsm_tests/latest/nethsm_tests/> for released versions of the crate
+
 ## Example
 
 The following integration test starts a NetHSM container with users to retrieve several random bytes:

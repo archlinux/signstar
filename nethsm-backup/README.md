@@ -2,6 +2,11 @@
 
 A library to parse, decrypt, validate and browse NetHSM backups.
 
+## Documentation
+
+- <https://signstar.archlinux.page/rustdoc/nethsm_backup/> for development version of the crate
+- <https://docs.rs/nethsm_backup/latest/nethsm_backup/> for released versions of the crate
+
 ## Examples
 
 Listing all fields in a backup file:

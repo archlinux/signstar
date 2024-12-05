@@ -8,6 +8,11 @@ With the help of a REST API it is possible to communicate with the device (as we
 The [nethsm-sdk-rs] library is auto-generated using [openapi-generator].
 This leads to a broad API surface with sparse documentation, that this crate attempts to rectify with the help of a central struct used for authentication setup and communication.
 
+## Documentation
+
+- <https://signstar.archlinux.page/rustdoc/nethsm/> for development version of the crate
+- <https://docs.rs/nethsm/latest/nethsm/> for released versions of the crate
+
 ## Testing
 
 This library is integration tested against [Nitrokey]'s official [nethsm container].
