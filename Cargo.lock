@@ -1801,6 +1801,7 @@ dependencies = [
  "clap",
  "expression_format",
  "nethsm",
+ "nethsm-backup",
  "nethsm-config",
  "rand",
  "rstest",
