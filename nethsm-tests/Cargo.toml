@@ -12,10 +12,10 @@ repository.workspace = true
 chrono.workspace = true
 nethsm.workspace = true
 rstest.workspace = true
-rustainers = "0.13.1"
+rustainers.workspace = true
 testresult.workspace = true
-ureq = "2.10.1"
-uuid = { version = "1.11.0", features = ["v7"] }
+ureq.workspace = true
+uuid.workspace = true
 
 [dev-dependencies]
-tokio = { version = "1.41.1", features = ["macros"] }
+tokio.workspace = true

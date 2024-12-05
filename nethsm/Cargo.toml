@@ -40,16 +40,16 @@ sha1 = "0.10.6"
 sha2 = { version = "0.10.8", features = ["oid"] }
 strum.workspace = true
 thiserror.workspace = true
-ureq = { version = "2.10.1", features = ["json"] }
+ureq = { workspace = true, features = ["json"] }
 url = { version = "2.5.4", features = ["serde"] }
 
 [dev-dependencies]
 ed25519-dalek = { workspace = true, features = ["pkcs8", "pem", "rand_core"] }
-nethsm-tests = { path = "../nethsm-tests" }
+nethsm-tests.workspace = true
 rsa = { workspace = true, features = ["getrandom", "sha2", "pem"] }
 rstest.workspace = true
-rustainers = { version = "0.13.1" }
+rustainers.workspace = true
 testdir.workspace = true
 testresult.workspace = true
-tokio = { version = "1.41.1", features = ["macros"] }
-uuid = { version = "1.11.0", features = ["v7"] }
+tokio.workspace = true
+uuid.workspace = true

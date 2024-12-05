@@ -15,10 +15,10 @@ scrypt = "0.11.0"
 thiserror.workspace = true
 
 [dev-dependencies]
-nethsm = { path = "../nethsm" }
-nethsm-tests = { path = "../nethsm-tests" }
+nethsm.workspace = true
+nethsm-tests.workspace = true
 rstest.workspace = true
-rustainers = "0.13.1"
+rustainers.workspace = true
 testdir.workspace = true
-testresult = "0.4.1"
-tokio = { version = "1.41.0", features = ["macros"] }
+testresult.workspace = true
+tokio.workspace = true
