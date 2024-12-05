@@ -158,10 +158,10 @@ pages:
     - just install-rust-dev-tools
   stage: pages
   script:
-    - just docs
+    - just build-book
   artifacts:
     paths:
-      - target/doc
-  publish: target/doc
+      - output/docs
+  publish: output/docs
   rules:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
