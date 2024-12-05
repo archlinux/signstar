@@ -7,6 +7,10 @@ set dotenv-load := true
 
 ignored := "false"
 
+# The output directory for documentation artifacts
+
+output_dir := "output"
+
 # Runs all checks and tests. Since this is the first recipe it is run by default.
 run-pre-commit-hook: check test
 
@@ -556,3 +560,37 @@ build-test-image openpgp_signing_key signing_key="resources/mkosi/signstar/mkosi
 run-image mkosi_options="" qemu_options="":
     just ensure-command mkosi
     mkosi -C resources/mkosi/signstar/ {{ mkosi_options }} qemu {{ qemu_options }}
+
+# Builds the documentation book using mdbook and stages all necessary rustdocs alongside
+build-book: docs
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    just ensure-command mdbook mdbook-mermaid
+
+    readonly target_dir="${CARGO_TARGET_DIR:-$PWD/target}"
+    readonly output_dir="{{ output_dir }}"
+    readonly rustdoc_dir="$output_dir/docs/rustdoc/"
+    mapfile -t workspace_members < <(just get-workspace-members 2>/dev/null)
+
+    mdbook-mermaid install resources/docs/
+    mdbook build resources/docs/
+
+    # move rust docs to their own namespaced dir
+    mkdir -p "$rustdoc_dir"
+    for name in "${workspace_members[@]}"; do
+        cp -r "$target_dir/doc/${name//-/_}" "$rustdoc_dir"
+    done
+    cp -r "$target_dir/doc/"{search.desc,src,static.files,trait.impl,type.impl} "$rustdoc_dir"
+    cp -r "$target_dir/doc/"*.{js,html} "$rustdoc_dir"
+
+# Serves the documentation book using miniserve
+serve-book: build-book
+    just ensure-command miniserve
+    miniserve --index=index.html {{ output_dir }}/docs
+
+# Watches the documentation book contents and rebuilds on change using mdbook (useful for development)
+watch-book:
+    just ensure-command watchexec
+    watchexec --exts md,toml,js --delay-run 5s :w
+    just build-book

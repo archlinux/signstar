@@ -1,0 +1,1 @@
+../../../../signstar-configure-build/CHANGELOG.md

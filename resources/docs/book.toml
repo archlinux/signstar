@@ -1,0 +1,22 @@
+[book]
+authors = [
+    "David Runge",
+    "Wiktor Kwapisiewicz",
+]
+language = "en"
+multilingual = false
+src = "src"
+title = "Signstar"
+
+[build]
+build-dir = "../../output/docs"
+
+[preprocessor]
+
+[preprocessor.mermaid]
+command = "mdbook-mermaid"
+
+[output]
+
+[output.html]
+additional-js = ["mermaid.min.js", "mermaid-init.js"]
