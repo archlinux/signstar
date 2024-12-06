@@ -11,23 +11,23 @@ members = [
 
 [workspace.dependencies]
 chrono = "0.4.38"
-clap = { version = "4.5.19", features = ["derive", "env"] }
+clap = { version = "4.5.23", features = ["derive", "env"] }
 ed25519-dalek = "2.1.1"
 nethsm = { path = "nethsm", version = "0.7.1" }
 nethsm-backup = { path = "nethsm-backup" }
 nethsm-config = { path = "nethsm-config", version = "0.2.1" }
 nethsm-tests = { path = "nethsm-tests" }
 rand = "0.8.5"
-rsa = "0.9.6"
+rsa = "0.9.7"
 rstest = "0.23.0"
 rustainers = { version = "0.13.1" }
 serde = { version = "1.0.215", features = ["derive"] }
 strum = { version = "0.26.3", features = ["derive"] }
-testdir = "0.9.1"
+testdir = "0.9.3"
 testresult = "0.4.1"
-thiserror = "2.0.3"
-tokio = { version = "1.41.1", features = ["macros"] }
-ureq = "2.10.1"
+thiserror = "2.0.4"
+tokio = { version = "1.42.0", features = ["macros"] }
+ureq = "2.12.1"
 uuid = { version = "1.11.0", features = ["v7"] }
 
 [workspace.package]
