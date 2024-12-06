@@ -39,10 +39,14 @@ The following assumptions are made with regard to the setup.
     - Logs and metrics of the host are aggregated securely and are accessible for continuous monitoring of the OS and its critical facilities.
     - A public transparency log is appended to by the signing facilities for each requested signature, which provides insights into all signing operations done by the system.
     - Transparency log monitoring is done by a system outside of the scope of the Signstar project.
+    - The *service host* has access to *Operator* credentials which allows using available signing keys on the [NetHSM].
+      If the *service host* is fully compromised, it can issue signatures using those signing keys while sidestepping additions to a transparency log.
+      The operating system must only provide tooling for signing in the narrow scope described by the Signstar project to prevent the use of signing keys for other use-cases.
 - Client
     - Clients to the signing service can each be provided with credentials to the service in a dedicated scope (e.g. hardware backed and service specific) and have no access to the actual *Operator* (or any other) credentials of the HSM.
     - Some or all signstar clients may run in untrusted environments or may run untrusted or unsafe code (e.g. build servers during build time), which may lead to them being compromised.
     - Known compromised clients can either be shutdown and/ or be disconnected from the signing service by re-configuring the service with altered or removed credentials for the respective clients.
+    - Clients don't have direct access to signing keys nor can they directly influence the structure of signatures.
 - Digital Signatures
     - Digital signatures are requested by designated clients to the service host.
       If the client host or its credentials for the service host are compromised, either the client host is deactivated and/ or its credentials for the service host are removed or changed.
