@@ -445,7 +445,6 @@ prepare-release package version="":
         exit 1
     fi
     readonly package_version="{{ version }}"
-    readonly current_package_version="$(just get-workspace-member-version {{ package }})"
     branch_name=""
 
     just ensure-command git release-plz
@@ -457,12 +456,12 @@ prepare-release package version="":
     if [[ -n "$package_version" ]]; then
         release-plz set-version "${package_name}@${package_version}"
     fi
-    readonly updated_package_version="$(just get-workspace-member-version {{ package }})"
+    readonly updated_package_version="$(just get-workspace-member-version "$package_name")"
 
     if [[ -n "$package_version" ]]; then
         branch_name="release/$package_name/$package_version"
     else
-        branch_name="release/$package_name/$current_package_version"
+        branch_name="release/$package_name/$updated_package_version"
     fi
     git checkout -b "$branch_name"
 
