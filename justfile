@@ -456,6 +456,10 @@ prepare-release package version="":
     if [[ -n "$package_version" ]]; then
         release-plz set-version "${package_name}@${package_version}"
     fi
+
+    # make sure that the current version would be publishable
+    cargo publish -p "$package_name" --dry-run
+
     readonly updated_package_version="$(just get-workspace-member-version "$package_name")"
 
     if [[ -n "$package_version" ]]; then
