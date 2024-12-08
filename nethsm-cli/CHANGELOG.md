@@ -6,6 +6,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] - 2024-12-08
+
+### Added
+- Add `nethsm system validate-backup` command
+
+### Other
+- *(README)* Add links to latest (un)released crate documentation
+
 ## [0.4.1] - 2024-11-27
 
 ### Other
