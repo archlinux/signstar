@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.2] - 2024-12-08
+
+### Fixed
+- *(deps)* update rust crate sysinfo to 0.33.0
+
+### Other
+- *(README)* Add links to latest (un)released crate documentation
+
 ## [0.1.1] - 2024-11-27
 
 ### Other
