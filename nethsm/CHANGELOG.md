@@ -6,6 +6,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.2] - 2024-12-08
+
+### Added
+- Add `validate_backup` to validate NetHSM backups
+- Add `Passphrase::expose_borrowed`
+
+### Other
+- *(README)* Add links to latest (un)released crate documentation
+- *(deps)* Update dependencies to fix security issues
+- *(cargo)* Consolidate dependencies with workspace dependencies
+
 ## [0.7.1] - 2024-11-27
 
 ### Other
