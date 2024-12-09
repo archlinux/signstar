@@ -7,6 +7,7 @@
 - [nethsm](./nethsm/README.md)
   - [CHANGELOG](./nethsm/CHANGELOG.md)
 - [nethsm-backup](./nethsm-backup/README.md)
+  - [CHANGELOG](./nethsm-backup/CHANGELOG.md)
 - [nethsm-cli](./nethsm-cli/README.md)
   - [CHANGELOG](./nethsm-cli/CHANGELOG.md)
 - [nethsm-config](./nethsm-config/README.md)
