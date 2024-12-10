@@ -20,6 +20,23 @@ To aide in development, it is encouraged to install the relevant [git pre-commit
 just add-hooks
 ```
 
+## Writing specifications
+
+Specifications for technology of this project are written in markdown documents in the context of a component, that serves as its reference implementation.
+The specifications are located in the component's `resources/specification/` directory.
+
+### Specification versioning
+
+A new specification version must be created, if fields of an existing specification are altered (e.g. a field is removed, added or otherwise changed semantically).
+
+By default, given an example specification named `topic` and given only one version of `topic` exists, there would only be a document named `topic.md`.
+If the need for version two of `topic` arises, the document is renamed to `topicv1.md`, a new file named `topicv2.md` is used for the new version and a symlink from the generic specification name to the most recent version (here `topic.md -> topicv2.md`) is created.
+Versioned specifications additionally must clearly state the specification version number they are addressing in the `NAME` and `DESCRIPTION` section of the document.
+
+New (versions of) specifications must be accompanied by examples and code testing those examples.
+
+The examples and code testing those examples must be kept around for legacy and deprecated specifications to guarantee backwards compatibility.
+
 ## Writing commit messages
 
 To ensure compatibility and automatic creation of [semantic versioning] compatible releases the commit message style follows [conventional commits].
