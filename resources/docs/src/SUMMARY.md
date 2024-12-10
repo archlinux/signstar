@@ -16,6 +16,8 @@
   - [CHANGELOG](./nethsm-tests/CHANGELOG.md)
 - [signstar-configure-build](./signstar-configure-build/README.md)
   - [CHANGELOG](./signstar-configure-build/CHANGELOG.md)
+- [signstar-request-signature](./signstar-request-signature/README.md)
+  - [Design](./signstar-request-signature/resources/docs/design.md)
 
 # Architecture
 
