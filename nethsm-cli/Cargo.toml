@@ -7,7 +7,7 @@ keywords = ["encryption", "hsm", "nethsm", "signing", "cli"]
 license.workspace = true
 name = "nethsm-cli"
 repository.workspace = true
-version = "0.5.0"
+version = "0.6.0"
 
 [dependencies]
 chrono.workspace = true
