@@ -462,8 +462,8 @@ prepare-release package version="":
         release-plz set-version "${package_name}@${package_version}"
     fi
 
-    # make sure that the current version would be publishable
-    cargo publish -p "$package_name" --dry-run
+    # make sure that the current version would be publishable, but ignore files not added to git
+    cargo publish -p "$package_name" --dry-run --allow-dirty
 
     readonly updated_package_version="$(just get-workspace-member-version "$package_name")"
 
