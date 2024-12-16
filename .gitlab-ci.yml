@@ -26,7 +26,19 @@ check-commits:
     - just check-commits
   stage: check
 
-check:
+spelling:
+  before_script:
+    - pacman-key --init
+    - pacman -Sy --needed --noconfirm archlinux-keyring
+    - source .env && pacman -Syu --needed --noconfirm $PACMAN_PACKAGES
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+  script:
+    - just check-spelling
+  stage: check
+
+formatting:
   before_script:
     - pacman-key --init
     - pacman -Sy --needed --noconfirm archlinux-keyring
@@ -36,7 +48,70 @@ check:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
   script:
-    - just check
+    - just check-formatting
+  stage: check
+
+lint:
+  before_script:
+    - pacman-key --init
+    - pacman -Sy --needed --noconfirm archlinux-keyring
+    - source .env && pacman -Syu --needed --noconfirm $PACMAN_PACKAGES
+    - just install-rust-dev-tools
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+  script:
+    - just lint
+  stage: check
+
+unused-deps:
+  before_script:
+    - pacman-key --init
+    - pacman -Sy --needed --noconfirm archlinux-keyring
+    - source .env && pacman -Syu --needed --noconfirm $PACMAN_PACKAGES
+    - just install-rust-dev-tools
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+  script:
+    - just check-unused-deps
+  stage: check
+
+dependencies:
+  before_script:
+    - pacman-key --init
+    - pacman -Sy --needed --noconfirm archlinux-keyring
+    - source .env && pacman -Syu --needed --noconfirm $PACMAN_PACKAGES
+    - just install-rust-dev-tools
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+  script:
+    - just check-dependencies
+  stage: check
+
+licenses:
+  before_script:
+    - pacman-key --init
+    - pacman -Sy --needed --noconfirm archlinux-keyring
+    - source .env && pacman -Syu --needed --noconfirm $PACMAN_PACKAGES
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+  script:
+    - just check-licenses
+  stage: check
+
+links:
+  before_script:
+    - pacman-key --init
+    - pacman -Sy --needed --noconfirm archlinux-keyring
+    - source .env && pacman -Syu --needed --noconfirm $PACMAN_PACKAGES
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+  script:
+    - just check-links
   stage: check
 
 test:
