@@ -4,7 +4,6 @@ variables:
 stages:
   - check
   - test
-  - integration
   - signstaros
   - publish
   - report
@@ -139,7 +138,7 @@ integration-test:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
   script:
     - WORKDIR="$(pwd)" runuser -w WORKDIR -l testuser -c 'env && cd "$WORKDIR" && just install-rust-dev-tools && just ignored=true test'
-  stage: integration
+  stage: test
   tags:
     - vm
 
@@ -155,7 +154,7 @@ test-readmes:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
   script:
     - WORKDIR="$(pwd)" runuser -w WORKDIR -l testuser -c 'env && cd "$WORKDIR" && just install-rust-dev-tools && just test-readmes'
-  stage: integration
+  stage: test
   tags:
     - vm
 
