@@ -2,13 +2,11 @@
 
 set -Eeuo pipefail
 
-export PATH="$PATH:/usr/local/bin"
+export PATH="/usr/local/bin:$PATH"
 
-if command -v signstar-configure-build > /dev/null; then
-  printf "Configure users...\n"
-  signstar-configure-build --version
-  signstar-configure-build
-fi
+printf "Configure users...\n"
+signstar-configure-build --version
+signstar-configure-build
 
 printf "Setup resolv.conf\n"
 ln -sf /run/systemd/resolve/stub-resolv.conf /etc/resolv.conf
