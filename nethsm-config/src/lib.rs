@@ -55,6 +55,7 @@ mod mapping;
 mod prompt;
 
 pub use config::{
+    AdministrativeSecretHandling,
     Config,
     ConfigInteractivity,
     ConfigName,
