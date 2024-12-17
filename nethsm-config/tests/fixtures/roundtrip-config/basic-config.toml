@@ -1,0 +1,8 @@
+[devices.test.connection]
+url = "https://localhost:8443/api/v1"
+tls_security = "Unsafe"
+
+[[devices.test.credentials]]
+role = "Administrator"
+name = "admin"
+passphrase = "my-very-unsafe-admin-passphrase"
