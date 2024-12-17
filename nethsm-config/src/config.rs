@@ -54,6 +54,10 @@ pub enum Error {
     #[error("No user matching one of the requested roles ({0:?}) exists")]
     NoMatchingCredentials(Vec<UserRole>),
 
+    /// Credentials do not exist
+    #[error("Shamir's Secret Sharing not used for administrative secret handling, but the following users are setup tohandle shares: {share_users:?}")]
+    NoSssButShareUsers { share_users: Vec<SystemUserId> },
+
     /// Device exists already
     #[error("Device exist already: {0}")]
     DeviceExists(String),
@@ -1529,6 +1533,13 @@ pub enum AdministrativeSecretHandling {
 /// ## current iteration and remove user mappings and accompanying data accordingly.
 /// iteration = 1
 ///
+/// ## The handling of administrative secrets on the system.
+/// ## One of:
+/// ## - "shamirs_secret_sharing": Administrative secrets are never persisted on the system and only provided as shares of a shared secret.
+/// ## - "systemd_creds": Administrative secrets are persisted on the system as host-specific files, encrypted using systemd-creds (only for testing).
+/// ## - "plaintext": Administrative secrets are persisted on the system in unencrypted plaintext files (only for testing).
+/// admin_secret_handling = "shamirs_secret_sharing"
+///
 /// [[connections]]
 /// url = "https://localhost:8443/api/v1/"
 /// tls_security = "Unsafe"
@@ -1707,6 +1718,7 @@ pub enum AdministrativeSecretHandling {
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 pub struct HermeticParallelConfig {
     iteration: u32,
+    admin_secret_handling: AdministrativeSecretHandling,
     connections: HashSet<Connection>,
     users: HashSet<UserMapping>,
     #[serde(skip)]
@@ -1733,6 +1745,7 @@ impl HermeticParallelConfig {
     ///     #[rustfmt::skip]
     ///     let config_string = r#"
     /// iteration = 1
+    /// admin_secret_handling = "shamirs_secret_sharing"
     /// [[connections]]
     /// url = "https://localhost:8443/api/v1/"
     /// tls_security = "Unsafe"
@@ -1874,6 +1887,7 @@ impl HermeticParallelConfig {
     ///
     /// use nethsm::UserRole;
     /// use nethsm_config::{
+    ///     AdministrativeSecretHandling,
     ///     AuthorizedKeyEntryList,
     ///     ConfigCredentials,
     ///     ConfigInteractivity,
@@ -1892,6 +1906,7 @@ impl HermeticParallelConfig {
     ///         None,
     ///     ),
     ///     1,
+    ///     AdministrativeSecretHandling::ShamirsSecretSharing,
     ///     HashSet::from([Connection::new(
     ///         "https://localhost:8443/api/v1/".parse()?,
     ///         "Unsafe".parse()?,
@@ -1913,11 +1928,13 @@ impl HermeticParallelConfig {
     pub fn new(
         config_settings: ConfigSettings,
         iteration: u32,
+        admin_secret_handling: AdministrativeSecretHandling,
         connections: HashSet<Connection>,
         users: HashSet<UserMapping>,
     ) -> Result<Self, Error> {
         let config = Self {
             iteration,
+            admin_secret_handling,
             connections,
             users,
             settings: config_settings,
@@ -1940,6 +1957,7 @@ impl HermeticParallelConfig {
     /// use nethsm::{CryptographicKeyContext, OpenPgpUserIdList, SigningKeySetup, UserRole};
     /// use nethsm_config::{
     ///     AuthorizedKeyEntryList,
+    ///     AdministrativeSecretHandling,
     ///     ConfigCredentials,
     ///     ConfigInteractivity,
     ///     ConfigName,
@@ -1958,6 +1976,7 @@ impl HermeticParallelConfig {
     ///         None,
     ///     ),
     ///     1,
+    ///     AdministrativeSecretHandling::ShamirsSecretSharing,
     ///     HashSet::from([Connection::new(
     ///         "https://localhost:8443/api/v1/".parse()?,
     ///         "Unsafe".parse()?,
@@ -2119,22 +2138,46 @@ impl HermeticParallelConfig {
             }
         }
 
-        // ensure there are is at least one system user for downloading shares of a shared secret
-        if !self
-            .users
-            .iter()
-            .any(|mapping| matches!(mapping, UserMapping::SystemOnlyShareDownload { .. }))
-        {
-            return Err(Error::MissingShareDownloadUser);
-        }
+        if self.admin_secret_handling == AdministrativeSecretHandling::ShamirsSecretSharing {
+            // ensure there are is at least one system user for downloading shares of a shared
+            // secret
+            if !self
+                .users
+                .iter()
+                .any(|mapping| matches!(mapping, UserMapping::SystemOnlyShareDownload { .. }))
+            {
+                return Err(Error::MissingShareDownloadUser);
+            }
 
-        // ensure there are is at least one system user for uploading shares of a shared secret
-        if !self
-            .users
-            .iter()
-            .any(|mapping| matches!(mapping, UserMapping::SystemOnlyShareUpload { .. }))
-        {
-            return Err(Error::MissingShareUploadUser);
+            // ensure there are is at least one system user for uploading shares of a shared secret
+            if !self
+                .users
+                .iter()
+                .any(|mapping| matches!(mapping, UserMapping::SystemOnlyShareUpload { .. }))
+            {
+                return Err(Error::MissingShareUploadUser);
+            }
+        } else {
+            // ensure there are is no system user setup for uploading or downloading of shares of a
+            // shared secret
+            let share_users: Vec<SystemUserId> = self
+                .users
+                .iter()
+                .filter_map(|mapping| match mapping {
+                    UserMapping::SystemOnlyShareUpload {
+                        system_user,
+                        ssh_authorized_keys: _,
+                    }
+                    | UserMapping::SystemOnlyShareDownload {
+                        system_user,
+                        ssh_authorized_keys: _,
+                    } => Some(system_user.clone()),
+                    _ => None,
+                })
+                .collect();
+            if !share_users.is_empty() {
+                return Err(Error::NoSssButShareUsers { share_users });
+            }
         }
 
         // ensure there are no duplicate authorized SSH keys in the set of uploading shareholders
@@ -2333,6 +2376,7 @@ passphrase = "my-very-unsafe-admin-passphrase"
 
         let config_string = r#"
 iteration = 1
+admin_secret_handling = "shamirs_secret_sharing"
 [[connections]]
 url = "https://localhost:8443/api/v1/"
 tls_security = "Unsafe"
@@ -2485,6 +2529,7 @@ system_user = "ssh-wireguard-down"
 
         let config_string = r#"
 iteration = 1
+admin_secret_handling = "shamirs_secret_sharing"
 [[connections]]
 url = "https://localhost:8443/api/v1/"
 tls_security = "Unsafe"
@@ -2569,6 +2614,7 @@ system_user = "ssh-share-up"
 
         let config_string = r#"
 iteration = 1
+admin_secret_handling = "shamirs_secret_sharing"
 [[connections]]
 url = "https://localhost:8443/api/v1/"
 tls_security = "Unsafe"
@@ -2653,6 +2699,7 @@ system_user = "ssh-share-up"
 
         let config_string = r#"
 iteration = 1
+admin_secret_handling = "shamirs_secret_sharing"
 [[connections]]
 url = "https://localhost:8443/api/v1/"
 tls_security = "Unsafe"
@@ -2734,6 +2781,7 @@ system_user = "ssh-share-up"
 
         let config_string = r#"
 iteration = 1
+admin_secret_handling = "shamirs_secret_sharing"
 [[connections]]
 url = "https://localhost:8443/api/v1/"
 tls_security = "Unsafe"
@@ -2821,6 +2869,7 @@ system_user = "ssh-share-up"
 
         let config_string = r#"
 iteration = 1
+admin_secret_handling = "shamirs_secret_sharing"
 [[connections]]
 url = "https://localhost:8443/api/v1/"
 tls_security = "Unsafe"
@@ -2905,6 +2954,7 @@ system_user = "ssh-share-up"
 
         let config_string = r#"
 iteration = 1
+admin_secret_handling = "shamirs_secret_sharing"
 [[connections]]
 url = "https://localhost:8443/api/v1/"
 tls_security = "Unsafe"
@@ -2989,6 +3039,7 @@ system_user = "ssh-share-up"
 
         let config_string = r#"
 iteration = 1
+admin_secret_handling = "shamirs_secret_sharing"
 [[connections]]
 url = "https://localhost:8443/api/v1/"
 tls_security = "Unsafe"
@@ -3073,6 +3124,7 @@ system_user = "ssh-share-up"
 
         let config_string = r#"
 iteration = 1
+admin_secret_handling = "shamirs_secret_sharing"
 [[connections]]
 url = "https://localhost:8443/api/v1/"
 tls_security = "Unsafe"
@@ -3152,6 +3204,7 @@ system_user = "ssh-share-up"
 
         let config_string = r#"
 iteration = 1
+admin_secret_handling = "shamirs_secret_sharing"
 [[connections]]
 url = "https://localhost:8443/api/v1/"
 tls_security = "Unsafe"
@@ -3231,6 +3284,7 @@ system_user = "ssh-share-down"
 
         let config_string = r#"
 iteration = 1
+admin_secret_handling = "shamirs_secret_sharing"
 [[connections]]
 url = "https://localhost:8443/api/v1/"
 tls_security = "Unsafe"
@@ -3314,6 +3368,7 @@ system_user = "ssh-share-up"
 
         let config_string = r#"
 iteration = 1
+admin_secret_handling = "shamirs_secret_sharing"
 [[connections]]
 url = "https://localhost:8443/api/v1/"
 tls_security = "Unsafe"
@@ -3400,6 +3455,7 @@ system_user = "ssh-share-up"
 
         let config_string = r#"
 iteration = 1
+admin_secret_handling = "shamirs_secret_sharing"
 [[connections]]
 url = "https://localhost:8443/api/v1/"
 tls_security = "Unsafe"
@@ -3483,6 +3539,7 @@ system_user = "ssh-share-up"
 
         let config_string = r#"
 iteration = 1
+admin_secret_handling = "shamirs_secret_sharing"
 [[connections]]
 url = "https://localhost:8443/api/v1/"
 tls_security = "Unsafe"
