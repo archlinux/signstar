@@ -9,180 +9,133 @@ stages:
   - report
   - pages
 
-check-commits:
+# default setup running on default branch and in MRs
+.all-default:
   before_script:
     - pacman-key --init
     - pacman -Sy --needed --noconfirm archlinux-keyring
     - source .env && pacman -Syu --needed --noconfirm $PACMAN_PACKAGES
+    - just install-rust-dev-tools
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+
+# default setup with Rust tools running on default branch and in MRs
+.all-default-rust:
+  before_script:
+    - pacman-key --init
+    - pacman -Sy --needed --noconfirm archlinux-keyring
+    - source .env && pacman -Syu --needed --noconfirm $PACMAN_PACKAGES
+    - just install-rust-dev-tools
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+
+# default setup running in MRs
+.mr-default:
+  before_script:
+    - pacman-key --init
+    - pacman -Sy --needed --noconfirm archlinux-keyring
+    - source .env && pacman -Syu --needed --noconfirm $PACMAN_PACKAGES
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+
+check-commits:
+  extends: .mr-default
+  script:
     # fetch the default branch as we need it for comparison
     - git fetch origin $CI_DEFAULT_BRANCH
     # setup a dummy user as `cog verify` needs that
     - git config --local user.name "Foobar McFooface"
     - git config --local user.email "foobar@mcfooface.com"
-  rules:
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-  script:
     - just check-commits
   stage: check
 
 spelling:
-  before_script:
-    - pacman-key --init
-    - pacman -Sy --needed --noconfirm archlinux-keyring
-    - source .env && pacman -Syu --needed --noconfirm $PACMAN_PACKAGES
-  rules:
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+  extends: .all-default
   script:
     - just check-spelling
   stage: check
 
 formatting:
-  before_script:
-    - pacman-key --init
-    - pacman -Sy --needed --noconfirm archlinux-keyring
-    - source .env && pacman -Syu --needed --noconfirm $PACMAN_PACKAGES
-    - just install-rust-dev-tools
-  rules:
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+  extends: .all-default-rust
   script:
     - just check-formatting
   stage: check
 
 lint:
-  before_script:
-    - pacman-key --init
-    - pacman -Sy --needed --noconfirm archlinux-keyring
-    - source .env && pacman -Syu --needed --noconfirm $PACMAN_PACKAGES
-    - just install-rust-dev-tools
-  rules:
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+  extends: .all-default-rust
   script:
     - just lint
   stage: check
 
 unused-deps:
-  before_script:
-    - pacman-key --init
-    - pacman -Sy --needed --noconfirm archlinux-keyring
-    - source .env && pacman -Syu --needed --noconfirm $PACMAN_PACKAGES
-    - just install-rust-dev-tools
-  rules:
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+  extends: .all-default-rust
   script:
     - just check-unused-deps
   stage: check
 
 dependencies:
-  before_script:
-    - pacman-key --init
-    - pacman -Sy --needed --noconfirm archlinux-keyring
-    - source .env && pacman -Syu --needed --noconfirm $PACMAN_PACKAGES
-    - just install-rust-dev-tools
-  rules:
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+  extends: .all-default-rust
   script:
     - just check-dependencies
   stage: check
 
 licenses:
-  before_script:
-    - pacman-key --init
-    - pacman -Sy --needed --noconfirm archlinux-keyring
-    - source .env && pacman -Syu --needed --noconfirm $PACMAN_PACKAGES
-  rules:
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+  extends: .all-default-rust
   script:
     - just check-licenses
   stage: check
 
 links:
-  before_script:
-    - pacman-key --init
-    - pacman -Sy --needed --noconfirm archlinux-keyring
-    - source .env && pacman -Syu --needed --noconfirm $PACMAN_PACKAGES
-  rules:
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+  extends: .all-default-rust
   script:
     - just check-links
   stage: check
 
 test:
-  before_script:
-    - pacman-key --init
-    - pacman -Sy --needed --noconfirm archlinux-keyring
-    - source .env && pacman -Syu --needed --noconfirm $PACMAN_PACKAGES
-    - just install-rust-dev-tools
-  rules:
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+  extends: .all-default-rust
   script:
     - just test
   stage: test
 
 integration-test:
-  before_script:
-    - pacman-key --init
-    - pacman -Sy --needed --noconfirm archlinux-keyring
-    - source .env && pacman -Syu --needed --noconfirm $PACMAN_PACKAGES
+  extends: .all-default
+  script:
     - useradd -m testuser
     - chown -R testuser:testuser .
-  rules:
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
-  script:
     - WORKDIR="$(pwd)" runuser -w WORKDIR -l testuser -c 'env && cd "$WORKDIR" && just install-rust-dev-tools && just ignored=true test'
   stage: test
   tags:
     - vm
 
 test-readmes:
-  before_script:
-    - pacman-key --init
-    - pacman -Sy --needed --noconfirm archlinux-keyring
-    - source .env && pacman -Syu --needed --noconfirm $PACMAN_PACKAGES
+  extends: .all-default
+  script:
     - useradd -m testuser
     - chown -R testuser:testuser .
-  rules:
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
-  script:
     - WORKDIR="$(pwd)" runuser -w WORKDIR -l testuser -c 'env && cd "$WORKDIR" && just install-rust-dev-tools && just test-readmes'
   stage: test
   tags:
     - vm
 
 build-image:
-  before_script:
-    - pacman-key --init
-    - pacman -Sy --needed --noconfirm archlinux-keyring
-    - source .env && pacman -Syu --needed --noconfirm $PACMAN_PACKAGES
+  extends: .all-default
+  script:
     - useradd -m testuser
     - chown -R testuser:testuser .
     # prepare an ephemeral OpenPGP signing key
     - WORKDIR="$(pwd)" runuser -w WORKDIR -l testuser -c 'cd "$WORKDIR" && rsop generate-key test > test.tsk && rsop extract-cert > test.pgp < test.tsk && echo msg | rsop sign test.tsk > msg.sig && echo msg | rsop verify msg.sig test.pgp | cut -d " " -f2 > fingerprint.txt && gpg --import test.tsk'
     # clone latest mkosi as we currently require some of its features and fixes
     - WORKDIR="$(pwd)" runuser -w WORKDIR -l testuser -c 'cd "$WORKDIR" && git clone https://github.com/systemd/mkosi'
-  rules:
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
-  script:
     - WORKDIR="$(pwd)" runuser -w WORKDIR -l testuser -c 'cd "$WORKDIR" && PATH="$(pwd)/mkosi/bin:$PATH" mkosi --version && PATH="$(pwd)/mkosi/bin:$PATH" just build-image "$(cat fingerprint.txt)"'
   stage: signstaros
   tags:
     - vm
 
 build-test-image:
-  before_script:
-    - pacman-key --init
-    - pacman -Sy --needed --noconfirm archlinux-keyring
-    - source .env && pacman -Syu --needed --noconfirm $PACMAN_PACKAGES
+  extends: .all-default
+  script:
     - useradd -m testuser
     - chown -R testuser:testuser .
     # prepare an ephemeral OpenPGP signing key
@@ -191,10 +144,6 @@ build-test-image:
     - WORKDIR="$(pwd)" runuser -w WORKDIR -l testuser -c 'cd "$WORKDIR" && just install-rust-dev-tools'
     # clone latest mkosi as we currently require some of its features and fixes
     - WORKDIR="$(pwd)" runuser -w WORKDIR -l testuser -c 'cd "$WORKDIR" && git clone https://github.com/systemd/mkosi'
-  rules:
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
-  script:
     - WORKDIR="$(pwd)" runuser -w WORKDIR -l testuser -c 'cd "$WORKDIR" && PATH="$(pwd)/mkosi/bin:$PATH" mkosi --version && PATH="$(pwd)/mkosi/bin:$PATH" just build-test-image "$(cat fingerprint.txt)"'
   stage: signstaros
   tags:
