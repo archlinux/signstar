@@ -57,9 +57,12 @@ impl ToRunnableContainer for NetHsmImage {
                 "nethsm-test-{}",
                 Uuid::new_v7(Timestamp::now(NoContext))
             )))
-            .with_wait_strategy(WaitStrategy::stderr_contains(
-                "listening on 8443/TCP for HTTPS",
-            ))
+            .with_wait_strategy(WaitStrategy::HttpSuccess {
+                https: true,
+                require_valid_certs: false,
+                path: "/".into(),
+                container_port: 8443.into(),
+            })
             .with_port_mappings([self.port.clone()])
             .build()
     }
