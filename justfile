@@ -254,7 +254,7 @@ test:
     just ensure-command cargo mold
 
     if [[ "$ignored" == "true" ]]; then
-        cargo test --all -- --ignored
+        cargo nextest run --all --run-ignored ignored-only
     else
         cargo nextest run --all
         just docs
