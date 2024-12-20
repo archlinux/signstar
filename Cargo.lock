@@ -2667,9 +2667,9 @@ dependencies = [
 
 [[package]]
 name = "rustainers"
-version = "0.13.1"
+version = "0.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0ef7b8361088c350a102137b360d56de418ab31bdf884e31a7d54b44e97858f4"
+checksum = "0dd420b847dfb85a17abe3e28c6f756ad35592aa7718273e90d17a78e727fe9c"
 dependencies = [
  "async-trait",
  "hex",
