@@ -1,4 +1,5 @@
 iteration = 1
+admin_secret_handling = "shamirs-secret-sharing"
 [[connections]]
 url = "https://localhost:8443/api/v1/"
 tls_security = "Unsafe"
