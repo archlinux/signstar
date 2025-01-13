@@ -257,6 +257,7 @@ test:
         cargo nextest run --all --run-ignored ignored-only
     else
         cargo nextest run --all
+        just test-docs
         just docs
     fi
 
