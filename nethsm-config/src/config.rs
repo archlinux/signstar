@@ -1493,6 +1493,47 @@ pub enum AdministrativeSecretHandling {
     ShamirsSecretSharing,
 }
 
+/// The handling of non-administrative secrets.
+///
+/// Non-administrative secrets represent passphrases for (non-Administrator) NetHSM users and may be
+/// handled in different ways (e.g. encrypted or not encrypted).
+#[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum NonAdministrativeSecretHandling {
+    /// Each non-administrative secret is handled in a plaintext file in a non-volatile
+    /// directory.
+    ///
+    /// ## Warning
+    ///
+    /// This variant should only be used in non-production test setups, as it implies the
+    /// persistence of unencrypted non-administrative secrets on a file system.
+    Plaintext,
+
+    /// Each non-administrative secret is encrypted for a specific system user using
+    /// [systemd-creds] and the resulting files are stored in a non-volatile directory.
+    ///
+    /// ## Note
+    ///
+    /// Although secrets are stored as encrypted strings in dedicated files, they may be extracted
+    /// under certain circumstances:
+    ///
+    /// - the root account is compromised
+    ///   - decrypts and exfiltrates _all_ secrets
+    ///   - the secret is not encrypted using a [TPM] and the file
+    ///     `/var/lib/systemd/credential.secret` as well as _any_ encrypted secret is exfiltrated
+    /// - a specific user is compromised, decrypts and exfiltrates its own ssecret
+    ///
+    /// It is therefore crucial to follow common best-practices:
+    ///
+    /// - rely on a [TPM] for encrypting secrets, so that files become host-specific
+    /// - heavily guard access to all users, especially root
+    ///
+    /// [systemd-creds]: https://man.archlinux.org/man/systemd-creds.1
+    /// [TPM]: https://en.wikipedia.org/wiki/Trusted_Platform_Module
+    #[default]
+    SystemdCreds,
+}
+
 /// A configuration for parallel use of connections with a set of system and NetHSM users.
 ///
 /// This configuration type is meant to be used in a read-only fashion and does not support tracking

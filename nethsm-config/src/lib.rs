@@ -64,6 +64,7 @@ pub use config::{
     DeviceConfig,
     Error,
     HermeticParallelConfig,
+    NonAdministrativeSecretHandling,
 };
 pub use credentials::{
     AuthorizedKeyEntry,
