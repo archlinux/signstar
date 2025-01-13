@@ -260,6 +260,11 @@ test:
         just docs
     fi
 
+# Runs all doc tests
+test-docs:
+    just ensure-command cargo
+    cargo test --doc
+
 # Runs per project end-to-end tests found in a project README.md
 test-readme project:
     #!/usr/bin/env bash
