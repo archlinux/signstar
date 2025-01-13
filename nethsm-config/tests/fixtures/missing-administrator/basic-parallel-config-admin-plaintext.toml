@@ -1,5 +1,6 @@
 iteration = 1
 admin_secret_handling = "plaintext"
+non_admin_secret_handling = "systemd-creds"
 [[connections]]
 url = "https://localhost:8443/api/v1/"
 tls_security = "Unsafe"

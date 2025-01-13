@@ -1582,6 +1582,12 @@ pub enum NonAdministrativeSecretHandling {
 /// ## - "plaintext": Administrative secrets are persisted on the system in unencrypted plaintext files (only for testing).
 /// admin_secret_handling = "shamirs-secret-sharing"
 ///
+/// ## The handling of non-administrative secrets on the system.
+/// ## One of:
+/// ## - "systemd-creds": Non-administrative secrets are persisted on the system as host-specific files, encrypted using systemd-creds (the default).
+/// ## - "plaintext": Non-administrative secrets are persisted on the system in unencrypted plaintext files (only for testing).
+/// non_admin_secret_handling = "systemd-creds"
+///
 /// [[connections]]
 /// url = "https://localhost:8443/api/v1/"
 /// tls_security = "Unsafe"
@@ -1761,6 +1767,7 @@ pub enum NonAdministrativeSecretHandling {
 pub struct HermeticParallelConfig {
     iteration: u32,
     admin_secret_handling: AdministrativeSecretHandling,
+    non_admin_secret_handling: NonAdministrativeSecretHandling,
     connections: HashSet<Connection>,
     users: HashSet<UserMapping>,
     #[serde(skip)]
@@ -1788,6 +1795,7 @@ impl HermeticParallelConfig {
     ///     let config_string = r#"
     /// iteration = 1
     /// admin_secret_handling = "shamirs-secret-sharing"
+    /// non_admin_secret_handling = "systemd-creds"
     /// [[connections]]
     /// url = "https://localhost:8443/api/v1/"
     /// tls_security = "Unsafe"
@@ -1937,6 +1945,7 @@ impl HermeticParallelConfig {
     ///     ConfigSettings,
     ///     Connection,
     ///     HermeticParallelConfig,
+    ///     NonAdministrativeSecretHandling,
     ///     UserMapping,
     /// };
     ///
@@ -1949,6 +1958,7 @@ impl HermeticParallelConfig {
     ///     ),
     ///     1,
     ///     AdministrativeSecretHandling::ShamirsSecretSharing,
+    ///     NonAdministrativeSecretHandling::SystemdCreds,
     ///     HashSet::from([Connection::new(
     ///         "https://localhost:8443/api/v1/".parse()?,
     ///         "Unsafe".parse()?,
@@ -1971,12 +1981,14 @@ impl HermeticParallelConfig {
         config_settings: ConfigSettings,
         iteration: u32,
         admin_secret_handling: AdministrativeSecretHandling,
+        non_admin_secret_handling: NonAdministrativeSecretHandling,
         connections: HashSet<Connection>,
         users: HashSet<UserMapping>,
     ) -> Result<Self, Error> {
         let config = Self {
             iteration,
             admin_secret_handling,
+            non_admin_secret_handling,
             connections,
             users,
             settings: config_settings,
@@ -2007,6 +2019,7 @@ impl HermeticParallelConfig {
     ///     Connection,
     ///     HermeticParallelConfig,
     ///     NetHsmMetricsUsers,
+    ///     NonAdministrativeSecretHandling,
     ///     UserMapping,
     /// };
     ///
@@ -2019,6 +2032,7 @@ impl HermeticParallelConfig {
     ///     ),
     ///     1,
     ///     AdministrativeSecretHandling::ShamirsSecretSharing,
+    ///     NonAdministrativeSecretHandling::SystemdCreds,
     ///     HashSet::from([Connection::new(
     ///         "https://localhost:8443/api/v1/".parse()?,
     ///         "Unsafe".parse()?,
