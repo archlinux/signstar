@@ -3155,6 +3155,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "signstar-core"
+version = "0.1.0"
+dependencies = [
+ "nethsm",
+ "thiserror 2.0.11",
+]
+
+[[package]]
 name = "signstar-request-signature"
 version = "0.1.0"
 dependencies = [
