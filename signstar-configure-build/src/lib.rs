@@ -8,17 +8,18 @@ use std::{
 
 use nethsm_config::{HermeticParallelConfig, SystemUserId, UserMapping};
 use nix::unistd::User;
+use signstar_core::{
+    DEFAULT_CONFIG_FILE,
+    ETC_OVERRIDE_CONFIG_FILE,
+    HOME_BASE_DIR,
+    RUN_OVERRIDE_CONFIG_FILE,
+    SSHD_DROPIN_CONFIG_DIR,
+    SSH_AUTHORIZED_KEY_BASE_DIR,
+    USR_LOCAL_OVERRIDE_CONFIG_FILE,
+};
 use sysinfo::{Pid, System};
 
 pub mod cli;
-
-pub static ETC_OVERRIDE_CONFIG_FILE: &str = "/etc/signstar/config.toml";
-pub static RUN_OVERRIDE_CONFIG_FILE: &str = "/run/signstar/config.toml";
-pub static USR_LOCAL_OVERRIDE_CONFIG_FILE: &str = "/usr/local/share/signstar/config.toml";
-pub static DEFAULT_CONFIG_FILE: &str = "/usr/share/signstar/config.toml";
-pub static SSH_AUTHORIZED_KEY_BASE_DIR: &str = "/etc/ssh";
-pub static SSHD_DROPIN_CONFIG_DIR: &str = "/etc/ssh/sshd_config.d";
-pub static HOME_BASE_DIR: &str = "/var/lib/signstar/home";
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
