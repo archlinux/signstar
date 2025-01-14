@@ -8,17 +8,21 @@ use std::{
 
 use nethsm_config::{HermeticParallelConfig, SystemUserId, UserMapping};
 use nix::unistd::User;
+#[cfg(doc)]
+use signstar_core::config::{
+    DEFAULT_CONFIG_DIR,
+    ETC_OVERRIDE_CONFIG_DIR,
+    RUN_OVERRIDE_CONFIG_DIR,
+    USR_LOCAL_OVERRIDE_CONFIG_DIR,
+};
+use signstar_core::{
+    config::get_config_file_or_default,
+    ssh::{SSH_AUTHORIZED_KEY_BASE_DIR, SSHD_DROPIN_CONFIG_DIR},
+    system_user::HOME_BASE_DIR,
+};
 use sysinfo::{Pid, System};
 
 pub mod cli;
-
-pub static ETC_OVERRIDE_CONFIG_FILE: &str = "/etc/signstar/config.toml";
-pub static RUN_OVERRIDE_CONFIG_FILE: &str = "/run/signstar/config.toml";
-pub static USR_LOCAL_OVERRIDE_CONFIG_FILE: &str = "/usr/local/share/signstar/config.toml";
-pub static DEFAULT_CONFIG_FILE: &str = "/usr/share/signstar/config.toml";
-pub static SSH_AUTHORIZED_KEY_BASE_DIR: &str = "/etc/ssh";
-pub static SSHD_DROPIN_CONFIG_DIR: &str = "/etc/ssh/sshd_config.d";
-pub static HOME_BASE_DIR: &str = "/var/lib/signstar/home";
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
@@ -109,12 +113,13 @@ pub enum Error {
 
 /// The configuration file path for the application.
 ///
-/// If the path exists and is a file, one of the following configuration file locations is used:
-/// - [`ETC_OVERRIDE_CONFIG_FILE`]
-/// - [`RUN_OVERRIDE_CONFIG_FILE`]
-/// - [`USR_LOCAL_OVERRIDE_CONFIG_FILE`]
+/// The configuration file found in one of the directories (in descending priority) is used:
+/// - [`ETC_OVERRIDE_CONFIG_DIR`]
+/// - [`RUN_OVERRIDE_CONFIG_DIR`]
+/// - [`USR_LOCAL_OVERRIDE_CONFIG_DIR`]
 ///
-/// If none of the above is found, [`DEFAULT_CONFIG_FILE`] is used (even if it doesn't exist!).
+/// If none of the above contains a configuration file the default directory [`DEFAULT_CONFIG_DIR`]
+/// is used (even if no configuration file exists!).
 #[derive(Clone, Debug)]
 pub struct ConfigPath(PathBuf);
 
@@ -133,25 +138,10 @@ impl AsRef<Path> for ConfigPath {
 impl Default for ConfigPath {
     /// Returns the default [`ConfigPath`].
     ///
-    /// If the path exists and is a file, one of the following configuration file locations is used:
-    /// - [`ETC_OVERRIDE_CONFIG_FILE`]
-    /// - [`RUN_OVERRIDE_CONFIG_FILE`]
-    /// - [`USR_LOCAL_OVERRIDE_CONFIG_FILE`]
-    ///
-    /// If none of the above is found, [`DEFAULT_CONFIG_FILE`] is used (even if it doesn't exist!).
+    /// Uses [`get_config_file_or_default`] to find the first usable configuration file path, or the
+    /// default if none is found.
     fn default() -> Self {
-        for config_file in [
-            ETC_OVERRIDE_CONFIG_FILE,
-            RUN_OVERRIDE_CONFIG_FILE,
-            USR_LOCAL_OVERRIDE_CONFIG_FILE,
-        ] {
-            let config = PathBuf::from(config_file);
-            if config.is_file() {
-                return Self(config);
-            }
-        }
-
-        Self(PathBuf::from(DEFAULT_CONFIG_FILE))
+        Self(get_config_file_or_default())
     }
 }
 

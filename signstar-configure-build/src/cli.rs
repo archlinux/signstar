@@ -1,16 +1,19 @@
 use clap::{Parser, crate_name};
+use signstar_core::config::{
+    CONFIG_FILE,
+    DEFAULT_CONFIG_DIR,
+    ETC_OVERRIDE_CONFIG_DIR,
+    RUN_OVERRIDE_CONFIG_DIR,
+    USR_LOCAL_OVERRIDE_CONFIG_DIR,
+};
 use strum::VariantNames;
 
 use crate::{
     ConfigPath,
-    DEFAULT_CONFIG_FILE,
-    ETC_OVERRIDE_CONFIG_FILE,
     HOME_BASE_DIR,
-    RUN_OVERRIDE_CONFIG_FILE,
     SSH_AUTHORIZED_KEY_BASE_DIR,
     SSHD_DROPIN_CONFIG_DIR,
     SshForceCommand,
-    USR_LOCAL_OVERRIDE_CONFIG_FILE,
 };
 
 pub const BIN_NAME: &str = crate_name!();
@@ -30,13 +33,13 @@ It creates system users and their integration based on a central configuration f
 
 By default, one of the following configuration files is used if it exists, in the following order:
 
-- \"{USR_LOCAL_OVERRIDE_CONFIG_FILE}\"
+- \"{USR_LOCAL_OVERRIDE_CONFIG_DIR}{CONFIG_FILE}\"
 
-- \"{RUN_OVERRIDE_CONFIG_FILE}\"
+- \"{RUN_OVERRIDE_CONFIG_DIR}{CONFIG_FILE}\"
 
-- \"{ETC_OVERRIDE_CONFIG_FILE}\"
+- \"{ETC_OVERRIDE_CONFIG_DIR}{CONFIG_FILE}\"
 
-If none of the above are found, the default location \"{DEFAULT_CONFIG_FILE}\" is used.
+If none of the above are found, the default location \"{DEFAULT_CONFIG_DIR}{CONFIG_FILE}\" is used.
 Alternatively a custom configuration file location can be specified using the \"--config\"/ \"-c\" option.
 
 System users, if they don't exist already, are created with the help of `useradd`.
@@ -61,13 +64,13 @@ If specified, the custom configuration file is used instead of the default confi
 
 If unspecified, one of the following configuration files is used if it exists, in the following order:
 
-- \"{USR_LOCAL_OVERRIDE_CONFIG_FILE}\"
+- \"{USR_LOCAL_OVERRIDE_CONFIG_DIR}{CONFIG_FILE}\"
 
-- \"{RUN_OVERRIDE_CONFIG_FILE}\"
+- \"{RUN_OVERRIDE_CONFIG_DIR}{CONFIG_FILE}\"
 
-- \"{ETC_OVERRIDE_CONFIG_FILE}\"
+- \"{ETC_OVERRIDE_CONFIG_DIR}{CONFIG_FILE}\"
 
-If none of the above are found, the default location \"{DEFAULT_CONFIG_FILE}\" is used.
+If none of the above are found, the default location \"{DEFAULT_CONFIG_DIR}{CONFIG_FILE}\" is used.
 "),
         long,
         short
