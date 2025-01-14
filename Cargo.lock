@@ -3148,6 +3148,7 @@ dependencies = [
  "clap",
  "nethsm-config",
  "nix",
+ "signstar-common",
  "strum 0.27.1",
  "sysinfo 0.33.0",
  "thiserror 2.0.11",

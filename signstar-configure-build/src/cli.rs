@@ -1,17 +1,17 @@
 use clap::{Parser, crate_name};
+use signstar_common::{
+    config::{
+        get_default_config_file_path,
+        get_etc_override_config_file_path,
+        get_run_override_config_file_path,
+        get_usr_local_override_config_file_path,
+    },
+    ssh::{get_ssh_authorized_key_base_dir, get_sshd_config_dropin_dir},
+    system_user::get_home_base_dir_path,
+};
 use strum::VariantNames;
 
-use crate::{
-    ConfigPath,
-    DEFAULT_CONFIG_FILE,
-    ETC_OVERRIDE_CONFIG_FILE,
-    HOME_BASE_DIR,
-    RUN_OVERRIDE_CONFIG_FILE,
-    SSH_AUTHORIZED_KEY_BASE_DIR,
-    SSHD_DROPIN_CONFIG_DIR,
-    SshForceCommand,
-    USR_LOCAL_OVERRIDE_CONFIG_FILE,
-};
+use crate::{ConfigPath, SshForceCommand};
 
 pub const BIN_NAME: &str = crate_name!();
 const SSH_FORCE_COMMAND_VARIANTS: &[&str] = SshForceCommand::VARIANTS;
@@ -30,25 +30,32 @@ It creates system users and their integration based on a central configuration f
 
 By default, one of the following configuration files is used if it exists, in the following order:
 
-- \"{USR_LOCAL_OVERRIDE_CONFIG_FILE}\"
+- {:?}
 
-- \"{RUN_OVERRIDE_CONFIG_FILE}\"
+- {:?}
 
-- \"{ETC_OVERRIDE_CONFIG_FILE}\"
+- {:?}
 
-If none of the above are found, the default location \"{DEFAULT_CONFIG_FILE}\" is used.
+If none of the above are found, the default location {:?} is used.
 Alternatively a custom configuration file location can be specified using the \"--config\"/ \"-c\" option.
 
 System users, if they don't exist already, are created with the help of `useradd`.
-The users are created without a passphrase and setup with a home below \"{HOME_BASE_DIR}\".
+The users are created without a passphrase and setup with a home below {:?}.
 However, their home directory is not created automatically.
 The system user accounts are then unlocked with the help of `usermod`.
 For each system user a tmpfiles.d integration is provided below \"/usr/lib/tmpfiles.d\", to allow automatic creation of their home directory.
 
-If the used configuration file associates the system user with SSH public keys, a dedicated \"authorized_keys\" file containing the SSH public keys for the user is created below \"{SSH_AUTHORIZED_KEY_BASE_DIR}\".
-Additionally, an \"sshd_config\" drop-in configuration is created below \"{SSHD_DROPIN_CONFIG_DIR}\".
+If the used configuration file associates the system user with SSH public keys, a dedicated \"authorized_keys\" file containing the SSH public keys for the user is created below {:?}.
+Additionally, an \"sshd_config\" drop-in configuration is created below {:?}.
 This \"sshd_config\" drop-in configuration enforces the use of the user's \"authorized_keys\" and the use of a specific command (i.e. one of {SSH_FORCE_COMMAND_VARIANTS:?}) depending on the user's role.",
-    ),
+    get_usr_local_override_config_file_path(),
+    get_run_override_config_file_path(),
+    get_etc_override_config_file_path(),
+    get_default_config_file_path(),
+    get_home_base_dir_path(),
+    get_ssh_authorized_key_base_dir(),
+    get_sshd_config_dropin_dir(),
+    )
 )]
 pub struct Cli {
     #[arg(
@@ -61,14 +68,18 @@ If specified, the custom configuration file is used instead of the default confi
 
 If unspecified, one of the following configuration files is used if it exists, in the following order:
 
-- \"{USR_LOCAL_OVERRIDE_CONFIG_FILE}\"
+- {:?}
 
-- \"{RUN_OVERRIDE_CONFIG_FILE}\"
+- {:?}
 
-- \"{ETC_OVERRIDE_CONFIG_FILE}\"
+- {:?}
 
-If none of the above are found, the default location \"{DEFAULT_CONFIG_FILE}\" is used.
-"),
+If none of the above are found, the default location {:?} is used.",
+    get_usr_local_override_config_file_path(),
+    get_run_override_config_file_path(),
+    get_etc_override_config_file_path(),
+    get_default_config_file_path(),
+),
         long,
         short
     )]

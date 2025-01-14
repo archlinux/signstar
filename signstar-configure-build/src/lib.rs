@@ -8,17 +8,14 @@ use std::{
 
 use nethsm_config::{HermeticParallelConfig, SystemUserId, UserMapping};
 use nix::unistd::User;
+use signstar_common::{
+    config::get_config_file_or_default,
+    ssh::{get_ssh_authorized_key_base_dir, get_sshd_config_dropin_dir},
+    system_user::get_home_base_dir_path,
+};
 use sysinfo::{Pid, System};
 
 pub mod cli;
-
-pub static ETC_OVERRIDE_CONFIG_FILE: &str = "/etc/signstar/config.toml";
-pub static RUN_OVERRIDE_CONFIG_FILE: &str = "/run/signstar/config.toml";
-pub static USR_LOCAL_OVERRIDE_CONFIG_FILE: &str = "/usr/local/share/signstar/config.toml";
-pub static DEFAULT_CONFIG_FILE: &str = "/usr/share/signstar/config.toml";
-pub static SSH_AUTHORIZED_KEY_BASE_DIR: &str = "/etc/ssh";
-pub static SSHD_DROPIN_CONFIG_DIR: &str = "/etc/ssh/sshd_config.d";
-pub static HOME_BASE_DIR: &str = "/var/lib/signstar/home";
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
@@ -63,6 +60,16 @@ pub enum Error {
     /// A string could not be converted to a sysinfo::Uid
     #[error("The string {0} could not be converted to a \"sysinfo::Uid\"")]
     SysUidFromStr(String),
+
+    /// A `Path` value for a tmpfiles.d integration is not valid.
+    #[error(
+        "The Path value {path} for the tmpfiles.d integration for {user} is not valid:\n{reason}"
+    )]
+    TmpfilesDPath {
+        path: String,
+        user: SystemUserId,
+        reason: &'static str,
+    },
 
     /// Adding a user failed
     #[error("Adding user {user} failed:\n{source}")]
@@ -109,12 +116,7 @@ pub enum Error {
 
 /// The configuration file path for the application.
 ///
-/// If the path exists and is a file, one of the following configuration file locations is used:
-/// - [`ETC_OVERRIDE_CONFIG_FILE`]
-/// - [`RUN_OVERRIDE_CONFIG_FILE`]
-/// - [`USR_LOCAL_OVERRIDE_CONFIG_FILE`]
-///
-/// If none of the above is found, [`DEFAULT_CONFIG_FILE`] is used (even if it doesn't exist!).
+/// The configuration file location is defined by the behavior of [`get_config_file_or_default`].
 #[derive(Clone, Debug)]
 pub struct ConfigPath(PathBuf);
 
@@ -133,25 +135,10 @@ impl AsRef<Path> for ConfigPath {
 impl Default for ConfigPath {
     /// Returns the default [`ConfigPath`].
     ///
-    /// If the path exists and is a file, one of the following configuration file locations is used:
-    /// - [`ETC_OVERRIDE_CONFIG_FILE`]
-    /// - [`RUN_OVERRIDE_CONFIG_FILE`]
-    /// - [`USR_LOCAL_OVERRIDE_CONFIG_FILE`]
-    ///
-    /// If none of the above is found, [`DEFAULT_CONFIG_FILE`] is used (even if it doesn't exist!).
+    /// Uses [`get_config_file_or_default`] to find the first usable configuration file path, or the
+    /// default if none is found.
     fn default() -> Self {
-        for config_file in [
-            ETC_OVERRIDE_CONFIG_FILE,
-            RUN_OVERRIDE_CONFIG_FILE,
-            USR_LOCAL_OVERRIDE_CONFIG_FILE,
-        ] {
-            let config = PathBuf::from(config_file);
-            if config.is_file() {
-                return Self(config);
-            }
-        }
-
-        Self(PathBuf::from(DEFAULT_CONFIG_FILE))
+        Self(get_config_file_or_default())
     }
 }
 
@@ -308,8 +295,8 @@ pub fn ensure_root() -> Result<(), Error> {
 ///
 /// Works on the [`UserMapping`]s of the provided `config` and creates system users for all
 /// mappings, that define system users, if they don't exist on the system yet.
-/// System users are created unlocked, without passphrase, with their homes located in
-/// [`HOME_BASE_DIR`].
+/// System users are created unlocked, without passphrase, with their homes located in the directory
+/// returned by [`get_home_base_dir_path`].
 /// The home directories of users are not created upon user creation, but instead a [tmpfiles.d]
 /// configuration is added for them to automate their creation upon system boot.
 ///
@@ -354,17 +341,17 @@ pub fn create_system_users(config: &HermeticParallelConfig) -> Result<(), Error>
             continue;
         }
 
+        let home_base_dir = get_home_base_dir_path();
+
         // add user, but do not create its home
         print!("Creating user \"{user}\"...");
         let user_add = Command::new("useradd")
-            .args([
-                "--base-dir",
-                HOME_BASE_DIR,
-                "--user-group",
-                "--shell",
-                "/usr/bin/bash",
-                user.as_ref(),
-            ])
+            .arg("--base-dir")
+            .arg(home_base_dir.as_path())
+            .arg("--user-group")
+            .arg("--shell")
+            .arg("/usr/bin/bash")
+            .arg(user.as_ref())
             .output()
             .map_err(|error| Error::UserAdd {
                 user: user.clone(),
@@ -407,8 +394,25 @@ pub fn create_system_users(config: &HermeticParallelConfig) -> Result<(), Error>
                     user: user.clone(),
                     source,
                 })?;
+
+            // ensure that the `Path` component in the tmpfiles.d file
+            // - has whitespace replaced with a c-style escape
+            // - does not contain specifiers
+            let home_dir = {
+                let home_dir =
+                    format!("{}/{user}", home_base_dir.to_string_lossy()).replace(" ", "\\x20");
+                if home_dir.contains("%") {
+                    return Err(Error::TmpfilesDPath {
+                        path: home_dir.clone(),
+                        user: user.clone(),
+                        reason: "Specifiers (%) are not supported at this point.",
+                    });
+                }
+                home_dir
+            };
+
             buffer
-                .write_all(format!("d {HOME_BASE_DIR}/{user} 700 {user} {user}\n").as_bytes())
+                .write_all(format!("d {home_dir} 700 {user} {user}\n",).as_bytes())
                 .map_err(|source| Error::WriteTmpfilesD {
                     user: user.clone(),
                     source,
@@ -422,14 +426,14 @@ pub fn create_system_users(config: &HermeticParallelConfig) -> Result<(), Error>
                 // add SSH authorized keys file user in system-wide location
                 print!("Adding SSH authorized_keys file for user \"{user}\"...");
                 {
-                    let filename = format!(
-                        "{SSH_AUTHORIZED_KEY_BASE_DIR}/signstar-user-{user}.authorized_keys"
-                    );
-                    let mut buffer =
-                        File::create(filename).map_err(|source| Error::WriteAuthorizedKeys {
-                            user: user.clone(),
-                            source,
-                        })?;
+                    let mut buffer = File::create(
+                        get_ssh_authorized_key_base_dir()
+                            .join(format!("signstar-user-{user}.authorized_keys")),
+                    )
+                    .map_err(|source| Error::WriteAuthorizedKeys {
+                        user: user.clone(),
+                        source,
+                    })?;
                     buffer
                         .write_all(
                             (authorized_keys
@@ -450,9 +454,9 @@ pub fn create_system_users(config: &HermeticParallelConfig) -> Result<(), Error>
                 // add sshd_config drop-in configuration for user
                 print!("Adding sshd_config drop-in configuration for user \"{user}\"...");
                 {
-                    let mut buffer = File::create(format!(
-                        "{SSHD_DROPIN_CONFIG_DIR}/10-signstar-user-{user}.conf"
-                    ))
+                    let mut buffer = File::create(
+                        get_sshd_config_dropin_dir().join(format!("10-signstar-user-{user}.conf")),
+                    )
                     .map_err(|source| Error::WriteSshdConfig {
                         user: user.clone(),
                         source,
