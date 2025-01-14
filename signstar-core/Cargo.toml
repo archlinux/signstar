@@ -1,0 +1,14 @@
+[package]
+authors.workspace = true
+description = "Core components for Signstar tools"
+edition.workspace = true
+homepage.workspace = true
+keywords = ["user", "signstar", "nethsm"]
+license.workspace = true
+name = "signstar-core"
+repository.workspace = true
+version = "0.1.0"
+
+[dependencies]
+nethsm.workspace = true
+thiserror.workspace = true
