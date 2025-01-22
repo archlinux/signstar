@@ -2301,7 +2301,7 @@ impl HermeticParallelConfig {
         // ensure that only one-to-one relationships between users in the Operator role and keys
         // exist (system-wide and per-namespace)
         {
-            // ensure that KeyIds are not re-used system-wide
+            // ensure that KeyIds are not reused system-wide
             let mut set = HashSet::new();
             for key_id in self
                 .users
@@ -2313,7 +2313,7 @@ impl HermeticParallelConfig {
                 }
             }
 
-            // ensure that KeyIds are not re-used per namespace
+            // ensure that KeyIds are not reused per namespace
             for namespace in self
                 .users
                 .iter()
