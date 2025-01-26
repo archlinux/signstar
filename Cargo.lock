@@ -154,17 +154,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "async-trait"
-version = "0.1.83"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "721cae7de5c34fbb2acd27e21e6d2cf7b886dce0c27388d46c4e6c47ea4318dd"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn",
-]
-
-[[package]]
 name = "atomic-waker"
 version = "1.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1556,9 +1545,9 @@ checksum = "ddc24109865250148c2e0f3d25d4f0f479571723792d3802153c60922a4fb708"
 
 [[package]]
 name = "ipnetwork"
-version = "0.20.0"
+version = "0.21.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bf466541e9d546596ee94f9f69590f89473455f88372423e0008fc1a7daf100e"
+checksum = "cf370abdafd54d13e54a620e8c3e1145f28e46cc9d704bc6d94414559df41763"
 dependencies = [
  "serde",
 ]
@@ -1786,7 +1775,7 @@ dependencies = [
  "strum",
  "testdir",
  "testresult",
- "thiserror 2.0.6",
+ "thiserror 2.0.11",
  "tokio",
  "ureq",
  "url",
@@ -1805,7 +1794,7 @@ dependencies = [
  "scrypt",
  "testdir",
  "testresult",
- "thiserror 2.0.6",
+ "thiserror 2.0.11",
  "tokio",
 ]
 
@@ -1825,7 +1814,7 @@ dependencies = [
  "strum",
  "testdir",
  "testresult",
- "thiserror 2.0.6",
+ "thiserror 2.0.11",
 ]
 
 [[package]]
@@ -1842,7 +1831,7 @@ dependencies = [
  "ssh-key",
  "testdir",
  "testresult",
- "thiserror 2.0.6",
+ "thiserror 2.0.11",
  "zeroize",
 ]
 
@@ -2454,7 +2443,7 @@ checksum = "dd6f9d3d47bdd2ad6945c5015a226ec6155d0bcdfd8f7cd29f86b71f8de99d2b"
 dependencies = [
  "getrandom",
  "libredox",
- "thiserror 2.0.6",
+ "thiserror 2.0.11",
 ]
 
 [[package]]
@@ -2653,11 +2642,10 @@ dependencies = [
 
 [[package]]
 name = "rustainers"
-version = "0.14.0"
+version = "0.15.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0dd420b847dfb85a17abe3e28c6f756ad35592aa7718273e90d17a78e727fe9c"
+checksum = "c56586bcbf2e5fd618ff57c100f7ce8f470d7c70930fc9f58345c4a8754dbbe8"
 dependencies = [
- "async-trait",
  "hex",
  "indexmap",
  "ipnetwork",
@@ -2667,7 +2655,7 @@ dependencies = [
  "serde_json",
  "strum",
  "strum_macros",
- "thiserror 1.0.69",
+ "thiserror 2.0.11",
  "tokio",
  "tracing",
  "typed-builder",
@@ -3016,7 +3004,7 @@ dependencies = [
  "nix",
  "strum",
  "sysinfo 0.33.0",
- "thiserror 2.0.6",
+ "thiserror 2.0.11",
 ]
 
 [[package]]
@@ -3031,7 +3019,7 @@ dependencies = [
  "serde_json",
  "sha2 0.11.0-pre.4",
  "testresult",
- "thiserror 2.0.6",
+ "thiserror 2.0.11",
 ]
 
 [[package]]
@@ -3281,11 +3269,11 @@ dependencies = [
 
 [[package]]
 name = "thiserror"
-version = "2.0.6"
+version = "2.0.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8fec2a1820ebd077e2b90c4df007bebf344cd394098a13c563957d0afc83ea47"
+checksum = "d452f284b73e6d76dd36758a0c8684b1d5be31f92b89d07fd5822175732206fc"
 dependencies = [
- "thiserror-impl 2.0.6",
+ "thiserror-impl 2.0.11",
 ]
 
 [[package]]
@@ -3301,9 +3289,9 @@ dependencies = [
 
 [[package]]
 name = "thiserror-impl"
-version = "2.0.6"
+version = "2.0.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d65750cab40f4ff1929fb1ba509e9914eb756131cef4210da8d5d700d26f6312"
+checksum = "26afc1baea8a989337eeb52b6e72a039780ce45c3edfcc9c5b9d112feeb173c2"
 dependencies = [
  "proc-macro2",
  "quote",
