@@ -18,6 +18,7 @@ path = [
     "*.json",
     "Cargo.lock",
     ".codespellrc",
+    ".containers/Containerfile.integration-test",
     ".env",
     ".gitignore",
     ".gitlab-ci.yml",
