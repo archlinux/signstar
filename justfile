@@ -608,3 +608,44 @@ watch-book:
     just ensure-command watchexec
     watchexec --exts md,toml,js --delay-run 5s :w
     just build-book
+
+# Returns the target directory for cargo.
+get-cargo-target-dir:
+    just ensure-command cargo jq
+    cargo metadata --format-version 1 | jq -r '.target_directory'
+
+# Returns all names of tests by project and features (the names are cargo-nextest compatible)
+get-tests-by-features project features:
+    just ensure-command cargo cargo-nextest jq
+
+    cargo nextest list --package {{ project }} --no-default-features --features {{ features }} --message-format json | jq -r '."rust-suites"[] | ."binary-id" as $x | ."testcases" | to_entries[] | if (.value."filter-match"."status") == "matches" then (.key) else null end | select(. != null) as $y | "\($x) \($y)"'
+
+# Builds a container image that enables running dedicated integration tests of the project in containers
+build-container-integration-test-image:
+    just ensure-command podman
+
+    podman build --volume "$PWD:/test" --tag arch-signstar-integration-test --file .containers/Containerfile.integration-test .
+
+# Runs each test of a project that is made available with the "container-integration-test-single" feature in a separate container
+container-integration-test-single project:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    just ensure-command podman
+
+    readonly features=container-integration-test-single
+    project={{ project }}
+    raw_tests="$(just get-tests-by-features "$project" "$features")"
+    target_dir="$(just get-cargo-target-dir)"
+    readarray -t tests <<< "$raw_tests"
+
+    for test in "${tests[@]}"; do
+        printf "Running test %s\n" "$test"
+        podman run --rm --interactive --tty --volume "$PWD:/test" --volume "$target_dir/debug/examples:/usr/local/bin" arch-signstar-integration-test cargo nextest run --package "$project" --features "$features" "${test/ */}" "${test/* /}"
+    done
+
+# Runs all tests of a project that are made available with the "container-integration-test-multi" feature in a container
+container-integration-test-multi project:
+    just ensure-command podman
+
+    podman run --rm --interactive --tty --volume "$PWD:/test" arch-signstar-integration-test cargo nextest run --package {{ project }} --features container-integration-test-multi
