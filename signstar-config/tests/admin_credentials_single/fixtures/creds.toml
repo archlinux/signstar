@@ -1,0 +1,11 @@
+iteration = 1
+backup_passphrase = "backup-passphrase"
+unlock_passphrase = "unlock-passphrase"
+
+[[administrators]]
+name = "admin"
+passphrase = "admin-passphrase"
+
+[[namespace_administrators]]
+name = "ns1~admin"
+passphrase = "ns1-admin-passphrase"

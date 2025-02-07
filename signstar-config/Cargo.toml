@@ -1,0 +1,32 @@
+[package]
+authors.workspace = true
+edition.workspace = true
+homepage.workspace = true
+license.workspace = true
+name = "signstar-config"
+repository.workspace = true
+version = "0.1.0"
+
+[dependencies]
+confy.workspace = true
+nethsm.workspace = true
+nethsm-config.workspace = true
+nix = { version = "0.29.0", features = ["user"] }
+rand.workspace = true
+serde.workspace = true
+signstar-core.workspace = true
+thiserror.workspace = true
+zeroize.workspace = true
+
+[dev-dependencies]
+rstest.workspace = true
+tempfile = "3.16.0"
+testresult.workspace = true
+which = "7.0.2"
+
+[features]
+default = []
+# default = ["container-integration-test-single"]
+test-default = []
+container-integration-test-single = []
+container-integration-test-multi = []
