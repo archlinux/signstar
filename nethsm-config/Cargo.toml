@@ -18,7 +18,7 @@ serde.workspace = true
 ssh-key = "0.6.7"
 strum.workspace = true
 thiserror.workspace = true
-zeroize = { version = "1.8.1", features = ["zeroize_derive", "serde"] }
+zeroize.workspace = true
 
 [dev-dependencies]
 dirs = "6.0.0"
