@@ -8,6 +8,7 @@ members = [
   "nethsm-tests",
   "signstar-configure-build",
   "signstar-common",
+  "signstar-config",
   "signstar-request-signature",
 ]
 
