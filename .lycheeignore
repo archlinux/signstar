@@ -7,3 +7,5 @@ https://raw.githubusercontent.com/Nitrokey/nethsm-sdk-py/main/tests/%7B%7D
 # URLs that only become available after release of a component
 https://signstar.archlinux.page/rustdoc/signstar_common/
 https://docs.rs/signstar_common/latest/signstar_common/
+https://signstar.archlinux.page/rustdoc/signstar_config/
+https://docs.rs/signstar_config/latest/signstar_config/
