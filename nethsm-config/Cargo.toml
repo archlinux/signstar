@@ -10,7 +10,7 @@ repository.workspace = true
 version = "0.2.2"
 
 [dependencies]
-confy = "0.6.1"
+confy.workspace = true
 nethsm.workspace = true
 rpassword = "7.3.1"
 rprompt = "2.1.1"
