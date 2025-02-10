@@ -1,0 +1,69 @@
+# Run maelstrom for specific tests of the signstar-config package
+[[directives]]
+
+enable_writable_file_system = true
+filter = "package.equals(signstar-config) && (name.contains(_single::) || name.contains(_multi::)) && !name.contains(non_admin_credentials_single::)"
+image.name = "docker://archlinux:latest"
+image.use = ["layers", "environment"]
+
+# Add layers for tests and mount points
+added_layers = [
+    { paths = ["signstar-config/tests/admin_credentials_single/fixtures/creds.toml"], canonicalize = true },
+    { paths = ["signstar-config/tests/nethsm_config_single/fixtures/config.toml"], canonicalize = true },
+    { stubs = [ "/{proc,sys,tmp}/", "/dev/{full,null,random,urandom,zero}" ] },
+]
+
+# Provide /tmp, /proc, /sys, and some devices in /dev/. These are used pretty
+# commonly by tests.
+mounts = [
+    { type = "tmp", mount_point = "/tmp" },
+    { type = "proc", mount_point = "/proc" },
+    { type = "sys", mount_point = "/sys" },
+    { type = "devices", devices = ["full", "null", "random", "urandom", "zero"] },
+]
+
+# Forward the RUST_BACKTRACE and RUST_LIB_BACKTRACE environment variables.
+# Later directives can override the `environment` key, but the `added_environment` key is only
+# additive. By using it here we ensure it applies to all tests regardless of other directives.
+[directives.added_environment]
+RUST_BACKTRACE = "$env{RUST_BACKTRACE:-0}"
+RUST_LIB_BACKTRACE = "$env{RUST_LIB_BACKTRACE:-0}"
+
+# Run maelstrom for specific tests of the signstar-config package
+[[directives]]
+enable_writable_file_system = true
+filter = "package.equals(signstar-config) && name.contains(non_admin_credentials_single::)"
+image.name = "docker://archlinux:latest"
+image.use = ["layers", "environment"]
+
+# Add layers for tests and mount points
+added_layers = [
+    { paths = ["<build-dir>/examples/get-nethsm-credentials"], canonicalize = true },
+    { paths = ["signstar-config/tests/non_admin_credentials_single/fixtures/config.toml"], canonicalize = true },
+    { stubs = [ "/{proc,sys,tmp}/", "/dev/{fuse,full,mqueue/,null,random,pts/,tty,urandom,zero}" ] },
+]
+
+# Provide /tmp, /proc, /sys, and some devices in /dev/. These are used pretty
+# commonly by tests.
+mounts = [
+    { type = "proc", mount_point = "/proc" },
+    { type = "sys", mount_point = "/sys" },
+    { type = "tmp", mount_point = "/tmp" },
+    { type = "tmp", mount_point = "/var/lib" },
+    { type = "devices", devices = ["fuse", "full", "null", "random", "tty", "urandom", "zero"] },
+    { type = "devpts", mount_point = "/dev/pts" },
+    { type = "mqueue", mount_point = "/dev/mqueue" },
+]
+
+# Forward the RUST_BACKTRACE and RUST_LIB_BACKTRACE environment variables.
+# Later directives can override the `environment` key, but the `added_environment` key is only
+# additive. By using it here we ensure it applies to all tests regardless of other directives.
+[directives.added_environment]
+RUST_BACKTRACE = "$env{RUST_BACKTRACE:-0}"
+RUST_LIB_BACKTRACE = "$env{RUST_LIB_BACKTRACE:-0}"
+
+# Don't run maelstrom for any other package
+[[directives]]
+
+filter = "!package.equals(signstar-config)"
+ignore = true
