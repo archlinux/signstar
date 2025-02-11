@@ -3204,6 +3204,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "signstar-state"
+version = "0.1.0"
+dependencies = [
+ "nethsm-config",
+ "signstar-config",
+ "signstar-core",
+ "thiserror 2.0.11",
+]
+
+[[package]]
 name = "slab"
 version = "0.4.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"

@@ -1,0 +1,16 @@
+[package]
+authors.workspace = true
+description = "State handling for Signstar hosts"
+edition.workspace = true
+homepage.workspace = true
+keywords = ["signstar", "nethsm"]
+license.workspace = true
+name = "signstar-state"
+repository.workspace = true
+version = "0.1.0"
+
+[dependencies]
+signstar-core.workspace = true
+nethsm-config.workspace = true
+thiserror.workspace = true
+signstar-config = { version = "0.1.0", path = "../signstar-config" }
