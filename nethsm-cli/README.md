@@ -383,53 +383,53 @@ export NETHSM_KEY_CERT_OUTPUT_FILE="$(mktemp --tmpdir="$nethsm_tmpdir" --dry-run
 nethsm --user admin1 --user operator1 openpgp add --can-sign signing1 "Test signing1 key <test@example.org>"
 nethsm --user operator1 key cert get --force signing1
 gpg --import "$NETHSM_KEY_CERT_OUTPUT_FILE"
-sq inspect "$NETHSM_KEY_CERT_OUTPUT_FILE" | grep "Test signing1 key"
+rpacket dump "$NETHSM_KEY_CERT_OUTPUT_FILE" | grep "Test signing1 key"
 
 nethsm --user admin1 --user operator1 openpgp add signing3 "Test signing3 key <test@example.org>"
 nethsm --user operator1 key cert get --force signing3
 gpg --import "$NETHSM_KEY_CERT_OUTPUT_FILE"
-sq inspect "$NETHSM_KEY_CERT_OUTPUT_FILE" | grep "Test signing3 key"
+rpacket dump "$NETHSM_KEY_CERT_OUTPUT_FILE" | grep "Test signing3 key"
 
 nethsm --user admin1 --user operator1 openpgp add signing4 "Test signing4 key <test@example.org>"
 nethsm --user operator1 key cert get --force signing4
 gpg --import "$NETHSM_KEY_CERT_OUTPUT_FILE"
-sq inspect "$NETHSM_KEY_CERT_OUTPUT_FILE" | grep "Test signing4 key"
+rpacket dump "$NETHSM_KEY_CERT_OUTPUT_FILE" | grep "Test signing4 key"
 
 nethsm --user admin1 --user operator1 openpgp add signing5 "Test signing5 key <test@example.org>"
 nethsm --user operator1 key cert get --force signing5
 gpg --import "$NETHSM_KEY_CERT_OUTPUT_FILE"
-sq inspect "$NETHSM_KEY_CERT_OUTPUT_FILE" | grep "Test signing5 key"
+rpacket dump "$NETHSM_KEY_CERT_OUTPUT_FILE" | grep "Test signing5 key"
 
 nethsm --user admin1 --user operator1 openpgp add signing8 "Test signing8 key <test@example.org>"
 nethsm --user operator1 key cert get --force signing8
 gpg --import "$NETHSM_KEY_CERT_OUTPUT_FILE"
-sq inspect "$NETHSM_KEY_CERT_OUTPUT_FILE" | grep "Test signing8 key"
+rpacket dump "$NETHSM_KEY_CERT_OUTPUT_FILE" | grep "Test signing8 key"
 
 # all of this works with our namespaced keys as well of course!
 nethsm --user namespace1~admin1 --user namespace1~operator1 openpgp add --can-sign signing1 "Test signing1 key <test@example.org>"
 nethsm --user namespace1~operator1 key cert get --force signing1
 gpg --import "$NETHSM_KEY_CERT_OUTPUT_FILE"
-sq inspect "$NETHSM_KEY_CERT_OUTPUT_FILE" | grep "Test signing1 key"
+rpacket dump "$NETHSM_KEY_CERT_OUTPUT_FILE" | grep "Test signing1 key"
 
 nethsm --user namespace1~admin1 --user namespace1~operator1 openpgp add signing3 "Test signing3 key <test@example.org>"
 nethsm --user namespace1~operator1 key cert get --force signing3
 gpg --import "$NETHSM_KEY_CERT_OUTPUT_FILE"
-sq inspect "$NETHSM_KEY_CERT_OUTPUT_FILE" | grep "Test signing3 key"
+rpacket dump "$NETHSM_KEY_CERT_OUTPUT_FILE" | grep "Test signing3 key"
 
 nethsm --user namespace1~admin1 --user namespace1~operator1 openpgp add signing4 "Test signing4 key <test@example.org>"
 nethsm --user namespace1~operator1 key cert get --force signing4
 gpg --import "$NETHSM_KEY_CERT_OUTPUT_FILE"
-sq inspect "$NETHSM_KEY_CERT_OUTPUT_FILE" | grep "Test signing4 key"
+rpacket dump "$NETHSM_KEY_CERT_OUTPUT_FILE" | grep "Test signing4 key"
 
 nethsm --user namespace1~admin1 --user namespace1~operator1 openpgp add signing5 "Test signing5 key <test@example.org>"
 nethsm --user namespace1~operator1 key cert get --force signing5
 gpg --import "$NETHSM_KEY_CERT_OUTPUT_FILE"
-sq inspect "$NETHSM_KEY_CERT_OUTPUT_FILE" | grep "Test signing5 key"
+rpacket dump "$NETHSM_KEY_CERT_OUTPUT_FILE" | grep "Test signing5 key"
 
 nethsm --user namespace1~admin1 --user namespace1~operator1 openpgp add signing8 "Test signing8 key <test@example.org>"
 nethsm --user namespace1~operator1 key cert get --force signing8
 gpg --import "$NETHSM_KEY_CERT_OUTPUT_FILE"
-sq inspect "$NETHSM_KEY_CERT_OUTPUT_FILE" | grep "Test signing8 key"
+rpacket dump "$NETHSM_KEY_CERT_OUTPUT_FILE" | grep "Test signing8 key"
 ```
 
 Importing new keys:
@@ -441,13 +441,13 @@ nethsm --user admin1 openpgp import --key-id signing10 --tags tag1
 # openpgp import automatically stores the certificate so it can be fetched
 nethsm --user operator1 key cert get --force signing10
 gpg --import "$NETHSM_KEY_CERT_OUTPUT_FILE"
-sq inspect "$NETHSM_KEY_CERT_OUTPUT_FILE" | grep "Test signing10 key"
+rpacket dump "$NETHSM_KEY_CERT_OUTPUT_FILE" | grep "Test signing10 key"
 
 nethsm --user namespace1~admin1 openpgp import --key-id signing10 --tags tag1
 # openpgp import automatically stores the certificate so it can be fetched
 nethsm --user namespace1~operator1 key cert get --force signing10
 gpg --import "$NETHSM_KEY_CERT_OUTPUT_FILE"
-sq inspect "$NETHSM_KEY_CERT_OUTPUT_FILE" | grep "Test signing10 key"
+rpacket dump "$NETHSM_KEY_CERT_OUTPUT_FILE" | grep "Test signing10 key"
 ```
 
 Signing messages:
