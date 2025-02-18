@@ -1521,8 +1521,20 @@ pub enum AdministrativeSecretHandling {
 ///
 /// Non-administrative secrets represent passphrases for (non-Administrator) NetHSM users and may be
 /// handled in different ways (e.g. encrypted or not encrypted).
-#[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    Default,
+    Deserialize,
+    strum::Display,
+    strum::EnumString,
+    Eq,
+    PartialEq,
+    Serialize,
+)]
 #[serde(rename_all = "kebab-case")]
+#[strum(serialize_all = "kebab-case")]
 pub enum NonAdministrativeSecretHandling {
     /// Each non-administrative secret is handled in a plaintext file in a non-volatile
     /// directory.

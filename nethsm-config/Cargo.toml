@@ -16,6 +16,7 @@ rpassword = "7.3.1"
 rprompt = "2.1.1"
 serde.workspace = true
 ssh-key = "0.6.7"
+strum.workspace = true
 thiserror.workspace = true
 zeroize = { version = "1.8.1", features = ["zeroize_derive", "serde"] }
 
