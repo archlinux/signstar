@@ -2483,7 +2483,7 @@ mod tests {
         #[base_dir = "tests/fixtures/missing-administrator/"]
         config_file: PathBuf,
     ) -> TestResult {
-        if let Err(Error::MissingAdministrator { .. }) = HermeticParallelConfig::new_from_file(
+        if let Err(Error::MissingAdministrator) = HermeticParallelConfig::new_from_file(
             ConfigSettings::new(
                 "test".to_string(),
                 ConfigInteractivity::NonInteractive,
