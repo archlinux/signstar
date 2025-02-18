@@ -1,3 +1,5 @@
+#[cfg(doc)]
+use nethsm::NetHsm;
 use nethsm::{KeyId, SigningKeySetup, UserId};
 use serde::{Deserialize, Serialize};
 
@@ -614,6 +616,49 @@ impl UserMapping {
                 system_user: _,
                 ssh_authorized_keys: _,
             } => vec![],
+        }
+    }
+
+    /// Returns whether the mapping has both system and [`NetHsm`] users.
+    ///
+    /// Returns `true` if the `self` has at least one system and one [`NetHsm`] user, and `false`
+    /// otherwise.
+    pub fn has_system_and_nethsm_user(&self) -> bool {
+        match self {
+            UserMapping::SystemNetHsmOperatorSigning {
+                nethsm_user: _,
+                nethsm_key_setup: _,
+                system_user: _,
+                ssh_authorized_key: _,
+                tag: _,
+            }
+            | UserMapping::HermeticSystemNetHsmMetrics {
+                nethsm_users: _,
+                system_user: _,
+            }
+            | UserMapping::SystemNetHsmMetrics {
+                nethsm_users: _,
+                system_user: _,
+                ssh_authorized_key: _,
+            }
+            | UserMapping::SystemNetHsmBackup {
+                nethsm_user: _,
+                system_user: _,
+                ssh_authorized_key: _,
+            } => true,
+            UserMapping::SystemOnlyShareDownload {
+                system_user: _,
+                ssh_authorized_keys: _,
+            }
+            | UserMapping::SystemOnlyShareUpload {
+                system_user: _,
+                ssh_authorized_keys: _,
+            }
+            | UserMapping::SystemOnlyWireGuardDownload {
+                system_user: _,
+                ssh_authorized_keys: _,
+            }
+            | UserMapping::NetHsmOnlyAdmin(_) => false,
         }
     }
 }
