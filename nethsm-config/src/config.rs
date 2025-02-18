@@ -2394,6 +2394,52 @@ impl HermeticParallelConfig {
     }
 }
 
+/// A user mapping that tracks information on non-administrative secret handling.
+///
+/// Tracks a [`UserMapping`] and a [`NonAdministrativeSecretHandling`].
+#[derive(Clone, Debug)]
+pub struct CredsAwareUserMapping {
+    non_admin_secret_handling: NonAdministrativeSecretHandling,
+    user_mapping: UserMapping,
+}
+
+impl CredsAwareUserMapping {
+    /// Returns the [`NonAdministrativeSecretHandling`].
+    pub fn get_non_admin_secret_handling(&self) -> NonAdministrativeSecretHandling {
+        self.non_admin_secret_handling
+    }
+
+    /// Returns the [`UserMapping`].
+    pub fn get_user_mapping(&self) -> &UserMapping {
+        &self.user_mapping
+    }
+}
+
+impl From<HermeticParallelConfig> for Vec<CredsAwareUserMapping> {
+    /// Creates a `Vec` of [`CredsAwareUserMapping`] from a [`HermeticParallelConfig`].
+    ///
+    /// A [`UserMapping`] can not be aware of credentials if it does not track at least one
+    /// [`SystemUserId`] and one [`UserId`]. Therefore only those [`UserMapping`]s for which
+    /// [`has_system_and_nethsm_user`](UserMapping::has_system_and_nethsm_user) returns `true` are
+    /// returned.
+    fn from(value: HermeticParallelConfig) -> Self {
+        let non_admin_secret_handling = value.non_admin_secret_handling;
+        value
+            .iter_user_mappings()
+            .filter_map(|mapping| {
+                if mapping.has_system_and_nethsm_user() {
+                    Some(CredsAwareUserMapping {
+                        non_admin_secret_handling,
+                        user_mapping: mapping.clone(),
+                    })
+                } else {
+                    None
+                }
+            })
+            .collect()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use core::panic;

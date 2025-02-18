@@ -61,6 +61,7 @@ pub use config::{
     ConfigName,
     ConfigSettings,
     Connection,
+    CredsAwareUserMapping,
     DeviceConfig,
     Error,
     HermeticParallelConfig,
