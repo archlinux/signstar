@@ -1,9 +1,20 @@
+use std::collections::HashSet;
+
 #[cfg(doc)]
 use nethsm::NetHsm;
 use nethsm::{KeyId, SigningKeySetup, UserId};
 use serde::{Deserialize, Serialize};
 
-use crate::{AuthorizedKeyEntry, AuthorizedKeyEntryList, SystemUserId, SystemWideUserId};
+use crate::{
+    AdministrativeSecretHandling,
+    AuthorizedKeyEntry,
+    AuthorizedKeyEntryList,
+    Connection,
+    HermeticParallelConfig,
+    NonAdministrativeSecretHandling,
+    SystemUserId,
+    SystemWideUserId,
+};
 
 /// Errors related to mapping
 #[derive(Debug, thiserror::Error)]
@@ -660,5 +671,80 @@ impl UserMapping {
             }
             | UserMapping::NetHsmOnlyAdmin(_) => false,
         }
+    }
+}
+
+/// A [`UserMapping`] centric view of a [`HermeticParallelConfig`].
+///
+/// Wraps a single [`UserMapping`], as well as the system-wide [`AdministrativeSecretHandling`],
+/// [`NonAdministrativeSecretHandling`] and [`Connection`]s.
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+pub struct ExtendedUserMapping {
+    admin_secret_handling: AdministrativeSecretHandling,
+    non_admin_secret_handling: NonAdministrativeSecretHandling,
+    connections: HashSet<Connection>,
+    user_mapping: UserMapping,
+}
+
+impl ExtendedUserMapping {
+    /// Creates a new [`ExtendedUserMapping`].
+    pub fn new(
+        admin_secret_handling: AdministrativeSecretHandling,
+        non_admin_secret_handling: NonAdministrativeSecretHandling,
+        connections: HashSet<Connection>,
+        user_mapping: UserMapping,
+    ) -> Self {
+        Self {
+            admin_secret_handling,
+            non_admin_secret_handling,
+            connections,
+            user_mapping,
+        }
+    }
+
+    /// Returns the [`AdministrativeSecretHandling`].
+    pub fn get_admin_secret_handling(&self) -> AdministrativeSecretHandling {
+        self.admin_secret_handling
+    }
+
+    /// Returns the [`Connection`]s.
+    pub fn get_connections(&self) -> HashSet<Connection> {
+        self.connections.clone()
+    }
+
+    /// Returns the [`NonAdministrativeSecretHandling`].
+    pub fn get_non_admin_secret_handling(&self) -> NonAdministrativeSecretHandling {
+        self.non_admin_secret_handling
+    }
+
+    /// Returns the [`UserMapping`].
+    pub fn get_user_mapping(&self) -> &UserMapping {
+        &self.user_mapping
+    }
+}
+
+impl From<HermeticParallelConfig> for Vec<ExtendedUserMapping> {
+    /// Creates a `Vec` of [`ExtendedUserMapping`] from a [`HermeticParallelConfig`].
+    ///
+    /// A [`UserMapping`] can not be aware of credentials if it does not track at least one
+    /// [`SystemUserId`] and one [`UserId`]. Therefore only those [`UserMapping`]s for which
+    /// [`has_system_and_nethsm_user`](UserMapping::has_system_and_nethsm_user) returns `true` are
+    /// returned.
+    fn from(value: HermeticParallelConfig) -> Self {
+        value
+            .iter_user_mappings()
+            .filter_map(|mapping| {
+                if mapping.has_system_and_nethsm_user() {
+                    Some(ExtendedUserMapping {
+                        admin_secret_handling: value.get_administrative_secret_handling(),
+                        non_admin_secret_handling: value.get_non_administrative_secret_handling(),
+                        connections: value.iter_connections().cloned().collect(),
+                        user_mapping: mapping.clone(),
+                    })
+                } else {
+                    None
+                }
+            })
+            .collect()
     }
 }
