@@ -40,7 +40,9 @@ pub const BIN_NAME: &str = "nethsm";
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
     /// An option is missing
-    #[error("The \"{0}\" option must be provided for this command if more than one environment is defined.")]
+    #[error(
+        "The \"{0}\" option must be provided for this command if more than one environment is defined."
+    )]
     OptionMissing(String),
 }
 

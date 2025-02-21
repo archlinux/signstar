@@ -1,19 +1,19 @@
 use nethsm::Credentials;
 use nethsm::Passphrase;
 use nethsm::{NetHsm, SignatureType};
-use nethsm_tests::nethsm_with_keys;
-use nethsm_tests::NetHsmImage;
 use nethsm_tests::DEFAULT_KEY_ID;
 use nethsm_tests::DEFAULT_OPERATOR_USER_ID;
 use nethsm_tests::DEFAULT_OPERATOR_USER_PASSPHRASE;
+use nethsm_tests::NetHsmImage;
 use nethsm_tests::OTHER_KEY_ID;
 use nethsm_tests::OTHER_OPERATOR_USER_ID;
 use nethsm_tests::OTHER_OPERATOR_USER_PASSPHRASE;
+use nethsm_tests::nethsm_with_keys;
+use rsa::RsaPublicKey;
 use rsa::pkcs1v15::VerifyingKey;
 use rsa::pkcs8::DecodePublicKey;
 use rsa::sha2::Sha256;
 use rsa::signature::Verifier;
-use rsa::RsaPublicKey;
 use rstest::rstest;
 use rustainers::Container;
 use testresult::TestResult;
@@ -73,7 +73,10 @@ async fn signing(
     let pubkey = RsaPublicKey::from_public_key_pem(&pubkey)?;
     let verifying_key: VerifyingKey<Sha256> = VerifyingKey::new_unprefixed(pubkey);
     let signature_parsed = rsa::pkcs1v15::Signature::try_from(signature.as_slice())?;
-    println!("A signature created using an RSA pubkey for which the NetHSM provides the private key: {:?}", signature_parsed);
+    println!(
+        "A signature created using an RSA pubkey for which the NetHSM provides the private key: {:?}",
+        signature_parsed
+    );
     verifying_key.verify(MESSAGE, &signature_parsed)?;
 
     Ok(())

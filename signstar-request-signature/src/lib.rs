@@ -7,8 +7,8 @@ use std::collections::HashMap;
 use semver::Version;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use sha2::digest::crypto_common::hazmat::SerializableState;
 pub use sha2::Sha512;
+use sha2::digest::crypto_common::hazmat::SerializableState;
 
 pub mod cli;
 

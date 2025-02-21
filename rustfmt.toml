@@ -3,4 +3,5 @@ format_code_in_doc_comments = true
 group_imports = "StdExternalCrate"
 imports_layout = "HorizontalVertical"
 reorder_imports = true
+style_edition = "2024"
 wrap_comments = true

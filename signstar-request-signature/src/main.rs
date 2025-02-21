@@ -4,7 +4,7 @@ use clap::Parser;
 use rand::Rng;
 use serde_json::Value;
 use sha2::Digest;
-use signstar_request_signature::{cli::Cli, Request, Required, SignatureRequestOutput};
+use signstar_request_signature::{Request, Required, SignatureRequestOutput, cli::Cli};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Cli::parse();

@@ -2,7 +2,7 @@ use std::{collections::HashSet, fmt::Display, str::FromStr};
 
 use nethsm::{Credentials, Passphrase, UserId, UserRole};
 use serde::{Deserialize, Serialize};
-use ssh_key::{authorized_keys::Entry, PublicKey};
+use ssh_key::{PublicKey, authorized_keys::Entry};
 use zeroize::Zeroize;
 
 /// Errors related to credentials

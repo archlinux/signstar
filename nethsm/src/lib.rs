@@ -101,6 +101,7 @@ use log::{debug, error, info};
 use md5::{Digest as _, Md5};
 use nethsm_sdk_rs::apis::configuration::Configuration;
 use nethsm_sdk_rs::apis::default_api::{
+    KeysPostBody,
     config_backup_passphrase_put,
     config_logging_get,
     config_logging_put,
@@ -162,7 +163,6 @@ use nethsm_sdk_rs::apis::default_api::{
     users_user_id_tags_get,
     users_user_id_tags_tag_delete,
     users_user_id_tags_tag_put,
-    KeysPostBody,
 };
 use nethsm_sdk_rs::models::{
     BackupPassphraseConfig,
@@ -195,7 +195,7 @@ pub use nethsm_sdk_rs::models::{
 };
 use nethsm_sdk_rs::ureq::{Agent, AgentBuilder};
 use rustls::client::ClientConfig;
-use rustls::crypto::{ring as tls_provider, CryptoProvider};
+use rustls::crypto::{CryptoProvider, ring as tls_provider};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use sha1::Sha1;
@@ -203,14 +203,14 @@ use sha2::{Digest, Sha224, Sha256, Sha384, Sha512};
 
 mod key;
 pub use key::{
+    CryptographicKeyContext,
+    MIN_RSA_BIT_LENGTH,
+    PrivateKeyImport,
+    SigningKeySetup,
     key_type_and_mechanisms_match_signature_type,
     key_type_matches_length,
     key_type_matches_mechanisms,
     tls_key_type_matches_length,
-    CryptographicKeyContext,
-    PrivateKeyImport,
-    SigningKeySetup,
-    MIN_RSA_BIT_LENGTH,
 };
 
 mod nethsm_sdk;
@@ -229,12 +229,12 @@ pub use nethsm_sdk::{
 };
 mod openpgp;
 pub use openpgp::{
-    extract_certificate as extract_openpgp_certificate,
-    tsk_to_private_key_import,
     KeyUsageFlags as OpenPgpKeyUsageFlags,
     OpenPgpUserId,
     OpenPgpUserIdList,
     OpenPgpVersion,
+    extract_certificate as extract_openpgp_certificate,
+    tsk_to_private_key_import,
 };
 
 mod tls;
@@ -388,7 +388,7 @@ impl FromStr for Url {
 /// # Examples
 ///
 /// ```no_run
-/// use nethsm::{validate_backup, ConnectionSecurity, Credentials, NetHsm, Passphrase};
+/// use nethsm::{ConnectionSecurity, Credentials, NetHsm, Passphrase, validate_backup};
 ///
 /// # fn main() -> testresult::TestResult {
 /// // create a connection with a user in the Backup role
@@ -1108,12 +1108,14 @@ impl NetHsm {
     ///
     /// // N-Administrators can not set the unlock passphrase
     /// nethsm.use_credentials(&"namespace1~admin1".parse()?)?;
-    /// assert!(nethsm
-    ///     .set_unlock_passphrase(
-    ///         Passphrase::new("current-unlock-passphrase".to_string()),
-    ///         Passphrase::new("new-unlock-passphrase".to_string()),
-    ///     )
-    ///     .is_err());
+    /// assert!(
+    ///     nethsm
+    ///         .set_unlock_passphrase(
+    ///             Passphrase::new("current-unlock-passphrase".to_string()),
+    ///             Passphrase::new("new-unlock-passphrase".to_string()),
+    ///         )
+    ///         .is_err()
+    /// );
     /// # Ok(())
     /// # }
     /// ```
@@ -1479,17 +1481,19 @@ impl NetHsm {
     ///
     /// // N-Administrators can not get a CSR for the TLS certificate
     /// nethsm.use_credentials(&"namespace1~admin1".parse()?)?;
-    /// assert!(nethsm
-    ///     .get_tls_csr(DistinguishedName {
-    ///         country_name: Some("DE".to_string()),
-    ///         state_or_province_name: Some("Berlin".to_string()),
-    ///         locality_name: Some("Berlin".to_string()),
-    ///         organization_name: Some("Foobar Inc".to_string()),
-    ///         organizational_unit_name: Some("Department of Foo".to_string()),
-    ///         common_name: "Foobar Inc".to_string(),
-    ///         email_address: Some("foobar@mcfooface.com".to_string()),
-    ///     })
-    ///     .is_err());
+    /// assert!(
+    ///     nethsm
+    ///         .get_tls_csr(DistinguishedName {
+    ///             country_name: Some("DE".to_string()),
+    ///             state_or_province_name: Some("Berlin".to_string()),
+    ///             locality_name: Some("Berlin".to_string()),
+    ///             organization_name: Some("Foobar Inc".to_string()),
+    ///             organizational_unit_name: Some("Department of Foo".to_string()),
+    ///             common_name: "Foobar Inc".to_string(),
+    ///             email_address: Some("foobar@mcfooface.com".to_string()),
+    ///         })
+    ///         .is_err()
+    /// );
     /// # Ok(())
     /// # }
     /// ```
@@ -1561,9 +1565,11 @@ impl NetHsm {
     ///
     /// // N-Administrators can not generate a new TLS certificate
     /// nethsm.use_credentials(&"namespace1~admin1".parse()?)?;
-    /// assert!(nethsm
-    ///     .generate_tls_cert(TlsKeyType::Rsa, Some(4096))
-    ///     .is_err());
+    /// assert!(
+    ///     nethsm
+    ///         .generate_tls_cert(TlsKeyType::Rsa, Some(4096))
+    ///         .is_err()
+    /// );
     /// # Ok(())
     /// # }
     /// ```
@@ -2061,9 +2067,11 @@ impl NetHsm {
     ///
     /// // N-Administrators can not set logging configuration
     /// nethsm.use_credentials(&"namespace1~admin1".parse()?)?;
-    /// assert!(nethsm
-    ///     .set_logging(Ipv4Addr::new(192, 168, 1, 2), 513, LogLevel::Debug)
-    ///     .is_err());
+    /// assert!(
+    ///     nethsm
+    ///         .set_logging(Ipv4Addr::new(192, 168, 1, 2), 513, LogLevel::Debug)
+    ///         .is_err()
+    /// );
     /// # Ok(())
     /// # }
     /// ```
@@ -2143,12 +2151,14 @@ impl NetHsm {
     ///
     /// // N-Administrators can not set logging configuration
     /// nethsm.use_credentials(&"namespace1~admin1".parse()?)?;
-    /// assert!(nethsm
-    ///     .set_backup_passphrase(
-    ///         Passphrase::new("new-backup-passphrase".to_string()),
-    ///         Passphrase::new("current-backup-passphrase".to_string()),
-    ///     )
-    ///     .is_err());
+    /// assert!(
+    ///     nethsm
+    ///         .set_backup_passphrase(
+    ///             Passphrase::new("new-backup-passphrase".to_string()),
+    ///             Passphrase::new("current-backup-passphrase".to_string()),
+    ///         )
+    ///         .is_err()
+    /// );
     /// # Ok(())
     /// # }
     /// ```
@@ -2363,13 +2373,15 @@ impl NetHsm {
     ///
     /// // N-Administrators can not restore from backup
     /// nethsm.use_credentials(&"namespace1~admin1".parse()?)?;
-    /// assert!(nethsm
-    ///     .restore(
-    ///         Passphrase::new("backup-passphrase".to_string()),
-    ///         Utc::now(),
-    ///         std::fs::read("nethsm.bkp")?,
-    ///     )
-    ///     .is_err());
+    /// assert!(
+    ///     nethsm
+    ///         .restore(
+    ///             Passphrase::new("backup-passphrase".to_string()),
+    ///             Utc::now(),
+    ///             std::fs::read("nethsm.bkp")?,
+    ///         )
+    ///         .is_err()
+    /// );
     ///
     /// // R-Administrators can restore from backup
     /// nethsm.use_credentials(&"admin".parse()?)?;
@@ -3626,12 +3638,14 @@ impl NetHsm {
     ///     Passphrase::new("new-admin-passphrase".to_string()),
     /// )?;
     /// // the R-Administrator can not set the N-Administrator's passphrase
-    /// assert!(nethsm
-    ///     .set_user_passphrase(
-    ///         "namespace1~admin".parse()?,
-    ///         Passphrase::new("new-admin-passphrase".to_string()),
-    ///     )
-    ///     .is_err());
+    /// assert!(
+    ///     nethsm
+    ///         .set_user_passphrase(
+    ///             "namespace1~admin".parse()?,
+    ///             Passphrase::new("new-admin-passphrase".to_string()),
+    ///         )
+    ///         .is_err()
+    /// );
     ///
     /// // the N-Administrator can set its own passphrase
     /// nethsm.use_credentials(&"namespace1~admin1".parse()?)?;
@@ -3640,12 +3654,14 @@ impl NetHsm {
     ///     Passphrase::new("new-admin-passphrase".to_string()),
     /// )?;
     /// // the N-Administrator can not set the R-Administrator's passphrase
-    /// assert!(nethsm
-    ///     .set_user_passphrase(
-    ///         "admin".parse()?,
-    ///         Passphrase::new("new-admin-passphrase".to_string())
-    ///     )
-    ///     .is_err());
+    /// assert!(
+    ///     nethsm
+    ///         .set_user_passphrase(
+    ///             "admin".parse()?,
+    ///             Passphrase::new("new-admin-passphrase".to_string())
+    ///         )
+    ///         .is_err()
+    /// );
     /// # Ok(())
     /// # }
     /// ```
@@ -3766,9 +3782,11 @@ impl NetHsm {
     /// // R-Administrators can add tags for system-wide users
     /// nethsm.add_user_tag(&"user1".parse()?, "tag1")?;
     /// // R-Administrators can not add tags for namespace users
-    /// assert!(nethsm
-    ///     .add_user_tag(&"namespace1~user1".parse()?, "tag1")
-    ///     .is_err());
+    /// assert!(
+    ///     nethsm
+    ///         .add_user_tag(&"namespace1~user1".parse()?, "tag1")
+    ///         .is_err()
+    /// );
     ///
     /// // user tags in namespaces
     /// nethsm.use_credentials(&"namespace1~admin1".parse()?)?;
@@ -5874,15 +5892,17 @@ impl NetHsm {
     ///
     /// // create an OpenPGP certificate for the key with ID "signing1"
     /// nethsm.use_credentials(&"operator1".parse()?)?;
-    /// assert!(!nethsm
-    ///     .create_openpgp_cert(
-    ///         &"signing1".parse()?,
-    ///         OpenPgpKeyUsageFlags::default(),
-    ///         "Test <test@example.org>".parse()?,
-    ///         SystemTime::now().into(),
-    ///         OpenPgpVersion::V4,
-    ///     )?
-    ///     .is_empty());
+    /// assert!(
+    ///     !nethsm
+    ///         .create_openpgp_cert(
+    ///             &"signing1".parse()?,
+    ///             OpenPgpKeyUsageFlags::default(),
+    ///             "Test <test@example.org>".parse()?,
+    ///             SystemTime::now().into(),
+    ///             OpenPgpVersion::V4,
+    ///         )?
+    ///         .is_empty()
+    /// );
     /// # Ok(())
     /// # }
     /// ```
@@ -5994,9 +6014,11 @@ impl NetHsm {
     ///
     /// // create OpenPGP signature
     /// nethsm.use_credentials(&"operator1".parse()?)?;
-    /// assert!(!nethsm
-    ///     .openpgp_sign(&"signing1".parse()?, b"sample message")?
-    ///     .is_empty());
+    /// assert!(
+    ///     !nethsm
+    ///         .openpgp_sign(&"signing1".parse()?, b"sample message")?
+    ///         .is_empty()
+    /// );
     /// # Ok(()) }
     /// ```
     /// [OpenPGP signature]: https://openpgp.dev/book/signing_data.html
@@ -6101,9 +6123,11 @@ impl NetHsm {
     ///
     /// // create OpenPGP signature
     /// nethsm.use_credentials(&"operator1".parse()?)?;
-    /// assert!(!nethsm
-    ///     .openpgp_sign_state(&"signing1".parse()?, state)?
-    ///     .is_empty());
+    /// assert!(
+    ///     !nethsm
+    ///         .openpgp_sign_state(&"signing1".parse()?, state)?
+    ///         .is_empty()
+    /// );
     /// # Ok(()) }
     /// ```
     /// [OpenPGP signature]: https://openpgp.dev/book/signing_data.html

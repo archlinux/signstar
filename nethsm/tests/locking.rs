@@ -1,10 +1,10 @@
 use nethsm::{NetHsm, Passphrase, SystemState, UserId};
 use nethsm_tests::{
-    nethsm_with_users,
-    NetHsmImage,
     ADMIN_USER_ID,
     NAMESPACE1_ADMIN_USER_ID,
+    NetHsmImage,
     UNLOCK_PASSPHRASE,
+    nethsm_with_users,
 };
 use rstest::rstest;
 use rustainers::Container;

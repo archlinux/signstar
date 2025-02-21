@@ -1,11 +1,11 @@
 use chrono::Utc;
 use nethsm::{NetHsm, Passphrase, UserId};
 use nethsm_tests::{
-    nethsm_with_users,
-    unprovisioned_nethsm,
-    NetHsmImage,
     ADMIN_USER_ID,
     BACKUP_USER_ID,
+    NetHsmImage,
+    nethsm_with_users,
+    unprovisioned_nethsm,
 };
 use rstest::rstest;
 use rustainers::Container;

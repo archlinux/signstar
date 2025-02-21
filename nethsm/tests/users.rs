@@ -2,8 +2,6 @@ use nethsm::NamespaceId;
 use nethsm::Passphrase;
 use nethsm::UserId;
 use nethsm::{NetHsm, UserRole};
-use nethsm_tests::provisioned_nethsm;
-use nethsm_tests::NetHsmImage;
 use nethsm_tests::ADMIN_USER_ID;
 use nethsm_tests::DEFAULT_OPERATOR_USER_PASSPHRASE;
 use nethsm_tests::DEFAULT_OPERATOR_USER_REAL_NAME;
@@ -21,9 +19,11 @@ use nethsm_tests::NAMESPACE2_ADMIN_USER_PASSPHRASE;
 use nethsm_tests::NAMESPACE2_OPERATOR_REAL_NAME;
 use nethsm_tests::NAMESPACE2_OPERATOR_USER_ID;
 use nethsm_tests::NAMESPACE2_OPERATOR_USER_PASSPHRASE;
+use nethsm_tests::NetHsmImage;
 use nethsm_tests::OTHER_OPERATOR_USER_ID;
 use nethsm_tests::OTHER_OPERATOR_USER_PASSPHRASE;
 use nethsm_tests::OTHER_OPERATOR_USER_REAL_NAME;
+use nethsm_tests::provisioned_nethsm;
 use rstest::rstest;
 use rustainers::Container;
 use testresult::TestResult;
@@ -148,14 +148,16 @@ async fn create_users_in_namespaces(
     // add namespace1
     assert_eq!(nethsm.get_users()?.len(), 1);
     // R-Administrators can add Administrator users for namespaces that do not yet exist
-    assert!(nethsm
-        .add_user(
-            NAMESPACE1_ADMIN_REAL_NAME.to_string(),
-            UserRole::Administrator,
-            Passphrase::new(NAMESPACE1_ADMIN_USER_PASSPHRASE.to_string()),
-            Some(namespace1_admin_user_id.clone()),
-        )
-        .is_ok());
+    assert!(
+        nethsm
+            .add_user(
+                NAMESPACE1_ADMIN_REAL_NAME.to_string(),
+                UserRole::Administrator,
+                Passphrase::new(NAMESPACE1_ADMIN_USER_PASSPHRASE.to_string()),
+                Some(namespace1_admin_user_id.clone()),
+            )
+            .is_ok()
+    );
     println!(
         "Created {} admin user: {}",
         &namespace1, &namespace1_admin_user_id
@@ -166,14 +168,16 @@ async fn create_users_in_namespaces(
         nethsm.get_user(&namespace1_admin_user_id)?
     );
     // R-Administrators can add Operator users for namespaces that do not yet exist
-    assert!(nethsm
-        .add_user(
-            NAMESPACE1_OPERATOR_REAL_NAME.to_string(),
-            UserRole::Operator,
-            Passphrase::new(NAMESPACE1_OPERATOR_USER_PASSPHRASE.to_string()),
-            Some(namespace1_operator_user_id.clone()),
-        )
-        .is_ok());
+    assert!(
+        nethsm
+            .add_user(
+                NAMESPACE1_OPERATOR_REAL_NAME.to_string(),
+                UserRole::Operator,
+                Passphrase::new(NAMESPACE1_OPERATOR_USER_PASSPHRASE.to_string()),
+                Some(namespace1_operator_user_id.clone()),
+            )
+            .is_ok()
+    );
     println!(
         "Created {} Operator user: {}",
         &namespace1, &namespace1_operator_user_id
@@ -205,43 +209,51 @@ async fn create_users_in_namespaces(
         nethsm.get_user(&namespace2_admin_user_id)?
     );
     // R-Administrators can not add users in the Backup role to a not yet existing namespace
-    assert!(nethsm
-        .add_user(
-            NAMESPACE2_BACKUP_REAL_NAME.to_string(),
-            UserRole::Backup,
-            Passphrase::new(NAMESPACE2_BACKUP_USER_PASSPHRASE.to_string()),
-            Some(namespace2_backup_user_id.clone()),
-        )
-        .is_err());
+    assert!(
+        nethsm
+            .add_user(
+                NAMESPACE2_BACKUP_REAL_NAME.to_string(),
+                UserRole::Backup,
+                Passphrase::new(NAMESPACE2_BACKUP_USER_PASSPHRASE.to_string()),
+                Some(namespace2_backup_user_id.clone()),
+            )
+            .is_err()
+    );
     // R-Administrators can not add users in the Metrics role to a not yet existing namespace
-    assert!(nethsm
-        .add_user(
-            NAMESPACE2_METRICS_REAL_NAME.to_string(),
-            UserRole::Metrics,
-            Passphrase::new(NAMESPACE2_METRICS_USER_PASSPHRASE.to_string()),
-            Some(namespace2_metrics_user_id.clone()),
-        )
-        .is_err());
+    assert!(
+        nethsm
+            .add_user(
+                NAMESPACE2_METRICS_REAL_NAME.to_string(),
+                UserRole::Metrics,
+                Passphrase::new(NAMESPACE2_METRICS_USER_PASSPHRASE.to_string()),
+                Some(namespace2_metrics_user_id.clone()),
+            )
+            .is_err()
+    );
     nethsm.add_namespace(&namespace2)?;
     println!("Namespaces {:?}", nethsm.get_namespaces()?);
     assert_eq!(nethsm.get_namespaces()?.len(), 2);
 
     // R-Administrators can not change the passphrase for a namespace user
-    assert!(nethsm
-        .set_user_passphrase(
-            namespace1_admin_user_id.clone(),
-            Passphrase::new("some-other-passphrase".to_string()),
-        )
-        .is_err());
+    assert!(
+        nethsm
+            .set_user_passphrase(
+                namespace1_admin_user_id.clone(),
+                Passphrase::new("some-other-passphrase".to_string()),
+            )
+            .is_err()
+    );
     // R-Administrators can not add a user to a namespace (but their own)
-    assert!(nethsm
-        .add_user(
-            NAMESPACE1_OPERATOR_REAL_NAME.to_string(),
-            UserRole::Operator,
-            Passphrase::new(NAMESPACE1_OPERATOR_USER_PASSPHRASE.to_string()),
-            Some(namespace1_operator_user_id.clone()),
-        )
-        .is_err());
+    assert!(
+        nethsm
+            .add_user(
+                NAMESPACE1_OPERATOR_REAL_NAME.to_string(),
+                UserRole::Operator,
+                Passphrase::new(NAMESPACE1_OPERATOR_USER_PASSPHRASE.to_string()),
+                Some(namespace1_operator_user_id.clone()),
+            )
+            .is_err()
+    );
 
     // namespace1
     nethsm.use_credentials(&namespace1_admin_user_id)?;
@@ -256,14 +268,16 @@ async fn create_users_in_namespaces(
     // N-Administrators can not get namespaces
     assert!(nethsm.get_namespaces().is_err());
     // N-Administrators can not add users in other namespaces
-    assert!(nethsm
-        .add_user(
-            NAMESPACE2_OPERATOR_REAL_NAME.to_string(),
-            UserRole::Operator,
-            Passphrase::new(NAMESPACE2_OPERATOR_USER_PASSPHRASE.to_string()),
-            Some(namespace2_operator_user_id.clone()),
-        )
-        .is_err());
+    assert!(
+        nethsm
+            .add_user(
+                NAMESPACE2_OPERATOR_REAL_NAME.to_string(),
+                UserRole::Operator,
+                Passphrase::new(NAMESPACE2_OPERATOR_USER_PASSPHRASE.to_string()),
+                Some(namespace2_operator_user_id.clone()),
+            )
+            .is_err()
+    );
     // N-Administrators can delete users in their own namespace
     assert!(nethsm.delete_user(&namespace1_operator_user_id).is_ok());
     assert_eq!(nethsm.get_users()?.len(), 1);
@@ -271,32 +285,38 @@ async fn create_users_in_namespaces(
     // namespace2
     nethsm.use_credentials(&namespace2_admin_user_id)?;
     // N-Administrators can add users in the Operator role in their own namespace
-    assert!(nethsm
-        .add_user(
-            NAMESPACE2_OPERATOR_REAL_NAME.to_string(),
-            UserRole::Operator,
-            Passphrase::new(NAMESPACE2_OPERATOR_USER_PASSPHRASE.to_string()),
-            Some(namespace2_operator_user_id.clone()),
-        )
-        .is_ok());
+    assert!(
+        nethsm
+            .add_user(
+                NAMESPACE2_OPERATOR_REAL_NAME.to_string(),
+                UserRole::Operator,
+                Passphrase::new(NAMESPACE2_OPERATOR_USER_PASSPHRASE.to_string()),
+                Some(namespace2_operator_user_id.clone()),
+            )
+            .is_ok()
+    );
     // N-Administrators can not add users in the Backup role to their own namespace
-    assert!(nethsm
-        .add_user(
-            NAMESPACE2_BACKUP_REAL_NAME.to_string(),
-            UserRole::Backup,
-            Passphrase::new(NAMESPACE2_BACKUP_USER_PASSPHRASE.to_string()),
-            Some(namespace2_backup_user_id.clone()),
-        )
-        .is_err());
+    assert!(
+        nethsm
+            .add_user(
+                NAMESPACE2_BACKUP_REAL_NAME.to_string(),
+                UserRole::Backup,
+                Passphrase::new(NAMESPACE2_BACKUP_USER_PASSPHRASE.to_string()),
+                Some(namespace2_backup_user_id.clone()),
+            )
+            .is_err()
+    );
     // N-Administrators can not add users in the Metrics role to their own namespace
-    assert!(nethsm
-        .add_user(
-            NAMESPACE2_METRICS_REAL_NAME.to_string(),
-            UserRole::Metrics,
-            Passphrase::new(NAMESPACE2_METRICS_USER_PASSPHRASE.to_string()),
-            Some(namespace2_metrics_user_id.clone()),
-        )
-        .is_err());
+    assert!(
+        nethsm
+            .add_user(
+                NAMESPACE2_METRICS_REAL_NAME.to_string(),
+                UserRole::Metrics,
+                Passphrase::new(NAMESPACE2_METRICS_USER_PASSPHRASE.to_string()),
+                Some(namespace2_metrics_user_id.clone()),
+            )
+            .is_err()
+    );
     println!("{:?}", nethsm.get_users()?);
     // N-Administrators can add users without specifying a User ID and the newly created user will
     // inherit their namespace

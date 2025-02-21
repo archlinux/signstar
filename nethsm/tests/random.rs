@@ -1,10 +1,10 @@
 use nethsm::Credentials;
 use nethsm::NetHsm;
 use nethsm::Passphrase;
-use nethsm_tests::nethsm_with_users;
-use nethsm_tests::NetHsmImage;
 use nethsm_tests::DEFAULT_OPERATOR_USER_ID;
 use nethsm_tests::DEFAULT_OPERATOR_USER_PASSPHRASE;
+use nethsm_tests::NetHsmImage;
+use nethsm_tests::nethsm_with_users;
 use rstest::rstest;
 use rustainers::Container;
 use testresult::TestResult;

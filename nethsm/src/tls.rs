@@ -74,10 +74,12 @@ impl FromStr for ConnectionSecurity {
     ///
     /// assert!(ConnectionSecurity::from_str("unsafe").is_ok());
     /// assert!(ConnectionSecurity::from_str("native").is_ok());
-    /// assert!(ConnectionSecurity::from_str(
-    ///     "sha256:324f7bd1530c55cf6812ca6865445de21dfc74cf7a3bb5fae7585e849e3553b7"
-    /// )
-    /// .is_ok());
+    /// assert!(
+    ///     ConnectionSecurity::from_str(
+    ///         "sha256:324f7bd1530c55cf6812ca6865445de21dfc74cf7a3bb5fae7585e849e3553b7"
+    ///     )
+    ///     .is_ok()
+    /// );
     /// assert!(ConnectionSecurity::from_str("something").is_err());
     /// ```
     fn from_str(s: &str) -> Result<Self, Self::Err> {

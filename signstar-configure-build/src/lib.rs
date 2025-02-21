@@ -2,7 +2,7 @@ use std::{
     fs::File,
     io::Write,
     path::{Path, PathBuf},
-    process::{id, Command, ExitStatus},
+    process::{Command, ExitStatus, id},
     str::FromStr,
 };
 
@@ -27,7 +27,9 @@ pub enum Error {
     Config(#[from] nethsm_config::Error),
 
     /// A [`Command`] exited unsuccessfully
-    #[error("The command exited with non-zero status code (\"{exit_status}\") and produced the following output on stderr:\n{stderr}")]
+    #[error(
+        "The command exited with non-zero status code (\"{exit_status}\") and produced the following output on stderr:\n{stderr}"
+    )]
     CommandNonZero {
         exit_status: ExitStatus,
         stderr: String,
@@ -38,7 +40,9 @@ pub enum Error {
     FailedU32ToUsizeConversion,
 
     /// There is no SSH ForceCommand defined for a [`UserMapping`]
-    #[error("No SSH ForceCommand defined for user mapping (NetHSM users: {nethsm_users:?}, system user: {system_user})")]
+    #[error(
+        "No SSH ForceCommand defined for user mapping (NetHSM users: {nethsm_users:?}, system user: {system_user})"
+    )]
     NoForceCommandForMapping {
         nethsm_users: Vec<String>,
         system_user: String,

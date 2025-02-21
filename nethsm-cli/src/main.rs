@@ -1,5 +1,5 @@
-use std::fs::{read, read_to_string, File};
-use std::io::{stdout, Write};
+use std::fs::{File, read, read_to_string};
+use std::io::{Write, stdout};
 use std::path::{Path, PathBuf};
 
 use chrono::Utc;
@@ -17,7 +17,6 @@ use cli::{
 };
 use cli::{KeyCertCommand, KeyCommand, NamespaceCommand, SystemCommand};
 use nethsm::{
-    validate_backup,
     DistinguishedName,
     KeyFormat,
     KeyMechanism,
@@ -27,6 +26,7 @@ use nethsm::{
     SystemState,
     UserId,
     UserRole,
+    validate_backup,
 };
 use nethsm_config::{
     Config,

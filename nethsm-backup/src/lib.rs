@@ -126,8 +126,8 @@ use std::{
     slice::Iter,
 };
 
-use aes_gcm::{aead::Aead as _, Aes256Gcm, KeyInit as _};
-use scrypt::{scrypt, Params};
+use aes_gcm::{Aes256Gcm, KeyInit as _, aead::Aead as _};
+use scrypt::{Params, scrypt};
 
 /// Backup processing error.
 #[derive(Debug, thiserror::Error)]
@@ -162,7 +162,9 @@ pub enum Error {
     /// Version number is not recognized.
     ///
     /// This library supports only version `0` backups.
-    #[error("Unsupported backup version number: {backup_version:?}. The highest supported version is {highest_supported_version}")]
+    #[error(
+        "Unsupported backup version number: {backup_version:?}. The highest supported version is {highest_supported_version}"
+    )]
     BadVersion {
         highest_supported_version: u8,
         backup_version: Vec<u8>,

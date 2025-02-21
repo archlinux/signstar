@@ -1,6 +1,6 @@
 use std::{
     cell::RefCell,
-    collections::{hash_map::Entry, HashMap, HashSet},
+    collections::{HashMap, HashSet, hash_map::Entry},
     error::Error as StdError,
     fmt::Display,
     path::{Path, PathBuf},
@@ -56,7 +56,9 @@ pub enum Error {
 
     /// Shamir's Secret Sharing (SSS) is not used for administrative secret handling, but users for
     /// handling of secret shares are defined
-    #[error("Shamir's Secret Sharing not used for administrative secret handling, but the following users are setup to handle shares: {share_users:?}")]
+    #[error(
+        "Shamir's Secret Sharing not used for administrative secret handling, but the following users are setup to handle shares: {share_users:?}"
+    )]
     NoSssButShareUsers { share_users: Vec<SystemUserId> },
 
     /// Device exists already
@@ -314,23 +316,25 @@ impl DeviceConfig {
     /// )?;
     ///
     /// // this fails because the provided credentials contain duplicates
-    /// assert!(DeviceConfig::new(
-    ///     connection.clone(),
-    ///     vec![
-    ///         ConfigCredentials::new(
-    ///             UserRole::Operator,
-    ///             "user1".parse()?,
-    ///             Some("my-passphrase".to_string()),
-    ///         ),
-    ///         ConfigCredentials::new(
-    ///             UserRole::Operator,
-    ///             "user1".parse()?,
-    ///             Some("my-passphrase".to_string()),
-    ///         ),
-    ///     ],
-    ///     ConfigInteractivity::NonInteractive,
-    /// )
-    /// .is_err());
+    /// assert!(
+    ///     DeviceConfig::new(
+    ///         connection.clone(),
+    ///         vec![
+    ///             ConfigCredentials::new(
+    ///                 UserRole::Operator,
+    ///                 "user1".parse()?,
+    ///                 Some("my-passphrase".to_string()),
+    ///             ),
+    ///             ConfigCredentials::new(
+    ///                 UserRole::Operator,
+    ///                 "user1".parse()?,
+    ///                 Some("my-passphrase".to_string()),
+    ///             ),
+    ///         ],
+    ///         ConfigInteractivity::NonInteractive,
+    ///     )
+    ///     .is_err()
+    /// );
     /// # Ok(())
     /// # }
     /// ```
@@ -395,13 +399,15 @@ impl DeviceConfig {
     /// ))?;
     ///
     /// // this fails because the credentials exist already
-    /// assert!(device_config
-    ///     .add_credentials(ConfigCredentials::new(
-    ///         UserRole::Operator,
-    ///         "user1".parse()?,
-    ///         Some("my-passphrase".to_string()),
-    ///     ))
-    ///     .is_err());
+    /// assert!(
+    ///     device_config
+    ///         .add_credentials(ConfigCredentials::new(
+    ///             UserRole::Operator,
+    ///             "user1".parse()?,
+    ///             Some("my-passphrase".to_string()),
+    ///         ))
+    ///         .is_err()
+    /// );
     /// # Ok(())
     /// # }
     /// ```
@@ -580,24 +586,32 @@ impl DeviceConfig {
     /// );
     ///
     /// // this fails because we must provide a role to match against
-    /// assert!(device_config
-    ///     .get_matching_credentials(&[], &["user1".parse()?])
-    ///     .is_err());
+    /// assert!(
+    ///     device_config
+    ///         .get_matching_credentials(&[], &["user1".parse()?])
+    ///         .is_err()
+    /// );
     ///
     /// // this fails because no user in the requested role exists
-    /// assert!(device_config
-    ///     .get_matching_credentials(&[UserRole::Metrics], &[])
-    ///     .is_err());
+    /// assert!(
+    ///     device_config
+    ///         .get_matching_credentials(&[UserRole::Metrics], &[])
+    ///         .is_err()
+    /// );
     ///
     /// // this fails because no user with the name first provided exists
-    /// assert!(device_config
-    ///     .get_matching_credentials(&[UserRole::Operator], &["user2".parse()?, "user1".parse()?])
-    ///     .is_err());
+    /// assert!(
+    ///     device_config
+    ///         .get_matching_credentials(&[UserRole::Operator], &["user2".parse()?, "user1".parse()?])
+    ///         .is_err()
+    /// );
     ///
     /// // this fails because no user in the requested role with any of the provided names exists
-    /// assert!(device_config
-    ///     .get_matching_credentials(&[UserRole::Metrics], &["admin1".parse()?, "user1".parse()?])
-    ///     .is_err());
+    /// assert!(
+    ///     device_config
+    ///         .get_matching_credentials(&[UserRole::Metrics], &["admin1".parse()?, "user1".parse()?])
+    ///         .is_err()
+    /// );
     /// # Ok(())
     /// # }
     /// ```
@@ -991,13 +1005,15 @@ impl Config {
     /// )?;
     ///
     /// // adding the same device again leads to error
-    /// assert!(config
-    ///     .add_device(
-    ///         "device1".to_string(),
-    ///         "https://example.org/api/v1".parse()?,
-    ///         ConnectionSecurity::Unsafe,
-    ///     )
-    ///     .is_err());
+    /// assert!(
+    ///     config
+    ///         .add_device(
+    ///             "device1".to_string(),
+    ///             "https://example.org/api/v1".parse()?,
+    ///             ConnectionSecurity::Unsafe,
+    ///         )
+    ///         .is_err()
+    /// );
     /// # Ok(())
     /// # }
     /// ```
@@ -1223,16 +1239,18 @@ impl Config {
     /// # )?;
     ///
     /// // this fails because the targeted device does not yet exist
-    /// assert!(config
-    ///     .add_credentials(
-    ///         "device1".to_string(),
-    ///         ConfigCredentials::new(
-    ///             UserRole::Operator,
-    ///             "user1".parse()?,
-    ///             Some("my-passphrase".to_string()),
-    ///         ),
-    ///     )
-    ///     .is_err());
+    /// assert!(
+    ///     config
+    ///         .add_credentials(
+    ///             "device1".to_string(),
+    ///             ConfigCredentials::new(
+    ///                 UserRole::Operator,
+    ///                 "user1".parse()?,
+    ///                 Some("my-passphrase".to_string()),
+    ///             ),
+    ///         )
+    ///         .is_err()
+    /// );
     ///
     /// config.add_device(
     ///     "device1".to_string(),
@@ -1250,16 +1268,18 @@ impl Config {
     /// )?;
     ///
     /// // this fails because the credentials exist already
-    /// assert!(config
-    ///     .add_credentials(
-    ///         "device1".to_string(),
-    ///         ConfigCredentials::new(
-    ///             UserRole::Operator,
-    ///             "user1".parse()?,
-    ///             Some("my-passphrase".to_string()),
-    ///         ),
-    ///     )
-    ///     .is_err());
+    /// assert!(
+    ///     config
+    ///         .add_credentials(
+    ///             "device1".to_string(),
+    ///             ConfigCredentials::new(
+    ///                 UserRole::Operator,
+    ///                 "user1".parse()?,
+    ///                 Some("my-passphrase".to_string()),
+    ///             ),
+    ///         )
+    ///         .is_err()
+    /// );
     /// # Ok(())
     /// # }
     /// ```
@@ -1302,9 +1322,11 @@ impl Config {
     /// # )?;
     ///
     /// // this fails because the targeted device does not yet exist
-    /// assert!(config
-    ///     .delete_credentials("device1", &"user1".parse()?)
-    ///     .is_err());
+    /// assert!(
+    ///     config
+    ///         .delete_credentials("device1", &"user1".parse()?)
+    ///         .is_err()
+    /// );
     ///
     /// config.add_device(
     ///     "device1".to_string(),
@@ -1313,9 +1335,11 @@ impl Config {
     /// )?;
     ///
     /// // this fails because the targeted credentials does not yet exist
-    /// assert!(config
-    ///     .delete_credentials("device1", &"user1".parse()?)
-    ///     .is_err());
+    /// assert!(
+    ///     config
+    ///         .delete_credentials("device1", &"user1".parse()?)
+    ///         .is_err()
+    /// );
     ///
     /// config.add_credentials(
     ///     "device1".to_string(),

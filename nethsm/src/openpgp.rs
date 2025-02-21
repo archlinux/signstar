@@ -11,6 +11,10 @@ use base64ct::{Base64, Encoding as _};
 use chrono::{DateTime, Utc};
 use email_address::{EmailAddress, Options};
 use pgp::{
+    Deserializable,
+    KeyDetails,
+    SignedPublicKey,
+    SignedSecretKey,
     crypto::{ecc_curve::ECCCurve, hash::HashAlgorithm, public_key::PublicKeyAlgorithm},
     packet::{
         KeyFlags,
@@ -39,20 +43,16 @@ use pgp::{
         SignatureBytes,
         Version,
     },
-    Deserializable,
-    KeyDetails,
-    SignedPublicKey,
-    SignedSecretKey,
 };
 use picky_asn1_x509::{
-    signature::EcdsaSignatureValue,
     AlgorithmIdentifier,
     DigestInfo,
     ShaVariant,
+    signature::EcdsaSignatureValue,
 };
 use rand::prelude::{CryptoRng, Rng};
 
-use crate::{key_type_matches_length, KeyMechanism, KeyType, NetHsm, PrivateKeyImport};
+use crate::{KeyMechanism, KeyType, NetHsm, PrivateKeyImport, key_type_matches_length};
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
@@ -356,11 +356,13 @@ impl OpenPgpUserIdList {
     /// ])?;
     ///
     /// // this fails because the two OpenPgpUserIds are the same
-    /// assert!(OpenPgpUserIdList::new(vec![
-    ///     "🤡 <foo@xn--rl8h.org>".parse()?,
-    ///     "🤡 <foo@xn--rl8h.org>".parse()?,
-    /// ])
-    /// .is_err());
+    /// assert!(
+    ///     OpenPgpUserIdList::new(vec![
+    ///         "🤡 <foo@xn--rl8h.org>".parse()?,
+    ///         "🤡 <foo@xn--rl8h.org>".parse()?,
+    ///     ])
+    ///     .is_err()
+    /// );
     /// # Ok(())
     /// # }
     /// ```
@@ -456,7 +458,7 @@ fn parse_signature(sig_type: crate::SignatureType, sig: &[u8]) -> pgp::errors::R
         param => {
             return Err(pgp::errors::Error::Unsupported(format!(
                 "Unsupoprted key type: {param:?}"
-            )))
+            )));
         }
     })
 }
@@ -481,7 +483,7 @@ impl<'a, 'b> HsmKey<'a, 'b> {
                 param => {
                     return Err(pgp::errors::Error::Unsupported(format!(
                         "Unsupported EC key type: {param:?}"
-                    )))
+                    )));
                 }
             },
             PublicParams::EdDSALegacy { .. } => crate::SignatureType::EdDsa,
@@ -489,7 +491,7 @@ impl<'a, 'b> HsmKey<'a, 'b> {
             param => {
                 return Err(pgp::errors::Error::Unsupported(format!(
                     "Unsupported key type: {param:?}"
-                )))
+                )));
             }
         })
     }
@@ -684,7 +686,7 @@ fn hash_to_oid(hash: HashAlgorithm) -> pgp::errors::Result<AlgorithmIdentifier> 
         hash => {
             return Err(pgp::errors::Error::Unsupported(format!(
                 "Unsupported hash: {hash:?}"
-            )))
+            )));
         }
     }))
 }
@@ -733,7 +735,7 @@ pub fn tsk_to_private_key_import(
                     _ => {
                         return Err(crate::Error::OpenPgp(Error::UnsupportedKeyFormat {
                             public_params: Box::new(key.public_params().clone()),
-                        }))
+                        }));
                     }
                 }
             } else {
@@ -754,7 +756,7 @@ pub fn tsk_to_private_key_import(
         (_, public_params) => {
             return Err(crate::Error::OpenPgp(Error::UnsupportedKeyFormat {
                 public_params: Box::new(public_params.clone()),
-            }))
+            }));
         }
     })
 }
@@ -999,7 +1001,7 @@ fn hsm_pk_to_pgp_pk(
         _ => {
             return Err(pgp::errors::Error::Unsupported(
                 "unsupported key type".into(),
-            ))?
+            ))?;
         }
     })
 }
@@ -1434,8 +1436,11 @@ mod tests {
         // being used. If the digest is short enough to be smaller than the curve specific field
         // size the digest is used as a whole.
         assert_eq!(
-            data.len(), usize::min(max_len, digest.len()),
-            "the data to be signed's length ({}) cannot exceed maximum length imposed by the curve ({})", data.len(), max_len
+            data.len(),
+            usize::min(max_len, digest.len()),
+            "the data to be signed's length ({}) cannot exceed maximum length imposed by the curve ({})",
+            data.len(),
+            max_len
         );
 
         Ok(())

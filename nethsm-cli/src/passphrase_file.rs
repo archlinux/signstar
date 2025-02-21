@@ -44,7 +44,7 @@ mod tests {
     use std::fs::File;
     use std::io::Write;
 
-    use rand::{thread_rng, Rng};
+    use rand::{Rng, thread_rng};
     use rstest::rstest;
     use testdir::testdir;
     use testresult::TestResult;

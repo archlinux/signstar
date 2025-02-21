@@ -569,13 +569,17 @@ mod tests {
         #[case] result: Option<()>,
     ) -> TestResult {
         if result.is_some() {
-            assert!(caller
-                .validate_namespace_access(namespace_support, target.as_ref(), role.as_ref())
-                .is_ok());
+            assert!(
+                caller
+                    .validate_namespace_access(namespace_support, target.as_ref(), role.as_ref())
+                    .is_ok()
+            );
         } else {
-            assert!(caller
-                .validate_namespace_access(namespace_support, target.as_ref(), role.as_ref())
-                .is_err())
+            assert!(
+                caller
+                    .validate_namespace_access(namespace_support, target.as_ref(), role.as_ref())
+                    .is_err()
+            )
         }
         Ok(())
     }

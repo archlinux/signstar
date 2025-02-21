@@ -3,8 +3,6 @@ use nethsm::NamespaceId;
 use nethsm::PrivateKeyImport;
 use nethsm::UserId;
 use nethsm::{KeyMechanism, KeyType, NetHsm};
-use nethsm_tests::nethsm_with_users;
-use nethsm_tests::NetHsmImage;
 use nethsm_tests::ADMIN_USER_ID;
 use nethsm_tests::DEFAULT_AES_BITS;
 use nethsm_tests::DEFAULT_OPERATOR_USER_ID;
@@ -14,6 +12,8 @@ use nethsm_tests::NAMESPACE1_ADMIN_USER_ID;
 use nethsm_tests::NAMESPACE1_OPERATOR_USER_ID;
 use nethsm_tests::NAMESPACE2_ADMIN_USER_ID;
 use nethsm_tests::NAMESPACE2_OPERATOR_USER_ID;
+use nethsm_tests::NetHsmImage;
+use nethsm_tests::nethsm_with_users;
 use rstest::{fixture, rstest};
 use rustainers::Container;
 use testresult::TestResult;
@@ -148,18 +148,26 @@ async fn generate_keys(
 
     nethsm.use_credentials(&admin_user_id)?;
     // R-Administrator is unable to add or delete namespace user tags
-    assert!(nethsm
-        .add_user_tag(&namespace1_operator_user_id, "test")
-        .is_err());
-    assert!(nethsm
-        .delete_user_tag(&namespace1_operator_user_id, &ns1_tag)
-        .is_err());
-    assert!(nethsm
-        .add_user_tag(&namespace2_operator_user_id, "test")
-        .is_err());
-    assert!(nethsm
-        .delete_user_tag(&namespace2_operator_user_id, &ns2_tag)
-        .is_err());
+    assert!(
+        nethsm
+            .add_user_tag(&namespace1_operator_user_id, "test")
+            .is_err()
+    );
+    assert!(
+        nethsm
+            .delete_user_tag(&namespace1_operator_user_id, &ns1_tag)
+            .is_err()
+    );
+    assert!(
+        nethsm
+            .add_user_tag(&namespace2_operator_user_id, "test")
+            .is_err()
+    );
+    assert!(
+        nethsm
+            .delete_user_tag(&namespace2_operator_user_id, &ns2_tag)
+            .is_err()
+    );
     // R-Administrator is able to see namespace user tags
     println!(
         "namespace1 operator tags: {:?}",

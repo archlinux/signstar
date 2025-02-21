@@ -8,7 +8,7 @@ use rustainers::{
     WaitStrategy,
 };
 use testresult::TestResult;
-use uuid::{timestamp::Timestamp, NoContext, Uuid};
+use uuid::{NoContext, Uuid, timestamp::Timestamp};
 
 /// The NetHSM container image and specific tag
 ///

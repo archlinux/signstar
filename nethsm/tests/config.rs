@@ -12,13 +12,13 @@ use nethsm::{
     TlsKeyType,
 };
 use nethsm_tests::{
+    ADMIN_USER_ID,
+    NAMESPACE1_ADMIN_USER_ID,
+    NetHsmImage,
+    UNLOCK_PASSPHRASE,
     nethsm_with_users,
     unprovisioned_nethsm,
     update_file,
-    NetHsmImage,
-    ADMIN_USER_ID,
-    NAMESPACE1_ADMIN_USER_ID,
-    UNLOCK_PASSPHRASE,
 };
 use rstest::rstest;
 use rustainers::Container;
@@ -66,9 +66,11 @@ async fn tls_cert(
 
     // N-Administrators can not generate a TLS cert
     nethsm.use_credentials(&NAMESPACE1_ADMIN_USER_ID.parse()?)?;
-    assert!(nethsm
-        .generate_tls_cert(TlsKeyType::Rsa, Some(4096))
-        .is_err());
+    assert!(
+        nethsm
+            .generate_tls_cert(TlsKeyType::Rsa, Some(4096))
+            .is_err()
+    );
 
     nethsm.use_credentials(&ADMIN_USER_ID.parse()?)?;
     nethsm.generate_tls_cert(TlsKeyType::Rsa, Some(4096))?;
@@ -82,17 +84,19 @@ async fn tls_cert(
 
     // N-Administrators can not a TLS CSR
     nethsm.use_credentials(&NAMESPACE1_ADMIN_USER_ID.parse()?)?;
-    assert!(nethsm
-        .get_tls_csr(DistinguishedName {
-            country_name: Some("DE".to_string()),
-            state_or_province_name: Some("Berlin".to_string()),
-            locality_name: Some("Berlin".to_string()),
-            organization_name: Some("Foobar Inc".to_string()),
-            organizational_unit_name: Some("Department of Foo".to_string()),
-            common_name: "Foobar Inc".to_string(),
-            email_address: Some("foobar@mcfooface.com".to_string()),
-        })
-        .is_err());
+    assert!(
+        nethsm
+            .get_tls_csr(DistinguishedName {
+                country_name: Some("DE".to_string()),
+                state_or_province_name: Some("Berlin".to_string()),
+                locality_name: Some("Berlin".to_string()),
+                organization_name: Some("Foobar Inc".to_string()),
+                organizational_unit_name: Some("Department of Foo".to_string()),
+                common_name: "Foobar Inc".to_string(),
+                email_address: Some("foobar@mcfooface.com".to_string()),
+            })
+            .is_err()
+    );
 
     nethsm.use_credentials(&ADMIN_USER_ID.parse()?)?;
     let csr = nethsm.get_tls_csr(DistinguishedName {
@@ -129,13 +133,15 @@ async fn network(
     // N-Administrators can neither get nor set network settings
     nethsm.use_credentials(&NAMESPACE1_ADMIN_USER_ID.parse()?)?;
     assert!(nethsm.get_network().is_err());
-    assert!(nethsm
-        .set_network(NetworkConfig::new(
-            ip_address.clone(),
-            "255.255.255.0".to_string(),
-            "0.0.0.0".to_string(),
-        ))
-        .is_err());
+    assert!(
+        nethsm
+            .set_network(NetworkConfig::new(
+                ip_address.clone(),
+                "255.255.255.0".to_string(),
+                "0.0.0.0".to_string(),
+            ))
+            .is_err()
+    );
 
     // R-Administrators can get and set network settings
     nethsm.use_credentials(&ADMIN_USER_ID.parse()?)?;
@@ -201,12 +207,14 @@ async fn set_unlock_passphrase(
     )?;
     // N-Administrators can not set the unlock passphrase
     nethsm.use_credentials(&NAMESPACE1_ADMIN_USER_ID.parse()?)?;
-    assert!(nethsm
-        .set_unlock_passphrase(
-            Passphrase::new(UNLOCK_PASSPHRASE.to_string()),
-            Passphrase::new(new_unlock_passphrase.to_string()),
-        )
-        .is_err());
+    assert!(
+        nethsm
+            .set_unlock_passphrase(
+                Passphrase::new(UNLOCK_PASSPHRASE.to_string()),
+                Passphrase::new(new_unlock_passphrase.to_string()),
+            )
+            .is_err()
+    );
 
     Ok(())
 }
@@ -241,12 +249,14 @@ async fn set_backup_passphrase(
         Passphrase::new(new_backup_passphrase.to_string()),
     )?;
     // the passphrase is too short!
-    assert!(nethsm
-        .set_backup_passphrase(
-            Passphrase::new(new_backup_passphrase.to_string()),
-            Passphrase::new(initial_passphrase.to_string()),
-        )
-        .is_err());
+    assert!(
+        nethsm
+            .set_backup_passphrase(
+                Passphrase::new(new_backup_passphrase.to_string()),
+                Passphrase::new(initial_passphrase.to_string()),
+            )
+            .is_err()
+    );
 
     Ok(())
 }

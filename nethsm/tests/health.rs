@@ -1,5 +1,5 @@
 use nethsm::{NetHsm, SystemState};
-use nethsm_tests::{nethsm_with_users, unprovisioned_nethsm, NetHsmImage};
+use nethsm_tests::{NetHsmImage, nethsm_with_users, unprovisioned_nethsm};
 use rstest::rstest;
 use rustainers::Container;
 use testresult::TestResult;

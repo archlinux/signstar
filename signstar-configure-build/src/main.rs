@@ -1,10 +1,10 @@
-use clap::{crate_version, Parser};
+use clap::{Parser, crate_version};
 use nethsm_config::{ConfigInteractivity, ConfigSettings, HermeticParallelConfig};
 use signstar_configure_build::{
-    cli::{Cli, BIN_NAME},
+    Error,
+    cli::{BIN_NAME, Cli},
     create_system_users,
     ensure_root,
-    Error,
 };
 
 fn main() -> Result<(), Error> {

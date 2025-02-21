@@ -3,10 +3,10 @@ use std::{fmt::Display, str::FromStr};
 use base64ct::{Base64, Encoding};
 use nethsm_sdk_rs::models::KeyPrivateData;
 use rsa::{
+    RsaPrivateKey,
     pkcs8::DecodePrivateKey,
     traits::PrivateKeyParts,
     traits::PublicKeyParts,
-    RsaPrivateKey,
 };
 use serde::{Deserialize, Serialize};
 
@@ -151,11 +151,15 @@ pub enum Error {
     KeyLengthRequired { key_type: KeyType },
 
     /// AES key is generated with unsupported key length (not 128, 192 or 256)
-    #[error("AES only defines key lengths of 128, 192 and 256. A key length of {key_length} is unsupported!")]
+    #[error(
+        "AES only defines key lengths of 128, 192 and 256. A key length of {key_length} is unsupported!"
+    )]
     InvalidKeyLengthAes { key_length: u32 },
 
     /// RSA key is generated with unsafe key length (smaller than 2048)
-    #[error("RSA keys shorter than {MIN_RSA_BIT_LENGTH} are not supported. A key length of {key_length} is unsafe!")]
+    #[error(
+        "RSA keys shorter than {MIN_RSA_BIT_LENGTH} are not supported. A key length of {key_length} is unsafe!"
+    )]
     InvalidKeyLengthRsa { key_length: u32 },
 
     /// Elliptic curve TLS keys do not support providing a length
@@ -167,7 +171,9 @@ pub enum Error {
     TlsKeyLengthRequired { tls_key_type: TlsKeyType },
 
     /// RSA TLS key is generated with unsafe key length (smaller than 2048)
-    #[error("RSA keys shorter than {MIN_RSA_BIT_LENGTH} are not supported. A key length of {key_length} is unsafe!")]
+    #[error(
+        "RSA keys shorter than {MIN_RSA_BIT_LENGTH} are not supported. A key length of {key_length} is unsafe!"
+    )]
     InvalidTlsKeyLengthRsa { key_length: u32 },
 
     /// Invalid Key ID
@@ -182,7 +188,9 @@ pub enum Error {
     },
 
     /// The key mechanisms provided for a signature type are not valid
-    #[error("The key mechanism {required_key_mechanism} must be used with signature type {signature_type}")]
+    #[error(
+        "The key mechanism {required_key_mechanism} must be used with signature type {signature_type}"
+    )]
     InvalidKeyMechanismsForSignatureType {
         required_key_mechanism: KeyMechanism,
         signature_type: SignatureType,
@@ -193,7 +201,9 @@ pub enum Error {
     InvalidCryptograhicKeyUse(String),
 
     /// A signing key setup is not compatible with raw cryptographic signing
-    #[error("The key type {key_type}, key mechanisms {key_mechanisms:?} and signature type {signature_type} are incompatible with raw cryptographic signing")]
+    #[error(
+        "The key type {key_type}, key mechanisms {key_mechanisms:?} and signature type {signature_type} are incompatible with raw cryptographic signing"
+    )]
     InvalidRawSigningKeySetup {
         key_type: KeyType,
         key_mechanisms: Vec<KeyMechanism>,
@@ -201,7 +211,9 @@ pub enum Error {
     },
 
     /// A signing key setup is not compatible with OpenPGP signing
-    #[error("The key type {key_type}, key mechanisms {key_mechanisms:?} and signature type {signature_type} are incompatible with OpenPGP signing")]
+    #[error(
+        "The key type {key_type}, key mechanisms {key_mechanisms:?} and signature type {signature_type} are incompatible with OpenPGP signing"
+    )]
     InvalidOpenPgpSigningKeySetup {
         key_type: KeyType,
         key_mechanisms: Vec<KeyMechanism>,
@@ -266,16 +278,20 @@ impl CryptographicKeyContext {
     /// )?;
     ///
     /// // OpenPGP does not support ECDSA P224
-    /// assert!(CryptographicKeyContext::OpenPgp {
-    ///     user_ids: OpenPgpUserIdList::new(vec!["Foobar McFooface <foobar@mcfooface.org>".parse()?])?,
-    ///     version: OpenPgpVersion::V4,
-    /// }
-    /// .validate_signing_key_setup(
-    ///     KeyType::EcP224,
-    ///     &[KeyMechanism::EcdsaSignature],
-    ///     SignatureType::EcdsaP224,
-    /// )
-    /// .is_err());
+    /// assert!(
+    ///     CryptographicKeyContext::OpenPgp {
+    ///         user_ids: OpenPgpUserIdList::new(vec![
+    ///             "Foobar McFooface <foobar@mcfooface.org>".parse()?
+    ///         ])?,
+    ///         version: OpenPgpVersion::V4,
+    ///     }
+    ///     .validate_signing_key_setup(
+    ///         KeyType::EcP224,
+    ///         &[KeyMechanism::EcdsaSignature],
+    ///         SignatureType::EcdsaP224,
+    ///     )
+    ///     .is_err()
+    /// );
     /// # Ok(())
     /// # }
     /// ```
@@ -316,7 +332,7 @@ impl CryptographicKeyContext {
                         key_type,
                         key_mechanisms: key_mechanisms.to_vec(),
                         signature_type,
-                    })
+                    });
                 }
             },
             Self::OpenPgp {
@@ -338,7 +354,7 @@ impl CryptographicKeyContext {
                         key_type,
                         key_mechanisms: key_mechanisms.to_vec(),
                         signature_type,
-                    })
+                    });
                 }
             },
         }
@@ -395,43 +411,47 @@ impl SigningKeySetup {
     ///     SignatureType::EdDsa,
     ///     CryptographicKeyContext::OpenPgp {
     ///         user_ids: OpenPgpUserIdList::new(vec![
-    ///             "Foobar McFooface <foobar@mcfooface.org>".parse()?
+    ///             "Foobar McFooface <foobar@mcfooface.org>".parse()?,
     ///         ])?,
     ///         version: "v4".parse()?,
     ///     },
     /// )?;
     ///
     /// // this fails because Curve25519 does not support the ECDSA key mechanism
-    /// assert!(SigningKeySetup::new(
-    ///     "key1".parse()?,
-    ///     KeyType::Curve25519,
-    ///     vec![KeyMechanism::EcdsaSignature],
-    ///     None,
-    ///     SignatureType::EdDsa,
-    ///     CryptographicKeyContext::OpenPgp {
-    ///         user_ids: OpenPgpUserIdList::new(vec![
-    ///             "Foobar McFooface <foobar@mcfooface.org>".parse()?
-    ///         ])?,
-    ///         version: "v4".parse()?,
-    ///     },
-    /// )
-    /// .is_err());
+    /// assert!(
+    ///     SigningKeySetup::new(
+    ///         "key1".parse()?,
+    ///         KeyType::Curve25519,
+    ///         vec![KeyMechanism::EcdsaSignature],
+    ///         None,
+    ///         SignatureType::EdDsa,
+    ///         CryptographicKeyContext::OpenPgp {
+    ///             user_ids: OpenPgpUserIdList::new(vec![
+    ///                 "Foobar McFooface <foobar@mcfooface.org>".parse()?
+    ///             ])?,
+    ///             version: "v4".parse()?,
+    ///         },
+    ///     )
+    ///     .is_err()
+    /// );
     ///
     /// // this fails because OpenPGP does not support the ECDSA P224 key type
-    /// assert!(SigningKeySetup::new(
-    ///     "key1".parse()?,
-    ///     KeyType::EcP224,
-    ///     vec![KeyMechanism::EcdsaSignature],
-    ///     None,
-    ///     SignatureType::EcdsaP224,
-    ///     CryptographicKeyContext::OpenPgp {
-    ///         user_ids: OpenPgpUserIdList::new(vec![
-    ///             "Foobar McFooface <foobar@mcfooface.org>".parse()?
-    ///         ])?,
-    ///         version: "v4".parse()?,
-    ///     },
-    /// )
-    /// .is_err());
+    /// assert!(
+    ///     SigningKeySetup::new(
+    ///         "key1".parse()?,
+    ///         KeyType::EcP224,
+    ///         vec![KeyMechanism::EcdsaSignature],
+    ///         None,
+    ///         SignatureType::EcdsaP224,
+    ///         CryptographicKeyContext::OpenPgp {
+    ///             user_ids: OpenPgpUserIdList::new(vec![
+    ///                 "Foobar McFooface <foobar@mcfooface.org>".parse()?
+    ///             ])?,
+    ///             version: "v4".parse()?,
+    ///         },
+    ///     )
+    ///     .is_err()
+    /// );
     /// # Ok(())
     /// # }
     /// ```
@@ -563,7 +583,7 @@ impl PrivateKeyImport {
     ///
     /// ```
     /// # use testresult::TestResult;
-    /// use ed25519_dalek::{pkcs8::EncodePrivateKey, SigningKey};
+    /// use ed25519_dalek::{SigningKey, pkcs8::EncodePrivateKey};
     /// use nethsm::{KeyType, PrivateKeyImport};
     /// use rand::rngs::OsRng;
     /// # fn main() -> TestResult {
@@ -653,7 +673,7 @@ impl PrivateKeyImport {
     /// # use testresult::TestResult;
     /// use std::ops::Deref;
     ///
-    /// use ed25519_dalek::{pkcs8::spki::der::pem::LineEnding, pkcs8::EncodePrivateKey, SigningKey};
+    /// use ed25519_dalek::{SigningKey, pkcs8::EncodePrivateKey, pkcs8::spki::der::pem::LineEnding};
     /// use nethsm::{KeyType, PrivateKeyImport};
     /// use rand::rngs::OsRng;
     /// # fn main() -> TestResult {
@@ -1126,7 +1146,7 @@ pub fn key_type_and_mechanisms_match_signature_type(
 /// # Examples
 ///
 /// ```
-/// use nethsm::{key_type_matches_length, KeyType};
+/// use nethsm::{KeyType, key_type_matches_length};
 ///
 /// # fn main() -> testresult::TestResult {
 /// key_type_matches_length(KeyType::Curve25519, None)?;
@@ -1194,7 +1214,7 @@ pub fn key_type_matches_length(key_type: KeyType, length: Option<u32>) -> Result
 /// # Examples
 ///
 /// ```
-/// use nethsm::{tls_key_type_matches_length, TlsKeyType};
+/// use nethsm::{TlsKeyType, tls_key_type_matches_length};
 ///
 /// # fn main() -> testresult::TestResult {
 /// tls_key_type_matches_length(TlsKeyType::Curve25519, None)?;
@@ -1239,8 +1259,8 @@ pub fn tls_key_type_matches_length(
 
 #[cfg(test)]
 mod tests {
-    use rsa::pkcs8::EncodePrivateKey;
     use rsa::RsaPrivateKey;
+    use rsa::pkcs8::EncodePrivateKey;
     use rstest::{fixture, rstest};
     use testresult::TestResult;
 

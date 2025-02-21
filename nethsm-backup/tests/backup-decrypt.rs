@@ -1,6 +1,6 @@
 use nethsm::{NetHsm, Passphrase, UserId};
 use nethsm_backup::Backup;
-use nethsm_tests::{nethsm_with_users, NetHsmImage, ADMIN_USER_ID, BACKUP_USER_ID};
+use nethsm_tests::{ADMIN_USER_ID, BACKUP_USER_ID, NetHsmImage, nethsm_with_users};
 use rstest::rstest;
 use rustainers::Container;
 use testdir::testdir;

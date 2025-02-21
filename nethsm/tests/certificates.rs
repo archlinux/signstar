@@ -1,17 +1,17 @@
 use nethsm::{DistinguishedName, KeyMechanism, KeyType, NetHsm, PrivateKeyImport};
-use nethsm_tests::nethsm_with_users;
-use nethsm_tests::NetHsmImage;
 use nethsm_tests::DEFAULT_AES_BITS;
 use nethsm_tests::DEFAULT_KEY_ID;
 use nethsm_tests::DEFAULT_OPERATOR_USER_ID;
 use nethsm_tests::DEFAULT_RSA_BITS;
 use nethsm_tests::DEFAULT_TAG;
 use nethsm_tests::ENC_KEY_ID;
+use nethsm_tests::NetHsmImage;
 use nethsm_tests::OTHER_KEY_ID;
 use nethsm_tests::OTHER_OPERATOR_USER_ID;
 use nethsm_tests::OTHER_TAG;
-use rsa::pkcs8::EncodePrivateKey;
+use nethsm_tests::nethsm_with_users;
 use rsa::RsaPrivateKey;
+use rsa::pkcs8::EncodePrivateKey;
 use rstest::rstest;
 use rustainers::Container;
 use testdir::testdir;
@@ -136,9 +136,11 @@ async fn user_tags(nethsm: &NetHsm) -> TestResult {
             == 1
     );
     nethsm.delete_user_tag(&DEFAULT_OPERATOR_USER_ID.parse()?, DEFAULT_TAG)?;
-    assert!(nethsm
-        .get_user_tags(&DEFAULT_OPERATOR_USER_ID.parse()?)?
-        .is_empty());
+    assert!(
+        nethsm
+            .get_user_tags(&DEFAULT_OPERATOR_USER_ID.parse()?)?
+            .is_empty()
+    );
 
     nethsm.add_user_tag(&OTHER_OPERATOR_USER_ID.parse()?, OTHER_TAG)?;
     assert!(
@@ -148,9 +150,11 @@ async fn user_tags(nethsm: &NetHsm) -> TestResult {
             == 1
     );
     nethsm.delete_user_tag(&OTHER_OPERATOR_USER_ID.parse()?, OTHER_TAG)?;
-    assert!(nethsm
-        .get_user_tags(&OTHER_OPERATOR_USER_ID.parse()?)?
-        .is_empty());
+    assert!(
+        nethsm
+            .get_user_tags(&OTHER_OPERATOR_USER_ID.parse()?)?
+            .is_empty()
+    );
 
     nethsm.delete_key_tag(&DEFAULT_KEY_ID.parse()?, DEFAULT_TAG)?;
 

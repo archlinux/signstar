@@ -55,11 +55,13 @@ impl NetHsmMetricsUsers {
     /// )?;
     ///
     /// // this fails because there are duplicate UserIds
-    /// assert!(NetHsmMetricsUsers::new(
-    ///     "metrics1".parse()?,
-    ///     vec!["metrics1".parse()?, "user2".parse()?,],
-    /// )
-    /// .is_err());
+    /// assert!(
+    ///     NetHsmMetricsUsers::new(
+    ///         "metrics1".parse()?,
+    ///         vec!["metrics1".parse()?, "user2".parse()?,],
+    ///     )
+    ///     .is_err()
+    /// );
     /// # Ok(())
     /// # }
     /// ```

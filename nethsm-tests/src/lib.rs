@@ -16,8 +16,8 @@ use nethsm::{
     UserRole,
 };
 use rstest::fixture;
-use rustainers::runner::Runner;
 use rustainers::Container;
+use rustainers::runner::Runner;
 use testresult::TestResult;
 
 /// Identifier for an admin user.
