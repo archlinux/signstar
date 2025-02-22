@@ -31,7 +31,7 @@ picky-asn1-der = "0.5.1"
 picky-asn1-x509 = "0.14.1"
 rand.workspace = true
 rsa = { workspace = true, features = ["pem"] }
-rustls = { version = "0.23.19", default-features = false, features = ["ring"] }
+rustls = { version = "0.23.19" }
 rustls-native-certs = "0.8.1"
 secrecy = { version = "0.10.3", features = ["serde"] }
 serde.workspace = true
