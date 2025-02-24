@@ -163,6 +163,30 @@ impl Request {
         Ok(())
     }
 }
+/// Signing response.
+// FIXME: Properly specify the output format
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Response {
+    /// Version of this signing response.
+    pub version: Version,
+
+    /// Raw bytes of the signature.
+    pub payload: Vec<u8>,
+}
+
+impl Response {
+    /// Read the response from a JSON serialized bytes.
+    pub fn from_reader(reader: impl std::io::Read) -> Result<Self, Error> {
+        let resp: Self = serde_json::from_reader(reader)?;
+        Ok(resp)
+    }
+
+    /// Write the response as a JSON serialized form.
+    pub fn to_writer(&self, writer: impl std::io::Write) -> Result<(), Error> {
+        serde_json::to_writer(writer, &self)?;
+        Ok(())
+    }
+}
 
 #[cfg(test)]
 mod tests {
