@@ -4,13 +4,17 @@ use clap::Parser;
 use rand::Rng;
 use serde_json::Value;
 use sha2::Digest;
-use signstar_request_signature::{Request, Required, SignatureRequestOutput, cli::Cli};
+use signstar_request_signature::{
+    Request,
+    Required,
+    SignatureRequestOutput,
+    cli::{Cli, PrepareCommand},
+};
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let args = Cli::parse();
+fn prepare_signing_request(prepare: PrepareCommand) -> Result<(), Box<dyn std::error::Error>> {
     let hasher = {
         let mut hasher = sha2::Sha512::new();
-        std::io::copy(&mut std::fs::File::open(&args.input)?, &mut hasher)?;
+        std::io::copy(&mut std::fs::File::open(&prepare.input)?, &mut hasher)?;
         hasher
     };
     let required = Required {
@@ -49,7 +53,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             ),
             (
                 "file-name".into(),
-                args.input
+                prepare
+                    .input
                     .file_name()
                     .and_then(|s| s.to_str())
                     .map(Into::into)
@@ -60,6 +65,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .collect(),
     }
     .to_writer(std::io::stdout())?;
+    Ok(())
+}
 
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let args = Cli::parse();
+
+    match args {
+        Cli::Prepare(prepare) => prepare_signing_request(prepare)?,
+    }
     Ok(())
 }
