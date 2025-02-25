@@ -8,11 +8,14 @@ use russh::keys::{
 pub(crate) fn is_server_known<'a>(
     entries: impl Iterator<Item = &'a Entry>,
     host: &str,
+    port: u16,
     key: &PublicKey,
 ) -> bool {
     for entry in entries {
         if match entry.host_patterns() {
-            HostPatterns::Patterns(items) => items.iter().any(|item| item == host),
+            HostPatterns::Patterns(items) => items
+                .iter()
+                .any(|item| item == host || item == &format!("[{host}]:{port}")),
             HostPatterns::HashedName { salt, hash } => {
                 use hmac::Mac;
                 let mut mac = hmac::Hmac::<sha1::Sha1>::new_from_slice(salt).unwrap();
@@ -41,6 +44,25 @@ mod tests {
             is_server_known(
                 [entry].iter(),
                 "gitlab.archlinux.org",
+                22,
+                &"ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAICjT2SuA0k/xc5Cbyp+eBY5uN3bRL2K7GdpNtltOK6vy"
+                    .parse()?
+            ),
+            "server should be known since there's one matching entry"
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_single_entry_with_port() -> TestResult {
+        let entry: Entry = "[gitlab.archlinux.org]:22 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAICjT2SuA0k/xc5Cbyp+eBY5uN3bRL2K7GdpNtltOK6vy".parse()?;
+
+        assert!(
+            is_server_known(
+                [entry].iter(),
+                "gitlab.archlinux.org",
+                22,
                 &"ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAICjT2SuA0k/xc5Cbyp+eBY5uN3bRL2K7GdpNtltOK6vy"
                     .parse()?
             ),
@@ -58,6 +80,7 @@ mod tests {
             !is_server_known(
                 [entry].iter(),
                 "gitlab.archlinux.org",
+                22,
                 &"ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAICjT2SuA0k/xc5Cbyp+eBY5uN3bRL2K7GdpNtltOK6vy"
                     .parse()?
             ),
@@ -75,6 +98,25 @@ mod tests {
             !is_server_known(
                 [entry].iter(),
                 "gitlab.archlinux.org",
+                22,
+                &"ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAICjT2SuA0k/xc5Cbyp+eBY5uN3bRL2K7GdpNtltOK6vy"
+                    .parse()?
+            ),
+            "server should not be known since there are no matching entries"
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_not_matching_port_entry() -> TestResult {
+        let entry: Entry = "[gitlab.archlinux.org]:23 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAICjT2SuA0k/xc5Cbyp+eBY5uN3bRL2K89dpNtltOK6vy".parse()?;
+
+        assert!(
+            !is_server_known(
+                [entry].iter(),
+                "gitlab.archlinux.org",
+                22,
                 &"ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAICjT2SuA0k/xc5Cbyp+eBY5uN3bRL2K7GdpNtltOK6vy"
                     .parse()?
             ),
@@ -92,6 +134,7 @@ mod tests {
             is_server_known(
                 [entry].iter(),
                 "github.com",
+                22,
                 &"ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl"
                     .parse()?
             ),

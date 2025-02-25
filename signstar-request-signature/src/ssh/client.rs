@@ -79,7 +79,7 @@ pub async fn connect(options: ConnectOptions) -> Result<Session, Error> {
     let mut session = client::connect(
         config,
         (options.hostname.clone(), options.port),
-        KeyValidator(options.hostname, options.known_hosts),
+        KeyValidator(options.hostname, options.port, options.known_hosts),
     )
     .await?;
     let auth_res = session
@@ -93,7 +93,7 @@ pub async fn connect(options: ConnectOptions) -> Result<Session, Error> {
     Ok(Session { session })
 }
 
-struct KeyValidator(String, Vec<Entry>);
+struct KeyValidator(String, u16, Vec<Entry>);
 
 impl client::Handler for KeyValidator {
     type Error = russh::Error;
@@ -103,8 +103,9 @@ impl client::Handler for KeyValidator {
         server_public_key: &PublicKey,
     ) -> Result<bool, Self::Error> {
         Ok(crate::ssh::known_hosts::is_server_known(
-            self.1.iter(),
+            self.2.iter(),
             &self.0,
+            self.1,
             server_public_key,
         ))
     }

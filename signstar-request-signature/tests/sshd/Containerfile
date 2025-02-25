@@ -1,0 +1,11 @@
+FROM docker.io/archlinux/archlinux
+
+RUN pacman -Sy --needed --noconfirm archlinux-keyring && \
+    pacman -Syu --needed --noconfirm openssh
+
+COPY *.conf /etc/ssh/sshd_config.d/
+COPY signstar-sign /usr/local/bin/
+RUN useradd signstar-sign
+COPY authorized_keys /home/signstar-sign/.ssh/
+EXPOSE 2222
+CMD ssh-keygen -A && /usr/bin/sshd -p 2222 -e -D
