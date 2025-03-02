@@ -20,7 +20,7 @@ nethsm-config = { path = "nethsm-config", version = "0.2.2" }
 nethsm-tests = { path = "nethsm-tests", version = "0.1.2" }
 rand = "0.8.5"
 rsa = "0.9.7"
-rstest = "0.24.0"
+rstest = "0.25.0"
 rustainers = "0.15"
 serde = { version = "1.0.215", features = ["derive"] }
 # Updating this dependency directly here is breaking change in signstar-request-signature.
