@@ -1,0 +1,5 @@
+#!/bin/bash
+
+printf '{"version":"0.0.2","signature":"bbb"}'
+
+exit 0

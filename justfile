@@ -184,6 +184,7 @@ lint:
     just ensure-command cargo cargo-clippy mold tangler
 
     tangler bash < nethsm-cli/README.md | shellcheck --shell bash -
+    tangler bash < signstar-request-signature/README.md | shellcheck --shell bash -
 
     just lint-recipe 'test-readme nethsm-cli'
     just lint-recipe check-commits
@@ -295,6 +296,16 @@ test-readme project:
                 --attach
             )
         ;;
+        signstar-request-signature)
+            podman_create_options+=(
+                --init
+                "--mount=type=bind,source=$project/tests/sshd/10-signstar-sign.conf,destination=/etc/ssh/sshd_config.d/10-signstar-sign.conf,ro=true"
+                "--mount=type=bind,source=$project/tests/sshd,destination=/home/signstar-sign/.ssh,ro=true"
+                "--mount=type=bind,source=$project/tests/sshd/signstar-sign,destination=/usr/local/bin/signstar-sign,ro=true"
+                docker.io/archlinux
+                sh -c "pacman-key --init && pacman -Sy --needed --noconfirm archlinux-keyring && pacman -Syu --needed --noconfirm openssh && useradd signstar-sign && ssh-keygen -A && /usr/bin/sshd -p 2222 -e -D"
+                )
+        ;;
         *)
             podman_create_options+=(
                 docker.io/nitrokey/nethsm:testing
@@ -356,6 +367,7 @@ test-readme project:
 test-readmes:
     just test-readme nethsm-cli
     just test-readme signstar-configure-build
+    just test-readme signstar-request-signature
 
 # Adds pre-commit and pre-push git hooks
 add-hooks:
