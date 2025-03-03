@@ -1,8 +1,8 @@
 use std::fmt::Display;
 
 use nethsm_sdk_rs::models::{SignMode, Switch, UnattendedBootConfig};
+use nethsm_sdk_rs::ureq::{Body, http::response::Response};
 use serde::{Deserialize, Serialize};
-use ureq::Response;
 
 /// A representation of a message body in an HTTP response
 ///
@@ -13,9 +13,9 @@ pub struct Message {
     message: String,
 }
 
-impl From<Response> for Message {
-    fn from(value: Response) -> Self {
-        if let Ok(message) = value.into_json() {
+impl From<Response<Body>> for Message {
+    fn from(mut value: Response<Body>) -> Self {
+        if let Ok(message) = value.body_mut().read_json() {
             message
         } else {
             Message {
@@ -68,13 +68,23 @@ impl<T> From<nethsm_sdk_rs::apis::Error<T>> for NetHsmApiError<T> {
     fn from(value: nethsm_sdk_rs::apis::Error<T>) -> Self {
         match value {
             nethsm_sdk_rs::apis::Error::Ureq(error) => match error {
-                nethsm_sdk_rs::ureq::Error::Status(code, response) => Self {
+                nethsm_sdk_rs::ureq::Error::StatusCode(code) => Self {
                     error: None,
-                    message: Some(ApiErrorMessage::from((code, response.into())).to_string()),
+                    message: Some(
+                        ApiErrorMessage::from((code, Message { message: "".into() })).to_string(),
+                    ),
                 },
-                nethsm_sdk_rs::ureq::Error::Transport(transport) => Self {
+                e => Self {
                     error: None,
-                    message: Some(format!("{}", transport)),
+                    message: Some(
+                        ApiErrorMessage::from((
+                            0,
+                            Message {
+                                message: e.to_string(),
+                            },
+                        ))
+                        .to_string(),
+                    ),
                 },
             },
             nethsm_sdk_rs::apis::Error::ResponseError(resp) => Self {

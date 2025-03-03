@@ -91,13 +91,12 @@ use std::fmt::Display;
 use std::io::Read;
 use std::net::Ipv4Addr;
 use std::str::FromStr;
-use std::sync::Arc;
 use std::thread::available_parallelism;
 use std::time::Duration;
 
 use base64ct::{Base64, Encoding};
 use chrono::{DateTime, Utc};
-use log::{debug, error, info};
+use log::{error, info};
 use md5::{Digest as _, Md5};
 use nethsm_sdk_rs::apis::configuration::Configuration;
 use nethsm_sdk_rs::apis::default_api::{
@@ -193,9 +192,7 @@ pub use nethsm_sdk_rs::models::{
     SystemUpdateData,
     UserData,
 };
-use nethsm_sdk_rs::ureq::{Agent, AgentBuilder};
-use rustls::client::ClientConfig;
-use rustls::crypto::{CryptoProvider, ring as tls_provider};
+use nethsm_sdk_rs::ureq::{Agent, tls::TlsConfig};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use sha1::Sha1;
@@ -239,10 +236,10 @@ pub use openpgp::{
 
 mod tls;
 pub use tls::{ConnectionSecurity, HostCertificateFingerprints};
-use tls::{DangerIgnoreVerifier, FingerprintVerifier};
 
 mod user;
 pub use key::KeyId;
+use ureq::tls::TlsProvider;
 pub use user::Error as UserError;
 use user::NamespaceSupport;
 pub use user::{Credentials, NamespaceId, Passphrase, UserId};
@@ -465,7 +462,7 @@ impl NetHsm {
     ///
     /// # Errors
     ///
-    /// Returns an [`Error`] if the rustls based [`ClientConfig`] can not be created.
+    /// Returns an [`Error`] if the client config can not be created.
     pub fn new(
         url: Url,
         connection_security: ConnectionSecurity,
@@ -474,54 +471,20 @@ impl NetHsm {
         timeout_seconds: Option<u64>,
     ) -> Result<Self, Error> {
         let tls_conf = {
-            let tls_conf = ClientConfig::builder_with_provider(Arc::new(CryptoProvider {
-                cipher_suites: tls_provider::ALL_CIPHER_SUITES.into(),
-                ..tls_provider::default_provider()
-            }))
-            .with_protocol_versions(rustls::DEFAULT_VERSIONS)?;
+            let tls_conf = TlsConfig::builder();
 
             match connection_security {
-                ConnectionSecurity::Unsafe => {
-                    let dangerous = tls_conf.dangerous();
-                    dangerous
-                        .with_custom_certificate_verifier(Arc::new(DangerIgnoreVerifier(
-                            tls_provider::default_provider(),
-                        )))
-                        .with_no_client_auth()
-                }
+                ConnectionSecurity::Unsafe => tls_conf.disable_verification(true),
                 ConnectionSecurity::Native => {
-                    let native_certs = rustls_native_certs::load_native_certs();
-                    if !native_certs.errors.is_empty() {
-                        return Err(Error::CertLoading(native_certs.errors));
-                    }
-                    let native_certs = native_certs.certs;
-
-                    let roots = {
-                        let mut roots = rustls::RootCertStore::empty();
-                        let (added, failed) = roots.add_parsable_certificates(native_certs);
-                        debug!(
-                            "Added {added} certificates and failed to parse {failed} certificates"
-                        );
-                        if added == 0 {
-                            error!("Added no native certificates");
-                            return Err(Error::NoSystemCertsAdded { failed });
-                        }
-                        roots
-                    };
-
-                    tls_conf.with_root_certificates(roots).with_no_client_auth()
+                    tls_conf.provider(TlsProvider::Rustls);
+                    todo!("this is a bit more complex");
                 }
-                ConnectionSecurity::Fingerprints(fingerprints) => {
-                    let dangerous = tls_conf.dangerous();
-                    dangerous
-                        .with_custom_certificate_verifier(Arc::new(FingerprintVerifier {
-                            fingerprints,
-                            provider: tls_provider::default_provider(),
-                        }))
-                        .with_no_client_auth()
+                ConnectionSecurity::Fingerprints(_fingerprints) => {
+                    todo!("don't know how to implement that now");
                 }
             }
-        };
+        }
+        .build();
 
         let agent = {
             let max_idle_connections = max_idle_connections
@@ -533,14 +496,14 @@ impl NetHsm {
                 max_idle_connections, timeout_seconds
             );
 
-            RefCell::new(
-                AgentBuilder::new()
-                    .tls_config(Arc::new(tls_conf))
+            RefCell::new(Agent::new_with_config(
+                Agent::config_builder()
+                    .tls_config(tls_conf)
                     .max_idle_connections(max_idle_connections)
                     .max_idle_connections_per_host(max_idle_connections)
-                    .timeout_connect(Duration::from_secs(timeout_seconds))
+                    .timeout_connect(Some(Duration::from_secs(timeout_seconds)))
                     .build(),
-            )
+            ))
         };
 
         let (current_credentials, credentials) = if let Some(credentials) = credentials {

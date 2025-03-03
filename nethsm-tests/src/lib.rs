@@ -363,7 +363,8 @@ pub fn update_file() -> TestResult<PathBuf> {
     let file = download_dir.join(file_name);
 
     if !file.exists() {
-        let mut file_bytes = ureq::get(&update_link).call()?.into_reader();
+        let mut file_bytes = ureq::get(&update_link).call()?.into_body();
+        let mut file_bytes = file_bytes.as_reader();
         let mut file_writer = File::create(&file)?;
         std::io::copy(&mut file_bytes, &mut file_writer)?;
         assert!(file.exists());
