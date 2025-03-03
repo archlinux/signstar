@@ -1,0 +1,51 @@
+# Signing Response specification
+
+## Glossary
+
+*Client* - the application (here: `signstar-request-signature`) which computes a file digest and creates a *signing request*,
+
+*Server* - the application (currently: `nethsm-cli`) which receives a *signing request*, processes it and returns a *signature*,
+
+*Signing response* - machine and human-readable description of the data signature.
+The exact format for the signing response is described below.
+
+*Signature* - raw cryptographic signature in a technology-specific framing (e.g. in "packets" for [OpenPGP][9580]).
+
+## Format specification
+
+The *signing response* is a custom JSON encoded data format.
+
+The below sample *signing response* is fully expanded for illustrative purposes:
+
+```json
+{
+    "version": "1.0.0",
+    "content": "-----BEGIN PGP SIGNATURE-----\n\nwnUEABYKAB0WIQRfsO5nGa+i+6sgdPRTD9XY/kzu2QUCZ8WtVgAKCRBTD9XY/kzu\n2XCMAQCjsYYJ00u9wUE0O1CO8OOEi/4sXq1cDol6jhYep4awgwD8DtXJ/nCnSmRE\npSgPblgptDYtLdzJvvxd7G9kCSNS4AM=\n=XHyn\n-----END PGP SIGNATURE-----"
+}
+```
+
+The fields are as follows:
+
+- `version` - [Semantic Versioning][SV]-compatible version string. Incompatible changes to the format will result in a major version bump.
+
+- `content` - raw signature bytes represented as a string. When using OpenPGP the [signature][SD] must be [ASCII-armored][ARMOR].
+
+[ARMOR]: https://openpgp.dev/book/armor.html
+[SD]: https://openpgp.dev/book/signing_data.html
+
+### Specification evolution
+
+The specification can be extended by adding new fields or allowed values in minor version changes.
+If fields are removed, this constitutes a major version change to the specification.
+Old values are supported indefinitely (with the exception of security related changes).
+This allows older clients to keep using the same API and only upgrade when they want to take advantage of additional features.
+
+If the server sends a response that is not spec-compliant (e.g. a version field has not been provided) the client MUST reject the response.
+
+Deprecation of values is handled in the same way: the old value is supported and the accepting party (i.e. the server) must transparently translate old, deprecated values to the new format.
+
+Each change in the protocol must be documented in this specification.
+
+Refer to the [design document] for an in-depth discussion of the technical details.
+
+[design document]: ./design.md
