@@ -52,6 +52,10 @@ pub enum Error {
     /// System time error.
     #[error("Time before the Unix epoch: {0}")]
     Time(#[from] std::time::SystemTimeError),
+
+    /// Requesting signing via SSH failed.
+    #[error("SSH client error: {0}")]
+    SshClient(#[from] crate::ssh::client::Error),
 }
 
 /// Type of the input hash.

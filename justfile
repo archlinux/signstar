@@ -356,6 +356,7 @@ test-readme project:
 test-readmes:
     just test-readme nethsm-cli
     just test-readme signstar-configure-build
+    just test-readme signstar-request-signature
 
 # Adds pre-commit and pre-push git hooks
 add-hooks:
