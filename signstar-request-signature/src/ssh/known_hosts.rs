@@ -1,5 +1,6 @@
 //! SSH `known_hosts` format utilities.
 
+use log::{info, warn};
 use russh::keys::{
     PublicKey,
     ssh_key::known_hosts::{Entry, HostPatterns},
@@ -28,13 +29,20 @@ pub(crate) fn is_server_known<'a>(
                     mac.update(host.as_bytes());
                     mac.finalize().into_bytes()[..] == hash[..]
                 } else {
-                    // the salt was not of correct size so the entry does not match
+                    warn!(
+                        "the salt {salt:?} was not of correct size so the entry for host {host} does not match"
+                    );
                     false
                 }
             }
         } && entry.public_key() == key
         {
-            return entry.marker().is_none();
+            return if let Some(marker) = entry.marker() {
+                info!("Found marker {marker} for host {host} but it is not supported.");
+                false
+            } else {
+                true
+            };
         }
     }
     false

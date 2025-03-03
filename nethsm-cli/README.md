@@ -469,7 +469,7 @@ for key in signing1 signing3 signing4 signing5 signing8 signing10; do
   rsop verify "$NETHSM_OPENPGP_SIGNATURE_OUTPUT_FILE" "$NETHSM_KEY_CERT_OUTPUT_FILE" < "$NETHSM_OPENPGP_SIGNATURE_MESSAGE"
 done
 
-signstar-request-signature "$NETHSM_OPENPGP_SIGNATURE_MESSAGE" | tee "${NETHSM_OPENPGP_SIGNATURE_MESSAGE}.json"
+signstar-request-signature prepare "$NETHSM_OPENPGP_SIGNATURE_MESSAGE" | tee "${NETHSM_OPENPGP_SIGNATURE_MESSAGE}.json"
 nethsm openpgp sign-state --force "signing1" "${NETHSM_OPENPGP_SIGNATURE_MESSAGE}.json"
 gpg --verify "$NETHSM_OPENPGP_SIGNATURE_OUTPUT_FILE" "$NETHSM_OPENPGP_SIGNATURE_MESSAGE"
 rpacket dump "$NETHSM_OPENPGP_SIGNATURE_OUTPUT_FILE"
