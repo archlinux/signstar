@@ -185,12 +185,22 @@ pub struct Request {
 
 impl Request {
     /// Read the request from a JSON serialized bytes.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if reading the file fails or the file contents
+    /// are not well-formed.
     pub fn from_reader(reader: impl std::io::Read) -> Result<Self, Error> {
         let req: Request = serde_json::from_reader(reader)?;
         Ok(req)
     }
 
     /// Write the request as a JSON serialized form.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if serialization of the request fails or writing to
+    /// the `writer` encounters an error.
     pub fn to_writer(&self, writer: impl std::io::Write) -> Result<(), Error> {
         serde_json::to_writer(writer, &self)?;
         Ok(())
