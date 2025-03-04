@@ -10,7 +10,14 @@ use std::{
 use nethsm::{ConnectionSecurity, Credentials, KeyId, NetHsm, Passphrase, Url, UserId, UserRole};
 use serde::{Deserialize, Serialize};
 
-use crate::{ConfigCredentials, PassphrasePrompt, SystemUserId, UserMapping, UserPrompt};
+use crate::{
+    ConfigCredentials,
+    ExtendedUserMapping,
+    PassphrasePrompt,
+    SystemUserId,
+    UserMapping,
+    UserPrompt,
+};
 
 /// Errors related to configuration
 #[derive(Debug, thiserror::Error)]
@@ -53,6 +60,10 @@ pub enum Error {
     /// Credentials do not exist
     #[error("No user matching one of the requested roles ({0:?}) exists")]
     NoMatchingCredentials(Vec<UserRole>),
+
+    /// There is no mapping for a provided system user name.
+    #[error("No mapping found where a system user matches the name {name}")]
+    NoMatchingMappingForSystemUser { name: String },
 
     /// Shamir's Secret Sharing (SSS) is not used for administrative secret handling, but users for
     /// handling of secret shares are defined
@@ -2157,6 +2168,30 @@ impl HermeticParallelConfig {
     /// Returns the [`NonAdministrativeSecretHandling`].
     pub fn get_non_administrative_secret_handling(&self) -> NonAdministrativeSecretHandling {
         self.non_admin_secret_handling
+    }
+
+    /// Returns an [`ExtendedUserMapping`] for a system user of `name` if it exists.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if no [`UserMapping`] with a [`SystemUserId`] matching `name` is found.
+    pub fn get_extended_mapping_for_user(&self, name: &str) -> Result<ExtendedUserMapping, Error> {
+        for user_mapping in self.users.iter() {
+            if user_mapping
+                .get_system_user()
+                .is_some_and(|system_user| system_user.as_ref() == name)
+            {
+                return Ok(ExtendedUserMapping::new(
+                    self.admin_secret_handling,
+                    self.non_admin_secret_handling,
+                    self.connections.clone(),
+                    user_mapping.clone(),
+                ));
+            }
+        }
+        Err(Error::NoMatchingMappingForSystemUser {
+            name: name.to_string(),
+        })
     }
 
     /// Validates the components of the [`HermeticParallelConfig`].
