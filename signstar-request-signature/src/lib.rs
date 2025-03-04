@@ -171,18 +171,36 @@ pub struct Request {
 
 impl Request {
     /// Read the request from a JSON serialized bytes.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if reading the file fails or the file contents
+    /// are not well-formed.
     pub fn from_reader(reader: impl std::io::Read) -> Result<Self, Error> {
         let req: Request = serde_json::from_reader(reader)?;
         Ok(req)
     }
 
     /// Write the request as a JSON serialized form.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if serialization of the request fails or writing to
+    /// the `writer` encounters an error.
     pub fn to_writer(&self, writer: impl std::io::Write) -> Result<(), Error> {
         serde_json::to_writer(writer, &self)?;
         Ok(())
     }
 
     /// Prepare signing request for a file.
+    ///
+    /// Given a file as an `input` this function creates a well-formed request.
+    /// That request is of latest known version and contains all necessary fields.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if reading the file fails or forming the request encounters
+    /// an error.
     pub fn for_file(input: impl AsRef<Path>) -> Result<Request, Error> {
         let input = input.as_ref();
         let hasher = {
@@ -251,18 +269,35 @@ pub struct Response {
 
 impl Response {
     /// Read the response from a JSON serialized bytes.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if reading the file fails or the file contents
+    /// are not well-formed.
     pub fn from_reader(reader: impl std::io::Read) -> Result<Self, Error> {
         let resp: Self = serde_json::from_reader(reader)?;
         Ok(resp)
     }
 
     /// Write the response as a JSON serialized form.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if serialization of the response fails or writing to
+    /// the `writer` encounters an error.
     pub fn to_writer(&self, writer: impl std::io::Write) -> Result<(), Error> {
         serde_json::to_writer(writer, &self)?;
         Ok(())
     }
 
     /// Write raw signature to a writer.
+    ///
+    /// This function should be called to retrieve the contents of the signature produced by
+    /// Signstar.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the underlying `writer` fails to write the data.
     pub fn signature_to_writer(&self, mut writer: impl std::io::Write) -> Result<(), Error> {
         writer.write_all(self.content.as_bytes())?;
         Ok(())
