@@ -2149,6 +2149,11 @@ impl HermeticParallelConfig {
         self.users.iter()
     }
 
+    /// Returns the [`AdministrativeSecretHandling`].
+    pub fn get_administrative_secret_handling(&self) -> AdministrativeSecretHandling {
+        self.admin_secret_handling
+    }
+
     /// Validates the components of the [`HermeticParallelConfig`].
     fn validate(&self) -> Result<(), Error> {
         // ensure there are no duplicate system users
