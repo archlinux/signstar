@@ -669,29 +669,29 @@ impl PassphraseCreation for ExtendedUserMapping {
                     }
                     NonAdministrativeSecretHandling::SystemdCreds => {
                         // create encrypted credentials
-                        let systemd_creds_args = [
-                            "--user",
-                            "--name=",
-                            "--uid",
-                            system_user.as_ref(),
-                            "encrypt",
-                            "-",
-                            "-",
-                        ];
-                        let mut systemd_creds = Command::new("systemd-creds")
-                            .args(systemd_creds_args)
-                            .stdin(Stdio::piped())
-                            .stdout(Stdio::piped())
-                            .spawn()
-                            .map_err(|source| Error::EncryptSystemdCreds {
-                                path: secret_path.to_path_buf(),
-                                system_user: system_user.clone(),
-                                backend_user: user_id.clone(),
-                                source,
-                            })?;
+                        let mut command = Command::new("systemd-creds");
+                        command.stdin(Stdio::piped());
+                        command.stdout(Stdio::piped());
+                        command.arg("--user");
+                        command.arg("--name=");
+                        command.arg("--uid");
+                        command.arg(system_user.as_ref());
+                        command.arg("encrypt");
+                        command.arg("-");
+                        command.arg("-");
+
+                        let mut systemd_creds =
+                            command
+                                .spawn()
+                                .map_err(|source| Error::EncryptSystemdCreds {
+                                    path: secret_path.to_path_buf(),
+                                    system_user: system_user.clone(),
+                                    backend_user: user_id.clone(),
+                                    source,
+                                })?;
                         let Some(mut stdin) = systemd_creds.stdin.take() else {
                             return Err(Error::AttachToStdin {
-                                command: format!("systemd-creds {}", systemd_creds_args.join(" ")),
+                                command: format!("{command:?}"),
                             })?;
                         };
 
@@ -716,7 +716,7 @@ impl PassphraseCreation for ExtendedUserMapping {
 
                         if !systemd_creds_output.status.success() {
                             return Err(Error::CommandNonZero {
-                                command: format!("systemd-creds {}", systemd_creds_args.join(" ")),
+                                command: format!("{command:?}"),
                                 exit_status: systemd_creds_output.status,
                                 stdout: String::from_utf8_lossy(&systemd_creds_output.stdout)
                                     .into_owned(),
