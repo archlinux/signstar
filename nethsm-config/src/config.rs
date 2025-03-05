@@ -2154,6 +2154,11 @@ impl HermeticParallelConfig {
         self.admin_secret_handling
     }
 
+    /// Returns the [`NonAdministrativeSecretHandling`].
+    pub fn get_non_administrative_secret_handling(&self) -> NonAdministrativeSecretHandling {
+        self.non_admin_secret_handling
+    }
+
     /// Validates the components of the [`HermeticParallelConfig`].
     fn validate(&self) -> Result<(), Error> {
         // ensure there are no duplicate system users
