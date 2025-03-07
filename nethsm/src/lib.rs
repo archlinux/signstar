@@ -5922,7 +5922,7 @@ impl NetHsm {
         created_at: DateTime<Utc>,
         version: OpenPgpVersion,
     ) -> Result<Vec<u8>, Error> {
-        openpgp::add_certificate(self, flags, key_id, user_id, created_at, version)
+        Ok(openpgp::add_certificate(self, flags, key_id, user_id, created_at, version).unwrap())
     }
 
     /// Creates an [OpenPGP signature] for a message.
@@ -6027,7 +6027,7 @@ impl NetHsm {
     /// [role]: https://docs.nitrokey.com/nethsm/administration#roles
     /// [state]: https://docs.nitrokey.com/nethsm/administration#state
     pub fn openpgp_sign(&self, key_id: &KeyId, message: &[u8]) -> Result<Vec<u8>, Error> {
-        openpgp::sign(self, key_id, message)
+        Ok(openpgp::sign(self, key_id, message).unwrap())
     }
 
     /// Generates an OpenPGP signature based on provided hasher state.
@@ -6138,8 +6138,8 @@ impl NetHsm {
     pub fn openpgp_sign_state(
         &self,
         key_id: &KeyId,
-        state: impl sha2::Digest + Clone + std::io::Write,
+        state: impl digest::DynDigest + Clone + std::io::Write + 'static,
     ) -> Result<Vec<u8>, crate::Error> {
-        openpgp::sign_hasher_state(self, key_id, state)
+        Ok(openpgp::sign_hasher_state(self, key_id, state).unwrap())
     }
 }
