@@ -2,7 +2,8 @@ use std::{fmt::Display, str::FromStr};
 
 use base64ct::{Base64, Encoding};
 use nethsm_sdk_rs::models::KeyPrivateData;
-use pgp::{SignedPublicKey, types::PublicKeyTrait};
+use pgp::composed::SignedPublicKey;
+use pgp::types::KeyDetails as _;
 use rsa::{
     RsaPrivateKey,
     pkcs8::DecodePrivateKey,

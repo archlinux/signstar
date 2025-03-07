@@ -231,7 +231,7 @@ pub use nethsm_sdk::{
     TlsKeyType,
     UserRole,
 };
-mod openpgp;
+pub mod openpgp;
 pub use openpgp::{
     KeyUsageFlags as OpenPgpKeyUsageFlags,
     OpenPgpUserId,
@@ -6158,7 +6158,9 @@ impl NetHsm {
         created_at: DateTime<Utc>,
         version: OpenPgpVersion,
     ) -> Result<Vec<u8>, Error> {
-        openpgp::add_certificate(self, flags, key_id, user_id, created_at, version)
+        Ok(openpgp::add_certificate(
+            self, flags, key_id, user_id, created_at, version,
+        )?)
     }
 
     /// Creates an [OpenPGP signature] for a message.
@@ -6266,7 +6268,7 @@ impl NetHsm {
     /// [role]: https://docs.nitrokey.com/nethsm/administration#roles
     /// [state]: https://docs.nitrokey.com/nethsm/administration#state
     pub fn openpgp_sign(&self, key_id: &KeyId, message: &[u8]) -> Result<Vec<u8>, Error> {
-        openpgp::sign(self, key_id, message)
+        Ok(openpgp::sign(self, key_id, message)?)
     }
 
     /// Generates an armored OpenPGP signature based on provided hasher state.
@@ -6314,7 +6316,7 @@ impl NetHsm {
     ///     Passphrase,
     ///     UserRole,
     /// };
-    /// use sha2::{Digest, Sha256};
+    /// use sha2::{Digest, Sha512};
     ///
     /// # fn main() -> testresult::TestResult {
     /// // create a connection with a system-wide user in the Administrator role (R-Administrator)
@@ -6360,7 +6362,7 @@ impl NetHsm {
     /// nethsm.use_credentials(&"admin".parse()?)?;
     /// nethsm.import_key_certificate(&"signing1".parse()?, openpgp_cert)?;
     ///
-    /// let mut state = Sha256::new();
+    /// let mut state = Sha512::new();
     /// state.update(b"Hello world!");
     ///
     /// // create OpenPGP signature
@@ -6380,8 +6382,8 @@ impl NetHsm {
     pub fn openpgp_sign_state(
         &self,
         key_id: &KeyId,
-        state: impl sha2::Digest + Clone + std::io::Write,
+        state: sha2::Sha512,
     ) -> Result<String, crate::Error> {
-        openpgp::sign_hasher_state(self, key_id, state)
+        Ok(openpgp::sign_hasher_state(self, key_id, state)?)
     }
 }

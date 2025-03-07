@@ -1,6 +1,7 @@
 //! OpenPGP-related functions.
 
 use std::{
+    backtrace::Backtrace,
     borrow::{Borrow, Cow},
     collections::HashSet,
     fmt::{Debug, Display},
@@ -10,20 +11,26 @@ use std::{
 
 use base64ct::{Base64, Encoding as _};
 use chrono::{DateTime, Utc};
+use digest::DynDigest;
+use ed25519_dalek::VerifyingKey;
 use email_address::{EmailAddress, Options};
-use log::error;
+use log::{error, warn};
 use pgp::{
-    ArmorOptions,
-    Deserializable,
-    KeyDetails,
-    SignedPublicKey,
-    SignedSecretKey,
-    StandaloneSignature,
-    crypto::{ecc_curve::ECCCurve, hash::HashAlgorithm, public_key::PublicKeyAlgorithm},
+    composed::{
+        ArmorOptions,
+        Deserializable as _,
+        SignedPublicKey,
+        SignedSecretKey,
+        StandaloneSignature,
+    },
+    crypto::{hash::HashAlgorithm, public_key::PublicKeyAlgorithm},
     packet::{
         KeyFlags,
         Notation,
+        PacketTrait,
+        PubKeyInner,
         PublicKey,
+        Signature,
         SignatureConfig,
         SignatureType,
         Subpacket,
@@ -34,19 +41,19 @@ use pgp::{
     types::{
         CompressionAlgorithm,
         EcdsaPublicParams,
-        EskType,
+        KeyDetails as _,
         KeyId,
         KeyVersion,
         Mpi,
-        PkeskBytes,
+        Password,
         PlainSecretParams,
-        PublicKeyTrait,
+        PublicKeyTrait as _,
         PublicParams,
+        RsaPublicParams,
         SecretKeyTrait,
         SecretParams,
         SignatureBytes,
         SignedUser,
-        Version,
     },
 };
 use picky_asn1_x509::{
@@ -55,10 +62,13 @@ use picky_asn1_x509::{
     ShaVariant,
     signature::EcdsaSignatureValue,
 };
-use rand::prelude::{CryptoRng, Rng};
+use rsa::BigUint;
+use rsa::traits::PublicKeyParts as _;
+use sha2::digest::Digest as _;
 
 use crate::{KeyMechanism, KeyType, NetHsm, PrivateKeyImport, key_type_matches_length};
 
+/// An error that may occur when working with OpenPGP data.
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
     /// A Base64 encoded string can not be decode
@@ -71,7 +81,10 @@ pub enum Error {
 
     /// Duplicate OpenPGP User ID
     #[error("The OpenPGP User ID {user_id} is used more than once!")]
-    DuplicateUserId { user_id: OpenPgpUserId },
+    DuplicateUserId {
+        /// The duplicate OpenPGP User ID.
+        user_id: OpenPgpUserId,
+    },
 
     /// Provided OpenPGP version is invalid
     #[error("Invalid OpenPGP version: {0}")]
@@ -99,11 +112,17 @@ pub enum Error {
 
     /// The key format used is unsupported
     #[error("Unsupported key format: {public_params:?}")]
-    UnsupportedKeyFormat { public_params: Box<PublicParams> },
+    UnsupportedKeyFormat {
+        /// The unsupported public key parameters.
+        public_params: Box<PublicParams>,
+    },
 
     /// The User ID is too large
     #[error("The OpenPGP User ID is too large: {user_id}")]
-    UserIdTooLarge { user_id: String },
+    UserIdTooLarge {
+        /// The string that is too long to be used as an OpenPGP User ID.
+        user_id: String,
+    },
 
     /// A UTF-8 error when trying to create a string from bytes.
     #[error("Creating a valid UTF-8 string from bytes failed while {context}:\n{source}")]
@@ -272,7 +291,7 @@ impl OpenPgpUserId {
     ///
     /// # Errors
     ///
-    /// Returns an [`Error::Key`][`crate::Error::Key`] if the chars of the provided String exceed
+    /// Returns an [`Error::UserIdTooLarge`] if the chars of the provided String exceed
     /// 4096 bytes. This ensures to stay below the valid upper limit defined by the maximum OpenPGP
     /// packet size of 8192 bytes.
     ///
@@ -502,14 +521,17 @@ impl Debug for HsmKey<'_, '_> {
 /// This behavior has been suggested upstream in <https://github.com/rpgp/rpgp/issues/517#issuecomment-2778245199>
 #[inline]
 fn to_rpgp_error(e: impl Into<Box<dyn std::error::Error + Send + Sync>>) -> pgp::errors::Error {
-    pgp::errors::Error::IOError(std::io::Error::other(e))
+    pgp::errors::Error::IO {
+        source: std::io::Error::other(e),
+        backtrace: Some(Backtrace::capture()),
+    }
 }
 
 /// Parse signature bytes into algorithm-specific vector of MPIs.
 fn parse_signature(sig_type: crate::SignatureType, sig: &[u8]) -> pgp::errors::Result<Vec<Mpi>> {
-    use crate::SignatureType::*;
+    use crate::SignatureType;
     Ok(match sig_type {
-        EcdsaP256 | EcdsaP384 | EcdsaP521 => {
+        SignatureType::EcdsaP256 | SignatureType::EcdsaP384 | SignatureType::EcdsaP521 => {
             let sig: EcdsaSignatureValue = picky_asn1_der::from_bytes(sig).map_err(|e| {
                 error!("DER decoding error when parsing ECDSA signature: {e:?}");
                 to_rpgp_error(e)
@@ -519,21 +541,22 @@ fn parse_signature(sig_type: crate::SignatureType, sig: &[u8]) -> pgp::errors::R
                 Mpi::from_slice(sig.s.as_unsigned_bytes_be()),
             ]
         }
-        EdDsa => {
+        SignatureType::EdDsa => {
             if sig.len() != 64 {
                 return Err(pgp::errors::Error::InvalidKeyLength);
             }
 
             vec![Mpi::from_slice(&sig[..32]), Mpi::from_slice(&sig[32..])]
         }
-        Pkcs1 => {
+        SignatureType::Pkcs1 => {
             // RSA
             vec![Mpi::from_slice(sig)]
         }
-        param => {
-            return Err(pgp::errors::Error::Unsupported(format!(
-                "Unsupoprted key type: {param:?}"
-            )));
+        _ => {
+            warn!("Unsupported signature type: {sig_type}");
+            return Err(pgp::errors::Error::InvalidInput {
+                backtrace: Some(Backtrace::capture()),
+            });
         }
     })
 }
@@ -555,46 +578,26 @@ impl<'a, 'b> HsmKey<'a, 'b> {
                 EcdsaPublicParams::P256 { .. } => crate::SignatureType::EcdsaP256,
                 EcdsaPublicParams::P384 { .. } => crate::SignatureType::EcdsaP384,
                 EcdsaPublicParams::P521 { .. } => crate::SignatureType::EcdsaP521,
-                param => {
-                    return Err(pgp::errors::Error::Unsupported(format!(
-                        "Unsupported EC key type: {param:?}"
-                    )));
+                _ => {
+                    warn!("Unsupported ECDSA parameter type: {ecdsa:?}");
+                    return Err(pgp::errors::Error::InvalidInput {
+                        backtrace: Some(Backtrace::capture()),
+                    });
                 }
             },
             PublicParams::EdDSALegacy { .. } => crate::SignatureType::EdDsa,
             PublicParams::RSA { .. } => crate::SignatureType::Pkcs1,
-            param => {
-                return Err(pgp::errors::Error::Unsupported(format!(
-                    "Unsupported key type: {param:?}"
-                )));
+            params => {
+                warn!("Unsupported signing parameters: {params:?}");
+                return Err(pgp::errors::Error::InvalidInput {
+                    backtrace: Some(Backtrace::capture()),
+                });
             }
         })
     }
 }
 
-impl PublicKeyTrait for HsmKey<'_, '_> {
-    fn verify_signature(
-        &self,
-        hash: pgp::crypto::hash::HashAlgorithm,
-        data: &[u8],
-        sig: &SignatureBytes,
-    ) -> pgp::errors::Result<()> {
-        self.public_key.verify_signature(hash, data, sig)
-    }
-
-    fn encrypt<R: CryptoRng + Rng>(
-        &self,
-        rng: R,
-        plain: &[u8],
-        esk_type: EskType,
-    ) -> pgp::errors::Result<PkeskBytes> {
-        self.public_key.encrypt(rng, plain, esk_type)
-    }
-
-    fn serialize_for_hashing(&self, writer: &mut impl std::io::Write) -> pgp::errors::Result<()> {
-        self.public_key.serialize_for_hashing(writer)
-    }
-
+impl pgp::types::KeyDetails for HsmKey<'_, '_> {
     fn version(&self) -> KeyVersion {
         self.public_key.version()
     }
@@ -609,18 +612,6 @@ impl PublicKeyTrait for HsmKey<'_, '_> {
 
     fn algorithm(&self) -> PublicKeyAlgorithm {
         self.public_key.algorithm()
-    }
-
-    fn created_at(&self) -> &chrono::DateTime<chrono::Utc> {
-        self.public_key.created_at()
-    }
-
-    fn expiration(&self) -> Option<u16> {
-        self.public_key.expiration()
-    }
-
-    fn public_params(&self) -> &PublicParams {
-        self.public_key.public_params()
     }
 }
 
@@ -666,27 +657,28 @@ fn prepare_digest_data(
 }
 
 impl SecretKeyTrait for HsmKey<'_, '_> {
-    type PublicKey = PublicKey;
-
-    type Unlocked = Self;
-
-    fn unlock<F, G, T>(&self, _pw: F, work: G) -> pgp::errors::Result<T>
-    where
-        F: FnOnce() -> String,
-        G: FnOnce(&Self::Unlocked) -> pgp::errors::Result<T>,
-    {
-        work(self)
-    }
-
-    fn create_signature<F>(
+    /// Creates a data signature.
+    ///
+    /// # Note
+    ///
+    /// The [`NetHsm`] in use is expected to be unlocked and configured to use a user in the
+    /// [`Operator`][`crate::UserRole::Operator`] role with access to the signing key.
+    /// Using a [`Password`] is not necessary as the operation deals with unencrypted cryptographic
+    /// key material.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if
+    /// - the key uses unsupported parameters (e.g. brainpool curves),
+    /// - digest serialization fails (e.g. ASN1 encoding of digest for RSA signatures),
+    /// - NetHSM `sign_digest` call fails,
+    /// - parsing of signature returned from the NetHSM fails.
+    fn create_signature(
         &self,
-        _key_pw: F,
+        _key_pw: &Password,
         hash: HashAlgorithm,
         data: &[u8],
-    ) -> pgp::errors::Result<SignatureBytes>
-    where
-        F: FnOnce() -> String,
-    {
+    ) -> pgp::errors::Result<SignatureBytes> {
         let signature_type = self.sign_mode()?;
         let request_data = prepare_digest_data(signature_type, hash, data)?;
 
@@ -698,15 +690,16 @@ impl SecretKeyTrait for HsmKey<'_, '_> {
                 to_rpgp_error(e)
             })?;
 
-        Ok(parse_signature(signature_type, &sig)?.into())
+        Ok(SignatureBytes::Mpis(parse_signature(signature_type, &sig)?))
     }
 
-    fn public_key(&self) -> Self::PublicKey {
-        self.public_key.clone()
-    }
-
+    /// Returns the preferred hash algorithm for data digests.
+    ///
+    /// # Note
+    /// We always return SHA-512 since this it is faster than SHA-256 on modern hardware and of
+    /// sufficient size to accommodate all elliptic-curve algorithms.
     fn hash_alg(&self) -> HashAlgorithm {
-        HashAlgorithm::SHA2_512
+        HashAlgorithm::Sha512
     }
 }
 
@@ -718,54 +711,59 @@ pub fn add_certificate(
     user_id: OpenPgpUserId,
     created_at: DateTime<Utc>,
     version: OpenPgpVersion,
-) -> Result<Vec<u8>, crate::Error> {
+) -> Result<Vec<u8>, Error> {
     if version != OpenPgpVersion::V4 {
         unimplemented!(
             "Support for creating OpenPGP {version} certificates is not yet implemented!"
         );
     }
 
-    let public_key = nethsm.get_key(key_id)?;
+    let public_key = nethsm.get_key(key_id).map_err(to_rpgp_error)?;
     let signer = HsmKey::new(nethsm, hsm_pk_to_pgp_pk(public_key, created_at)?, key_id);
-    let keyflags: KeyFlags = flags.into();
 
-    let composed_pk = pgp::PublicKey::new(
-        signer.public_key(),
-        KeyDetails::new(
-            UserId::from_str(Default::default(), user_id.as_ref()),
+    let composed_pk = pgp::composed::PublicKey::new(
+        signer.public_key.clone(),
+        pgp::composed::KeyDetails::new(
+            Some(UserId::from_str(Default::default(), user_id.as_ref())?),
             vec![],
             vec![],
-            keyflags,
+            flags.into(),
+            Default::default(),
             Default::default(),
             Default::default(),
             vec![CompressionAlgorithm::Uncompressed].into(),
             vec![].into(),
-            None,
         ),
         vec![],
     );
-    let signed_pk = composed_pk
-        .sign(rand::thread_rng(), &signer, String::new)
-        .map_err(Error::Pgp)?;
+
+    let signed_pk = composed_pk.sign(
+        rand::thread_rng(),
+        &signer,
+        &signer.public_key,
+        &Password::empty(),
+    )?;
+
     let mut buffer = vec![];
-    signed_pk.to_writer(&mut buffer).map_err(Error::Pgp)?;
+    signed_pk.to_writer(&mut buffer)?;
     Ok(buffer)
 }
 
 /// Converts OpenPGP hash algorithm into an OID form for PKCS#1 signing.
 fn hash_to_oid(hash: HashAlgorithm) -> pgp::errors::Result<AlgorithmIdentifier> {
     Ok(AlgorithmIdentifier::new_sha(match hash {
-        HashAlgorithm::SHA1 => ShaVariant::SHA1,
-        HashAlgorithm::SHA2_256 => ShaVariant::SHA2_256,
-        HashAlgorithm::SHA2_384 => ShaVariant::SHA2_384,
-        HashAlgorithm::SHA2_512 => ShaVariant::SHA2_512,
-        HashAlgorithm::SHA2_224 => ShaVariant::SHA2_224,
-        HashAlgorithm::SHA3_256 => ShaVariant::SHA3_256,
-        HashAlgorithm::SHA3_512 => ShaVariant::SHA3_512,
-        hash => {
-            return Err(pgp::errors::Error::Unsupported(format!(
-                "Unsupported hash: {hash:?}"
-            )));
+        HashAlgorithm::Sha1 => ShaVariant::SHA1,
+        HashAlgorithm::Sha256 => ShaVariant::SHA2_256,
+        HashAlgorithm::Sha384 => ShaVariant::SHA2_384,
+        HashAlgorithm::Sha512 => ShaVariant::SHA2_512,
+        HashAlgorithm::Sha224 => ShaVariant::SHA2_224,
+        HashAlgorithm::Sha3_256 => ShaVariant::SHA3_256,
+        HashAlgorithm::Sha3_512 => ShaVariant::SHA3_512,
+        _ => {
+            warn!("Unsupported hash algorithm: {hash}");
+            return Err(pgp::errors::Error::InvalidInput {
+                backtrace: Some(Backtrace::capture()),
+            });
         }
     }))
 }
@@ -774,85 +772,136 @@ fn hash_to_oid(hash: HashAlgorithm) -> pgp::errors::Result<AlgorithmIdentifier> 
 ///
 /// # Errors
 ///
-/// Returns an [`crate::Error::OpenPgp`] if creating a [`PrivateKeyImport`] from `key_data` is not
+/// Returns an [`Error::Pgp`] if creating a [`PrivateKeyImport`] from `key_data` is not
 /// possible.
 ///
-/// Returns an [`crate::Error::Key`] if an RSA public key is shorter than
+/// Returns an [`crate::Error::Key`] if `key_data` is an RSA public key and is shorter than
 /// [`crate::MIN_RSA_BIT_LENGTH`].
 pub fn tsk_to_private_key_import(
     key_data: &[u8],
-) -> Result<(PrivateKeyImport, KeyMechanism), crate::Error> {
-    let key = SignedSecretKey::from_bytes(key_data).map_err(Error::Pgp)?;
+) -> Result<(PrivateKeyImport, KeyMechanism), Error> {
+    let key = SignedSecretKey::from_bytes(key_data)?;
     if !key.secret_subkeys.is_empty() {
-        return Err(crate::Error::OpenPgp(
-            Error::UnsupportedMultipleComponentKeys,
-        ));
+        return Err(Error::UnsupportedMultipleComponentKeys);
     }
     let SecretParams::Plain(secret) = key.primary_key.secret_params() else {
-        return Err(crate::Error::OpenPgp(Error::PrivateKeyPassphraseProtected));
+        return Err(Error::PrivateKeyPassphraseProtected);
     };
-    Ok(match (secret, key.public_params()) {
-        (PlainSecretParams::RSA { p, q, .. }, PublicParams::RSA { n, e }) => {
+    Ok(match (secret, key.public_key().public_params()) {
+        (PlainSecretParams::RSA(secret), PublicParams::RSA(public)) => {
             // ensure, that we have sufficient bit length
-            key_type_matches_length(KeyType::Rsa, Some(n.as_bytes().len() as u32 * 8))?;
+            key_type_matches_length(
+                KeyType::Rsa,
+                Some(public.key.n().to_bytes_be().len() as u32 * 8),
+            )
+            .map_err(to_rpgp_error)?;
+
+            let (_d, p, q, _u) = secret.to_bytes();
 
             (
-                PrivateKeyImport::from_rsa(
-                    p.as_bytes().to_vec(),
-                    q.as_bytes().to_vec(),
-                    e.as_bytes().to_vec(),
-                ),
+                PrivateKeyImport::from_rsa(p, q, public.key.e().to_bytes_be().to_vec()),
                 KeyMechanism::RsaSignaturePkcs1,
             )
         }
-        (PlainSecretParams::ECDSA(bytes), _) => {
-            let ec = if let PublicParams::ECDSA(pp) = key.primary_key.public_params() {
+        (PlainSecretParams::ECDSA(secret_key), _) => {
+            let ec = if let PublicParams::ECDSA(pp) = key.primary_key.public_key().public_params() {
                 match pp {
                     EcdsaPublicParams::P256 { .. } => crate::KeyType::EcP256,
                     EcdsaPublicParams::P384 { .. } => crate::KeyType::EcP384,
                     EcdsaPublicParams::P521 { .. } => crate::KeyType::EcP521,
-                    _ => {
-                        return Err(crate::Error::OpenPgp(Error::UnsupportedKeyFormat {
-                            public_params: Box::new(key.public_params().clone()),
-                        }));
+                    pp => {
+                        warn!("Unsupported ECDSA parameters: {pp:?}");
+                        return Err(Error::UnsupportedKeyFormat {
+                            public_params: Box::new(key.public_key().public_params().clone()),
+                        })?;
                     }
                 }
             } else {
-                return Err(crate::Error::OpenPgp(Error::UnsupportedKeyFormat {
-                    public_params: Box::new(key.public_params().clone()),
-                }));
+                return Err(Error::UnsupportedKeyFormat {
+                    public_params: Box::new(key.public_key().public_params().clone()),
+                });
+            };
+
+            let bytes = match secret_key {
+                pgp::crypto::ecdsa::SecretKey::P256(secret_key) => secret_key.to_bytes().to_vec(),
+                pgp::crypto::ecdsa::SecretKey::P384(secret_key) => secret_key.to_bytes().to_vec(),
+                pgp::crypto::ecdsa::SecretKey::P521(secret_key) => secret_key.to_bytes().to_vec(),
+
+                pgp::crypto::ecdsa::SecretKey::Secp256k1(secret_key) => {
+                    secret_key.to_bytes().to_vec()
+                }
+                secret_key => {
+                    warn!("Unsupported secret key parameters: {secret_key:?}");
+                    return Err(Error::UnsupportedKeyFormat {
+                        public_params: Box::new(key.public_key().public_params().clone()),
+                    })?;
+                }
             };
 
             (
-                PrivateKeyImport::from_raw_bytes(ec, bytes)?,
+                PrivateKeyImport::from_raw_bytes(ec, bytes).map_err(to_rpgp_error)?,
                 KeyMechanism::EcdsaSignature,
             )
         }
-        (PlainSecretParams::EdDSALegacy(bytes), _) => (
-            PrivateKeyImport::from_raw_bytes(crate::KeyType::Curve25519, bytes)?,
+        (PlainSecretParams::Ed25519Legacy(bytes), _) => (
+            PrivateKeyImport::from_raw_bytes(crate::KeyType::Curve25519, bytes.as_bytes())
+                .map_err(to_rpgp_error)?,
             KeyMechanism::EdDsaSignature,
         ),
         (_, public_params) => {
-            return Err(crate::Error::OpenPgp(Error::UnsupportedKeyFormat {
+            return Err(Error::UnsupportedKeyFormat {
                 public_params: Box::new(public_params.clone()),
-            }));
+            });
         }
     })
 }
 
 /// Generates an OpenPGP signature using a given NetHSM key for the message.
-pub fn sign(
-    nethsm: &NetHsm,
-    key_id: &crate::KeyId,
-    message: &[u8],
-) -> Result<Vec<u8>, crate::Error> {
-    let public_key = nethsm.get_key_certificate(key_id)?;
+///
+/// Signs the message `message` using the key identified by `key_id`
+/// and returns a binary [OpenPGP data signature].
+///
+/// This call requires using a user in the [`Operator`][`crate::UserRole::Operator`] [role], which
+/// carries a tag (see [`add_user_tag`][`NetHsm::add_user_tag`]) matching one of the tags of
+/// the targeted key (see [`add_key_tag`][`NetHsm::add_key_tag`]).
+///
+/// ## Namespaces
+///
+/// * [`Operator`][`crate::UserRole::Operator`] users in a [namespace] only have access to keys in
+///   their own [namespace].
+/// * System-wide [`Operator`][`crate::UserRole::Operator`] users only have access to system-wide
+///   keys.
+///
+/// # Errors
+///
+/// Returns an [`crate::Error::Api`] if creating an [OpenPGP signature] for the hasher state fails:
+/// * the NetHSM is not in [`Operational`][`crate::SystemState::Operational`] [state]
+/// * no key identified by `key_id` exists on the NetHSM
+/// * the [`Operator`][`crate::UserRole::Operator`] user does not have access to the key (e.g.
+///   different [namespace])
+/// * the [`Operator`][`crate::UserRole::Operator`] user does not carry a tag matching one of the
+///   key tags
+/// * the used [`Credentials`][`crate::Credentials`] are not correct
+/// * the used [`Credentials`][`crate::Credentials`] are not those of a user in the
+///   [`Operator`][`crate::UserRole::Operator`] [role]
+/// * the certificate for a given key has not been generated or is invalid
+/// * subpacket lengths exceed maximum values
+/// * hashing signed data fails
+/// * signature creation using the NetHSM fails
+/// * constructing OpenPGP signature from parts fails
+/// * writing the signature to vector fails
+///
+/// [OpenPGP signature]: https://openpgp.dev/book/signing_data.html
+/// [OpenPGP data signature]: https://openpgp.dev/book/signing_data.html
+/// [namespace]: https://docs.nitrokey.com/nethsm/administration#namespaces
+/// [role]: https://docs.nitrokey.com/nethsm/administration#roles
+/// [state]: https://docs.nitrokey.com/nethsm/administration#state
+pub fn sign(nethsm: &NetHsm, key_id: &crate::KeyId, message: &[u8]) -> Result<Vec<u8>, Error> {
+    let public_key = nethsm.get_key_certificate(key_id).map_err(to_rpgp_error)?;
 
     let signer = HsmKey::new(
         nethsm,
-        SignedPublicKey::from_bytes(&*public_key)
-            .map_err(Error::Pgp)?
-            .primary_key,
+        SignedPublicKey::from_bytes(&*public_key)?.primary_key,
         key_id,
     );
 
@@ -861,35 +910,87 @@ pub fn sign(
     sig_config.hashed_subpackets = vec![
         Subpacket::regular(SubpacketData::SignatureCreationTime(
             std::time::SystemTime::now().into(),
-        )),
-        Subpacket::regular(SubpacketData::Issuer(signer.key_id())),
-        Subpacket::regular(SubpacketData::IssuerFingerprint(signer.fingerprint())),
+        ))?,
+        Subpacket::regular(SubpacketData::Issuer(signer.key_id()))?,
+        Subpacket::regular(SubpacketData::IssuerFingerprint(signer.fingerprint()))?,
     ];
 
-    let mut hasher = sig_config.hash_alg.new_hasher().map_err(Error::Pgp)?;
-    sig_config
-        .hash_data_to_sign(&mut *hasher, message)
-        .map_err(Error::Pgp)?;
+    let mut hasher = sig_config.hash_alg.new_hasher().map_err(to_rpgp_error)?;
+    sig_config.hash_data_to_sign(&mut hasher, message)?;
 
-    let len = sig_config
-        .hash_signature_data(&mut hasher)
-        .map_err(Error::Pgp)?;
+    let len = sig_config.hash_signature_data(&mut hasher)?;
 
-    hasher.update(&sig_config.trailer(len).map_err(Error::Pgp)?);
+    hasher.update(&sig_config.trailer(len)?);
 
-    let hash = &hasher.finish()[..];
+    let hash = &hasher.finalize()[..];
 
     let signed_hash_value = [hash[0], hash[1]];
-    let raw_sig = signer
-        .create_signature(String::new, sig_config.hash_alg, hash)
-        .map_err(Error::Pgp)?;
+    let raw_sig = signer.create_signature(&Password::empty(), sig_config.hash_alg, hash)?;
 
-    let signature = pgp::Signature::from_config(sig_config, signed_hash_value, raw_sig);
+    let signature = Signature::from_config(sig_config, signed_hash_value, raw_sig)?;
 
     let mut out = vec![];
-    pgp::packet::write_packet(&mut out, &signature).map_err(Error::Pgp)?;
+    signature.to_writer_with_header(&mut out)?;
 
     Ok(out)
+}
+
+/// Provides an adapter bridging two versions of the `digest` crate.
+///
+/// # Note
+///
+/// rPGP uses a different version of the `digest` crate than the latest (as used by e.g.
+/// `signstar-request-signature`). This adapter exposes the old `digest` 0.10 interface for
+/// the [sha2::Sha512] object which uses digest 0.11.
+///
+/// When rPGP updates to digest 0.11 this entire struct can be removed.
+#[derive(Clone, Default)]
+struct Hasher(sha2::Sha512);
+
+impl DynDigest for Hasher {
+    /// Updates the digest with input data.
+    ///
+    /// This method can be called repeatedly for use with streaming messages.
+    fn update(&mut self, data: &[u8]) {
+        self.0.update(data);
+    }
+
+    /// Writes digest into provided buffer `buf` and consumes `self`.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the length of `buf` is too small for `self`.
+    fn finalize_into(self, buf: &mut [u8]) -> Result<(), digest::InvalidBufferSize> {
+        sha2::digest::DynDigest::finalize_into(self.0, buf)
+            .map_err(|_| digest::InvalidBufferSize)?;
+        Ok(())
+    }
+
+    /// Writes digest into provided buffer `buf` and resets `self` to an empty hasher.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the length of `buf` is too small for `self`.
+    fn finalize_into_reset(&mut self, out: &mut [u8]) -> Result<(), digest::InvalidBufferSize> {
+        sha2::digest::DynDigest::finalize_into_reset(&mut self.0, out)
+            .map_err(|_| digest::InvalidBufferSize)?;
+        Ok(())
+    }
+
+    /// Reset hasher instance to its initial state.
+    fn reset(&mut self) {
+        sha2::digest::DynDigest::reset(&mut self.0)
+    }
+
+    /// Get output size of the hasher
+    fn output_size(&self) -> usize {
+        sha2::digest::DynDigest::output_size(&self.0)
+    }
+
+    /// Clone hasher state into a boxed trait object
+    fn box_clone(&self) -> Box<dyn DynDigest> {
+        Box::new(self.clone())
+    }
 }
 
 /// Generates an armored OpenPGP signature based on provided hasher state.
@@ -929,20 +1030,19 @@ pub fn sign(
 pub fn sign_hasher_state(
     nethsm: &NetHsm,
     key_id: &crate::KeyId,
-    state: impl sha2::Digest + Clone + std::io::Write,
-) -> Result<String, crate::Error> {
-    let public_key = nethsm.get_key_certificate(key_id)?;
+    state: sha2::Sha512,
+) -> Result<String, Error> {
+    let public_key = nethsm.get_key_certificate(key_id).map_err(to_rpgp_error)?;
 
     let signer = HsmKey::new(
         nethsm,
-        SignedPublicKey::from_bytes(public_key.as_slice())
-            .map_err(Error::Pgp)?
-            .primary_key,
+        SignedPublicKey::from_bytes(public_key.as_slice())?.primary_key,
         key_id,
     );
 
     let hasher = state.clone();
-    let file_hash = hasher.finalize();
+
+    let file_hash = Box::new(hasher).finalize().to_vec();
 
     let sig_config = {
         let mut sig_config =
@@ -950,42 +1050,71 @@ pub fn sign_hasher_state(
         sig_config.hashed_subpackets = vec![
             Subpacket::regular(SubpacketData::SignatureCreationTime(
                 std::time::SystemTime::now().into(),
-            )),
-            Subpacket::regular(SubpacketData::Issuer(signer.key_id())),
-            Subpacket::regular(SubpacketData::IssuerFingerprint(signer.fingerprint())),
+            ))?,
+            Subpacket::regular(SubpacketData::Issuer(signer.key_id()))?,
+            Subpacket::regular(SubpacketData::IssuerFingerprint(signer.fingerprint()))?,
             Subpacket::regular(SubpacketData::Notation(Notation {
                 readable: false,
                 name: "data-digest@archlinux.org".into(),
-                value: file_hash[..].into(),
-            })),
+                value: file_hash.into(),
+            }))?,
         ];
         sig_config
     };
 
-    let hasher = {
-        let mut hasher = state.clone();
-        let write: &mut dyn std::io::Write = &mut hasher;
+    let mut hasher = Box::new(Hasher(state.clone())) as Box<dyn DynDigest + Send>;
 
-        let len = sig_config.hash_signature_data(write).map_err(Error::Pgp)?;
+    let len = sig_config.hash_signature_data(&mut hasher)?;
 
-        hasher.update(&sig_config.trailer(len).map_err(Error::Pgp)?);
-        hasher
-    };
+    hasher.update(&sig_config.trailer(len)?);
 
     let hash = &hasher.finalize()[..];
 
     let signed_hash_value = [hash[0], hash[1]];
 
-    let raw_sig = signer
-        .create_signature(String::new, sig_config.hash_alg, hash)
-        .map_err(Error::Pgp)?;
+    let raw_sig = signer.create_signature(&Password::empty(), sig_config.hash_alg, hash)?;
 
-    let signature = pgp::Signature::from_config(sig_config, signed_hash_value, raw_sig);
+    let signature = pgp::packet::Signature::from_config(sig_config, signed_hash_value, raw_sig)?;
 
     let signature = StandaloneSignature { signature };
-    Ok(signature
-        .to_armored_string(ArmorOptions::default())
-        .map_err(Error::Pgp)?)
+    Ok(signature.to_armored_string(ArmorOptions::default())?)
+}
+
+/// Creates a [`PublicKey`] object from ECDSA parameters.
+///
+/// Takes a `created_at` date and ECDSA `key` parameters.
+///
+/// # Errors
+///
+/// Returns an error if
+///
+/// - the ECDSA algorithm is unsupported by rPGP,
+/// - or the calculated packet length is invalid.
+fn ecdsa_to_public_key(
+    created_at: DateTime<Utc>,
+    key: EcdsaPublicParams,
+) -> Result<PublicKey, Error> {
+    Ok(PublicKey::from_inner(PubKeyInner::new(
+        KeyVersion::V4,
+        PublicKeyAlgorithm::ECDSA,
+        created_at,
+        None,
+        PublicParams::ECDSA(key),
+    )?)?)
+}
+
+/// Converts base64-encoded data into a vector of bytes.
+///
+/// # Errors
+///
+/// Returns an error if
+///
+/// - `data` is [`None`],
+/// - or `data` provides invalid base64 encoding.
+fn data_to_bytes(data: Option<&str>) -> Result<Vec<u8>, Error> {
+    Ok(Base64::decode_vec(data.ok_or(Error::KeyData(
+        "missing EC public key data".into(),
+    ))?)?)
 }
 
 /// Converts NetHSM public key to OpenPGP public key.
@@ -997,97 +1126,92 @@ fn hsm_pk_to_pgp_pk(
     pk: nethsm_sdk_rs::models::PublicKey,
     created_at: DateTime<Utc>,
 ) -> Result<PublicKey, Error> {
-    let public = pk
+    let public = &pk
         .public
         .ok_or(Error::KeyData("missing public key data".into()))?;
+
     let key_type: KeyType = pk.r#type.into();
     Ok(match key_type {
-        KeyType::Rsa => PublicKey::new(
-            Version::New,
+        KeyType::Rsa => PublicKey::from_inner(PubKeyInner::new(
             KeyVersion::V4,
             PublicKeyAlgorithm::RSA,
             created_at,
             None,
-            PublicParams::RSA {
-                n: Mpi::from_raw(Base64::decode_vec(
-                    &public
-                        .modulus
-                        .ok_or(Error::KeyData("missing RSA modulus".into()))?,
-                )?),
-                e: Mpi::from_raw(Base64::decode_vec(
-                    &public
-                        .public_exponent
-                        .ok_or(Error::KeyData("missing RSA exponent".into()))?,
-                )?),
-            },
-        )?,
-        KeyType::Curve25519 => {
-            let pubkey = Base64::decode_vec(
-                &public
-                    .data
-                    .ok_or(Error::KeyData("missing ed25519 public key data".into()))?,
-            )?;
-            let mut bytes = vec![0x40];
-            bytes.extend(pubkey);
+            PublicParams::RSA(RsaPublicParams {
+                key: rsa::RsaPublicKey::new(
+                    BigUint::from_bytes_be(&Base64::decode_vec(
+                        public
+                            .modulus
+                            .as_ref()
+                            .ok_or(Error::KeyData("missing RSA modulus".into()))?,
+                    )?),
+                    BigUint::from_bytes_be(&Base64::decode_vec(
+                        public
+                            .public_exponent
+                            .as_ref()
+                            .ok_or(Error::KeyData("missing RSA exponent".into()))?,
+                    )?),
+                )
+                .map_err(to_rpgp_error)?,
+            }),
+        )?)?,
 
-            PublicKey::new(
-                Version::New,
+        KeyType::Curve25519 => {
+            let pubkey: &[u8] = &data_to_bytes(public.data.as_deref())?;
+
+            PublicKey::from_inner(PubKeyInner::new(
                 KeyVersion::V4,
                 PublicKeyAlgorithm::EdDSALegacy,
                 created_at,
                 None,
-                PublicParams::EdDSALegacy {
-                    curve: ECCCurve::Ed25519,
-                    q: Mpi::from_raw(bytes),
-                },
-            )?
+                PublicParams::EdDSALegacy(pgp::types::EddsaLegacyPublicParams::Ed25519 {
+                    key: VerifyingKey::from_bytes(pubkey.try_into().map_err(to_rpgp_error)?)
+                        .map_err(to_rpgp_error)?,
+                }),
+            )?)?
         }
-        curve @ (KeyType::EcP256 | KeyType::EcP384 | KeyType::EcP521) => {
-            let pubkey = Base64::decode_vec(
-                &public
-                    .data
-                    .ok_or(Error::KeyData("missing EC public key data".into()))?,
-            )?;
-            let key = match curve {
-                KeyType::EcP256 => EcdsaPublicParams::P256 {
-                    key: p256::PublicKey::from_sec1_bytes(&pubkey)?,
-                    p: Mpi::from_raw(pubkey),
-                },
-                KeyType::EcP384 => EcdsaPublicParams::P384 {
-                    key: p384::PublicKey::from_sec1_bytes(&pubkey)?,
-                    p: Mpi::from_raw(pubkey),
-                },
-                KeyType::EcP521 => EcdsaPublicParams::P521 {
-                    key: p521::PublicKey::from_sec1_bytes(&pubkey)?,
-                    p: Mpi::from_raw(pubkey),
-                },
-                _ => unreachable!(),
-            };
 
-            PublicKey::new(
-                Version::New,
-                KeyVersion::V4,
-                PublicKeyAlgorithm::ECDSA,
-                created_at,
-                None,
-                PublicParams::ECDSA(key),
-            )?
-        }
+        KeyType::EcP256 => ecdsa_to_public_key(
+            created_at,
+            EcdsaPublicParams::P256 {
+                key: p256::PublicKey::from_sec1_bytes(&data_to_bytes(public.data.as_deref())?)?,
+            },
+        )?,
+        KeyType::EcP384 => ecdsa_to_public_key(
+            created_at,
+            EcdsaPublicParams::P384 {
+                key: p384::PublicKey::from_sec1_bytes(&data_to_bytes(public.data.as_deref())?)?,
+            },
+        )?,
+        KeyType::EcP521 => ecdsa_to_public_key(
+            created_at,
+            EcdsaPublicParams::P521 {
+                key: p521::PublicKey::from_sec1_bytes(&data_to_bytes(public.data.as_deref())?)?,
+            },
+        )?,
 
         _ => {
-            return Err(pgp::errors::Error::Unsupported(
-                "unsupported key type".into(),
-            ))?;
+            warn!("Unsupported key type: {key_type}");
+            return Err(pgp::errors::Error::InvalidInput {
+                backtrace: Some(Backtrace::capture()),
+            })?;
         }
     })
 }
 
 /// Extracts certificate (public key) from an OpenPGP TSK.
-pub fn extract_certificate(key_data: &[u8]) -> Result<Vec<u8>, crate::Error> {
-    let key = SignedSecretKey::from_bytes(key_data).map_err(Error::Pgp)?;
+///
+/// # Errors
+///
+/// Returns an error if
+///
+/// - a secret key cannot be decoded from `key_data`,
+/// - or writing a serialized certificate into a vector fails.
+pub fn extract_certificate(key_data: &[u8]) -> Result<Vec<u8>, Error> {
+    let key = SignedSecretKey::from_bytes(key_data)?;
     let public: SignedPublicKey = key.into();
     let mut buffer = vec![];
-    public.to_writer(&mut buffer).map_err(Error::Pgp)?;
+    public.to_writer(&mut buffer)?;
     Ok(buffer)
 }
 
@@ -1116,10 +1240,7 @@ impl From<KeyUsageFlags> for KeyFlags {
 #[cfg(test)]
 mod tests {
     use nethsm_sdk_rs::models::{KeyMechanism, KeyPublicData, KeyRestrictions, KeyType};
-    use pgp::{
-        crypto::ecc_curve::ECCCurve,
-        types::{EcdsaPublicParams, PublicParams},
-    };
+    use pgp::types::{EcdsaPublicParams, PublicParams};
     use rstest::rstest;
     use testresult::TestResult;
 
@@ -1142,15 +1263,16 @@ mod tests {
         };
 
         let pgp_key = hsm_pk_to_pgp_pk(hsm_key, DateTime::UNIX_EPOCH)?;
-        let PublicParams::EdDSALegacy { curve, q } = pgp_key.public_params() else {
+        let PublicParams::EdDSALegacy(pgp::types::EddsaLegacyPublicParams::Ed25519 { key }) =
+            pgp_key.public_params()
+        else {
             panic!("Wrong type of public params");
         };
-        assert_eq!(curve, &ECCCurve::Ed25519);
         assert_eq!(
-            q.to_vec(),
+            key.to_bytes(),
             [
-                64, 252, 224, 232, 104, 60, 215, 247, 16, 227, 167, 29, 139, 125, 29, 3, 8, 136,
-                29, 198, 163, 167, 117, 143, 109, 186, 65, 5, 45, 80, 142, 109, 10
+                252, 224, 232, 104, 60, 215, 247, 16, 227, 167, 29, 139, 125, 29, 3, 8, 136, 29,
+                198, 163, 167, 117, 143, 109, 186, 65, 5, 45, 80, 142, 109, 10
             ]
         );
 
@@ -1176,11 +1298,12 @@ mod tests {
             operations: 1,
         };
         let pgp_key = hsm_pk_to_pgp_pk(hsm_key, DateTime::UNIX_EPOCH)?;
-        let PublicParams::ECDSA(EcdsaPublicParams::P256 { p, .. }) = pgp_key.public_params() else {
+        let PublicParams::ECDSA(EcdsaPublicParams::P256 { key, .. }) = pgp_key.public_params()
+        else {
             panic!("Wrong type of public params");
         };
         assert_eq!(
-            p.to_vec(),
+            key.to_sec1_bytes().to_vec(),
             [
                 4, 222, 106, 236, 96, 145, 243, 13, 81, 181, 119, 76, 5, 29, 72, 112, 134, 130,
                 169, 182, 231, 247, 107, 204, 228, 178, 45, 77, 196, 91, 117, 122, 57, 69, 240,
@@ -1211,11 +1334,12 @@ mod tests {
             operations: 3,
         };
         let pgp_key = hsm_pk_to_pgp_pk(hsm_key, DateTime::UNIX_EPOCH)?;
-        let PublicParams::ECDSA(EcdsaPublicParams::P384 { p, .. }) = pgp_key.public_params() else {
+        let PublicParams::ECDSA(EcdsaPublicParams::P384 { key, .. }) = pgp_key.public_params()
+        else {
             panic!("Wrong type of public params");
         };
         assert_eq!(
-            p.to_vec(),
+            key.to_sec1_bytes().to_vec(),
             [
                 4, 127, 136, 147, 111, 187, 191, 131, 84, 166, 118, 67, 76, 107, 52, 142, 175, 72,
                 250, 64, 197, 76, 154, 162, 48, 211, 135, 63, 153, 60, 213, 168, 40, 41, 111, 8, 8,
@@ -1248,11 +1372,12 @@ mod tests {
             operations: 2,
         };
         let pgp_key = hsm_pk_to_pgp_pk(hsm_key, DateTime::UNIX_EPOCH)?;
-        let PublicParams::ECDSA(EcdsaPublicParams::P521 { p, .. }) = pgp_key.public_params() else {
+        let PublicParams::ECDSA(EcdsaPublicParams::P521 { key, .. }) = pgp_key.public_params()
+        else {
             panic!("Wrong type of public params");
         };
         assert_eq!(
-            p.to_vec(),
+            key.to_sec1_bytes().to_vec(),
             [
                 4, 1, 33, 39, 193, 238, 201, 51, 127, 12, 24, 192, 161, 112, 247, 31, 184, 211,
                 118, 95, 147, 192, 236, 9, 222, 214, 138, 194, 173, 170, 248, 123, 1, 138, 201, 96,
@@ -1281,12 +1406,12 @@ mod tests {
                     data: None })),
             operations: 2 };
         let pgp_key = hsm_pk_to_pgp_pk(hsm_key, DateTime::UNIX_EPOCH)?;
-        let PublicParams::RSA { e, n } = pgp_key.public_params() else {
+        let PublicParams::RSA(public) = pgp_key.public_params() else {
             panic!("Wrong type of public params");
         };
-        assert_eq!(e.to_vec(), [1, 0, 1]);
+        assert_eq!(public.key.e().to_bytes_be(), [1, 0, 1]);
         assert_eq!(
-            n.to_vec(),
+            public.key.n().to_bytes_be(),
             [
                 227, 127, 58, 151, 86, 130, 213, 238, 13, 247, 122, 241, 51, 227, 105, 143, 231,
                 114, 208, 33, 152, 209, 109, 207, 53, 179, 147, 4, 100, 99, 238, 212, 196, 126, 89,
@@ -1313,7 +1438,7 @@ mod tests {
     fn parse_rsa_signature_produces_valid_data() -> TestResult {
         let sig = parse_signature(crate::SignatureType::Pkcs1, &[0, 1, 2])?;
         assert_eq!(sig.len(), 1);
-        assert_eq!(&sig[0][..], &[1, 2]);
+        assert_eq!(&sig[0].as_ref(), &[1, 2]);
 
         Ok(())
     }
@@ -1329,8 +1454,8 @@ mod tests {
             ],
         )?;
         assert_eq!(sig.len(), 2);
-        assert_eq!(sig[0].as_bytes(), vec![2; 32]);
-        assert_eq!(sig[1].as_bytes(), vec![1; 32]);
+        assert_eq!(sig[0].as_ref(), vec![2; 32]);
+        assert_eq!(sig[1].as_ref(), vec![1; 32]);
 
         Ok(())
     }
@@ -1348,14 +1473,14 @@ mod tests {
         )?;
         assert_eq!(sig.len(), 2);
         assert_eq!(
-            sig[0].as_bytes(),
+            sig[0].as_ref(),
             [
                 193, 176, 219, 0, 133, 254, 212, 239, 236, 122, 85, 239, 73, 161, 179, 53, 100,
                 172, 103, 45, 123, 21, 169, 28, 59, 150, 72, 92, 242, 9, 53, 143
             ]
         );
         assert_eq!(
-            sig[1].as_bytes(),
+            sig[1].as_ref(),
             [
                 165, 1, 144, 97, 102, 109, 66, 50, 185, 234, 211, 150, 253, 228, 210, 126, 26, 0,
                 189, 184, 230, 163, 36, 203, 232, 161, 12, 75, 121, 171, 45, 107
@@ -1380,7 +1505,7 @@ mod tests {
         )?;
         assert_eq!(sig.len(), 2);
         assert_eq!(
-            sig[0].as_bytes(),
+            sig[0].as_ref(),
             [
                 134, 13, 108, 74, 135, 234, 174, 105, 208, 46, 109, 18, 77, 21, 177, 59, 73, 150,
                 228, 26, 244, 134, 187, 217, 172, 34, 2, 1, 229, 123, 105, 202, 132, 233, 72, 41,
@@ -1388,7 +1513,7 @@ mod tests {
             ]
         );
         assert_eq!(
-            sig[1].as_bytes(),
+            sig[1].as_ref(),
             [
                 44, 80, 117, 90, 18, 137, 36, 190, 8, 60, 201, 235, 242, 168, 164, 245, 119, 136,
                 207, 178, 237, 64, 117, 69, 218, 189, 209, 110, 2, 9, 191, 194, 70, 50, 227, 47, 6,
@@ -1416,7 +1541,7 @@ mod tests {
         )?;
         assert_eq!(sig.len(), 2);
         assert_eq!(
-            sig[0].as_bytes(),
+            sig[0].as_ref(),
             [
                 203, 246, 21, 57, 217, 6, 101, 73, 103, 113, 98, 39, 223, 246, 199, 136, 238, 213,
                 134, 163, 153, 151, 116, 237, 207, 181, 107, 183, 204, 110, 97, 160, 95, 160, 193,
@@ -1425,7 +1550,7 @@ mod tests {
             ]
         );
         assert_eq!(
-            sig[1].as_bytes(),
+            sig[1].as_ref(),
             [
                 1, 203, 115, 121, 219, 49, 18, 3, 101, 130, 153, 95, 80, 27, 148, 249, 221, 198,
                 251, 149, 118, 119, 32, 44, 160, 24, 125, 72, 161, 168, 71, 48, 138, 223, 200, 37,
@@ -1481,7 +1606,7 @@ mod tests {
 
     #[test]
     fn rsa_digest_info_is_wrapped() -> TestResult {
-        let data = prepare_digest_data(crate::SignatureType::Pkcs1, HashAlgorithm::SHA1, &[0; 20])?;
+        let data = prepare_digest_data(crate::SignatureType::Pkcs1, HashAlgorithm::Sha1, &[0; 20])?;
 
         assert_eq!(
             data,
@@ -1502,10 +1627,11 @@ mod tests {
     fn ecdsa_wrapped_up_to_max_len(
         #[case] sig_type: crate::SignatureType,
         #[case] max_len: usize,
-        #[values(HashAlgorithm::SHA1, HashAlgorithm::SHA2_256, HashAlgorithm::SHA2_512)] hash_algo: HashAlgorithm,
+        #[values(HashAlgorithm::Sha1, HashAlgorithm::Sha256, HashAlgorithm::Sha512)]
+        hash_algo: HashAlgorithm,
     ) -> TestResult {
         // the digest value is irrelevant - just the size of the digest
-        let digest = hash_algo.new_hasher()?.finish();
+        let digest = hash_algo.new_hasher()?.finalize();
         let data = prepare_digest_data(sig_type, hash_algo, &digest)?;
 
         // The data to be signed size needs to be truncated to the value specific the the curve
@@ -1524,12 +1650,13 @@ mod tests {
 
     #[rstest]
     fn eddsa_is_not_wrapped(
-        #[values(HashAlgorithm::SHA1, HashAlgorithm::SHA2_256, HashAlgorithm::SHA2_512)] hash_algo: HashAlgorithm,
+        #[values(HashAlgorithm::Sha1, HashAlgorithm::Sha256, HashAlgorithm::Sha512)]
+        hash_algo: HashAlgorithm,
     ) -> TestResult {
         // the digest value is irrelevant - just the size of the digest
-        let digest = hash_algo.new_hasher()?.finish();
+        let digest = &hash_algo.new_hasher()?.finalize()[..];
 
-        let data = prepare_digest_data(crate::SignatureType::EdDsa, hash_algo, &digest)?;
+        let data = prepare_digest_data(crate::SignatureType::EdDsa, hash_algo, digest)?;
 
         assert_eq!(data, digest);
 

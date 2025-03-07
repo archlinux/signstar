@@ -20,5 +20,6 @@ allow = [
     "MPL-2.0",
     "OpenSSL",
     "Unicode-3.0",
+    "Zlib",
 ]
 version = 2

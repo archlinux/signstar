@@ -15,6 +15,7 @@ ignored = ["md-5"]
 [dependencies]
 base64ct = { version = "1.6.0", features = ["alloc", "std"] }
 chrono = { workspace = true, features = ["alloc"] }
+digest = { version = "0.10.7", features = ["alloc"] }
 ed25519-dalek = { workspace = true, features = ["pem", "pkcs8"] }
 email_address = "0.2.9"
 hex = { version = "0.4.3", features = ["serde"] }

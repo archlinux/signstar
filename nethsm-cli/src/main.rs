@@ -57,6 +57,10 @@ pub enum Error {
     #[error("NetHsm error: {0}")]
     NetHsm(#[from] nethsm::Error),
 
+    /// A NetHsm OpenPGP error
+    #[error("NetHsm OpenPGP error: {0}")]
+    NetHsmOpenPgp(#[from] nethsm::openpgp::Error),
+
     /// An I/O error
     #[error("I/O error: {0}")]
     Io(#[from] std::io::Error),
