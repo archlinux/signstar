@@ -9,6 +9,7 @@ members = [
   "signstar-configure-build",
   "signstar-common",
   "signstar-request-signature",
+  "signstar-sign",
 ]
 
 [workspace.dependencies]
