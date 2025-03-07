@@ -529,7 +529,7 @@ impl UserMapping {
     /// # Examples
     ///
     /// ```
-    /// use nethsm::{CryptographicKeyContext, KeyId, OpenPgpUserIdList, SigningKeySetup};
+    /// use nethsm::{CryptographicKeyContext, KeyId, openpgp::OpenPgpUserIdList, SigningKeySetup};
     /// use nethsm_config::{AuthorizedKeyEntryList, UserMapping};
     ///
     /// # fn main() -> testresult::TestResult {
@@ -613,7 +613,7 @@ impl UserMapping {
     /// # Examples
     ///
     /// ```
-    /// use nethsm::{CryptographicKeyContext, OpenPgpUserIdList, SigningKeySetup};
+    /// use nethsm::{CryptographicKeyContext, openpgp::OpenPgpUserIdList, SigningKeySetup};
     /// use nethsm_config::{AuthorizedKeyEntryList, UserMapping};
     ///
     /// # fn main() -> testresult::TestResult {
@@ -708,7 +708,7 @@ impl UserMapping {
     /// # Examples
     ///
     /// ```
-    /// use nethsm::{CryptographicKeyContext, KeyId, OpenPgpUserIdList, SigningKeySetup, UserId};
+    /// use nethsm::{CryptographicKeyContext, KeyId, openpgp::OpenPgpUserIdList, SigningKeySetup, UserId};
     /// use nethsm_config::{AuthorizedKeyEntryList, FilterUserKeys, UserMapping};
     ///
     /// # fn main() -> testresult::TestResult {
@@ -837,7 +837,7 @@ impl UserMapping {
     /// # Examples
     ///
     /// ```
-    /// use nethsm::{CryptographicKeyContext, OpenPgpUserIdList, SigningKeySetup};
+    /// use nethsm::{CryptographicKeyContext, openpgp::OpenPgpUserIdList, SigningKeySetup};
     /// use nethsm_config::{AuthorizedKeyEntryList, UserMapping};
     ///
     /// # fn main() -> testresult::TestResult {

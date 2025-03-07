@@ -2045,7 +2045,7 @@ impl HermeticParallelConfig {
     /// ```
     /// use std::collections::HashSet;
     ///
-    /// use nethsm::{Connection,CryptographicKeyContext, OpenPgpUserIdList, SigningKeySetup, UserRole};
+    /// use nethsm::{Connection,CryptographicKeyContext, openpgp::OpenPgpUserIdList, SigningKeySetup, UserRole};
     /// use nethsm_config::{
     ///     AuthorizedKeyEntryList,
     ///     AdministrativeSecretHandling,

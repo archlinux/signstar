@@ -10,7 +10,13 @@ use rsa::{
 };
 use serde::{Deserialize, Serialize};
 
-use crate::{KeyMechanism, KeyType, OpenPgpUserIdList, OpenPgpVersion, SignatureType, TlsKeyType};
+use crate::{
+    KeyMechanism,
+    KeyType,
+    SignatureType,
+    TlsKeyType,
+    openpgp::{OpenPgpUserIdList, OpenPgpVersion},
+};
 
 /// The minimum bit length for an RSA key
 ///
@@ -264,9 +270,8 @@ impl CryptographicKeyContext {
     ///     CryptographicKeyContext,
     ///     KeyMechanism,
     ///     KeyType,
-    ///     OpenPgpUserIdList,
-    ///     OpenPgpVersion,
     ///     SignatureType,
+    ///     openpgp::{OpenPgpUserIdList, OpenPgpVersion},
     /// };
     ///
     /// # fn main() -> testresult::TestResult {
@@ -397,9 +402,9 @@ impl SigningKeySetup {
     ///     CryptographicKeyContext,
     ///     KeyMechanism,
     ///     KeyType,
-    ///     OpenPgpUserIdList,
     ///     SignatureType,
     ///     SigningKeySetup,
+    ///     openpgp::OpenPgpUserIdList,
     /// };
     ///
     /// # fn main() -> testresult::TestResult {

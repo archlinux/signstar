@@ -57,6 +57,10 @@ pub enum Error {
     #[error("NetHsm error: {0}")]
     NetHsm(#[from] nethsm::Error),
 
+    /// A NetHsm OpenPGP error
+    #[error("NetHsm OpenPGP error: {0}")]
+    NetHsmOpenPgp(#[from] nethsm::openpgp::Error),
+
     /// An I/O error
     #[error("I/O error: {0}")]
     Io(#[from] std::io::Error),
@@ -788,7 +792,7 @@ fn run_command(cli: Cli) -> Result<(), Error> {
         Command::OpenPgp(command) => match command {
             cli::OpenPgpCommand::Add(command) => {
                 let flags = {
-                    let mut flags = nethsm::OpenPgpKeyUsageFlags::default();
+                    let mut flags = nethsm::openpgp::KeyUsageFlags::default();
                     if command.can_sign {
                         flags.set_sign();
                     }
@@ -833,7 +837,8 @@ fn run_command(cli: Cli) -> Result<(), Error> {
                         &auth_passphrases,
                     )?;
                 let private_key = &read(command.tsk_file)?;
-                let (key_data, key_mechanism) = nethsm::tsk_to_private_key_import(private_key)?;
+                let (key_data, key_mechanism) =
+                    nethsm::openpgp::tsk_to_private_key_import(private_key)?;
 
                 let key_id = nethsm.import_key(
                     vec![key_mechanism],
@@ -842,7 +847,7 @@ fn run_command(cli: Cli) -> Result<(), Error> {
                     command.tags,
                 )?;
 
-                let cert = nethsm::extract_openpgp_certificate(private_key)?;
+                let cert = nethsm::openpgp::extract_certificate(private_key)?;
 
                 nethsm.import_key_certificate(&key_id, cert)?;
             }

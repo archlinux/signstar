@@ -5,9 +5,8 @@ use clap::{Parser, Subcommand};
 use expression_format::ex_format;
 use nethsm::{
     KeyId,
-    OpenPgpUserId,
-    OpenPgpVersion,
     UserRole::{Administrator, Operator},
+    openpgp::{OpenPgpUserId, OpenPgpVersion},
 };
 use strum::IntoEnumIterator;
 
