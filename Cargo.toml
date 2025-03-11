@@ -32,7 +32,7 @@ serde = { version = "1.0.215", features = ["derive"] }
 # inputs that reference the "old_sha2".
 sha2 = "0.11.0-pre.4"
 signstar-request-signature = { path = "signstar-request-signature", version = "0.1.0" }
-strum = { version = "0.26.3", features = ["derive"] }
+strum = { version = "0.27.0", features = ["derive"] }
 testdir = "0.9.3"
 testresult = "0.4.1"
 thiserror = "2.0.4"
