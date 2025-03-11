@@ -4,6 +4,7 @@ yanked = "deny"
 ignore = [
   "RUSTSEC-2023-0071",  # side-channel attacks are not relevant for our use-case (only used in tests)
   "RUSTSEC-2023-0050",  # nethsm-sdk-rs uses unmaintained multipart until something else becomes available: https://github.com/Nitrokey/nethsm-sdk-rs/issues/29
+  "RUSTSEC-2024-0436",  # only aws-lc-rs uses it and it's being worked on: https://github.com/aws/aws-lc-rs/issues/722
 ]
 
 [bans]
