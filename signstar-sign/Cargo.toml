@@ -9,6 +9,7 @@ repository.workspace = true
 rust-version.workspace = true
 
 [dependencies]
+clap.workspace = true
 nethsm.workspace = true
 nethsm-config.workspace = true
 signstar-request-signature.workspace = true

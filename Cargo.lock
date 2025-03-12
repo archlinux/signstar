@@ -3164,6 +3164,7 @@ dependencies = [
 name = "signstar-sign"
 version = "0.1.0"
 dependencies = [
+ "clap",
  "nethsm",
  "nethsm-config",
  "signstar-request-signature",

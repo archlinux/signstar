@@ -310,6 +310,9 @@ test-readme project:
             nethsm-cli)
                 cargo install --locked --path signstar-request-signature
             ;;
+            signstar-sign)
+                cargo install --locked --path nethsm-cli
+            ;;
         esac
         cargo install --locked --path {{ project }}
     }
@@ -356,6 +359,7 @@ test-readme project:
 test-readmes:
     just test-readme nethsm-cli
     just test-readme signstar-configure-build
+    just test-readme signstar-sign
 
 # Adds pre-commit and pre-push git hooks
 add-hooks:
