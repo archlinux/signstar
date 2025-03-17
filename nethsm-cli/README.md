@@ -471,6 +471,8 @@ done
 
 signstar-request-signature prepare "$NETHSM_OPENPGP_SIGNATURE_MESSAGE" | tee "${NETHSM_OPENPGP_SIGNATURE_MESSAGE}.json"
 nethsm openpgp sign-state --force "signing1" "${NETHSM_OPENPGP_SIGNATURE_MESSAGE}.json"
+# the signature is always armored
+grep -- "-----BEGIN PGP SIGNATURE-----" "$NETHSM_OPENPGP_SIGNATURE_OUTPUT_FILE"
 gpg --verify "$NETHSM_OPENPGP_SIGNATURE_OUTPUT_FILE" "$NETHSM_OPENPGP_SIGNATURE_MESSAGE"
 rpacket dump "$NETHSM_OPENPGP_SIGNATURE_OUTPUT_FILE"
 sha512sum "$NETHSM_OPENPGP_SIGNATURE_MESSAGE"
