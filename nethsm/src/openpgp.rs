@@ -12,10 +12,12 @@ use chrono::{DateTime, Utc};
 use email_address::{EmailAddress, Options};
 use log::error;
 use pgp::{
+    ArmorOptions,
     Deserializable,
     KeyDetails,
     SignedPublicKey,
     SignedSecretKey,
+    StandaloneSignature,
     crypto::{ecc_curve::ECCCurve, hash::HashAlgorithm, public_key::PublicKeyAlgorithm},
     packet::{
         KeyFlags,
@@ -833,7 +835,7 @@ pub fn sign(
     Ok(out)
 }
 
-/// Generates an OpenPGP signature based on provided hasher state.
+/// Generates an armored OpenPGP signature based on provided hasher state.
 ///
 /// Signs the hasher `state` using the key identified by `key_id`
 /// and returns a binary [OpenPGP data signature].
@@ -871,7 +873,7 @@ pub fn sign_hasher_state(
     nethsm: &NetHsm,
     key_id: &crate::KeyId,
     state: impl sha2::Digest + Clone + std::io::Write,
-) -> Result<Vec<u8>, crate::Error> {
+) -> Result<String, crate::Error> {
     let public_key = nethsm.get_key_certificate(key_id)?;
 
     let signer = HsmKey::new(
@@ -923,13 +925,10 @@ pub fn sign_hasher_state(
 
     let signature = pgp::Signature::from_config(sig_config, signed_hash_value, raw_sig);
 
-    let out = {
-        let mut out = vec![];
-        pgp::packet::write_packet(&mut out, &signature).map_err(Error::Pgp)?;
-        out
-    };
-
-    Ok(out)
+    let signature = StandaloneSignature { signature };
+    Ok(signature
+        .to_armored_string(ArmorOptions::default())
+        .map_err(Error::Pgp)?)
 }
 
 /// Converts NetHSM public key to OpenPGP public key.

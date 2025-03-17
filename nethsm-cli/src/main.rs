@@ -893,7 +893,7 @@ fn main() -> Result<(), Error> {
                 output.output().write_all(
                     nethsm
                         .openpgp_sign_state(&command.key_id, hasher)?
-                        .as_slice(),
+                        .as_bytes(),
                 )?;
             }
         },

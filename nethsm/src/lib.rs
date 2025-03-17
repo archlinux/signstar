@@ -6203,7 +6203,7 @@ impl NetHsm {
         openpgp::sign(self, key_id, message)
     }
 
-    /// Generates an OpenPGP signature based on provided hasher state.
+    /// Generates an armored OpenPGP signature based on provided hasher state.
     ///
     /// Signs the hasher `state` using the key identified by `key_id`
     /// and returns a binary [OpenPGP data signature].
@@ -6315,7 +6315,7 @@ impl NetHsm {
         &self,
         key_id: &KeyId,
         state: impl sha2::Digest + Clone + std::io::Write,
-    ) -> Result<Vec<u8>, crate::Error> {
+    ) -> Result<String, crate::Error> {
         openpgp::sign_hasher_state(self, key_id, state)
     }
 }
