@@ -31,17 +31,8 @@ stages:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
 
-# default setup running in MRs
-.mr-default:
-  before_script:
-    - pacman-key --init
-    - pacman -Sy --needed --noconfirm archlinux-keyring
-    - source .env && pacman -Syu --needed --noconfirm $PACMAN_PACKAGES
-  rules:
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-
 check-commits:
-  extends: .mr-default
+  extends: .all-default
   script:
     # fetch the default branch as we need it for comparison
     - git fetch origin $CI_DEFAULT_BRANCH
@@ -49,6 +40,8 @@ check-commits:
     - git config --local user.name "Foobar McFooface"
     - git config --local user.email "foobar@mcfooface.com"
     - just check-commits
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
   stage: check
 
 spelling:
