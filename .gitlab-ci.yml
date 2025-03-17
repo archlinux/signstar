@@ -16,6 +16,7 @@ stages:
     - pacman -Sy --needed --noconfirm archlinux-keyring
     - source .env && pacman -Syu --needed --noconfirm $PACMAN_PACKAGES
     - just install-rust-dev-tools
+  interruptible: true
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
@@ -27,6 +28,7 @@ stages:
     - pacman -Sy --needed --noconfirm archlinux-keyring
     - source .env && pacman -Syu --needed --noconfirm $PACMAN_PACKAGES
     - just install-rust-dev-tools
+  interruptible: true
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
