@@ -10,7 +10,7 @@ stages:
   - pages
 
 # default setup running on default branch and in MRs
-.all-default:
+.default:
   before_script:
     - pacman-key --init
     - pacman -Sy --needed --noconfirm archlinux-keyring
@@ -21,7 +21,7 @@ stages:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
 
 # default setup with Rust tools running on default branch and in MRs
-.all-default-rust:
+.default-rust:
   before_script:
     - pacman-key --init
     - pacman -Sy --needed --noconfirm archlinux-keyring
@@ -32,7 +32,7 @@ stages:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
 
 check-commits:
-  extends: .all-default
+  extends: .default
   script:
     # fetch the default branch as we need it for comparison
     - git fetch origin $CI_DEFAULT_BRANCH
@@ -45,55 +45,55 @@ check-commits:
   stage: check
 
 spelling:
-  extends: .all-default
+  extends: .default
   script:
     - just check-spelling
   stage: check
 
 formatting:
-  extends: .all-default-rust
+  extends: .default-rust
   script:
     - just check-formatting
   stage: check
 
 lint:
-  extends: .all-default-rust
+  extends: .default-rust
   script:
     - just lint
   stage: check
 
 unused-deps:
-  extends: .all-default-rust
+  extends: .default-rust
   script:
     - just check-unused-deps
   stage: check
 
 dependencies:
-  extends: .all-default-rust
+  extends: .default-rust
   script:
     - just check-dependencies
   stage: check
 
 licenses:
-  extends: .all-default-rust
+  extends: .default-rust
   script:
     - just check-licenses
   stage: check
 
 links:
-  extends: .all-default-rust
+  extends: .default-rust
   script:
     - just check-links
   stage: check
 
 test:
-  extends: .all-default-rust
+  extends: .default-rust
   script:
     - just test
   stage: test
 
 integration-test:
-  extends: .all-default
+  extends: .default
   script:
     - useradd -m testuser
     - chown -R testuser:testuser .
@@ -103,7 +103,7 @@ integration-test:
     - vm
 
 test-readmes:
-  extends: .all-default
+  extends: .default
   script:
     - useradd -m testuser
     - chown -R testuser:testuser .
@@ -113,7 +113,7 @@ test-readmes:
     - vm
 
 build-image:
-  extends: .all-default
+  extends: .default
   script:
     - useradd -m testuser
     - chown -R testuser:testuser .
@@ -127,7 +127,7 @@ build-image:
     - vm
 
 build-test-image:
-  extends: .all-default
+  extends: .default
   script:
     - useradd -m testuser
     - chown -R testuser:testuser .
