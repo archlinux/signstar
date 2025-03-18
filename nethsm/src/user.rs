@@ -118,7 +118,7 @@ impl FromStr for NamespaceId {
 
 impl Display for NamespaceId {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.0.fmt(f)
+        write!(f, "{}", self.0)
     }
 }
 
@@ -357,7 +357,7 @@ impl FromStr for UserId {
 impl Display for UserId {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            UserId::SystemWide(user_id) => user_id.fmt(f),
+            UserId::SystemWide(user_id) => write!(f, "{user_id}"),
             UserId::Namespace(namespace, name) => write!(f, "{namespace}~{name}"),
         }
     }
@@ -396,6 +396,7 @@ impl TryFrom<String> for UserId {
 /// Credentials for a [`NetHsm`][`crate::NetHsm`]
 ///
 /// Holds a user ID and an accompanying [`Passphrase`].
+#[derive(Debug)]
 pub struct Credentials {
     pub user_id: UserId,
     pub passphrase: Option<Passphrase>,
