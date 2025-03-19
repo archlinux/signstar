@@ -9,3 +9,8 @@ https://signstar.archlinux.page/rustdoc/signstar_common/
 https://docs.rs/signstar_common/latest/signstar_common/
 https://signstar.archlinux.page/rustdoc/signstar_config/
 https://docs.rs/signstar_config/latest/signstar_config/
+
+# moved URLs that will be available only when merged
+https://signstar.archlinux.page/signstar-request-signature/design.html
+https://signstar.archlinux.page/signstar-request-signature/request.html
+https://signstar.archlinux.page/signstar-request-signature/response.html

@@ -6,6 +6,7 @@ This crate offers a library and an executable for creating, reading and writing 
 
 - <https://signstar.archlinux.page/rustdoc/signstar_request_signature/> for development version of the crate
 - <https://docs.rs/signstar_request_signature/> for released versions of the crate
+- [Design document] and specifications for [requests] and [responses]
 
 ## Preparing signing request
 
@@ -72,5 +73,9 @@ This project may be used under the terms of the [Apache-2.0] or [MIT] license.
 Changes to this project - unless stated otherwise - automatically fall under the terms of both of the aforementioned licenses.
 
 [Apache-2.0]: https://www.apache.org/licenses/LICENSE-2.0
+[contributing guidelines]: ../CONTRIBUTING.md
+[Design document]: https://signstar.archlinux.page/signstar-request-signature/design.html
 [MIT]: https://opensource.org/licenses/MIT
 [contributing guidelines]: ../CONTRIBUTING.md
+[requests]: https://signstar.archlinux.page/signstar-request-signature/request.html
+[responses]: https://signstar.archlinux.page/signstar-request-signature/response.html
