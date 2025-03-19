@@ -1,0 +1,1 @@
+../../../../signstar-request-signature/resources/docs/request.md

@@ -18,6 +18,8 @@
   - [CHANGELOG](./signstar-configure-build/CHANGELOG.md)
 - [signstar-request-signature](./signstar-request-signature/README.md)
   - [Design](./signstar-request-signature/resources/docs/design.md)
+  - [Request spec](./signstar-request-signature/resources/docs/request.md)
+  - [Response spec](./signstar-request-signature/resources/docs/response.md)
 
 # Architecture
 

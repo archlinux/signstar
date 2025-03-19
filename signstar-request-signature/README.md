@@ -6,6 +6,7 @@ This crate offers a library and an executable for creating, reading and writing 
 
 - <https://signstar.archlinux.page/rustdoc/signstar_request_signature/> for development version of the crate
 - <https://docs.rs/signstar_request_signature/> for released versions of the crate
+- [Design document](resources/docs/design.md) and specifications for [requests](resources/docs/request.md) and [responses](resources/docs/response.md)
 
 ## Preparing signing request
 
