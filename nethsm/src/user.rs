@@ -396,7 +396,7 @@ impl TryFrom<String> for UserId {
 /// Credentials for a [`NetHsm`][`crate::NetHsm`]
 ///
 /// Holds a user ID and an accompanying [`Passphrase`].
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct Credentials {
     pub user_id: UserId,
     pub passphrase: Option<Passphrase>,
