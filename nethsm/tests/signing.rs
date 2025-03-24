@@ -1,3 +1,5 @@
+//! Tests for cryptographic signatures.
+
 use nethsm::Credentials;
 use nethsm::Passphrase;
 use nethsm::{NetHsm, SignatureType};
@@ -18,7 +20,7 @@ use rstest::rstest;
 use rustainers::Container;
 use testresult::TestResult;
 
-pub static MESSAGE: &[u8] = b"Hello World!";
+static MESSAGE: &[u8] = b"Hello World!";
 
 #[ignore = "requires Podman"]
 #[rstest]

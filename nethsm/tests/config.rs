@@ -1,3 +1,5 @@
+//! Tests checking the NetHSM configuration.
+
 use std::net::Ipv4Addr;
 use std::path::PathBuf;
 

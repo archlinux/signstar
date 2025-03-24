@@ -378,6 +378,7 @@ impl OpenPgpUserIdList {
         Ok(Self(user_ids))
     }
 
+    /// Iterator for OpenPGP User IDs contained in this list.
     pub fn iter(&self) -> impl Iterator<Item = &OpenPgpUserId> {
         self.0.iter()
     }

@@ -66,3 +66,6 @@ opt-level = 3
 
 [profile.dev.package.aes-gcm]
 opt-level = 3
+
+[workspace.lints.rust]
+missing_docs = "deny"

@@ -1,3 +1,5 @@
+//! Tests of random number generator of NetHSM.
+
 use nethsm::Credentials;
 use nethsm::NetHsm;
 use nethsm::Passphrase;
@@ -9,7 +11,7 @@ use rstest::rstest;
 use rustainers::Container;
 use testresult::TestResult;
 
-pub static LENGTH: u32 = 32;
+static LENGTH: u32 = 32;
 
 #[ignore = "requires Podman"]
 #[rstest]

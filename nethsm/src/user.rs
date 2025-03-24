@@ -9,6 +9,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::UserRole;
 
+/// An error that may occur when operating on users.
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
     /// Unable to convert string slice to Passphrase
@@ -29,19 +30,36 @@ pub enum Error {
 
     /// A user in one namespace targets a user in another
     #[error("User {caller} targets {target} which is in a different namespace")]
-    NamespaceTargetMismatch { caller: UserId, target: UserId },
+    NamespaceTargetMismatch {
+        /// Caller user's identifier.
+        caller: UserId,
+
+        /// Target user's identifier.
+        target: UserId,
+    },
 
     /// A user in a namespace tries to modify a system-wide user
     #[error("User {caller} targets {target} a system-wide user")]
-    NamespaceSystemWideTarget { caller: UserId, target: UserId },
+    NamespaceSystemWideTarget {
+        /// Caller's user identifier.
+        caller: UserId,
+
+        /// Target user's identifier.
+        target: UserId,
+    },
 
     /// A user in Backup or Metrics role is about to be created in a namespace
     #[error(
         "User {caller} targets user {target} in role {role} which is not supported in namespaces"
     )]
     NamespaceRoleInvalid {
+        /// Caller's user identifier.
         caller: UserId,
+
+        /// Target user's identifier.
         target: UserId,
+
+        /// Role of the target user.
         role: UserRole,
     },
 }
@@ -397,7 +415,10 @@ impl TryFrom<String> for UserId {
 ///
 /// Holds a user ID and an accompanying [`Passphrase`].
 pub struct Credentials {
+    /// User's identifier.
     pub user_id: UserId,
+
+    /// Optional password of the user.
     pub passphrase: Option<Passphrase>,
 }
 

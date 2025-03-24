@@ -1,3 +1,5 @@
+//! Tests checking functions for key manipulation and usage.
+
 use ed25519_dalek::pkcs8::EncodePrivateKey;
 use nethsm::NamespaceId;
 use nethsm::PrivateKeyImport;

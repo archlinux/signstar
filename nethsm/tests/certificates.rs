@@ -1,3 +1,5 @@
+//! Tests for cryptographic certificates.
+
 use nethsm::{DistinguishedName, KeyMechanism, KeyType, NetHsm, PrivateKeyImport};
 use nethsm_tests::DEFAULT_AES_BITS;
 use nethsm_tests::DEFAULT_KEY_ID;
