@@ -43,6 +43,9 @@ ureq = "2.12.1"
 uuid = { version = "1.11.0", features = ["v7"] }
 zeroize = { version = "1.8.1", features = ["zeroize_derive", "serde"] }
 
+[workspace.lints.rust]
+missing_docs = "deny"
+
 [workspace.package]
 authors = [
   "David Runge <dvzrv@archlinux.org>",
