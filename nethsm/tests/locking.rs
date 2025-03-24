@@ -1,3 +1,5 @@
+//! Tests for NetHSM device locking.
+
 use nethsm::{NetHsm, Passphrase, SystemState, UserId};
 use nethsm_tests::{
     ADMIN_USER_ID,

@@ -1,3 +1,5 @@
+//! Tests of NetHSM provisioning.
+
 use std::time::Duration;
 
 use chrono::Utc;

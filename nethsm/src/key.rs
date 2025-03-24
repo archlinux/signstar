@@ -231,7 +231,10 @@ pub enum CryptographicKeyContext {
     /// A key is used in an OpenPGP context
     #[serde(rename = "openpgp")]
     OpenPgp {
+        /// List of OpenPGP User IDs for the certificate.
         user_ids: OpenPgpUserIdList,
+
+        /// OpenPGP version for the certificate.
         version: OpenPgpVersion,
     },
 

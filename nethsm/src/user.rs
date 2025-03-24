@@ -9,6 +9,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::UserRole;
 
+/// An error that may occur when operating on users.
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
     /// Unable to convert string slice to Passphrase
@@ -36,19 +37,36 @@ pub enum Error {
 
     /// A user in one namespace targets a user in another
     #[error("User {caller} targets {target} which is in a different namespace")]
-    NamespaceTargetMismatch { caller: UserId, target: UserId },
+    NamespaceTargetMismatch {
+        /// The [`UserId`] of a user that targets a user in another namespace.
+        caller: UserId,
+
+        /// The [`UserId`] of the targeted user.
+        target: UserId,
+    },
 
     /// A user in a namespace tries to modify a system-wide user
     #[error("User {caller} targets {target} a system-wide user")]
-    NamespaceSystemWideTarget { caller: UserId, target: UserId },
+    NamespaceSystemWideTarget {
+        /// The [`UserId`] of a user in a namespace that attempts to modify a system-wide user.
+        caller: UserId,
+
+        /// The [`UserId`] of a system-wide user that `caller` attempts to modify.
+        target: UserId,
+    },
 
     /// A user in Backup or Metrics role is about to be created in a namespace
     #[error(
-        "User {caller} targets user {target} in role {role} which is not supported in namespaces"
+        "User {caller} attempts to create user {target} in role {role} which is not supported in namespaces"
     )]
     NamespaceRoleInvalid {
+        /// The [`UserId`] of the user trying to create `target` in `role`.
         caller: UserId,
+
+        /// The [`UserId`] of the user in a namespace that is attempted to be created by `caller`.
         target: UserId,
+
+        /// The [`UserRole`] of `target`.
         role: UserRole,
     },
 }
@@ -406,7 +424,10 @@ impl TryFrom<String> for UserId {
 /// Different from [`Credentials`], this type _requires_ a [`Passphrase`].
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct FullCredentials {
+    /// The user name.
     pub name: UserId,
+
+    /// The passphrase for `name`.
     pub passphrase: Passphrase,
 }
 
@@ -475,7 +496,10 @@ impl TryFrom<Credentials> for FullCredentials {
 /// Holds a user ID and an accompanying [`Passphrase`].
 #[derive(Clone, Debug)]
 pub struct Credentials {
+    /// The user ID.
     pub user_id: UserId,
+
+    /// The optional passphrase for `user_id`.
     pub passphrase: Option<Passphrase>,
 }
 

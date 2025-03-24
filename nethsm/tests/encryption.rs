@@ -1,3 +1,5 @@
+//! Tests of NetHSM encryption capabilities.
+
 use nethsm::Credentials;
 use nethsm::Passphrase;
 use nethsm::{DecryptMode, EncryptMode, NetHsm};
@@ -18,10 +20,10 @@ use testresult::TestResult;
 
 // we have an AES128 encryption key. the message must be a multiple of 32 bytes
 // long
-pub static MESSAGE: &str = "Hello World! This is a message!!";
+static MESSAGE: &str = "Hello World! This is a message!!";
 // we have an AES128 encryption key. the initialization vector must be a
 // multiple of 16 bytes long
-pub static IV: &str = "This is unsafe!!";
+static IV: &str = "This is unsafe!!";
 
 #[ignore = "requires Podman"]
 #[rstest]

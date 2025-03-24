@@ -1,3 +1,5 @@
+//! Tests related to NetHSM health and readiness.
+
 use nethsm::{NetHsm, SystemState};
 use nethsm_tests::{NetHsmImage, nethsm_with_users, unprovisioned_nethsm};
 use rstest::rstest;

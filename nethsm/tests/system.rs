@@ -1,3 +1,5 @@
+//! Tests for system features such as backups.
+
 use chrono::Utc;
 use nethsm::{NetHsm, Passphrase, UserId};
 use nethsm_tests::{

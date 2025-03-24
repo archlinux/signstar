@@ -1,3 +1,5 @@
+//! Tests related to metrics.
+
 use nethsm::NetHsm;
 use nethsm_tests::{METRICS_USER_ID, NetHsmImage, nethsm_with_users};
 use rstest::rstest;

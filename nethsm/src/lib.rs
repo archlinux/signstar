@@ -248,6 +248,7 @@ pub use user::Error as UserError;
 use user::NamespaceSupport;
 pub use user::{Credentials, FullCredentials, NamespaceId, Passphrase, UserId};
 
+/// An error that may occur when using a NetHSM.
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
     /// Wraps a [`rustls::Error`] for issues with rustls based TLS setups
@@ -270,7 +271,10 @@ pub enum Error {
     ///
     /// Provides the number certificates that failed to be added
     #[error("Unable to load any system TLS certs ({failed} failed)")]
-    NoSystemCertsAdded { failed: usize },
+    NoSystemCertsAdded {
+        /// The number of certificates that failed to be added.
+        failed: usize,
+    },
 
     /// A call to the NetHSM API failed
     #[error("NetHSM API error: {0}")]

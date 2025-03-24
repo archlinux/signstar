@@ -1,3 +1,5 @@
+//! Tests for user creation and manipulation.
+
 use nethsm::NamespaceId;
 use nethsm::Passphrase;
 use nethsm::UserId;
@@ -28,15 +30,22 @@ use rstest::rstest;
 use rustainers::Container;
 use testresult::TestResult;
 
-pub static ADMIN2_USER_ID: &str = "admin1";
-pub static ADMIN2_USER_REAL_NAME: &str = "Admin1";
-pub static ADMIN2_USER_PASSPHRASE: &str = "just-an-admin1-passphrase";
-pub static NAMESPACE2_METRICS_USER_ID: &str = "namespace2~metrics";
-pub static NAMESPACE2_METRICS_USER_PASSPHRASE: &str = "just-a-namespace2-metrics-passphrase";
-pub static NAMESPACE2_METRICS_REAL_NAME: &str = "Namespace2 Metrics";
-pub static NAMESPACE2_BACKUP_USER_ID: &str = "namespace2~backup";
-pub static NAMESPACE2_BACKUP_USER_PASSPHRASE: &str = "just-a-namespace2-backup-passphrase";
-pub static NAMESPACE2_BACKUP_REAL_NAME: &str = "Namespace2 backup";
+/// Second administrator's User ID.
+static ADMIN2_USER_ID: &str = "admin1";
+/// Second administrator's passphrase.
+static ADMIN2_USER_PASSPHRASE: &str = "just-an-admin1-passphrase";
+/// Second namespace's metrics user's identifier.
+static NAMESPACE2_METRICS_USER_ID: &str = "namespace2~metrics";
+/// Second namespace's metrics user's passphrase.
+static NAMESPACE2_METRICS_USER_PASSPHRASE: &str = "just-a-namespace2-metrics-passphrase";
+/// Second namespace's metrics user's real name.
+static NAMESPACE2_METRICS_REAL_NAME: &str = "Namespace2 Metrics";
+/// Second namespace's backup user's identifier.
+static NAMESPACE2_BACKUP_USER_ID: &str = "namespace2~backup";
+/// Second namespace's backup user's passphrase.
+static NAMESPACE2_BACKUP_USER_PASSPHRASE: &str = "just-a-namespace2-backup-passphrase";
+/// Second namespace's backup user's real name.
+static NAMESPACE2_BACKUP_REAL_NAME: &str = "Namespace2 backup";
 
 #[ignore = "requires Podman"]
 #[rstest]
