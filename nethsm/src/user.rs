@@ -486,6 +486,15 @@ impl FromStr for Passphrase {
     }
 }
 
+impl Serialize for Passphrase {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        self.0.expose_secret().serialize(serializer)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use rstest::rstest;
