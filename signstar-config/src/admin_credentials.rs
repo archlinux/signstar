@@ -9,7 +9,7 @@ use std::{
     process::{Command, Stdio},
 };
 
-use nethsm::UserId;
+use nethsm::{Credentials, Passphrase, UserId};
 use nethsm_config::AdministrativeSecretHandling;
 use serde::{Deserialize, Serialize};
 use signstar_common::{
@@ -143,6 +143,15 @@ impl User {
 impl Display for User {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.name)
+    }
+}
+
+impl From<&User> for Credentials {
+    fn from(value: &User) -> Self {
+        Self::new(
+            value.get_name(),
+            Some(Passphrase::new(value.get_passphrase().to_string())),
+        )
     }
 }
 
