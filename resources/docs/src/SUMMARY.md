@@ -14,6 +14,7 @@
   - [CHANGELOG](./nethsm-config/CHANGELOG.md)
 - [nethsm-tests](./nethsm-tests/README.md)
   - [CHANGELOG](./nethsm-tests/CHANGELOG.md)
+- [signstar-common](./signstar-common/README.md)
 - [signstar-configure-build](./signstar-configure-build/README.md)
   - [CHANGELOG](./signstar-configure-build/CHANGELOG.md)
 - [signstar-request-signature](./signstar-request-signature/README.md)
