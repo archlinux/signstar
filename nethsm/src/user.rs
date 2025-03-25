@@ -486,6 +486,21 @@ impl FromStr for Passphrase {
     }
 }
 
+impl Serialize for Passphrase {
+    /// Serializes a [`Passphrase`].
+    ///
+    /// # Warning
+    ///
+    /// This may be used to write a passphrase to file!
+    /// Take precautions so that passphrases can not leak to the environment.
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        self.0.expose_secret().serialize(serializer)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use rstest::rstest;
