@@ -448,7 +448,7 @@ impl From<&Credentials> for BasicAuth {
 ///
 /// The passphrase is held by a [`SecretString`], which guarantees zeroing of memory on
 /// destruct.
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, Deserialize)]
 pub struct Passphrase(SecretString);
 
 impl Passphrase {
