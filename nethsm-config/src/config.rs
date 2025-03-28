@@ -154,8 +154,8 @@ pub enum Error {
 /// Contains the [`Url`] and [`ConnectionSecurity`] for a [`NetHsm`] device.
 #[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 pub struct Connection {
-    url: Url,
-    tls_security: ConnectionSecurity,
+    pub url: Url,
+    pub tls_security: ConnectionSecurity,
 }
 
 impl Connection {

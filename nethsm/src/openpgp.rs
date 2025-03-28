@@ -617,7 +617,10 @@ impl SecretKeyTrait for HsmKey<'_, '_> {
         let sig = self
             .nethsm
             .sign_digest(self.key_id, signature_type, &request_data)
-            .map_err(|_| pgp::errors::Error::InvalidInput)?;
+            .map_err(|e| {
+                eprintln!("==========> {e:?}");
+                pgp::errors::Error::InvalidInput
+            })?;
 
         Ok(parse_signature(signature_type, &sig)?.into())
     }
