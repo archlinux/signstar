@@ -667,7 +667,7 @@ containerized-integration-test project:
 
     for test in "${tests[@]}"; do
         printf "Running test %s\n" "$test"
-        podman run --rm --interactive --tty --volume "$test_tmpdir:/mnt" --volume "$PWD:/test" --volume "$target_dir/debug/examples:/usr/local/bin" arch-signstar-integration-test cargo nextest run --archive-file "/mnt/tests.tar.zst" --workspace-remap "/test" "${test/ */}" "${test/* /}"
+        podman run -e RUST_LOG=info -e RUST_BACKTRACE=1 --rm --interactive --tty --volume "$test_tmpdir:/mnt" --volume "$PWD:/test" --volume "$target_dir/debug:/usr/local/bin" arch-signstar-integration-test cargo nextest run --nocapture --archive-file "/mnt/tests.tar.zst" --workspace-remap "/test" "${test/ */}" "${test/* /}"
     done
 
 # Runs the tests that are made available with the "_containerized-integration-test" feature of all configured projects in a separate container

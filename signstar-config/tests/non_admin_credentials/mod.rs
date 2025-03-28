@@ -23,7 +23,7 @@ use crate::utils::{
     run_command_as_user,
 };
 
-const GET_CREDENTIALS_PAYLOAD: &str = "get-nethsm-credentials";
+const GET_CREDENTIALS_PAYLOAD: &str = "/usr/local/bin/examples/get-nethsm-credentials";
 
 /// Loading credentials for unprivileged system users succeeds.
 ///
