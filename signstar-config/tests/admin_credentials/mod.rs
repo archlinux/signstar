@@ -1,7 +1,7 @@
 //! Integration tests for [`signstar_config::admin_credentials`].
 use std::fs::{copy, create_dir_all, read_to_string};
 
-use nethsm::UserId;
+use nethsm::FullCredentials;
 use nethsm_config::AdministrativeSecretHandling;
 use rstest::rstest;
 use signstar_common::admin_credentials::{
@@ -10,7 +10,7 @@ use signstar_common::admin_credentials::{
     get_plaintext_credentials_file,
     get_systemd_creds_credentials_file,
 };
-use signstar_config::admin_credentials::{AdminCredentials, User};
+use signstar_config::admin_credentials::AdminCredentials;
 use testresult::TestResult;
 
 use super::utils::write_machine_id;
@@ -55,12 +55,12 @@ fn store_plaintext_toml() -> TestResult {
         1,
         "backup-passphrase".parse()?,
         "unlock-passphrase".parse()?,
-        vec![User::new(
-            UserId::new("admin".to_string())?,
+        vec![FullCredentials::new(
+            "admin".parse()?,
             "admin-passphrase".parse()?,
         )],
-        vec![User::new(
-            UserId::new("ns1~admin".to_string())?,
+        vec![FullCredentials::new(
+            "ns1~admin".parse()?,
             "ns1-admin-passphrase".parse()?,
         )],
     );

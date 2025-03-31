@@ -1,7 +1,6 @@
 //! Administrative credentials handling for a NetHSM backend.
 
 use std::{
-    fmt::Display,
     fs::{File, Permissions, set_permissions},
     io::Write,
     os::unix::fs::{PermissionsExt, chown},
@@ -9,7 +8,7 @@ use std::{
     process::{Command, Stdio},
 };
 
-use nethsm::UserId;
+use nethsm::{FullCredentials, Passphrase};
 use nethsm_config::AdministrativeSecretHandling;
 use serde::{Deserialize, Serialize};
 use signstar_common::{
@@ -90,68 +89,14 @@ pub enum Error {
     },
 }
 
-/// User data for [`AdminCredentials`].
-#[derive(Clone, Debug, Deserialize, Serialize)]
-pub struct User {
-    name: UserId,
-    passphrase: Passphrase,
-}
-
-impl User {
-    /// Creates a new [`User`] instance.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use signstar_config::admin_credentials::User;
-    ///
-    /// # fn main() -> testresult::TestResult {
-    /// let mut user = User::new(
-    ///         "ns1~admin".parse()?,
-    ///         "ns1-admin-passphrase".parse()?,
-    ///     );
-    ///
-    /// assert_eq!(user.to_string(), user.get_name().to_string());
-    /// assert_eq!(user.get_passphrase(), "ns1-admin-passphrase");
-    ///
-    /// user.set_passphrase("new-passphrase".parse()?);
-    /// assert_eq!(user.get_passphrase(), "new-passphrase");
-    /// # Ok(())
-    /// # }
-    pub fn new(name: UserId, passphrase: Passphrase) -> Self {
-        Self { name, passphrase }
-    }
-
-    /// Returns the name of the [`User`].
-    pub fn get_name(&self) -> UserId {
-        self.name.clone()
-    }
-
-    /// Returns the passphrase of the [`User`].
-    pub fn get_passphrase(&self) -> &str {
-        self.passphrase.expose_borrowed()
-    }
-
-    /// Sets the passphrase of the [`User`].
-    pub fn set_passphrase(&mut self, passphrase: Passphrase) {
-        self.passphrase = passphrase
-    }
-}
-
-impl Display for User {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.name)
-    }
-}
-
 /// Administrative credentials.
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 pub struct AdminCredentials {
     iteration: u32,
     backup_passphrase: Passphrase,
     unlock_passphrase: Passphrase,
-    administrators: Vec<User>,
-    namespace_administrators: Vec<User>,
+    administrators: Vec<FullCredentials>,
+    namespace_administrators: Vec<FullCredentials>,
 }
 
 impl AdminCredentials {
@@ -160,15 +105,19 @@ impl AdminCredentials {
     /// # Examples
     ///
     /// ```
-    /// use signstar_config::admin_credentials::{AdminCredentials, User};
+    /// use nethsm::FullCredentials;
+    /// use signstar_config::admin_credentials::AdminCredentials;
     ///
     /// # fn main() -> testresult::TestResult {
     /// let creds = AdminCredentials::new(
     ///     1,
     ///     "backup-passphrase".parse()?,
     ///     "unlock-passphrase".parse()?,
-    ///     vec![User::new("admin".parse()?, "admin-passphrase".parse()?)],
-    ///     vec![User::new(
+    ///     vec![FullCredentials::new(
+    ///         "admin".parse()?,
+    ///         "admin-passphrase".parse()?,
+    ///     )],
+    ///     vec![FullCredentials::new(
     ///         "ns1~admin".parse()?,
     ///         "ns1-admin-passphrase".parse()?,
     ///     )],
@@ -180,8 +129,8 @@ impl AdminCredentials {
         iteration: u32,
         backup_passphrase: Passphrase,
         unlock_passphrase: Passphrase,
-        administrators: Vec<User>,
-        namespace_administrators: Vec<User>,
+        administrators: Vec<FullCredentials>,
+        namespace_administrators: Vec<FullCredentials>,
     ) -> Self {
         Self {
             iteration,
@@ -260,7 +209,7 @@ impl AdminCredentials {
     /// use std::io::Write;
     ///
     /// use nethsm_config::AdministrativeSecretHandling;
-    /// use signstar_config::admin_credentials::{AdminCredentials, User};
+    /// use signstar_config::admin_credentials::AdminCredentials;
     ///
     /// # fn main() -> testresult::TestResult {
     /// let admin_creds = r#"iteration = 1
@@ -389,16 +338,20 @@ impl AdminCredentials {
     /// # Examples
     ///
     /// ```no_run
+    /// use nethsm::FullCredentials;
     /// use nethsm_config::AdministrativeSecretHandling;
-    /// use signstar_config::admin_credentials::{AdminCredentials, User};
+    /// use signstar_config::admin_credentials::AdminCredentials;
     ///
     /// # fn main() -> testresult::TestResult {
     /// let creds = AdminCredentials::new(
     ///     1,
     ///     "backup-passphrase".parse()?,
     ///     "unlock-passphrase".parse()?,
-    ///     vec![User::new("admin".parse()?, "admin-passphrase".parse()?)],
-    ///     vec![User::new(
+    ///     vec![FullCredentials::new(
+    ///         "admin".parse()?,
+    ///         "admin-passphrase".parse()?,
+    ///     )],
+    ///     vec![FullCredentials::new(
     ///         "ns1~admin".parse()?,
     ///         "ns1-admin-passphrase".parse()?,
     ///     )],
@@ -553,12 +506,12 @@ impl AdminCredentials {
     }
 
     /// Returns the list of administrators.
-    pub fn get_administrators(&self) -> &[User] {
+    pub fn get_administrators(&self) -> &[FullCredentials] {
         &self.administrators
     }
 
     /// Returns the list of namespace administrators.
-    pub fn get_namespace_administrators(&self) -> &[User] {
+    pub fn get_namespace_administrators(&self) -> &[FullCredentials] {
         &self.namespace_administrators
     }
 }
