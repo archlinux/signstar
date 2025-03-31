@@ -22,13 +22,17 @@ toml = "0.8.20"
 which = "7.0.2"
 
 [dev-dependencies]
+nethsm-tests.workspace = true
 rstest.workspace = true
 tempfile = "3.16.0"
 testresult.workspace = true
+tokio.workspace = true
 
 [features]
 default = []
-_containerized-integration-test = []
+_integration-test = []
+_containerized-integration-test = ["_integration-test"]
+_nethsm-integration-test = ["_integration-test"]
 
 [lints]
 workspace = true

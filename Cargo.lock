@@ -3559,6 +3559,7 @@ dependencies = [
  "confy",
  "nethsm",
  "nethsm-config",
+ "nethsm-tests",
  "nix",
  "num_enum",
  "rand",
@@ -3569,6 +3570,7 @@ dependencies = [
  "tempfile",
  "testresult",
  "thiserror 2.0.11",
+ "tokio",
  "toml",
  "which 7.0.2",
 ]
