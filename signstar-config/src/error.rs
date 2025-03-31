@@ -87,6 +87,16 @@ pub enum Error {
     #[error("Signstar config error:\n{0}")]
     Config(#[from] crate::config::Error),
 
+    /// A NetHSM error.
+    #[error("NetHSM error:\n{0}")]
+    NetHsm(#[from] nethsm::Error),
+
+    /// A NetHSM backend error
+    ///
+    /// This variant is used when actions for a NetHSM backend fail.
+    #[error("NetHSM backend error:\n{0}")]
+    NetHsmBackend(#[from] crate::NetHsmBackendError),
+
     /// An error specific to non-administrative secret handling.
     #[error("Error with non-administrative secret handling:\n{0}")]
     NonAdminSecretHandling(#[from] crate::non_admin_credentials::Error),
@@ -197,6 +207,12 @@ pub enum ErrorExitCode {
     /// Mapping for [`crate::config::Error::NetHsmConfig`] wrapped in [`Error::Config`].
     ConfigNetHsmConfig = 121,
 
+    /// Mapping for [`crate::Error::NetHsm`].
+    NetHsm = 17,
+
+    /// Mapping for [`crate::Error::NetHsmBackend`].
+    NetHsmBackend = 18,
+
     /// Mapping for [`crate::non_admin_credentials::Error::CredentialsLoading`] wrapped in
     /// [`Error::NonAdminSecretHandling`].
     NonAdminCredentialsCredentialsLoading = 140,
@@ -258,10 +274,10 @@ pub enum ErrorExitCode {
     SignstarCommonAdminCredsDirChangeOwner = 172,
 
     /// Mapping for [`Error::Thread`].
-    Thread = 17,
+    Thread = 19,
 
     /// Mapping for [`Error::Utf8String`].
-    Utf8String = 18,
+    Utf8String = 20,
 
     /// Mapping for [`crate::utils::Error::ExecutableNotFound`] wrapped in [`Error::Utils`].
     UtilsExecutableNotFound = 190,
@@ -329,6 +345,10 @@ impl From<Error> for ErrorExitCode {
                 crate::config::Error::ConfigMissing => Self::ConfigConfigMissing,
                 crate::config::Error::NetHsmConfig(_) => Self::ConfigNetHsmConfig,
             },
+            // NetHSM related errors
+            Error::NetHsm(_) => Self::NetHsm,
+            // NetHSM backend related errors
+            Error::NetHsmBackend(_) => Self::NetHsmBackend,
             // non-admin credentials related errors and their exit codes
             Error::NonAdminSecretHandling(error) => match error {
                 crate::non_admin_credentials::Error::CredentialsLoading { .. } => {
