@@ -126,37 +126,49 @@ pub enum Error {
 #[derive(Clone, Copy, Debug, num_enum::IntoPrimitive, Eq, Ord, PartialEq, PartialOrd)]
 #[repr(u8)]
 pub enum ErrorExitCode {
+    /// Mapping for [`crate::admin_credentials::Error::AdministratorMissing`] wrapped in
+    /// [`Error::AdminSecretHandling`].
+    AdminCredentialsAdministratorMissing = 100,
+
+    /// Mapping for [`crate::admin_credentials::Error::AdministratorNoDefault`] wrapped in
+    /// [`Error::AdminSecretHandling`].
+    AdminCredentialsAdministratorNoDefault = 101,
+
     /// Mapping for [`crate::admin_credentials::Error::ConfigFromToml`] wrapped in
     /// [`Error::AdminSecretHandling`].
-    AdminCredentialsConfigFromToml = 100,
+    AdminCredentialsConfigFromToml = 102,
 
     /// Mapping for [`crate::admin_credentials::Error::ConfigLoad`] wrapped in
     /// [`Error::AdminSecretHandling`].
-    AdminCredentialsConfigLoad = 101,
+    AdminCredentialsConfigLoad = 103,
 
     /// Mapping for [`crate::admin_credentials::Error::ConfigStore`] wrapped in
     /// [`Error::AdminSecretHandling`].
-    AdminCredentialsConfigStore = 102,
+    AdminCredentialsConfigStore = 104,
 
     /// Mapping for [`crate::admin_credentials::Error::ConfigToToml`] wrapped in
     /// [`Error::AdminSecretHandling`].
-    AdminCredentialsConfigToToml = 103,
+    AdminCredentialsConfigToToml = 105,
 
     /// Mapping for [`crate::admin_credentials::Error::CredsFileCreate`] wrapped in
     /// [`Error::AdminSecretHandling`].
-    AdminCredentialsCredsFileCreate = 104,
+    AdminCredentialsCredsFileCreate = 106,
 
     /// Mapping for [`crate::admin_credentials::Error::CredsFileMissing`] wrapped in
     /// [`Error::AdminSecretHandling`].
-    AdminCredentialsCredsFileMissing = 105,
+    AdminCredentialsCredsFileMissing = 107,
 
     /// Mapping for [`crate::admin_credentials::Error::CredsFileNotAFile`] wrapped in
     /// [`Error::AdminSecretHandling`].
-    AdminCredentialsCredsFileNotAFile = 106,
+    AdminCredentialsCredsFileNotAFile = 108,
 
     /// Mapping for [`crate::admin_credentials::Error::CredsFileWrite`] wrapped in
     /// [`Error::AdminSecretHandling`].
-    AdminCredentialsCredsFileWrite = 107,
+    AdminCredentialsCredsFileWrite = 109,
+
+    /// Mapping for [`crate::admin_credentials::Error::PassphraseTooShort`] wrapped in
+    /// [`Error::AdminSecretHandling`].
+    AdminCredentialsPassphraseTooShort = 110,
 
     /// Mapping for [`Error::ApplyPermissions`].
     ApplyPermissions = 10,
@@ -278,6 +290,12 @@ impl From<Error> for ErrorExitCode {
         match value {
             // admin credentials related errors and their exit codes
             Error::AdminSecretHandling(error) => match error {
+                crate::admin_credentials::Error::AdministratorMissing => {
+                    Self::AdminCredentialsAdministratorMissing
+                }
+                crate::admin_credentials::Error::AdministratorNoDefault => {
+                    Self::AdminCredentialsAdministratorNoDefault
+                }
                 crate::admin_credentials::Error::ConfigFromToml { .. } => {
                     Self::AdminCredentialsConfigFromToml
                 }
@@ -301,6 +319,9 @@ impl From<Error> for ErrorExitCode {
                 }
                 crate::admin_credentials::Error::CredsFileWrite { .. } => {
                     Self::AdminCredentialsCredsFileWrite
+                }
+                crate::admin_credentials::Error::PassphraseTooShort { .. } => {
+                    Self::AdminCredentialsPassphraseTooShort
                 }
             },
             // config related errors

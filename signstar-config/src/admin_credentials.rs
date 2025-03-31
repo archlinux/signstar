@@ -25,6 +25,14 @@ use crate::utils::{fail_if_not_root, get_command, get_current_system_user};
 /// An error that may occur when handling administrative credentials for a NetHSM backend.
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
+    /// There is no top-level administrator.
+    #[error("There is no top-level administrator but at least one is required")]
+    AdministratorMissing,
+
+    /// There is no top-level administrator with the name "admin".
+    #[error("The default top-level administrator \"admin\" is missing")]
+    AdministratorNoDefault,
+
     /// Deserializing administrative secrets from a TOML string failed.
     #[error("Deserializing administrative secrets in {path} as TOML string failed:\n{source}")]
     ConfigFromToml {
@@ -87,9 +95,37 @@ pub enum Error {
         /// The source error
         source: std::io::Error,
     },
+
+    /// A passphrase is too short.
+    #[error(
+        "The passphrase for {context} is too short (should be at least {minimum_length} characters)"
+    )]
+    PassphraseTooShort {
+        /// The context in which the passphrase is used.
+        ///
+        /// This is inserted into the sentence "The _context_ passphrase is not long enough"
+        context: String,
+
+        /// The minimum length of a passphrase.
+        minimum_length: usize,
+    },
 }
 
 /// Administrative credentials.
+///
+/// Tracks the following credentials and passphrases:
+/// - the backup passphrase of the backend,
+/// - the unlock passphrase of the backend,
+/// - the top-level administrator credentials of the backend,
+/// - the namespace administrator credentials of the backend.
+///
+/// # Note
+///
+/// The unlock and backup passphrase must be at least 10 characters long.
+/// The passphrases of top-level and namespace administrator accounts must be at least 10 characters
+/// long.
+/// The list of top-level administrator credentials must include an account with the username
+/// "admin".
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 pub struct AdminCredentials {
     iteration: u32,
@@ -121,7 +157,78 @@ impl AdminCredentials {
     ///         "ns1~admin".parse()?,
     ///         "ns1-admin-passphrase".parse()?,
     ///     )],
-    /// );
+    /// )?;
+    /// # // the backup passphrase is too short
+    /// # assert!(AdminCredentials::new(
+    /// #     1,
+    /// #     "short".parse()?,
+    /// #     "unlock-passphrase".parse()?,
+    /// #     vec![FullCredentials::new("admin".parse()?, "admin-passphrase".parse()?)],
+    /// #     vec![FullCredentials::new(
+    /// #         "ns1~admin".parse()?,
+    /// #         "ns1-admin-passphrase".parse()?,
+    /// #     )],
+    /// # ).is_err());
+    /// #
+    /// # // the unlock passphrase is too short
+    /// # assert!(AdminCredentials::new(
+    /// #     1,
+    /// #     "backup-passphrase".parse()?,
+    /// #     "short".parse()?,
+    /// #     vec![FullCredentials::new("admin".parse()?, "admin-passphrase".parse()?)],
+    /// #     vec![FullCredentials::new(
+    /// #         "ns1~admin".parse()?,
+    /// #         "ns1-admin-passphrase".parse()?,
+    /// #     )],
+    /// # ).is_err());
+    /// #
+    /// # // there is no top-level administrator
+    /// # assert!(AdminCredentials::new(
+    /// #     1,
+    /// #     "backup-passphrase".parse()?,
+    /// #     "unlock-passphrase".parse()?,
+    /// #     Vec::new(),
+    /// #     vec![FullCredentials::new(
+    /// #         "ns1~admin".parse()?,
+    /// #         "ns1-admin-passphrase".parse()?,
+    /// #     )],
+    /// # ).is_err());
+    /// #
+    /// # // there is no default top-level administrator
+    /// # assert!(AdminCredentials::new(
+    /// #     1,
+    /// #     "backup-passphrase".parse()?,
+    /// #     "unlock-passphrase".parse()?,
+    /// #     vec![FullCredentials::new("some".parse()?, "admin-passphrase".parse()?)],
+    /// #     vec![FullCredentials::new(
+    /// #         "ns1~admin".parse()?,
+    /// #         "ns1-admin-passphrase".parse()?,
+    /// #     )],
+    /// # ).is_err());
+    /// #
+    /// # // a top-level administrator passphrase is too short
+    /// # assert!(AdminCredentials::new(
+    /// #     1,
+    /// #     "backup-passphrase".parse()?,
+    /// #     "unlock-passphrase".parse()?,
+    /// #     vec![FullCredentials::new("admin".parse()?, "short".parse()?)],
+    /// #     vec![FullCredentials::new(
+    /// #         "ns1~admin".parse()?,
+    /// #         "ns1-admin-passphrase".parse()?,
+    /// #     )],
+    /// # ).is_err());
+    /// #
+    /// # // a namespace administrator passphrase is too short
+    /// # assert!(AdminCredentials::new(
+    /// #     1,
+    /// #     "backup-passphrase".parse()?,
+    /// #     "unlock-passphrase".parse()?,
+    /// #     vec![FullCredentials::new("some".parse()?, "admin-passphrase".parse()?)],
+    /// #     vec![FullCredentials::new(
+    /// #         "ns1~admin".parse()?,
+    /// #         "short".parse()?,
+    /// #     )],
+    /// # ).is_err());
     /// # Ok(())
     /// # }
     /// ```
@@ -131,14 +238,17 @@ impl AdminCredentials {
         unlock_passphrase: Passphrase,
         administrators: Vec<FullCredentials>,
         namespace_administrators: Vec<FullCredentials>,
-    ) -> Self {
-        Self {
+    ) -> Result<Self, crate::Error> {
+        let admin_credentials = Self {
             iteration,
             backup_passphrase,
             unlock_passphrase,
             administrators,
             namespace_administrators,
-        }
+        };
+        admin_credentials.validate()?;
+
+        Ok(admin_credentials)
     }
 
     /// Loads an [`AdminCredentials`] from the default file location.
@@ -273,13 +383,15 @@ impl AdminCredentials {
             ));
         }
 
-        match secrets_handling {
-            AdministrativeSecretHandling::Plaintext => confy::load_path(path).map_err(|source| {
-                crate::Error::AdminSecretHandling(Error::ConfigLoad {
-                    path: path.to_path_buf(),
-                    source: Box::new(source),
-                })
-            }),
+        let config: Self = match secrets_handling {
+            AdministrativeSecretHandling::Plaintext => {
+                confy::load_path(path).map_err(|source| {
+                    crate::Error::AdminSecretHandling(Error::ConfigLoad {
+                        path: path.to_path_buf(),
+                        source: Box::new(source),
+                    })
+                })?
+            }
             AdministrativeSecretHandling::SystemdCreds => {
                 // Decrypt the credentials using systemd-creds.
                 let creds_command = get_command("systemd-creds")?;
@@ -314,12 +426,14 @@ impl AdminCredentials {
                         path: path.to_path_buf(),
                         source: Box::new(source),
                     })
-                })
+                })?
             }
             AdministrativeSecretHandling::ShamirsSecretSharing => {
                 unimplemented!("Shamir's Secret Sharing is not yet supported")
             }
-        }
+        };
+        config.validate()?;
+        Ok(config)
     }
 
     /// Stores the [`AdminCredentials`] as a file in the default location.
@@ -355,7 +469,7 @@ impl AdminCredentials {
     ///         "ns1~admin".parse()?,
     ///         "ns1-admin-passphrase".parse()?,
     ///     )],
-    /// );
+    /// )?;
     ///
     /// // store as plaintext file
     /// creds.store(AdministrativeSecretHandling::Plaintext)?;
@@ -513,5 +627,83 @@ impl AdminCredentials {
     /// Returns the list of namespace administrators.
     pub fn get_namespace_administrators(&self) -> &[FullCredentials] {
         &self.namespace_administrators
+    }
+
+    /// Validates the [`AdminCredentials`].
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if
+    /// - there is no top-level administrator user,
+    /// - the default top-level administrator user (with the name "admin") is missing,
+    /// - a user passphrase is too short,
+    /// - the backup passphrase is too short,
+    /// - or the unlock passphrase is too short.
+    fn validate(&self) -> Result<(), crate::Error> {
+        // there is no top-level administrator user
+        if self.get_administrators().is_empty() {
+            return Err(crate::Error::AdminSecretHandling(
+                Error::AdministratorMissing,
+            ));
+        }
+
+        // there is no top-level administrator user with the name "admin"
+        if !self
+            .get_administrators()
+            .iter()
+            .any(|user| user.name.to_string() == "admin")
+        {
+            return Err(crate::Error::AdminSecretHandling(
+                Error::AdministratorNoDefault,
+            ));
+        }
+
+        let minimum_length: usize = 10;
+
+        // a top-level administrator user passphrase is too short
+        for user in self.get_administrators().iter() {
+            if user.passphrase.expose_borrowed().len() < minimum_length {
+                return Err(crate::Error::AdminSecretHandling(
+                    Error::PassphraseTooShort {
+                        context: format!("user {}", user.name),
+                        minimum_length,
+                    },
+                ));
+            }
+        }
+
+        // a namespace administrator user passphrase is too short
+        for user in self.get_namespace_administrators().iter() {
+            if user.passphrase.expose_borrowed().len() < minimum_length {
+                return Err(crate::Error::AdminSecretHandling(
+                    Error::PassphraseTooShort {
+                        context: format!("user {}", user.name),
+                        minimum_length,
+                    },
+                ));
+            }
+        }
+
+        // the backup passphrase is too short
+        if self.get_backup_passphrase().len() < minimum_length {
+            return Err(crate::Error::AdminSecretHandling(
+                Error::PassphraseTooShort {
+                    context: "backups".to_string(),
+                    minimum_length,
+                },
+            ));
+        }
+
+        // the unlock passphrase is too short
+        if self.get_unlock_passphrase().len() < minimum_length {
+            return Err(crate::Error::AdminSecretHandling(
+                Error::PassphraseTooShort {
+                    context: "unlocking".to_string(),
+                    minimum_length,
+                },
+            ));
+        }
+
+        Ok(())
     }
 }

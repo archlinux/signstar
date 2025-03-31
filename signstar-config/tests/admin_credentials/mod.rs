@@ -63,7 +63,7 @@ fn store_plaintext_toml() -> TestResult {
             "ns1~admin".parse()?,
             "ns1-admin-passphrase".parse()?,
         )],
-    );
+    )?;
     creds.store(AdministrativeSecretHandling::Plaintext)?;
 
     let creds_string = read_to_string(get_plaintext_credentials_file())?;
