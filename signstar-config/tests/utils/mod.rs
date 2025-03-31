@@ -8,13 +8,16 @@ use std::{
     time,
 };
 
+use nethsm::{FullCredentials, Passphrase, UserId};
 use nethsm_config::{
     ConfigInteractivity,
     ConfigSettings,
     ExtendedUserMapping,
     HermeticParallelConfig,
 };
+use rand::{Rng, distributions::Alphanumeric, thread_rng};
 use signstar_common::{config::get_default_config_file_path, system_user::get_home_base_dir_path};
+use signstar_config::AdminCredentials;
 use tempfile::NamedTempFile;
 use testresult::TestResult;
 use which::which;
@@ -372,6 +375,49 @@ pub fn create_users(users: &[String]) -> TestResult {
     println!("/etc/passwd:\n{}", read_to_string("/etc/passwd")?);
 
     Ok(())
+}
+
+/// Creates an [`AdminCredentials`] from config data.
+pub fn admin_credentials(config_data: &[u8]) -> Result<AdminCredentials, Error> {
+    let config_file = get_tmp_config(config_data)?;
+    AdminCredentials::load_from_file(
+        config_file.path(),
+        nethsm_config::AdministrativeSecretHandling::Plaintext,
+    )
+    .map_err(Error::SignstarConfig)
+}
+
+/// Creates a [`HermeticParallelConfig`] from config data.
+pub fn signstar_config(config_data: &[u8]) -> Result<HermeticParallelConfig, Error> {
+    HermeticParallelConfig::new_from_file(
+        ConfigSettings::new(
+            "my_app".to_string(),
+            ConfigInteractivity::NonInteractive,
+            None,
+        ),
+        Some(get_tmp_config(config_data)?.path()),
+    )
+    .map_err(|source| {
+        Error::SignstarConfig(signstar_config::Error::Config(
+            signstar_config::config::Error::NetHsmConfig(source),
+        ))
+    })
+}
+
+pub fn credentials(users: &[UserId]) -> Vec<FullCredentials> {
+    /// Creates a passphrase
+    fn create_passphrase() -> String {
+        thread_rng()
+            .sample_iter(&Alphanumeric)
+            .take(30)
+            .map(char::from)
+            .collect()
+    }
+
+    users
+        .iter()
+        .map(|user| FullCredentials::new(user.clone(), Passphrase::new(create_passphrase())))
+        .collect()
 }
 
 /// Prepares a system for use with Signstar.

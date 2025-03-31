@@ -3,6 +3,7 @@
 pub mod admin_credentials;
 pub mod config;
 pub mod error;
+pub mod nethsm;
 pub mod non_admin_credentials;
 pub mod utils;
 
