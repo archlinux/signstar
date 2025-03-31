@@ -17,7 +17,8 @@ use nethsm::{
     UserRole,
 };
 use rstest::fixture;
-use rustainers::Container;
+// Publicly re-export, so that consumers do not have to rely on rustainers directly .
+pub use rustainers::Container;
 use rustainers::runner::Runner;
 use testresult::TestResult;
 
