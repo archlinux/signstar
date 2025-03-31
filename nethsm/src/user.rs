@@ -15,6 +15,13 @@ pub enum Error {
     #[error("Unable to convert string to passphrase")]
     Passphrase,
 
+    /// The passphrase for a [`UserId`] is missing.
+    #[error("The passphrase for user {user} is missing")]
+    PassphraseMissing {
+        /// The [`UserId`] for which the passphrase is missing.
+        user: UserId,
+    },
+
     /// Invalid Namespace ID
     #[error("Invalid Namespace ID: {0}")]
     InvalidNamespaceId(String),
@@ -393,6 +400,76 @@ impl TryFrom<String> for UserId {
     }
 }
 
+/// Credentials for a [`NetHsm`][`crate::NetHsm`].
+///
+/// Tracks a [`UserId`] and an accompanying [`Passphrase`].
+/// Different from [`Credentials`], this type _requires_ a [`Passphrase`].
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct FullCredentials {
+    pub name: UserId,
+    pub passphrase: Passphrase,
+}
+
+impl FullCredentials {
+    /// Creates a new [`FullCredentials`].
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use nethsm::FullCredentials;
+    ///
+    /// # fn main() -> testresult::TestResult {
+    /// let creds = FullCredentials::new("operator".parse()?, "passphrase".parse()?);
+    /// # eprintln!("{creds:?}");
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn new(name: UserId, passphrase: Passphrase) -> Self {
+        Self { name, passphrase }
+    }
+}
+
+impl From<FullCredentials> for BasicAuth {
+    fn from(value: FullCredentials) -> Self {
+        Self::from(&value)
+    }
+}
+
+impl From<&FullCredentials> for BasicAuth {
+    fn from(value: &FullCredentials) -> Self {
+        (
+            value.name.to_string(),
+            Some(value.passphrase.expose_owned()),
+        )
+    }
+}
+
+impl TryFrom<&Credentials> for FullCredentials {
+    type Error = Error;
+
+    fn try_from(value: &Credentials) -> Result<Self, Self::Error> {
+        let creds = value.clone();
+        FullCredentials::try_from(creds)
+    }
+}
+
+impl TryFrom<Credentials> for FullCredentials {
+    type Error = Error;
+
+    fn try_from(value: Credentials) -> Result<Self, Self::Error> {
+        let Some(passphrase) = value.passphrase else {
+            return Err(Error::PassphraseMissing {
+                user: value.user_id,
+            });
+        };
+
+        Ok(FullCredentials {
+            name: value.user_id,
+            passphrase,
+        })
+    }
+}
+
 /// Credentials for a [`NetHsm`][`crate::NetHsm`]
 ///
 /// Holds a user ID and an accompanying [`Passphrase`].
@@ -441,6 +518,19 @@ impl From<&Credentials> for BasicAuth {
             value.user_id.to_string(),
             value.passphrase.as_ref().map(|x| x.expose_owned()),
         )
+    }
+}
+
+impl From<&FullCredentials> for Credentials {
+    fn from(value: &FullCredentials) -> Self {
+        let creds = value.clone();
+        Self::from(creds)
+    }
+}
+
+impl From<FullCredentials> for Credentials {
+    fn from(value: FullCredentials) -> Self {
+        Credentials::new(value.name, Some(value.passphrase))
     }
 }
 

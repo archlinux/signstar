@@ -245,7 +245,7 @@ mod user;
 pub use key::KeyId;
 pub use user::Error as UserError;
 use user::NamespaceSupport;
-pub use user::{Credentials, NamespaceId, Passphrase, UserId};
+pub use user::{Credentials, FullCredentials, NamespaceId, Passphrase, UserId};
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
