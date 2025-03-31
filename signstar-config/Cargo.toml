@@ -9,6 +9,8 @@ version = "0.1.0"
 
 [dependencies]
 confy.workspace = true
+env_logger = "0.11.8"
+log = "0.4.27"
 nethsm.workspace = true
 nethsm-config.workspace = true
 nix = { version = "0.29.0", features = ["user"] }
@@ -22,13 +24,17 @@ toml = "0.8.20"
 which = "7.0.2"
 
 [dev-dependencies]
+nethsm-tests.workspace = true
 rstest.workspace = true
 tempfile = "3.16.0"
 testresult.workspace = true
+tokio.workspace = true
 
 [features]
 default = []
-_containerized-integration-test = []
+_integration-test = []
+_containerized-integration-test = ["_integration-test"]
+_nethsm-integration-test = ["_integration-test"]
 
 [lints]
 workspace = true
