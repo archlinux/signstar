@@ -20,7 +20,6 @@ use signstar_common::{
     },
     common::SECRET_FILE_MODE,
 };
-use zeroize::Zeroize;
 
 use crate::utils::{fail_if_not_root, get_command, get_current_system_user};
 
@@ -92,11 +91,10 @@ pub enum Error {
 }
 
 /// User data for [`AdminCredentials`].
-#[derive(Clone, Debug, Deserialize, Serialize, Zeroize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct User {
-    #[zeroize(skip)]
     name: UserId,
-    passphrase: String,
+    passphrase: Passphrase,
 }
 
 impl User {
@@ -110,17 +108,17 @@ impl User {
     /// # fn main() -> testresult::TestResult {
     /// let mut user = User::new(
     ///         "ns1~admin".parse()?,
-    ///         "ns1-admin-passphrase".to_string(),
+    ///         "ns1-admin-passphrase".parse()?,
     ///     );
     ///
     /// assert_eq!(user.to_string(), user.get_name().to_string());
     /// assert_eq!(user.get_passphrase(), "ns1-admin-passphrase");
     ///
-    /// user.set_passphrase("new-passphrase".to_string());
+    /// user.set_passphrase("new-passphrase".parse()?);
     /// assert_eq!(user.get_passphrase(), "new-passphrase");
     /// # Ok(())
     /// # }
-    pub fn new(name: UserId, passphrase: String) -> Self {
+    pub fn new(name: UserId, passphrase: Passphrase) -> Self {
         Self { name, passphrase }
     }
 
@@ -131,11 +129,11 @@ impl User {
 
     /// Returns the passphrase of the [`User`].
     pub fn get_passphrase(&self) -> &str {
-        &self.passphrase
+        self.passphrase.expose_borrowed()
     }
 
     /// Sets the passphrase of the [`User`].
-    pub fn set_passphrase(&mut self, passphrase: String) {
+    pub fn set_passphrase(&mut self, passphrase: Passphrase) {
         self.passphrase = passphrase
     }
 }
@@ -147,12 +145,11 @@ impl Display for User {
 }
 
 /// Administrative credentials.
-#[derive(Clone, Debug, Default, Deserialize, Serialize, Zeroize)]
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
 pub struct AdminCredentials {
-    #[zeroize(skip)]
     iteration: u32,
-    backup_passphrase: String,
-    unlock_passphrase: String,
+    backup_passphrase: Passphrase,
+    unlock_passphrase: Passphrase,
     administrators: Vec<User>,
     namespace_administrators: Vec<User>,
 }
@@ -168,12 +165,12 @@ impl AdminCredentials {
     /// # fn main() -> testresult::TestResult {
     /// let creds = AdminCredentials::new(
     ///     1,
-    ///     "backup-passphrase".to_string(),
-    ///     "unlock-passphrase".to_string(),
-    ///     vec![User::new("admin".parse()?, "admin-passphrase".to_string())],
+    ///     "backup-passphrase".parse()?,
+    ///     "unlock-passphrase".parse()?,
+    ///     vec![User::new("admin".parse()?, "admin-passphrase".parse()?)],
     ///     vec![User::new(
     ///         "ns1~admin".parse()?,
-    ///         "ns1-admin-passphrase".to_string(),
+    ///         "ns1-admin-passphrase".parse()?,
     ///     )],
     /// );
     /// # Ok(())
@@ -181,8 +178,8 @@ impl AdminCredentials {
     /// ```
     pub fn new(
         iteration: u32,
-        backup_passphrase: String,
-        unlock_passphrase: String,
+        backup_passphrase: Passphrase,
+        unlock_passphrase: Passphrase,
         administrators: Vec<User>,
         namespace_administrators: Vec<User>,
     ) -> Self {
@@ -398,12 +395,12 @@ impl AdminCredentials {
     /// # fn main() -> testresult::TestResult {
     /// let creds = AdminCredentials::new(
     ///     1,
-    ///     "backup-passphrase".to_string(),
-    ///     "unlock-passphrase".to_string(),
-    ///     vec![User::new("admin".parse()?, "admin-passphrase".to_string())],
+    ///     "backup-passphrase".parse()?,
+    ///     "unlock-passphrase".parse()?,
+    ///     vec![User::new("admin".parse()?, "admin-passphrase".parse()?)],
     ///     vec![User::new(
     ///         "ns1~admin".parse()?,
-    ///         "ns1-admin-passphrase".to_string(),
+    ///         "ns1-admin-passphrase".parse()?,
     ///     )],
     /// );
     ///
@@ -547,12 +544,12 @@ impl AdminCredentials {
 
     /// Returns the backup passphrase.
     pub fn get_backup_passphrase(&self) -> &str {
-        &self.backup_passphrase
+        self.backup_passphrase.expose_borrowed()
     }
 
     /// Returns the unlock passphrase.
     pub fn get_unlock_passphrase(&self) -> &str {
-        &self.unlock_passphrase
+        self.unlock_passphrase.expose_borrowed()
     }
 
     /// Returns the list of administrators.

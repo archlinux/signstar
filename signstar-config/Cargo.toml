@@ -20,7 +20,6 @@ strum.workspace = true
 thiserror.workspace = true
 toml = "0.8.20"
 which = "7.0.2"
-zeroize.workspace = true
 
 [dev-dependencies]
 rstest.workspace = true
