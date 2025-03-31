@@ -4414,9 +4414,11 @@ name = "signstar-config"
 version = "0.1.0"
 dependencies = [
  "confy",
+ "env_logger",
  "log",
  "nethsm",
  "nethsm-config",
+ "nethsm-tests",
  "nix 0.30.1",
  "num_enum",
  "rand 0.8.5",
@@ -4427,6 +4429,7 @@ dependencies = [
  "tempfile",
  "testresult",
  "thiserror 2.0.12",
+ "tokio",
  "toml",
  "which 7.0.3",
 ]
