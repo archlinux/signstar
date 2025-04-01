@@ -388,8 +388,7 @@ pub struct NetHsm {
 impl NetHsm {
     /// Creates a new NetHSM connection.
     ///
-    /// Creates a new NetHSM connection based on the `url` of the API and a chosen
-    /// `connection_security` for TLS (see [`ConnectionSecurity`]).
+    /// Creates a new NetHSM connection based on a [`Connection`].
     ///
     /// Optionally initial `credentials` (used when communicating with the NetHSM),
     /// `max_idle_connections` to set the size of the connection pool (defaults to `100`) and
