@@ -93,6 +93,8 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::io::Read;
 use std::net::Ipv4Addr;
+#[cfg(doc)]
+use std::thread::available_parallelism;
 
 use base64ct::{Base64, Encoding};
 use chrono::{DateTime, Utc};
@@ -467,6 +469,56 @@ impl NetHsm {
             )),
             ..Default::default()
         }
+    }
+
+    /// Sets the connection agent for the NetHSM connection.
+    ///
+    /// Allows setting the
+    /// - [`ConnectionSecurity`] which defines the TLS security model for the connection,
+    /// - maximum idle connections per host using the optional `max_idle_connections` (defaults to
+    ///   [`available_parallelism`] and falls back to `100` if unavailable),
+    /// - and timeout in seconds for a successful socket connection using the optional
+    ///   `timeout_seconds` (defaults to `10`).
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if
+    ///
+    /// - the TLS client configuration can not be created,
+    /// - [`ConnectionSecurity::Native`] is provided as `tls_security`, but no certification
+    ///   authority certificates are available on the system.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use nethsm::{Connection, ConnectionSecurity, NetHsm, Url};
+    ///
+    /// # fn main() -> testresult::TestResult {
+    /// // Create a new connection for a NetHSM at "https://example.org"
+    /// let nethsm = NetHsm::new(
+    ///     Connection::new(
+    ///         "https://example.org/api/v1".try_into()?,
+    ///         ConnectionSecurity::Unsafe,
+    ///     ),
+    ///     None,
+    ///     None,
+    ///     None,
+    /// )?;
+    ///
+    /// // change the connection agent to something else
+    /// nethsm.set_agent(ConnectionSecurity::Unsafe, Some(200), Some(30))?;
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn set_agent(
+        &self,
+        tls_security: ConnectionSecurity,
+        max_idle_connections: Option<usize>,
+        timeout_seconds: Option<u64>,
+    ) -> Result<(), Error> {
+        *self.agent.borrow_mut() =
+            create_agent(tls_security, max_idle_connections, timeout_seconds)?;
+        Ok(())
     }
 
     /// Sets the URL for the NetHSM connection.
