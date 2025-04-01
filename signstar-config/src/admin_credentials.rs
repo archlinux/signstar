@@ -294,6 +294,9 @@ impl AdminCredentials {
     ///
     /// [systemd-creds]: https://man.archlinux.org/man/systemd-creds.1
     pub fn load(secrets_handling: AdministrativeSecretHandling) -> Result<Self, crate::Error> {
+        // fail if not running as root
+        fail_if_not_root(&get_current_system_user()?)?;
+
         Self::load_from_file(
             match secrets_handling {
                 AdministrativeSecretHandling::Plaintext => get_plaintext_credentials_file(),
@@ -368,9 +371,6 @@ impl AdminCredentials {
         path: impl AsRef<Path>,
         secrets_handling: AdministrativeSecretHandling,
     ) -> Result<Self, crate::Error> {
-        // fail if not running as root
-        fail_if_not_root(&get_current_system_user()?)?;
-
         let path = path.as_ref();
         if !path.exists() {
             return Err(crate::Error::AdminSecretHandling(Error::CredsFileMissing {
