@@ -5,6 +5,7 @@ use std::path::PathBuf;
 
 use chrono::Utc;
 use nethsm::{
+    Connection,
     ConnectionSecurity,
     Credentials,
     KeyId,
@@ -156,8 +157,7 @@ pub async fn create_container() -> TestResult<Container<NetHsmImage>> {
 /// Creates a new [NetHsm] object configured with administrator credentials.
 pub fn create_nethsm(url: Url) -> TestResult<NetHsm> {
     Ok(NetHsm::new(
-        url,
-        ConnectionSecurity::Unsafe,
+        Connection::new(url, ConnectionSecurity::Unsafe),
         Some(Credentials::new(
             ADMIN_USER_ID.parse()?,
             Some(Passphrase::new(ADMIN_USER_PASSPHRASE.to_string())),

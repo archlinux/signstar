@@ -867,13 +867,7 @@ impl DeviceConfig {
 impl TryFrom<DeviceConfig> for NetHsm {
     type Error = Error;
     fn try_from(value: DeviceConfig) -> Result<Self, Error> {
-        let nethsm = NetHsm::new(
-            value.connection.borrow().url().clone(),
-            value.connection.borrow().tls_security().clone(),
-            None,
-            None,
-            None,
-        )?;
+        let nethsm = NetHsm::new(value.connection.borrow().clone(), None, None, None)?;
         for creds in value.credentials.borrow().clone().into_iter() {
             nethsm.add_credentials(creds.into())
         }
@@ -884,13 +878,7 @@ impl TryFrom<DeviceConfig> for NetHsm {
 impl TryFrom<&DeviceConfig> for NetHsm {
     type Error = Error;
     fn try_from(value: &DeviceConfig) -> Result<Self, Error> {
-        let nethsm = NetHsm::new(
-            value.connection.borrow().url().clone(),
-            value.connection.borrow().tls_security().clone(),
-            None,
-            None,
-            None,
-        )?;
+        let nethsm = NetHsm::new(value.connection.borrow().clone(), None, None, None)?;
         for creds in value.credentials.borrow().clone().into_iter() {
             nethsm.add_credentials(creds.into())
         }
