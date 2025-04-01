@@ -2,14 +2,13 @@ use std::collections::HashSet;
 
 #[cfg(doc)]
 use nethsm::NetHsm;
-use nethsm::{KeyId, SigningKeySetup, UserId};
+use nethsm::{Connection, KeyId, SigningKeySetup, UserId};
 use serde::{Deserialize, Serialize};
 
 use crate::{
     AdministrativeSecretHandling,
     AuthorizedKeyEntry,
     AuthorizedKeyEntryList,
-    Connection,
     HermeticParallelConfig,
     NonAdministrativeSecretHandling,
     SystemUserId,

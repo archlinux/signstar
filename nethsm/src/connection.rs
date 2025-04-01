@@ -4,6 +4,10 @@ use std::{fmt::Display, str::FromStr};
 
 use serde::{Deserialize, Serialize};
 
+use crate::ConnectionSecurity;
+#[cfg(doc)]
+use crate::NetHsm;
+
 /// An error that may occur when working with NetHSM connections.
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
@@ -25,6 +29,32 @@ pub enum Error {
     /// A URL can not be parsed.
     #[error("URL parser error:\n{0}")]
     UrlParse(#[from] url::ParseError),
+}
+
+/// The connection to a NetHSM device.
+///
+/// Contains the [`Url`] and [`ConnectionSecurity`] for a [`NetHsm`] device.
+#[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
+pub struct Connection {
+    url: Url,
+    tls_security: ConnectionSecurity,
+}
+
+impl Connection {
+    /// Creates a new [`Connection`]
+    pub fn new(url: Url, tls_security: ConnectionSecurity) -> Self {
+        Self { url, tls_security }
+    }
+
+    /// Returns a reference to the contained [`Url`].
+    pub fn url(&self) -> &Url {
+        &self.url
+    }
+
+    /// Returns a reference to the contained [`ConnectionSecurity`].
+    pub fn tls_security(&self) -> &ConnectionSecurity {
+        &self.tls_security
+    }
 }
 
 /// The URL used for connecting to a NetHSM instance.

@@ -60,7 +60,6 @@ pub use config::{
     ConfigInteractivity,
     ConfigName,
     ConfigSettings,
-    Connection,
     DeviceConfig,
     Error,
     HermeticParallelConfig,

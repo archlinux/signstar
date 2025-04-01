@@ -7,7 +7,17 @@ use std::{
     str::FromStr,
 };
 
-use nethsm::{ConnectionSecurity, Credentials, KeyId, NetHsm, Passphrase, Url, UserId, UserRole};
+use nethsm::{
+    Connection,
+    ConnectionSecurity,
+    Credentials,
+    KeyId,
+    NetHsm,
+    Passphrase,
+    Url,
+    UserId,
+    UserRole,
+};
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -149,22 +159,6 @@ pub enum Error {
     User(#[from] nethsm::UserError),
 }
 
-/// The connection of a device
-///
-/// Contains the [`Url`] and [`ConnectionSecurity`] for a [`NetHsm`] device.
-#[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
-pub struct Connection {
-    url: Url,
-    tls_security: ConnectionSecurity,
-}
-
-impl Connection {
-    /// Creates a new [`Connection`]
-    pub fn new(url: Url, tls_security: ConnectionSecurity) -> Self {
-        Self { url, tls_security }
-    }
-}
-
 /// The interactivity of a configuration
 ///
 /// This enum is used by [`Config`] and [`DeviceConfig`] to define whether missing items are
@@ -301,8 +295,8 @@ impl DeviceConfig {
     /// # Examples
     ///
     /// ```
-    /// use nethsm::{ConnectionSecurity, UserRole};
-    /// use nethsm_config::{ConfigCredentials, ConfigInteractivity, Connection, DeviceConfig};
+    /// use nethsm::{Connection, ConnectionSecurity, UserRole};
+    /// use nethsm_config::{ConfigCredentials, ConfigInteractivity, DeviceConfig};
     ///
     /// # fn main() -> testresult::TestResult {
     /// let connection = Connection::new(
@@ -388,8 +382,8 @@ impl DeviceConfig {
     /// # Examples
     ///
     /// ```
-    /// use nethsm::{ConnectionSecurity, UserRole};
-    /// use nethsm_config::{ConfigCredentials, ConfigInteractivity, Connection, DeviceConfig};
+    /// use nethsm::{Connection, ConnectionSecurity, UserRole};
+    /// use nethsm_config::{ConfigCredentials, ConfigInteractivity, DeviceConfig};
     ///
     /// # fn main() -> testresult::TestResult {
     /// let connection = Connection::new(
@@ -448,8 +442,8 @@ impl DeviceConfig {
     /// # Examples
     ///
     /// ```
-    /// use nethsm::{ConnectionSecurity, UserRole};
-    /// use nethsm_config::{ConfigCredentials, ConfigInteractivity, Connection, DeviceConfig};
+    /// use nethsm::{Connection, ConnectionSecurity, UserRole};
+    /// use nethsm_config::{ConfigCredentials, ConfigInteractivity, DeviceConfig};
     /// # fn main() -> testresult::TestResult {
     /// let connection = Connection::new(
     ///     "https://example.org/api/v1".parse()?,
@@ -500,8 +494,8 @@ impl DeviceConfig {
     /// # Examples
     ///
     /// ```
-    /// use nethsm::{ConnectionSecurity, UserRole};
-    /// use nethsm_config::{ConfigCredentials, ConfigInteractivity, Connection, DeviceConfig};
+    /// use nethsm::{Connection, ConnectionSecurity, UserRole};
+    /// use nethsm_config::{ConfigCredentials, ConfigInteractivity, DeviceConfig};
     ///
     /// # fn main() -> testresult::TestResult {
     /// let device_config = DeviceConfig::new(
@@ -559,8 +553,8 @@ impl DeviceConfig {
     /// # Examples
     ///
     /// ```
-    /// use nethsm::{ConnectionSecurity, UserRole};
-    /// use nethsm_config::{ConfigCredentials, ConfigInteractivity, Connection, DeviceConfig};
+    /// use nethsm::{Connection, ConnectionSecurity, UserRole};
+    /// use nethsm_config::{ConfigCredentials, ConfigInteractivity, DeviceConfig};
     ///
     /// # fn main() -> testresult::TestResult {
     /// let device_config = DeviceConfig::new(
@@ -716,8 +710,8 @@ impl DeviceConfig {
     /// # Examples
     ///
     /// ```
-    /// use nethsm::{ConnectionSecurity, Passphrase, UserRole};
-    /// use nethsm_config::{ConfigCredentials, ConfigInteractivity, Connection, DeviceConfig};
+    /// use nethsm::{Connection, ConnectionSecurity, Passphrase, UserRole};
+    /// use nethsm_config::{ConfigCredentials, ConfigInteractivity, DeviceConfig};
     ///
     /// # fn main() -> testresult::TestResult {
     /// let device_config = DeviceConfig::new(
@@ -874,8 +868,8 @@ impl TryFrom<DeviceConfig> for NetHsm {
     type Error = Error;
     fn try_from(value: DeviceConfig) -> Result<Self, Error> {
         let nethsm = NetHsm::new(
-            value.connection.borrow().url.clone(),
-            value.connection.borrow().tls_security.clone(),
+            value.connection.borrow().url().clone(),
+            value.connection.borrow().tls_security().clone(),
             None,
             None,
             None,
@@ -891,8 +885,8 @@ impl TryFrom<&DeviceConfig> for NetHsm {
     type Error = Error;
     fn try_from(value: &DeviceConfig) -> Result<Self, Error> {
         let nethsm = NetHsm::new(
-            value.connection.borrow().url.clone(),
-            value.connection.borrow().tls_security.clone(),
+            value.connection.borrow().url().clone(),
+            value.connection.borrow().tls_security().clone(),
             None,
             None,
             None,
@@ -1982,7 +1976,7 @@ impl HermeticParallelConfig {
     /// ```
     /// use std::collections::HashSet;
     ///
-    /// use nethsm::UserRole;
+    /// use nethsm::{Connection, UserRole};
     /// use nethsm_config::{
     ///     AdministrativeSecretHandling,
     ///     AuthorizedKeyEntryList,
@@ -1990,7 +1984,6 @@ impl HermeticParallelConfig {
     ///     ConfigInteractivity,
     ///     ConfigName,
     ///     ConfigSettings,
-    ///     Connection,
     ///     HermeticParallelConfig,
     ///     NonAdministrativeSecretHandling,
     ///     UserMapping,
@@ -2055,7 +2048,7 @@ impl HermeticParallelConfig {
     /// ```
     /// use std::collections::HashSet;
     ///
-    /// use nethsm::{CryptographicKeyContext, OpenPgpUserIdList, SigningKeySetup, UserRole};
+    /// use nethsm::{Connection,CryptographicKeyContext, OpenPgpUserIdList, SigningKeySetup, UserRole};
     /// use nethsm_config::{
     ///     AuthorizedKeyEntryList,
     ///     AdministrativeSecretHandling,
@@ -2063,7 +2056,6 @@ impl HermeticParallelConfig {
     ///     ConfigInteractivity,
     ///     ConfigName,
     ///     ConfigSettings,
-    ///     Connection,
     ///     HermeticParallelConfig,
     ///     NetHsmMetricsUsers,
     ///     NonAdministrativeSecretHandling,

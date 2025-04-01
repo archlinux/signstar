@@ -199,7 +199,7 @@ use sha1::Sha1;
 use sha2::{Digest, Sha224, Sha256, Sha384, Sha512};
 
 pub mod connection;
-pub use connection::Url;
+pub use connection::{Connection, Url};
 
 mod key;
 pub use key::{
