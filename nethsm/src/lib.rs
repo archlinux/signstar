@@ -87,10 +87,8 @@
 //! [role]: https://docs.nitrokey.com/nethsm/administration#roles
 use std::cell::RefCell;
 use std::collections::HashMap;
-use std::fmt::Display;
 use std::io::Read;
 use std::net::Ipv4Addr;
-use std::str::FromStr;
 use std::sync::Arc;
 use std::thread::available_parallelism;
 use std::time::Duration;
@@ -196,10 +194,12 @@ pub use nethsm_sdk_rs::models::{
 use nethsm_sdk_rs::ureq::{Agent, AgentBuilder};
 use rustls::client::ClientConfig;
 use rustls::crypto::{CryptoProvider, ring as tls_provider};
-use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use sha1::Sha1;
 use sha2::{Digest, Sha224, Sha256, Sha384, Sha512};
+
+pub mod connection;
+pub use connection::Url;
 
 mod key;
 pub use key::{
@@ -275,13 +275,13 @@ pub enum Error {
     #[error("NetHSM API error: {0}")]
     Api(String),
 
+    /// An error occurred in the [`connection`] module.
+    #[error("NetHSM connection error:\n{0}")]
+    Connection(#[from] connection::Error),
+
     /// An error with a key occurred
     #[error("Key error: {0}")]
     Key(#[from] key::Error),
-
-    /// URL is invalid
-    #[error("URL invalid: {0}")]
-    Url(String),
 
     /// User data error
     #[error("User data error: {0}")]
@@ -290,86 +290,6 @@ pub enum Error {
     /// OpenPGP error
     #[error("OpenPGP error: {0}")]
     OpenPgp(#[from] openpgp::Error),
-}
-
-/// The URL used for connecting to a NetHSM instance.
-///
-/// Wraps [`url::Url`] but offers stricter constraints. The URL
-///
-/// * must use https
-/// * must have a host
-/// * must not contain a password, user or query
-#[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
-#[serde(try_from = "String")]
-pub struct Url(url::Url);
-
-impl Url {
-    /// Creates a new Url.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use nethsm::Url;
-    ///
-    /// Url::new("https://example.org/api/v1").is_ok();
-    /// Url::new("https://127.0.0.1:8443/api/v1").is_ok();
-    ///
-    /// // errors when not using https
-    /// Url::new("http://example.org/api/v1").is_err();
-    ///
-    /// // errors when using query, user or password
-    /// Url::new("https://example.org/api/v1?something").is_err();
-    /// ```
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if
-    /// * https is not used
-    /// * a host is not defined
-    /// * the URL contains a password, user or query
-    pub fn new(url: &str) -> Result<Self, Error> {
-        let url = url::Url::parse(url).map_err(|error| Error::Url(error.to_string()))?;
-        if !url.scheme().eq("https") {
-            Err(Error::Url("Must use https".to_string()))
-        } else if !url.has_host() {
-            Err(Error::Url("Must have a host".to_string()))
-        } else if url.password().is_some() {
-            Err(Error::Url("Must not contain password".to_string()))
-        } else if !url.username().is_empty() {
-            Err(Error::Url("Must not contain user".to_string()))
-        } else if url.query().is_some() {
-            Err(Error::Url("Must not contain query".to_string()))
-        } else {
-            Ok(Self(url))
-        }
-    }
-}
-
-impl Display for Url {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0)
-    }
-}
-
-impl TryFrom<&str> for Url {
-    type Error = Error;
-    fn try_from(value: &str) -> Result<Self, Error> {
-        Self::new(value)
-    }
-}
-
-impl TryFrom<String> for Url {
-    type Error = Error;
-    fn try_from(value: String) -> Result<Self, Error> {
-        Self::new(&value)
-    }
-}
-
-impl FromStr for Url {
-    type Err = Error;
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Self::new(s)
-    }
 }
 
 /// Validates a [backup].
