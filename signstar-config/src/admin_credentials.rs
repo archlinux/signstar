@@ -8,6 +8,8 @@ use std::{
     process::{Command, Stdio},
 };
 
+#[cfg(doc)]
+use nethsm::UserId;
 use nethsm::{FullCredentials, Passphrase};
 use nethsm_config::AdministrativeSecretHandling;
 use serde::{Deserialize, Serialize};
@@ -622,6 +624,23 @@ impl AdminCredentials {
     /// Returns the list of administrators.
     pub fn get_administrators(&self) -> &[FullCredentials] {
         &self.administrators
+    }
+
+    /// Returns the default system-wide administrator "admin".
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if no administrative account with the system-wide [`UserId`] "admin" is
+    /// found.
+    pub fn get_default_administrator(&self) -> Result<&FullCredentials, crate::Error> {
+        let Some(first_admin) = self
+            .administrators
+            .iter()
+            .find(|user| user.name.to_string() == "admin")
+        else {
+            return Err(Error::AdministratorNoDefault.into());
+        };
+        Ok(first_admin)
     }
 
     /// Returns the list of namespace administrators.
