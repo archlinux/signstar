@@ -12,16 +12,16 @@ use signstar_common::{
     system_user::{get_systemd_creds_secret_file, get_user_secrets_dir},
 };
 use signstar_config::{error::ErrorExitCode, non_admin_credentials::SecretsWriter};
-use testresult::TestResult;
-
-use crate::utils::{
-    SIGNSTAR_CONFIG_FULL,
-    SIGNSTAR_CONFIG_PLAINTEXT,
+use signstar_test::{
+    CommandOutput,
     create_users,
     list_files_in_dir,
     prepare_system_with_config,
     run_command_as_user,
 };
+use testresult::TestResult;
+
+use crate::utils::{SIGNSTAR_CONFIG_FULL, SIGNSTAR_CONFIG_PLAINTEXT};
 
 const GET_CREDENTIALS_PAYLOAD: &str = "/usr/local/bin/examples/get-nethsm-credentials";
 
@@ -56,14 +56,18 @@ fn load_credentials_for_user(#[case] config_data: &[u8]) -> TestResult {
     // Retrieve backend credentials for each system user
     for mapping in &creds_mapping {
         if let Some(system_user_id) = mapping.get_user_mapping().get_system_user() {
-            let (output, command_string) =
-                run_command_as_user(GET_CREDENTIALS_PAYLOAD, &[], system_user_id.as_ref())?;
+            let CommandOutput {
+                status,
+                command_string,
+                stderr,
+                ..
+            } = run_command_as_user(GET_CREDENTIALS_PAYLOAD, &[], system_user_id.as_ref(), None)?;
 
-            if !output.status.success() {
+            if !status.success() {
                 return Err(signstar_config::Error::CommandNonZero {
                     command: command_string,
-                    exit_status: output.status,
-                    stderr: String::from_utf8_lossy(&output.stderr).into_owned(),
+                    exit_status: status,
+                    stderr,
                 }
                 .into());
             }
@@ -103,10 +107,13 @@ fn load_credentials_for_user_fails_on_missing_signstar_config() -> TestResult {
     // Retrieve backend credentials for each system user
     for mapping in &creds_mapping {
         if let Some(system_user_id) = mapping.get_user_mapping().get_system_user() {
-            let (output, command_string) =
-                run_command_as_user(GET_CREDENTIALS_PAYLOAD, &[], system_user_id.as_ref())?;
-            if !output.status.success() {
-                let Some(exit_code) = output.status.code() else {
+            let CommandOutput {
+                status,
+                command_string,
+                ..
+            } = run_command_as_user(GET_CREDENTIALS_PAYLOAD, &[], system_user_id.as_ref(), None)?;
+            if !status.success() {
+                let Some(exit_code) = status.code() else {
                     panic!("There should be an exit code for {command_string}!")
                 };
                 assert_eq!(
@@ -154,11 +161,14 @@ fn load_credentials_for_user_fails_on_credentials_socket() -> TestResult {
     // Retrieve backend credentials for each system user
     for mapping in &creds_mapping {
         if let Some(system_user_id) = mapping.get_user_mapping().get_system_user() {
-            let (output, command_string) =
-                run_command_as_user(GET_CREDENTIALS_PAYLOAD, &[], system_user_id.as_ref())?;
+            let CommandOutput {
+                status,
+                command_string,
+                ..
+            } = run_command_as_user(GET_CREDENTIALS_PAYLOAD, &[], system_user_id.as_ref(), None)?;
 
-            if !output.status.success() {
-                let Some(exit_code) = output.status.code() else {
+            if !status.success() {
+                let Some(exit_code) = status.code() else {
                     panic!("There should be an exit code for {command_string}!")
                 };
                 assert_eq!(
@@ -198,11 +208,14 @@ fn load_credentials_for_user_fails_on_missing_secrets_dir() -> TestResult {
     // Retrieve backend credentials for each system user
     for mapping in &creds_mapping {
         if let Some(system_user_id) = mapping.get_user_mapping().get_system_user() {
-            let (output, command_string) =
-                run_command_as_user(GET_CREDENTIALS_PAYLOAD, &[], system_user_id.as_ref())?;
+            let CommandOutput {
+                status,
+                command_string,
+                ..
+            } = run_command_as_user(GET_CREDENTIALS_PAYLOAD, &[], system_user_id.as_ref(), None)?;
 
-            if !output.status.success() {
-                let Some(exit_code) = output.status.code() else {
+            if !status.success() {
+                let Some(exit_code) = status.code() else {
                     panic!("There should be an exit code for {command_string}!")
                 };
                 assert_eq!(
@@ -246,11 +259,14 @@ fn load_credentials_for_user_fails_on_missing_secrets_file() -> TestResult {
     // Retrieve backend credentials for each system user
     for mapping in &creds_mapping {
         if let Some(system_user_id) = mapping.get_user_mapping().get_system_user() {
-            let (output, command_string) =
-                run_command_as_user(GET_CREDENTIALS_PAYLOAD, &[], system_user_id.as_ref())?;
+            let CommandOutput {
+                status,
+                command_string,
+                ..
+            } = run_command_as_user(GET_CREDENTIALS_PAYLOAD, &[], system_user_id.as_ref(), None)?;
 
-            if !output.status.success() {
-                let Some(exit_code) = output.status.code() else {
+            if !status.success() {
+                let Some(exit_code) = status.code() else {
                     panic!("There should be an exit code for {command_string}!")
                 };
                 assert_eq!(
@@ -303,11 +319,14 @@ fn load_credentials_for_user_fails_on_inaccessible_secrets_file() -> TestResult 
     // Retrieve backend credentials for each system user
     for mapping in &creds_mapping {
         if let Some(system_user_id) = mapping.get_user_mapping().get_system_user() {
-            let (output, command_string) =
-                run_command_as_user(GET_CREDENTIALS_PAYLOAD, &[], system_user_id.as_ref())?;
+            let CommandOutput {
+                status,
+                command_string,
+                ..
+            } = run_command_as_user(GET_CREDENTIALS_PAYLOAD, &[], system_user_id.as_ref(), None)?;
 
-            if !output.status.success() {
-                let Some(exit_code) = output.status.code() else {
+            if !status.success() {
+                let Some(exit_code) = status.code() else {
                     panic!("There should be an exit code for {command_string}!")
                 };
                 assert_eq!(
@@ -360,11 +379,14 @@ fn load_credentials_for_user_fails_on_garbage_secrets_file() -> TestResult {
     // Retrieve backend credentials for each system user
     for mapping in &creds_mapping {
         if let Some(system_user_id) = mapping.get_user_mapping().get_system_user() {
-            let (output, command_string) =
-                run_command_as_user(GET_CREDENTIALS_PAYLOAD, &[], system_user_id.as_ref())?;
+            let CommandOutput {
+                status,
+                command_string,
+                ..
+            } = run_command_as_user(GET_CREDENTIALS_PAYLOAD, &[], system_user_id.as_ref(), None)?;
 
-            if !output.status.success() {
-                let Some(exit_code) = output.status.code() else {
+            if !status.success() {
+                let Some(exit_code) = status.code() else {
                     panic!("There should be an exit code for {command_string}!")
                 };
                 assert_eq!(

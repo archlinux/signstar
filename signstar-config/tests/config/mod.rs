@@ -17,9 +17,10 @@ use signstar_common::config::{
     get_usr_local_override_dir_path,
 };
 use signstar_config::config::load_config;
+use signstar_test::get_tmp_config;
 use testresult::TestResult;
 
-use crate::utils::{SIGNSTAR_CONFIG_FULL, get_tmp_config};
+use crate::utils::SIGNSTAR_CONFIG_FULL;
 
 #[rstest]
 #[case(get_default_config_dir_path())]

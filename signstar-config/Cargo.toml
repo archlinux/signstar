@@ -23,6 +23,7 @@ which = "7.0.2"
 
 [dev-dependencies]
 rstest.workspace = true
+signstar-test.workspace = true
 tempfile = "3.16.0"
 testresult.workspace = true
 
