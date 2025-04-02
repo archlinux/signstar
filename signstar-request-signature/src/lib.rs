@@ -312,6 +312,14 @@ pub struct Response {
 }
 
 impl Response {
+    /// Creates a version 1 compatible signature from raw signature content.
+    pub fn v1(signature: String) -> Self {
+        Self {
+            version: Version::new(1, 0, 0),
+            signature,
+        }
+    }
+
     /// Creates a [`Response`] from a `reader` of JSON formatted bytes.
     ///
     /// # Errors
