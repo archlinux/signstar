@@ -1913,7 +1913,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fc2f4eb4bc735547cfed7c0a4922cbd04a4655978c09b54f1f7b228750664c34"
 dependencies = [
  "cfg-if",
- "windows-targets 0.48.5",
+ "windows-targets 0.52.6",
 ]
 
 [[package]]
@@ -3566,6 +3566,7 @@ dependencies = [
  "rstest",
  "serde",
  "signstar-common",
+ "signstar-test",
  "strum 0.27.1",
  "tempfile",
  "testresult",
@@ -3613,6 +3614,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "signstar-test"
+version = "0.1.0"
+dependencies = [
+ "log",
+ "nethsm-config",
+ "signstar-common",
+ "signstar-config",
+ "tempfile",
+ "testresult",
+ "thiserror 2.0.11",
+ "which 7.0.2",
+]
+
+[[package]]
 name = "slab"
 version = "0.4.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3623,9 +3638,9 @@ dependencies = [
 
 [[package]]
 name = "smallvec"
-version = "1.13.2"
+version = "1.15.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3c5e1a9a646d36c3599cd173a41282daf47c44583ad367b8e6837255952e5c67"
+checksum = "8917285742e9f3e1683f0a9c4e6b57960b7314d0b08d30d1ecd426713ee2eee9"
 
 [[package]]
 name = "socket2"

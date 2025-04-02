@@ -9,4 +9,4 @@ pub mod config;
 pub mod non_admin_credentials;
 
 #[cfg(feature = "_containerized-integration-test")]
-mod utils;
+pub mod utils;

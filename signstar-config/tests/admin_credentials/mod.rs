@@ -11,10 +11,10 @@ use signstar_common::admin_credentials::{
     get_systemd_creds_credentials_file,
 };
 use signstar_config::admin_credentials::AdminCredentials;
+use signstar_test::{get_tmp_config, write_machine_id};
 use testresult::TestResult;
 
-use super::utils::write_machine_id;
-use crate::utils::{SIGNSTAR_ADMIN_CREDS_SIMPLE, get_tmp_config};
+use crate::utils::SIGNSTAR_ADMIN_CREDS_SIMPLE;
 
 #[rstest]
 fn fail_to_load_on_path_not_a_file() -> TestResult {
