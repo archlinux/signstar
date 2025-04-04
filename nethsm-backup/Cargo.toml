@@ -22,3 +22,6 @@ rustainers.workspace = true
 testdir.workspace = true
 testresult.workspace = true
 tokio.workspace = true
+
+[lints]
+workspace = true
