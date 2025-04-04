@@ -1,3 +1,6 @@
+//! Creates a fresh backup, tries to decrypt it.
+//! Then it verifies several properties and writes out all keys.
+
 use nethsm::{NetHsm, Passphrase, UserId};
 use nethsm_backup::Backup;
 use nethsm_tests::{ADMIN_USER_ID, BACKUP_USER_ID, NetHsmImage, nethsm_with_users};

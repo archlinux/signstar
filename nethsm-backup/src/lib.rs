@@ -166,11 +166,15 @@ pub enum Error {
         "Unsupported backup version number: {backup_version:?}. The highest supported version is {highest_supported_version}"
     )]
     BadVersion {
+        /// The highest version that is supported.
         highest_supported_version: u8,
+
+        /// The version of the backup file.
         backup_version: Vec<u8>,
     },
 }
 
+/// NetHsm backup operation result.
 pub type Result<T> = std::result::Result<T, Error>;
 
 /// Magic value that is contained in all NetHSM backups.
