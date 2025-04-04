@@ -127,6 +127,7 @@ use std::{
 };
 
 use aes_gcm::{Aes256Gcm, KeyInit as _, aead::Aead as _};
+use log::error;
 use scrypt::{Params, scrypt};
 
 /// Backup processing error.
@@ -320,10 +321,16 @@ impl<'a> BackupDecryptor<'a> {
         scrypt(
             passphrase,
             &backup.salt,
-            &Params::new(14, 8, 16, 32).map_err(|_| Error::InvalidScryptParams)?,
+            &Params::new(14, 8, 16, 32).map_err(|e| {
+                error!("Scrypt parameters are invalid. This should not happen as they are statically chosen: {e:?}");
+                Error::InvalidScryptParams
+            })?,
             &mut key,
         )
-        .map_err(|_| Error::ScryptKeyDerivation)?;
+        .map_err(|e|  {
+            error!("Scrypt derivation failed: {e:?}");
+            Error::ScryptKeyDerivation
+        })?;
         let cipher = Aes256Gcm::new(&key.into());
         Ok(Self { backup, cipher })
     }
@@ -343,10 +350,10 @@ impl<'a> BackupDecryptor<'a> {
 
         let payload = aes_gcm::aead::Payload { msg, aad };
 
-        let plaintext = self
-            .cipher
-            .decrypt(nonce.into(), payload)
-            .map_err(|_| Error::Decryption)?;
+        let plaintext = self.cipher.decrypt(nonce.into(), payload).map_err(|e| {
+            error!("Decryption failed: {e:?}");
+            Error::Decryption
+        })?;
         Ok(plaintext)
     }
 
