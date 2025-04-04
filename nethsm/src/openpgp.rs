@@ -434,6 +434,16 @@ impl Debug for HsmKey<'_, '_> {
     }
 }
 
+/// Wraps an [`Error`] in a [`std::io::Error`] and returns it as a [`pgp::errors::Error`].
+///
+/// Since it is currently not possible to wrap the arbitrary [`Error`] of an external function
+/// cleanly in a [`pgp::errors::Error`], this function first wraps it in a [`std::io::Error`].
+/// This behavior has been suggested upstream in <https://github.com/rpgp/rpgp/issues/517#issuecomment-2778245199>
+#[inline]
+fn to_rpgp_error(e: impl Into<Box<dyn std::error::Error + Send + Sync>>) -> pgp::errors::Error {
+    pgp::errors::Error::IOError(std::io::Error::other(e))
+}
+
 /// Parse signature bytes into algorithm-specific vector of MPIs.
 fn parse_signature(sig_type: crate::SignatureType, sig: &[u8]) -> pgp::errors::Result<Vec<Mpi>> {
     use crate::SignatureType::*;
@@ -441,7 +451,7 @@ fn parse_signature(sig_type: crate::SignatureType, sig: &[u8]) -> pgp::errors::R
         EcdsaP256 | EcdsaP384 | EcdsaP521 => {
             let sig: EcdsaSignatureValue = picky_asn1_der::from_bytes(sig).map_err(|e| {
                 error!("DER decoding error when parsing ECDSA signature: {e:?}");
-                pgp::errors::Error::InvalidInput
+                to_rpgp_error(e)
             })?;
             vec![
                 Mpi::from_slice(sig.r.as_unsigned_bytes_be()),
@@ -578,7 +588,7 @@ fn prepare_digest_data(
         })
         .map_err(|e| {
             error!("Encoding signature to PKCS#1 format failed: {e:?}");
-            pgp::errors::Error::InvalidInput
+            to_rpgp_error(e)
         })?
         .into(),
 
@@ -624,9 +634,7 @@ impl SecretKeyTrait for HsmKey<'_, '_> {
             .sign_digest(self.key_id, signature_type, &request_data)
             .map_err(|e| {
                 error!("NetHsm::sign_digest failed: {e:?}");
-                // it's not possible to wrap the inner error
-                // see https://github.com/rpgp/rpgp/issues/517
-                pgp::errors::Error::InvalidInput
+                to_rpgp_error(e)
             })?;
 
         Ok(parse_signature(signature_type, &sig)?.into())
