@@ -308,6 +308,12 @@ pub struct BackupDecryptor<'a> {
     cipher: Aes256Gcm,
 }
 
+impl std::fmt::Debug for BackupDecryptor<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Backup decryptor with salt {:?}", self.backup.salt)
+    }
+}
+
 impl<'a> BackupDecryptor<'a> {
     /// Create a new [`BackupDecryptor`] using a [`Backup`] and a passphrase.
     ///
