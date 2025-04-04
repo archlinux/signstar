@@ -10,7 +10,7 @@ use std::{
 
 #[cfg(doc)]
 use nethsm::NetHsm;
-use nethsm::{Credentials, Passphrase, UserId};
+use nethsm::{FullCredentials, Passphrase, UserId};
 #[cfg(doc)]
 use nethsm_config::HermeticParallelConfig;
 use nethsm_config::{ExtendedUserMapping, NonAdministrativeSecretHandling, SystemUserId};
@@ -206,12 +206,12 @@ impl Display for CredentialsLoadingErrors {
 
 /// A collection of credentials and credential loading errors for a system user.
 ///
-/// Tracks a [`SystemUserId`], zero or more [`Credentials`] mapped to it, as well as zero or more
-/// errors related to loading the passphrase for a [`UserId`].
+/// Tracks a [`SystemUserId`], zero or more [`FullCredentials`] mapped to it, as well as zero or
+/// more errors related to loading the passphrase for a [`UserId`].
 #[derive(Debug)]
 pub struct CredentialsLoading {
     mapping: ExtendedUserMapping,
-    credentials: Vec<Credentials>,
+    credentials: Vec<FullCredentials>,
     errors: CredentialsLoadingErrors,
 }
 
@@ -219,7 +219,7 @@ impl CredentialsLoading {
     /// Creates a new [`CredentialsLoading`].
     pub fn new(
         mapping: ExtendedUserMapping,
-        credentials: Vec<Credentials>,
+        credentials: Vec<FullCredentials>,
         errors: CredentialsLoadingErrors,
     ) -> Self {
         Self {
@@ -265,8 +265,8 @@ impl CredentialsLoading {
         &self.mapping
     }
 
-    /// Returns all [`Credentials`].
-    pub fn get_credentials(&self) -> &[Credentials] {
+    /// Returns all [`FullCredentials`].
+    pub fn get_credentials(&self) -> &[FullCredentials] {
         &self.credentials
     }
 
@@ -316,7 +316,7 @@ impl CredentialsLoading {
     /// - the tracked user is not a signing user
     /// - errors occurred when loading the system user's credentials
     /// - or there are no credentials for the system user.
-    pub fn credentials_for_signing_user(self) -> Result<Credentials, crate::Error> {
+    pub fn credentials_for_signing_user(self) -> Result<FullCredentials, crate::Error> {
         if !self.has_signing_user() {
             return Err(crate::Error::NonAdminSecretHandling(Error::NotSigningUser));
         }
@@ -469,7 +469,7 @@ impl SecretsReader for ExtendedUserMapping {
                         .map_err(crate::Error::NonAdminSecretHandling)
                     {
                         Ok(passphrase) => credentials
-                            .push(Credentials::new(user_id, Some(Passphrase::new(passphrase)))),
+                            .push(FullCredentials::new(user_id, Passphrase::new(passphrase))),
                         Err(error) => {
                             errors.push(CredentialsLoadingError::new(user_id, error));
                             continue;
@@ -524,8 +524,7 @@ impl SecretsReader for ExtendedUserMapping {
                                 }
                             };
 
-                            credentials
-                                .push(Credentials::new(user_id, Some(Passphrase::new(creds))));
+                            credentials.push(FullCredentials::new(user_id, Passphrase::new(creds)));
                         }
                         Err(error) => {
                             errors.push(CredentialsLoadingError::new(user_id, error));

@@ -1,5 +1,4 @@
 //! Example for reading all backend user credentials associated with the current system user.
-use core::panic;
 use std::process::ExitCode;
 
 #[cfg(doc)]
@@ -37,13 +36,10 @@ fn load_user_credentials() -> Result<(), Error> {
     if credentials_loading.has_signing_user() {
         eprintln!("Credentials for signing user in the backend:");
         let credentials = credentials_loading.credentials_for_signing_user()?;
-        let Some(ref passphrase) = credentials.passphrase else {
-            panic!("There should be a passphrase");
-        };
         eprintln!(
             "user: {}\npassphrase: {}",
-            credentials.user_id,
-            passphrase.expose_owned()
+            credentials.name,
+            credentials.passphrase.expose_owned()
         )
     }
 
