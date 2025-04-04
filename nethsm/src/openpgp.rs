@@ -10,6 +10,7 @@ use std::{
 use base64ct::{Base64, Encoding as _};
 use chrono::{DateTime, Utc};
 use email_address::{EmailAddress, Options};
+use log::error;
 use pgp::{
     Deserializable,
     KeyDetails,
@@ -438,8 +439,10 @@ fn parse_signature(sig_type: crate::SignatureType, sig: &[u8]) -> pgp::errors::R
     use crate::SignatureType::*;
     Ok(match sig_type {
         EcdsaP256 | EcdsaP384 | EcdsaP521 => {
-            let sig: EcdsaSignatureValue =
-                picky_asn1_der::from_bytes(sig).map_err(|_| pgp::errors::Error::InvalidInput)?;
+            let sig: EcdsaSignatureValue = picky_asn1_der::from_bytes(sig).map_err(|e| {
+                error!("DER decoding error when parsing ECDSA signature: {e:?}");
+                pgp::errors::Error::InvalidInput
+            })?;
             vec![
                 Mpi::from_slice(sig.r.as_unsigned_bytes_be()),
                 Mpi::from_slice(sig.s.as_unsigned_bytes_be()),
@@ -573,7 +576,10 @@ fn prepare_digest_data(
             oid: hash_to_oid(hash)?,
             digest: digest.to_vec().into(),
         })
-        .map_err(|_| pgp::errors::Error::InvalidInput)?
+        .map_err(|e| {
+            error!("Encoding signature to PKCS#1 format failed: {e:?}");
+            pgp::errors::Error::InvalidInput
+        })?
         .into(),
 
         // ECDSA may need to truncate the digest if it's too long
@@ -616,7 +622,12 @@ impl SecretKeyTrait for HsmKey<'_, '_> {
         let sig = self
             .nethsm
             .sign_digest(self.key_id, signature_type, &request_data)
-            .map_err(|_| pgp::errors::Error::InvalidInput)?;
+            .map_err(|e| {
+                error!("NetHsm::sign_digest failed: {e:?}");
+                // it's not possible to wrap the inner error
+                // see https://github.com/rpgp/rpgp/issues/517
+                pgp::errors::Error::InvalidInput
+            })?;
 
         Ok(parse_signature(signature_type, &sig)?.into())
     }
