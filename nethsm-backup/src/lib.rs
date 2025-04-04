@@ -309,6 +309,15 @@ pub struct BackupDecryptor<'a> {
     cipher: Aes256Gcm,
 }
 
+impl std::fmt::Debug for BackupDecryptor<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("BackupDecryptor")
+            .field("backup", self.backup)
+            .field("cipher", &"[REDACTED]")
+            .finish()
+    }
+}
+
 impl<'a> BackupDecryptor<'a> {
     /// Create a new [`BackupDecryptor`] using a [`Backup`] and a passphrase.
     ///

@@ -536,7 +536,29 @@ enum PrivateKeyData {
     },
 }
 
+impl std::fmt::Debug for PrivateKeyData {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        const REDACTED: &&str = &"[REDACTED]";
+        match self {
+            Self::Curve25519(_) => f.debug_tuple("Curve25519").field(REDACTED).finish(),
+            Self::EcP224(_) => f.debug_tuple("EcP224").field(REDACTED).finish(),
+            Self::EcP256(_) => f.debug_tuple("EcP256").field(REDACTED).finish(),
+            Self::EcP384(_) => f.debug_tuple("EcP384").field(REDACTED).finish(),
+            Self::EcP521(_) => f.debug_tuple("EcP521").field(REDACTED).finish(),
+            Self::Rsa {
+                public_exponent, ..
+            } => f
+                .debug_struct("Rsa")
+                .field("prime_p", REDACTED)
+                .field("prime_q", REDACTED)
+                .field("public_exponent", public_exponent)
+                .finish(),
+        }
+    }
+}
+
 /// The key data required when importing a secret key
+#[derive(Debug)]
 pub struct PrivateKeyImport {
     key_data: PrivateKeyData,
 }

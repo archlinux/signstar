@@ -375,6 +375,7 @@ pub fn validate_backup(
 ///
 /// Defines a network configuration for the connection and a list of user [`Credentials`] that can
 /// be used over this connection.
+#[derive(Debug)]
 pub struct NetHsm {
     /// The agent for the requests
     agent: RefCell<Agent>,

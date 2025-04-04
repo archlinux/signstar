@@ -1036,7 +1036,7 @@ pub fn extract_certificate(key_data: &[u8]) -> Result<Vec<u8>, crate::Error> {
 }
 
 /// Key usage flags that can be set on the generated certificate.
-#[derive(Default)]
+#[derive(Debug, Default)]
 pub struct KeyUsageFlags(KeyFlags);
 
 impl KeyUsageFlags {

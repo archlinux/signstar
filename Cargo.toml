@@ -46,6 +46,7 @@ zeroize = { version = "1.8.1", features = ["zeroize_derive", "serde"] }
 
 [workspace.lints.rust]
 missing_docs = "deny"
+missing_debug_implementations = "deny"
 
 [workspace.package]
 authors = [
