@@ -1,3 +1,5 @@
+//! A simple SSH agent implementation which contains one, randomly generated RSA key.
+
 use std::path::Path;
 use std::sync::{Arc, Mutex};
 
@@ -69,6 +71,13 @@ impl AgentSession for RandomKey {
     }
 }
 
+/// Starts the SSH agent listening on given path.
+///
+/// # Errors
+///
+/// Returns an error if:
+/// - generating RSA key fails
+/// - binding to the given path as a Unix Domain Socket fails
 pub async fn listen_on_socket(socket: impl AsRef<Path>) -> Result<(), AgentError> {
     listen(UnixListener::bind(socket)?, RandomKey::new()?).await?;
     Ok(())
