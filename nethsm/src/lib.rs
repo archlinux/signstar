@@ -36,8 +36,11 @@
 //!
 //! ## Reexports
 //!
-//! This crate re-exports the following [`nethsm_sdk_rs`] types, so that the crate does not have to
-//! be relied upon directly:
+//! This crate re-exports the following types, so that the respective crates do not have to be
+//! relied upon directly:
+//!
+//! * [`chrono::DateTime`]
+//! * [`chrono::Utc`]
 //! * [`nethsm_sdk_rs::models::DistinguishedName`]
 //! * [`nethsm_sdk_rs::models::InfoData`]
 //! * [`nethsm_sdk_rs::models::LoggingConfig`]
@@ -97,7 +100,7 @@ use std::net::Ipv4Addr;
 use std::thread::available_parallelism;
 
 use base64ct::{Base64, Encoding};
-use chrono::{DateTime, Utc};
+pub use chrono::{DateTime, Utc};
 use log::error;
 use md5::{Digest as _, Md5};
 use nethsm_sdk_rs::apis::configuration::Configuration;
