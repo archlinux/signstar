@@ -12,6 +12,7 @@ use nethsm::{
     ConnectionSecurity,
     Credentials,
     KeyId,
+    NamespaceId,
     NetHsm,
     Passphrase,
     Url,
@@ -104,7 +105,12 @@ pub enum Error {
 
     /// Duplicate key ID in a namespace
     #[error("The key ID {key_id} is used more than once in namespace {namespace}!")]
-    DuplicateKeyIdInNamespace { key_id: KeyId, namespace: String },
+    DuplicateKeyIdInNamespace {
+        /// The ID of a key which exists more than once in `namespace`.
+        key_id: KeyId,
+        /// The `namespace` in which more than one `key_id` exists.
+        namespace: NamespaceId,
+    },
 
     /// Duplicate system user names
     #[error("The system user ID {system_user_id} is used more than once!")]
@@ -116,15 +122,18 @@ pub enum Error {
 
     /// Duplicate tag
     #[error("The tag {tag} is used more than once in namespace {namespace}!")]
-    DuplicateTagInNamespace { tag: String, namespace: String },
+    DuplicateTagInNamespace { tag: String, namespace: NamespaceId },
 
     /// Missing system-wide user in the Administrator role (R-Administrator)
     #[error("No system-wide user in the Administrator role exists.")]
     MissingAdministrator,
 
     /// Missing user in the Administrator role for a namespace (N-Administrator)
-    #[error("No user in the Administrator role exist for the namespaces {namespaces:?}")]
-    MissingNamespaceAdministrators { namespaces: Vec<String> },
+    #[error(
+        "No user in the Administrator role exist for the namespaces {}",
+        namespaces.iter().map(|id| id.to_string()).collect::<Vec<String>>().join(", ")
+    )]
+    MissingNamespaceAdministrators { namespaces: Vec<NamespaceId> },
 
     /// Missing system user for downloading shares of a shared secret
     #[error("No system user for downloading shares of a shared secret exists.")]
@@ -2237,19 +2246,19 @@ impl HermeticParallelConfig {
                 .iter()
                 .filter(|mapping| !matches!(mapping, UserMapping::NetHsmOnlyAdmin(_)))
                 .flat_map(|mapping| mapping.get_namespaces())
-                .collect::<HashSet<String>>();
+                .collect::<HashSet<NamespaceId>>();
             // namespaces for all users, that are in the Administrator role
             let namespaces_admins = self
                 .users
                 .iter()
                 .filter(|mapping| matches!(mapping, UserMapping::NetHsmOnlyAdmin(_)))
                 .flat_map(|mapping| mapping.get_namespaces())
-                .collect::<HashSet<String>>();
+                .collect::<HashSet<NamespaceId>>();
 
-            let namespaces: Vec<String> = namespaces_users
+            let namespaces = namespaces_users
                 .difference(&namespaces_admins)
                 .cloned()
-                .collect();
+                .collect::<Vec<NamespaceId>>();
             if !namespaces.is_empty() {
                 return Err(Error::MissingNamespaceAdministrators { namespaces });
             }

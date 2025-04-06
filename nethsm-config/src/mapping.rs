@@ -2,7 +2,7 @@ use std::collections::HashSet;
 
 #[cfg(doc)]
 use nethsm::NetHsm;
-use nethsm::{Connection, KeyId, SigningKeySetup, UserId};
+use nethsm::{Connection, KeyId, NamespaceId, SigningKeySetup, UserId};
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -408,7 +408,7 @@ impl UserMapping {
     /// # Ok(())
     /// # }
     /// ```
-    pub fn get_key_ids(&self, namespace: Option<&str>) -> Vec<KeyId> {
+    pub fn get_key_ids(&self, namespace: Option<&NamespaceId>) -> Vec<KeyId> {
         match self {
             UserMapping::SystemNetHsmOperatorSigning {
                 nethsm_user,
@@ -417,7 +417,7 @@ impl UserMapping {
                 ssh_authorized_key: _,
                 tag: _,
             } => {
-                if nethsm_user.namespace().as_deref() == namespace {
+                if nethsm_user.namespace() == namespace {
                     vec![nethsm_key_setup.get_key_id()]
                 } else {
                     vec![]
@@ -491,12 +491,12 @@ impl UserMapping {
     ///     tag: "tag1".to_string(),
     /// };
     /// assert!(mapping.get_tags(None).is_empty());
-    /// assert_eq!(mapping.get_tags(Some("ns1")), vec!["tag1"]);
+    /// assert_eq!(mapping.get_tags(Some(&"ns1".parse()?)), vec!["tag1"]);
     /// # Ok(())
     /// # }
     /// ```
     /// [namespace]: https://docs.nitrokey.com/nethsm/administration#namespaces
-    pub fn get_tags(&self, namespace: Option<&str>) -> Vec<&str> {
+    pub fn get_tags(&self, namespace: Option<&NamespaceId>) -> Vec<&str> {
         match self {
             UserMapping::SystemNetHsmOperatorSigning {
                 nethsm_user,
@@ -505,7 +505,7 @@ impl UserMapping {
                 ssh_authorized_key: _,
                 tag,
             } => {
-                if nethsm_user.namespace().as_deref() == namespace {
+                if nethsm_user.namespace() == namespace {
                     vec![tag.as_str()]
                 } else {
                     vec![]
@@ -575,12 +575,12 @@ impl UserMapping {
     ///     ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
     ///     tag: "tag1".to_string(),
     /// };
-    /// assert_eq!(mapping.get_namespaces(), vec!["ns1".to_string()]);
+    /// assert_eq!(mapping.get_namespaces(), vec!["ns1".parse()?]);
     /// # Ok(())
     /// # }
     /// ```
     /// [namespaces]: https://docs.nitrokey.com/nethsm/administration#namespaces
-    pub fn get_namespaces(&self) -> Vec<String> {
+    pub fn get_namespaces(&self) -> Vec<NamespaceId> {
         match self {
             UserMapping::NetHsmOnlyAdmin(nethsm_user)
             | UserMapping::SystemNetHsmOperatorSigning {
@@ -591,7 +591,7 @@ impl UserMapping {
                 tag: _,
             } => {
                 if let Some(namespace) = nethsm_user.namespace() {
-                    vec![namespace]
+                    vec![namespace.clone()]
                 } else {
                     vec![]
                 }
@@ -608,6 +608,7 @@ impl UserMapping {
                 .get_users()
                 .iter()
                 .filter_map(|user_id| user_id.namespace())
+                .cloned()
                 .collect(),
             UserMapping::SystemOnlyShareDownload {
                 system_user: _,
