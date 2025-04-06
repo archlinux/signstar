@@ -249,15 +249,15 @@ impl UserId {
     /// // the UserId of a namespace user
     /// assert_eq!(
     ///     UserId::new("namespace1~user1".to_string())?.namespace(),
-    ///     Some("namespace1".to_string())
+    ///     Some(&"namespace1".try_into()?)
     /// );
     /// # Ok(())
     /// # }
     /// ```
-    pub fn namespace(&self) -> Option<String> {
+    pub fn namespace(&self) -> Option<&NamespaceId> {
         match self {
             Self::SystemWide(_) => None,
-            Self::Namespace(namespace, _) => Some(namespace.to_string()),
+            Self::Namespace(namespace, _) => Some(namespace),
         }
     }
 
@@ -651,9 +651,9 @@ mod tests {
 
     #[rstest]
     #[case(UserId::SystemWide("user".to_string()), None)]
-    #[case(UserId::Namespace(NamespaceId("namespace".to_string()), "user".to_string()), Some("namespace".to_string()))]
-    fn user_id_namespace(#[case] input: UserId, #[case] result: Option<String>) -> TestResult {
-        assert_eq!(input.namespace(), result);
+    #[case(UserId::Namespace(NamespaceId("namespace".to_string()), "user".to_string()), Some(NamespaceId("namespace".to_string())))]
+    fn user_id_namespace(#[case] input: UserId, #[case] result: Option<NamespaceId>) -> TestResult {
+        assert_eq!(input.namespace(), result.as_ref());
         Ok(())
     }
 
