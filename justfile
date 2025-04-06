@@ -630,7 +630,7 @@ get-cargo-target-dir:
 get-tests-by-features project features:
     just ensure-command cargo cargo-nextest jq
 
-    cargo nextest list --package {{ project }} --no-default-features --features {{ features }} --message-format json | jq -r '."rust-suites"[] | ."binary-id" as $x | ."testcases" | to_entries[] | if (.value."filter-match"."status") == "matches" then (.key) else null end | select(. != null) as $y | "\($x) \($y)"'
+    cargo nextest list --package {{ project }} --no-default-features --features {{ features }} --message-format json 2>/dev/null | jq -r '."rust-suites"[] | ."binary-id" as $x | ."testcases" | to_entries[] | if (.value."filter-match"."status") == "matches" then (.key) else null end | select(. != null) as $y | "\($x) \($y)"'
 
 # Builds a container image that enables running dedicated integration tests of the project in containers
 build-container-integration-test-image:
