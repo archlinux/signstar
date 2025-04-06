@@ -31,6 +31,13 @@ pub enum Error {
     #[error("Invalid User ID: {0}")]
     InvalidUserId(String),
 
+    /// One or more User IDs are invalid.
+    #[error("The User IDs are not valid: {}", user_ids.join(", "))]
+    InvalidUserIds {
+        /// The list of User IDs that are not valid
+        user_ids: Vec<String>,
+    },
+
     /// The API call does not support users in namespaces
     #[error("The calling user {0} is in a namespace, which is not supported in this context.")]
     NamespaceUnsupported(UserId),
