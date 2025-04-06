@@ -27,6 +27,13 @@ pub enum Error {
     #[error("Invalid Namespace ID: {0}")]
     InvalidNamespaceId(String),
 
+    /// One or more Namespace IDs are invalid.
+    #[error("Invalid Namespace ID: {}", namespace_ids.join(", "))]
+    InvalidNamespaceIds {
+        /// The list of Namespace IDs that are not valid.
+        namespace_ids: Vec<String>,
+    },
+
     /// Invalid User ID
     #[error("Invalid User ID: {0}")]
     InvalidUserId(String),

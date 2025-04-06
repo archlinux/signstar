@@ -3141,9 +3141,9 @@ impl NetHsm {
     /// [namespaces]: https://docs.nitrokey.com/nethsm/administration#namespaces
     /// [role]: https://docs.nitrokey.com/nethsm/administration#roles
     /// [state]: https://docs.nitrokey.com/nethsm/administration#state
-    pub fn get_namespaces(&self) -> Result<Vec<String>, Error> {
+    pub fn get_namespaces(&self) -> Result<Vec<NamespaceId>, Error> {
         self.validate_namespace_access(NamespaceSupport::Unsupported, None, None)?;
-        Ok(namespaces_get(&self.create_connection_config())
+        let raw_namespaces = namespaces_get(&self.create_connection_config())
             .map_err(|error| {
                 Error::Api(format!(
                     "Getting namespaces failed: {}",
@@ -3151,10 +3151,35 @@ impl NetHsm {
                 ))
             })?
             .entity
+            .into_iter()
+            .map(|x| x.id)
+            .collect::<Vec<String>>();
+        let valid_namespaces = raw_namespaces
             .iter()
-            .map(|x| &x.id)
-            .cloned()
-            .collect())
+            .filter_map(|namespace| NamespaceId::try_from(namespace.as_str()).ok())
+            .collect::<Vec<NamespaceId>>();
+
+        if raw_namespaces.len() != valid_namespaces.len() {
+            let raw_valid_namespaces = valid_namespaces
+                .iter()
+                .map(|namespace| namespace.as_ref())
+                .collect::<Vec<&str>>();
+            return Err(UserError::InvalidNamespaceIds {
+                namespace_ids: raw_namespaces
+                    .into_iter()
+                    .filter_map(|namespace| {
+                        if !raw_valid_namespaces.contains(&namespace.as_str()) {
+                            Some(namespace)
+                        } else {
+                            None
+                        }
+                    })
+                    .collect::<Vec<String>>(),
+            }
+            .into());
+        }
+
+        Ok(valid_namespaces)
     }
 
     /// Deletes an existing [namespace].
