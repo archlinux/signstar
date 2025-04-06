@@ -3141,20 +3141,39 @@ impl NetHsm {
     /// [namespaces]: https://docs.nitrokey.com/nethsm/administration#namespaces
     /// [role]: https://docs.nitrokey.com/nethsm/administration#roles
     /// [state]: https://docs.nitrokey.com/nethsm/administration#state
-    pub fn get_namespaces(&self) -> Result<Vec<String>, Error> {
+    pub fn get_namespaces(&self) -> Result<Vec<NamespaceId>, Error> {
         self.validate_namespace_access(NamespaceSupport::Unsupported, None, None)?;
-        Ok(namespaces_get(&self.create_connection_config())
-            .map_err(|error| {
-                Error::Api(format!(
-                    "Getting namespaces failed: {}",
-                    NetHsmApiError::from(error)
-                ))
-            })?
-            .entity
-            .iter()
-            .map(|x| &x.id)
-            .cloned()
-            .collect())
+        let valid_namespaces = {
+            let mut invalid_namespaces = Vec::new();
+            let valid_namespaces = namespaces_get(&self.create_connection_config())
+                .map_err(|error| {
+                    Error::Api(format!(
+                        "Getting namespaces failed: {}",
+                        NetHsmApiError::from(error)
+                    ))
+                })?
+                .entity
+                .into_iter()
+                .filter_map(|x| {
+                    if let Ok(namespace) = NamespaceId::new(x.id.clone()) {
+                        Some(namespace)
+                    } else {
+                        invalid_namespaces.push(x.id);
+                        None
+                    }
+                })
+                .collect::<Vec<NamespaceId>>();
+
+            if !invalid_namespaces.is_empty() {
+                return Err(UserError::InvalidNamespaceIds {
+                    namespace_ids: invalid_namespaces,
+                }
+                .into());
+            }
+            valid_namespaces
+        };
+
+        Ok(valid_namespaces)
     }
 
     /// Deletes an existing [namespace].

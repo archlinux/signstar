@@ -23,9 +23,12 @@ pub enum Error {
         user: UserId,
     },
 
-    /// Invalid Namespace ID
-    #[error("Invalid Namespace ID: {0}")]
-    InvalidNamespaceId(String),
+    /// One or more [`NamespaceId`]s are invalid.
+    #[error("Invalid Namespace IDs: {}", namespace_ids.join(", "))]
+    InvalidNamespaceIds {
+        /// The list of invalid Namespace IDs.
+        namespace_ids: Vec<String>,
+    },
 
     /// One or more [`UserId`]s are invalid.
     #[error("Invalid User IDs: {}", user_ids.join(", "))]
@@ -125,7 +128,9 @@ impl NamespaceId {
                 char.is_numeric() || (char.is_ascii_lowercase() && char.is_ascii_alphabetic())
             })
         {
-            return Err(Error::InvalidNamespaceId(namespace_id));
+            return Err(Error::InvalidNamespaceIds {
+                namespace_ids: vec![namespace_id],
+            });
         }
         Ok(Self(namespace_id))
     }
