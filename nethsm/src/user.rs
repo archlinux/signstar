@@ -27,9 +27,12 @@ pub enum Error {
     #[error("Invalid Namespace ID: {0}")]
     InvalidNamespaceId(String),
 
-    /// Invalid User ID
-    #[error("Invalid User ID: {0}")]
-    InvalidUserId(String),
+    /// One or more [`UserId`]s are invalid.
+    #[error("Invalid User IDs: {}", user_ids.join(", "))]
+    InvalidUserIds {
+        /// A list of strings representing invalid [`UserId`]s.
+        user_ids: Vec<String>,
+    },
 
     /// The API call does not support users in namespaces
     #[error("The calling user {0} is in a namespace, which is not supported in this context.")]
@@ -221,7 +224,9 @@ impl UserId {
                     char.is_numeric() || (char.is_ascii_lowercase() && char.is_ascii_alphabetic())
                 }))
             {
-                return Err(Error::InvalidUserId(user_id));
+                return Err(Error::InvalidUserIds {
+                    user_ids: vec![user_id],
+                });
             }
             Ok(Self::Namespace(namespace.parse()?, name.to_string()))
         } else {
@@ -230,7 +235,9 @@ impl UserId {
                     char.is_numeric() || (char.is_ascii_lowercase() && char.is_ascii_alphabetic())
                 })
             {
-                return Err(Error::InvalidUserId(user_id));
+                return Err(Error::InvalidUserIds {
+                    user_ids: vec![user_id],
+                });
             }
             Ok(Self::SystemWide(user_id))
         }

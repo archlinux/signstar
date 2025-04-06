@@ -3539,19 +3539,40 @@ impl NetHsm {
     /// [namespace]: https://docs.nitrokey.com/nethsm/administration#namespaces
     /// [role]: https://docs.nitrokey.com/nethsm/administration#roles
     /// [state]: https://docs.nitrokey.com/nethsm/administration#state
-    pub fn get_users(&self) -> Result<Vec<String>, Error> {
+    pub fn get_users(&self) -> Result<Vec<UserId>, Error> {
         self.validate_namespace_access(NamespaceSupport::Supported, None, None)?;
-        Ok(users_get(&self.create_connection_config())
-            .map_err(|error| {
-                Error::Api(format!(
-                    "Getting users failed: {}",
-                    NetHsmApiError::from(error)
-                ))
-            })?
-            .entity
-            .iter()
-            .map(|x| x.user.clone())
-            .collect())
+        let valid_users = {
+            let mut invalid_users = Vec::new();
+            let valid_users = users_get(&self.create_connection_config())
+                .map_err(|error| {
+                    Error::Api(format!(
+                        "Getting users failed: {}",
+                        NetHsmApiError::from(error)
+                    ))
+                })?
+                .entity
+                .into_iter()
+                .filter_map(|x| {
+                    if let Ok(user) = UserId::new(x.user.clone()) {
+                        Some(user)
+                    } else {
+                        invalid_users.push(x.user);
+                        None
+                    }
+                })
+                .collect::<Vec<UserId>>();
+
+            if !invalid_users.is_empty() {
+                return Err(UserError::InvalidUserIds {
+                    user_ids: invalid_users,
+                }
+                .into());
+            }
+
+            valid_users
+        };
+
+        Ok(valid_users)
     }
 
     /// Gets [information of a user].
