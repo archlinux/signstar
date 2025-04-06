@@ -638,6 +638,16 @@ build-container-integration-test-image:
 
     podman build --volume "$PWD:/test" --tag arch-signstar-integration-test --file .containers/Containerfile.integration-test .
 
+# Runs all tests of a project that are made available with the "_nethsm-integration-test" feature
+nethsm-integration-test project filterset:
+    just ensure-command podman
+
+    cargo nextest run --package {{ project }} --features _nethsm-integration-test --filterset '{{ filterset }}'
+
+# Runs all tests of all configured projects that are made available with the "_nethsm-integration-test" feature
+nethsm-integration-tests:
+    just nethsm-integration-test signstar-config 'test(nethsm)'
+
 # Runs each test of a project that is made available with the "_containerized-integration-test" feature in a separate container
 containerized-integration-test project:
     #!/usr/bin/env bash
