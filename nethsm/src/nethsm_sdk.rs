@@ -720,6 +720,17 @@ impl From<UserRole> for nethsm_sdk_rs::models::UserRole {
     }
 }
 
+impl From<nethsm_sdk_rs::models::UserRole> for UserRole {
+    fn from(value: nethsm_sdk_rs::models::UserRole) -> Self {
+        match value {
+            nethsm_sdk_rs::models::UserRole::Administrator => Self::Administrator,
+            nethsm_sdk_rs::models::UserRole::Backup => Self::Backup,
+            nethsm_sdk_rs::models::UserRole::Metrics => Self::Metrics,
+            nethsm_sdk_rs::models::UserRole::Operator => Self::Operator,
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use std::str::FromStr;
