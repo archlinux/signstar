@@ -657,6 +657,145 @@ impl UserMapping {
         }
     }
 
+    /// Returns a list of tuples of [`UserId`], [`SigningKeySetup`] and tag for the mapping.
+    ///
+    /// Using a `filter` (see [`FilterUserKeys`]) it is possible to have only a subset of the
+    /// available tuples be returned:
+    ///
+    /// - [`FilterUserKeys::All`]: Returns all available tuples.
+    /// - [`FilterUserKeys::Namespaced`]: Returns tuples that match [`UserId`]s with a namespace.
+    /// - [`FilterUserKeys::Namespace`]: Returns tuples that match [`UserId`]s with a specific
+    ///   namespace.
+    /// - [`FilterUserKeys::SystemWide`]: Returns tuples that match [`UserId`]s without a namespace.
+    /// - [`FilterUserKeys::Namespace`]: Returns tuples that match a specific tag.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use nethsm::{CryptographicKeyContext, KeyId, OpenPgpUserIdList, SigningKeySetup, UserId};
+    /// use nethsm_config::{AuthorizedKeyEntryList, FilterUserKeys, UserMapping};
+    ///
+    /// # fn main() -> testresult::TestResult {
+    /// let mapping = UserMapping::SystemNetHsmOperatorSigning {
+    ///     nethsm_user: "user1".parse()?,
+    ///     nethsm_key_setup: SigningKeySetup::new(
+    ///         "key1".parse()?,
+    ///         "Curve25519".parse()?,
+    ///         vec!["EdDsaSignature".parse()?],
+    ///         None,
+    ///         "EdDsa".parse()?,
+    ///         CryptographicKeyContext::OpenPgp{
+    ///             user_ids: OpenPgpUserIdList::new(vec!["John Doe <john@example.org>".parse()?])?,
+    ///             version: "v4".parse()?,
+    ///         },
+    ///     )?,
+    ///     system_user: "ssh-user1".parse()?,
+    ///     ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+    ///     tag: "tag1".to_string(),
+    /// };
+    /// assert_eq!(
+    ///     mapping.get_nethsm_user_key_and_tag(FilterUserKeys::All),
+    ///     vec![(
+    ///         UserId::new("user1".to_string())?,
+    ///         SigningKeySetup::new(
+    ///             "key1".parse()?,
+    ///             "Curve25519".parse()?,
+    ///             vec!["EdDsaSignature".parse()?],
+    ///             None,
+    ///             "EdDsa".parse()?,
+    ///             CryptographicKeyContext::OpenPgp{
+    ///                 user_ids: OpenPgpUserIdList::new(vec!["John Doe <john@example.org>".parse()?])?,
+    ///                 version: "v4".parse()?,
+    ///             },
+    ///         )?,
+    ///         "tag1".to_string(),
+    ///     )]
+    /// );
+    /// assert_eq!(mapping.get_nethsm_user_key_and_tag(FilterUserKeys::Namespace("test".parse()?)), vec![]);
+    /// assert_eq!(mapping.get_nethsm_user_key_and_tag(FilterUserKeys::Tag("tag2".parse()?)), vec![]);
+    ///
+    /// let mapping = UserMapping::SystemOnlyShareDownload {
+    ///     system_user: "user1".parse()?,
+    ///     ssh_authorized_keys: AuthorizedKeyEntryList::new(vec!["ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?])?,
+    /// };
+    /// assert_eq!(mapping.get_nethsm_user_key_and_tag(FilterUserKeys::All), vec![]);
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn get_nethsm_user_key_and_tag(
+        &self,
+        filter: FilterUserKeys,
+    ) -> Vec<(UserId, SigningKeySetup, String)> {
+        match self {
+            UserMapping::SystemNetHsmOperatorSigning {
+                nethsm_user,
+                nethsm_key_setup,
+                system_user: _,
+                ssh_authorized_key: _,
+                tag,
+            } => match filter {
+                FilterUserKeys::All => {
+                    vec![(nethsm_user.clone(), nethsm_key_setup.clone(), tag.clone())]
+                }
+                FilterUserKeys::Namespaced => {
+                    if nethsm_user.is_namespaced() {
+                        vec![(nethsm_user.clone(), nethsm_key_setup.clone(), tag.clone())]
+                    } else {
+                        Vec::new()
+                    }
+                }
+                FilterUserKeys::Namespace(namespace) => {
+                    if Some(&namespace) == nethsm_user.namespace() {
+                        vec![(nethsm_user.clone(), nethsm_key_setup.clone(), tag.clone())]
+                    } else {
+                        Vec::new()
+                    }
+                }
+                FilterUserKeys::SystemWide => {
+                    if !nethsm_user.is_namespaced() {
+                        vec![(nethsm_user.clone(), nethsm_key_setup.clone(), tag.clone())]
+                    } else {
+                        Vec::new()
+                    }
+                }
+                FilterUserKeys::Tag(filter_tag) => {
+                    if &filter_tag == tag {
+                        vec![(nethsm_user.clone(), nethsm_key_setup.clone(), tag.clone())]
+                    } else {
+                        Vec::new()
+                    }
+                }
+            },
+            UserMapping::SystemNetHsmMetrics {
+                nethsm_users: _,
+                system_user: _,
+                ssh_authorized_key: _,
+            }
+            | UserMapping::NetHsmOnlyAdmin(_)
+            | UserMapping::HermeticSystemNetHsmMetrics {
+                nethsm_users: _,
+                system_user: _,
+            }
+            | UserMapping::SystemNetHsmBackup {
+                nethsm_user: _,
+                system_user: _,
+                ssh_authorized_key: _,
+            }
+            | UserMapping::SystemOnlyShareDownload {
+                system_user: _,
+                ssh_authorized_keys: _,
+            }
+            | UserMapping::SystemOnlyShareUpload {
+                system_user: _,
+                ssh_authorized_keys: _,
+            }
+            | UserMapping::SystemOnlyWireGuardDownload {
+                system_user: _,
+                ssh_authorized_keys: _,
+            } => vec![],
+        }
+    }
+
     /// Returns all [`NetHsm`][`nethsm::NetHsm`] [namespaces] of the mapping
     ///
     /// # Examples
