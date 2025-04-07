@@ -29,7 +29,7 @@ async fn initial_provisioning(
     let info = nethsm.info()?;
     println!("The NetHSM info: {:?}", info);
 
-    assert!(nethsm.state()? == SystemState::Unprovisioned);
+    assert_eq!(nethsm.state()?, SystemState::Unprovisioned);
     nethsm.provision(
         Passphrase::new(UNLOCK_PASSPHRASE.to_string()),
         Passphrase::new(ADMIN_USER_PASSPHRASE.to_string()),
@@ -60,9 +60,9 @@ async fn initial_provisioning(
     nethsm.use_credentials(&ADMIN_USER_ID.parse()?)?;
 
     nethsm.lock()?;
-    assert!(nethsm.state()? == SystemState::Locked);
+    assert_eq!(nethsm.state()?, SystemState::Locked);
     nethsm.unlock(Passphrase::new(UNLOCK_PASSPHRASE.to_string()))?;
-    assert!(nethsm.state()? == SystemState::Operational);
+    assert_eq!(nethsm.state()?, SystemState::Operational);
 
     let new_unlock_passphrase = "just-another-unlock-passphrase";
     nethsm.set_unlock_passphrase(
@@ -73,7 +73,7 @@ async fn initial_provisioning(
     nethsm.lock()?;
     nethsm.remove_credentials(&ADMIN_USER_ID.parse()?);
     nethsm.unlock(Passphrase::new(new_unlock_passphrase.to_string()))?;
-    assert!(nethsm.state()? == SystemState::Operational);
+    assert_eq!(nethsm.state()?, SystemState::Operational);
 
     if elapsed > timeout {
         panic!("NetHSM did not become operational within {}ms", timeout);

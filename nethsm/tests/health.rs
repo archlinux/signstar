@@ -57,11 +57,11 @@ async fn state(
     let (nethsm, _container) = nethsm_with_users.await?;
 
     println!("Checking unprovisioned device...");
-    assert!(unprovisioned_nethsm.state()? == SystemState::Unprovisioned);
+    assert_eq!(unprovisioned_nethsm.state()?, SystemState::Unprovisioned);
     println!("Checking operational device...");
-    assert!(nethsm.state()? == SystemState::Operational);
+    assert_eq!(nethsm.state()?, SystemState::Operational);
     println!("Checking locked device...");
     nethsm.lock()?;
-    assert!(nethsm.state()? == SystemState::Locked);
+    assert_eq!(nethsm.state()?, SystemState::Locked);
     Ok(())
 }

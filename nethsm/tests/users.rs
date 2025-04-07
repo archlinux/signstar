@@ -54,7 +54,7 @@ async fn create_users(
     #[future] provisioned_nethsm: TestResult<(NetHsm, Container<NetHsmImage>)>,
 ) -> TestResult {
     let (nethsm, _container) = provisioned_nethsm.await?;
-    assert!(nethsm.get_users()?.len() == 1);
+    assert_eq!(nethsm.get_users()?.len(), 1);
 
     // User IDs only consisting of a single char are valid
     nethsm.add_user(
@@ -88,7 +88,7 @@ async fn create_users(
         Some(ADMIN2_USER_ID.parse()?),
     )?;
     println!("Created Administrator User: {}", ADMIN2_USER_ID);
-    assert!(nethsm.get_users()?.len() == 2);
+    assert_eq!(nethsm.get_users()?.len(), 2);
     println!(
         "Administrator user data: {:?}",
         nethsm.get_user(&ADMIN2_USER_ID.parse()?)?
@@ -101,7 +101,7 @@ async fn create_users(
         None,
     )?;
     println!("Created Operator User: {}", operator_user);
-    assert!(nethsm.get_users()?.len() == 3);
+    assert_eq!(nethsm.get_users()?.len(), 3);
     println!("Operator user data: {:?}", nethsm.get_user(&operator_user)?);
 
     // change passphrase
@@ -117,7 +117,7 @@ async fn create_users(
         Some(OTHER_OPERATOR_USER_ID.parse()?),
     )?;
     println!("Created Operator User: {}", other_operator_user);
-    assert!(nethsm.get_users()?.len() == 4);
+    assert_eq!(nethsm.get_users()?.len(), 4);
     println!(
         "Operator user data: {:?}",
         nethsm.get_user(&other_operator_user)?
@@ -125,7 +125,7 @@ async fn create_users(
 
     nethsm.delete_user(&operator_user)?;
     nethsm.delete_user(&other_operator_user)?;
-    assert!(nethsm.get_users()?.len() == 2);
+    assert_eq!(nethsm.get_users()?.len(), 2);
 
     // a user can not delete itself
     assert!(nethsm.delete_user(&ADMIN_USER_ID.parse()?).is_err());
@@ -133,7 +133,7 @@ async fn create_users(
     // another Administrator can delete the initial Administrator
     nethsm.use_credentials(&ADMIN2_USER_ID.parse()?)?;
     nethsm.delete_user(&ADMIN_USER_ID.parse()?)?;
-    assert!(nethsm.get_users()?.len() == 1);
+    assert_eq!(nethsm.get_users()?.len(), 1);
 
     Ok(())
 }

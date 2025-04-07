@@ -129,21 +129,21 @@ async fn generate_keys(
 
     // system-wide operator only has access to system-wide keys
     nethsm.use_credentials(&default_operator_user_id)?;
-    assert!(nethsm.get_keys(None)?.len() == 2);
+    assert_eq!(nethsm.get_keys(None)?.len(), 2);
     println!("system-wide keys: {:?}", nethsm.get_keys(None)?);
     assert!(nethsm.get_key(&sw_key).is_ok());
     println!("system-wide key: {:?}", nethsm.get_key(&sw_key)?);
 
     // namespace1 operator only has access to namespace1 keys
     nethsm.use_credentials(&namespace1_operator_user_id)?;
-    assert!(nethsm.get_keys(None)?.len() == 1);
+    assert_eq!(nethsm.get_keys(None)?.len(), 1);
     println!("namespace1 keys: {:?}", nethsm.get_keys(None)?);
     assert!(nethsm.get_key(&ns1_key).is_ok());
     println!("namespace1 key: {:?}", nethsm.get_key(&ns1_key)?);
 
     // namespace2 operator only has access to namespace2 keys
     nethsm.use_credentials(&namespace2_operator_user_id)?;
-    assert!(nethsm.get_keys(None)?.len() == 1);
+    assert_eq!(nethsm.get_keys(None)?.len(), 1);
     println!("namespace2 keys: {:?}", nethsm.get_keys(None)?);
     assert!(nethsm.get_key(&ns2_key).is_ok());
     println!("namespace2 key: {:?}", nethsm.get_key(&ns2_key)?);
