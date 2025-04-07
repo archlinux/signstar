@@ -2,7 +2,7 @@ use std::collections::HashSet;
 
 #[cfg(doc)]
 use nethsm::NetHsm;
-use nethsm::{Connection, KeyId, NamespaceId, SigningKeySetup, UserId};
+use nethsm::{Connection, KeyId, NamespaceId, SigningKeySetup, UserId, UserRole};
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -118,6 +118,42 @@ impl NetHsmMetricsUsers {
         [
             vec![self.metrics_user.clone().into()],
             self.operator_users.clone(),
+        ]
+        .concat()
+    }
+
+    /// Returns all tracked [`UserId`]s and their respective [`UserRole`].
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use nethsm::{UserId, UserRole};
+    /// use nethsm_config::NetHsmMetricsUsers;
+    ///
+    /// # fn main() -> testresult::TestResult {
+    /// let nethsm_metrics_users = NetHsmMetricsUsers::new(
+    ///     "metrics1".parse()?,
+    ///     vec!["user1".parse()?, "user2".parse()?],
+    /// )?;
+    ///
+    /// assert_eq!(
+    ///     nethsm_metrics_users.get_users_and_roles(),
+    ///     vec![
+    ///         (UserId::new("metrics1".to_string())?, UserRole::Metrics),
+    ///         (UserId::new("user1".to_string())?, UserRole::Operator),
+    ///         (UserId::new("user2".to_string())?, UserRole::Operator)
+    ///     ]
+    /// );
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn get_users_and_roles(&self) -> Vec<(UserId, UserRole)> {
+        [
+            vec![(self.metrics_user.clone().into(), UserRole::Metrics)],
+            self.operator_users
+                .iter()
+                .map(|user| (user.clone(), UserRole::Operator))
+                .collect(),
         ]
         .concat()
     }
