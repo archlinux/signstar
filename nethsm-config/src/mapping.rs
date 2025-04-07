@@ -36,6 +36,25 @@ pub enum Error {
     MetricsAlsoOperator { metrics_user: SystemWideUserId },
 }
 
+/// A filter for retrieving information about users and keys.
+#[derive(Clone, Debug, Deserialize, Hash, Eq, PartialEq, Serialize)]
+pub enum FilterUserKeys {
+    /// Consider both system-wide and namespaced users and keys.
+    All,
+
+    /// Only consider users and keys that are in a namespace.
+    Namespaced,
+
+    /// Only consider users and keys that match a specific [`NamespaceId`].
+    Namespace(NamespaceId),
+
+    /// Only consider system-wide users and keys.
+    SystemWide,
+
+    /// Only consider users and keys that match a specific tag.
+    Tag(String),
+}
+
 /// A set of users with unique [`UserId`]s, used for metrics retrieval
 ///
 /// This struct tracks a user that is intended for the use in the
