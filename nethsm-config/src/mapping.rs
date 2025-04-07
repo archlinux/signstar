@@ -350,6 +350,67 @@ impl UserMapping {
         }
     }
 
+    /// Returns the list of all tracked [`UserId`]s and their respective [`UserRole`]s.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use nethsm::{UserId, UserRole};
+    /// use nethsm_config::{AuthorizedKeyEntryList, UserMapping};
+    ///
+    /// # fn main() -> testresult::TestResult {
+    /// let mapping = UserMapping::SystemOnlyShareDownload {
+    ///     system_user: "user1".parse()?,
+    ///     ssh_authorized_keys: AuthorizedKeyEntryList::new(vec!["ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?])?,
+    /// };
+    /// assert!(mapping.get_nethsm_users_and_roles().is_empty());
+    ///
+    /// let mapping = UserMapping::NetHsmOnlyAdmin("user1".parse()?);
+    /// assert_eq!(mapping.get_nethsm_users_and_roles(), vec![(UserId::new("user1".to_string())?, UserRole::Administrator)]);
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn get_nethsm_users_and_roles(&self) -> Vec<(UserId, UserRole)> {
+        match self {
+            UserMapping::SystemNetHsmBackup {
+                nethsm_user,
+                system_user: _,
+                ssh_authorized_key: _,
+            } => vec![(nethsm_user.clone().into(), UserRole::Backup)],
+            UserMapping::NetHsmOnlyAdmin(nethsm_user) => {
+                vec![(nethsm_user.clone(), UserRole::Administrator)]
+            }
+            UserMapping::SystemNetHsmOperatorSigning {
+                nethsm_user,
+                nethsm_key_setup: _,
+                system_user: _,
+                ssh_authorized_key: _,
+                tag: _,
+            } => vec![(nethsm_user.clone(), UserRole::Operator)],
+            UserMapping::SystemNetHsmMetrics {
+                nethsm_users,
+                system_user: _,
+                ssh_authorized_key: _,
+            }
+            | UserMapping::HermeticSystemNetHsmMetrics {
+                nethsm_users,
+                system_user: _,
+            } => nethsm_users.get_users_and_roles(),
+            UserMapping::SystemOnlyShareDownload {
+                system_user: _,
+                ssh_authorized_keys: _,
+            }
+            | UserMapping::SystemOnlyShareUpload {
+                system_user: _,
+                ssh_authorized_keys: _,
+            }
+            | UserMapping::SystemOnlyWireGuardDownload {
+                system_user: _,
+                ssh_authorized_keys: _,
+            } => vec![],
+        }
+    }
+
     /// Returns the SSH authorized keys of the mapping
     ///
     /// # Examples
