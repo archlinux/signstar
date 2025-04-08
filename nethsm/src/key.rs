@@ -75,9 +75,12 @@ pub enum Error {
     )]
     InvalidTlsKeyLengthRsa { key_length: u32 },
 
-    /// Invalid Key ID
-    #[error("Invalid Key ID: {0}")]
-    InvalidKeyId(String),
+    /// One or more [`KeyId`]s are not valid.
+    #[error("Invalid Key ID{}: {}", if key_ids.len() == 1 {"s"} else { " "}, key_ids.join(", "))]
+    InvalidKeyIds {
+        /// A list of strings representing invalid [`KeyId`]s.
+        key_ids: Vec<String>,
+    },
 
     /// The signature type provided for a key type is not valid
     #[error("The key type {key_type} is not compatible with signature type: {signature_type}")]
@@ -166,7 +169,9 @@ impl KeyId {
                 char.is_numeric() || (char.is_ascii_lowercase() && char.is_ascii_alphabetic())
             })
         {
-            return Err(Error::InvalidKeyId(key_id));
+            return Err(Error::InvalidKeyIds {
+                key_ids: vec![key_id],
+            });
         }
 
         Ok(Self(key_id))
