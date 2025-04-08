@@ -385,6 +385,11 @@ impl OpenPgpUserIdList {
     pub fn iter(&self) -> impl Iterator<Item = &OpenPgpUserId> {
         self.0.iter()
     }
+
+    /// Returns a reference to the first [`OpenPgpUserId`] if there is one.
+    pub fn first(&self) -> Option<&OpenPgpUserId> {
+        self.0.first()
+    }
 }
 
 impl AsRef<[OpenPgpUserId]> for OpenPgpUserIdList {
