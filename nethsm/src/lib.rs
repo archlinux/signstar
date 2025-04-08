@@ -4624,19 +4624,40 @@ impl NetHsm {
     /// [namespace]: https://docs.nitrokey.com/nethsm/administration#namespaces
     /// [role]: https://docs.nitrokey.com/nethsm/administration#roles
     /// [state]: https://docs.nitrokey.com/nethsm/administration#state
-    pub fn get_keys(&self, filter: Option<&str>) -> Result<Vec<String>, Error> {
+    pub fn get_keys(&self, filter: Option<&str>) -> Result<Vec<KeyId>, Error> {
         self.validate_namespace_access(NamespaceSupport::Supported, None, None)?;
-        Ok(keys_get(&self.create_connection_config(), filter)
-            .map_err(|error| {
-                Error::Api(format!(
-                    "Getting keys failed: {}",
-                    NetHsmApiError::from(error)
-                ))
-            })?
-            .entity
-            .iter()
-            .map(|x| x.id.clone())
-            .collect())
+        let valid_keys = {
+            let mut invalid_keys = Vec::new();
+            let valid_keys = keys_get(&self.create_connection_config(), filter)
+                .map_err(|error| {
+                    Error::Api(format!(
+                        "Getting keys failed: {}",
+                        NetHsmApiError::from(error)
+                    ))
+                })?
+                .entity
+                .into_iter()
+                .filter_map(|x| {
+                    if let Ok(key) = KeyId::new(x.id.clone()) {
+                        Some(key)
+                    } else {
+                        invalid_keys.push(x.id);
+                        None
+                    }
+                })
+                .collect::<Vec<KeyId>>();
+
+            if !invalid_keys.is_empty() {
+                return Err(key::Error::InvalidKeyIds {
+                    key_ids: invalid_keys,
+                }
+                .into());
+            }
+
+            valid_keys
+        };
+
+        Ok(valid_keys)
     }
 
     /// Gets the [public key of a key] on the NetHSM.

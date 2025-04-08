@@ -79,6 +79,13 @@ pub enum Error {
     #[error("Invalid Key ID: {0}")]
     InvalidKeyId(String),
 
+    /// A set of invalid Key IDs.
+    #[error("Invalid Key ID: {}", key_ids.join(", "))]
+    InvalidKeyIds {
+        /// A list of strings representing invalid key IDs.
+        key_ids: Vec<String>,
+    },
+
     /// The signature type provided for a key type is not valid
     #[error("The key type {key_type} is not compatible with signature type: {signature_type}")]
     InvalidKeyTypeForSignatureType {
