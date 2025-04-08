@@ -4635,9 +4635,9 @@ impl NetHsm {
     /// [namespace]: https://docs.nitrokey.com/nethsm/administration#namespaces
     /// [role]: https://docs.nitrokey.com/nethsm/administration#roles
     /// [state]: https://docs.nitrokey.com/nethsm/administration#state
-    pub fn get_keys(&self, filter: Option<&str>) -> Result<Vec<String>, Error> {
+    pub fn get_keys(&self, filter: Option<&str>) -> Result<Vec<KeyId>, Error> {
         self.validate_namespace_access(NamespaceSupport::Supported, None, None)?;
-        Ok(keys_get(&self.create_connection_config(), filter)
+        let raw_keys = keys_get(&self.create_connection_config(), filter)
             .map_err(|error| {
                 Error::Api(format!(
                     "Getting keys failed: {}",
@@ -4647,7 +4647,17 @@ impl NetHsm {
             .entity
             .iter()
             .map(|x| x.id.clone())
-            .collect())
+            .collect::<Vec<String>>();
+        let keys = {
+            let mut keys = Vec::new();
+            for key in raw_keys {
+                keys.push(KeyId::new(key)?);
+            }
+
+            keys
+        };
+
+        Ok(keys)
     }
 
     /// Gets the [public key of a key] on the NetHSM.
