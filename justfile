@@ -673,3 +673,4 @@ containerized-integration-test project:
 # Runs the tests that are made available with the "_containerized-integration-test" feature of all configured projects in a separate container
 containerized-integration-tests:
     just containerized-integration-test signstar-config
+    just containerized-integration-test signstar-sign
