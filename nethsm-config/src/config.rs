@@ -2149,6 +2149,11 @@ impl HermeticParallelConfig {
         self.users.iter()
     }
 
+    /// Returns the iteration.
+    pub fn get_iteration(&self) -> u32 {
+        self.iteration
+    }
+
     /// Returns the [`AdministrativeSecretHandling`].
     pub fn get_administrative_secret_handling(&self) -> AdministrativeSecretHandling {
         self.admin_secret_handling
