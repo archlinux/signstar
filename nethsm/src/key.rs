@@ -17,108 +17,7 @@ use crate::{KeyMechanism, KeyType, OpenPgpUserIdList, OpenPgpVersion, SignatureT
 /// This follows recommendations from [NIST Special Publication 800-57 Part 3 Revision 1](https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-57Pt3r1.pdf) (January 2015).
 pub const MIN_RSA_BIT_LENGTH: u32 = 2048;
 
-/// A unique key identifier for a private key on a NetHSM.
-///
-/// A [`KeyId`]s must be in the character set `[a-z0-9]`.
-/// It is used in [key management] on a NetHSM and is unique in its scope.
-/// The same [`KeyId`] may exist system-wide and in one or several [namespaces], but no duplicate
-/// [`KeyId`] can exist system-wide or in the same namespace.
-///
-/// [key management]: https://docs.nitrokey.com/nethsm/operation#key-management
-/// [namespaces]: https://docs.nitrokey.com/nethsm/administration#namespaces
-#[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
-#[serde(into = "String", try_from = "String")]
-pub struct KeyId(String);
-
-impl KeyId {
-    /// Constructs a new Key ID from a `String`.
-    ///
-    /// Validates the input string and returns [`crate::Error::Key`]
-    /// if it is invalid.
-    ///
-    /// # Errors
-    ///
-    /// Returns an [`Error`][`crate::Error`] if
-    /// * string contains characters outside of the allowed range (`[a-z0-9]`)
-    /// * string is empty
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use nethsm::KeyId;
-    ///
-    /// assert!(KeyId::new("key1".into()).is_ok());
-    /// assert!(KeyId::new("key".into()).is_ok());
-    ///
-    /// // the input can not contain invalid chars
-    /// assert!(KeyId::new("key1#".into()).is_err());
-    /// assert!(KeyId::new("key~1".into()).is_err());
-    ///
-    /// // the key must be non-empty
-    /// assert!(KeyId::new("".into()).is_err());
-    /// ```
-    pub fn new(key_id: String) -> Result<Self, Error> {
-        if key_id.is_empty()
-            || !key_id.chars().all(|char| {
-                char.is_numeric() || (char.is_ascii_lowercase() && char.is_ascii_alphabetic())
-            })
-        {
-            return Err(Error::InvalidKeyId(key_id));
-        }
-
-        Ok(Self(key_id))
-    }
-}
-
-impl AsRef<str> for KeyId {
-    fn as_ref(&self) -> &str {
-        &self.0
-    }
-}
-
-impl From<KeyId> for String {
-    fn from(value: KeyId) -> Self {
-        value.0
-    }
-}
-
-impl FromStr for KeyId {
-    type Err = Error;
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Self::new(s.into())
-    }
-}
-
-impl Display for KeyId {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.0.fmt(f)
-    }
-}
-
-impl TryFrom<&str> for KeyId {
-    type Error = Error;
-
-    fn try_from(value: &str) -> Result<Self, Self::Error> {
-        Self::from_str(value)
-    }
-}
-
-impl TryFrom<&String> for KeyId {
-    type Error = Error;
-
-    fn try_from(value: &String) -> Result<Self, Self::Error> {
-        Self::from_str(value)
-    }
-}
-
-impl TryFrom<String> for KeyId {
-    type Error = Error;
-
-    fn try_from(value: String) -> Result<Self, Self::Error> {
-        Self::new(value)
-    }
-}
-
+/// An error that can occur when dealing with keys.
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
     /// Importing from PKCS#8 DER or PEM failed
@@ -219,6 +118,108 @@ pub enum Error {
         key_mechanisms: Vec<KeyMechanism>,
         signature_type: SignatureType,
     },
+}
+
+/// A unique key identifier for a private key on a NetHSM.
+///
+/// A [`KeyId`]s must be in the character set `[a-z0-9]` and must not be empty.
+/// It is used in [key management] on a NetHSM and is unique in its scope.
+/// The same [`KeyId`] may exist system-wide and in one or several [namespaces], but no duplicate
+/// [`KeyId`] can exist system-wide or in the same namespace.
+///
+/// [key management]: https://docs.nitrokey.com/nethsm/operation#key-management
+/// [namespaces]: https://docs.nitrokey.com/nethsm/administration#namespaces
+#[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
+#[serde(into = "String", try_from = "String")]
+pub struct KeyId(String);
+
+impl KeyId {
+    /// Constructs a new Key ID from a `String`.
+    ///
+    /// Validates the input string and returns [`crate::Error::Key`]
+    /// if it is invalid.
+    ///
+    /// # Errors
+    ///
+    /// Returns an [`Error`][`crate::Error`] if
+    /// * string contains characters outside of the allowed range (`[a-z0-9]`)
+    /// * string is empty
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use nethsm::KeyId;
+    ///
+    /// assert!(KeyId::new("key1".into()).is_ok());
+    /// assert!(KeyId::new("key".into()).is_ok());
+    ///
+    /// // the input can not contain invalid chars
+    /// assert!(KeyId::new("key1#".into()).is_err());
+    /// assert!(KeyId::new("key~1".into()).is_err());
+    ///
+    /// // the key must be non-empty
+    /// assert!(KeyId::new("".into()).is_err());
+    /// ```
+    pub fn new(key_id: String) -> Result<Self, Error> {
+        if key_id.is_empty()
+            || !key_id.chars().all(|char| {
+                char.is_numeric() || (char.is_ascii_lowercase() && char.is_ascii_alphabetic())
+            })
+        {
+            return Err(Error::InvalidKeyId(key_id));
+        }
+
+        Ok(Self(key_id))
+    }
+}
+
+impl AsRef<str> for KeyId {
+    fn as_ref(&self) -> &str {
+        &self.0
+    }
+}
+
+impl From<KeyId> for String {
+    fn from(value: KeyId) -> Self {
+        value.0
+    }
+}
+
+impl FromStr for KeyId {
+    type Err = Error;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Self::new(s.into())
+    }
+}
+
+impl Display for KeyId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.0.fmt(f)
+    }
+}
+
+impl TryFrom<&str> for KeyId {
+    type Error = Error;
+
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        Self::from_str(value)
+    }
+}
+
+impl TryFrom<&String> for KeyId {
+    type Error = Error;
+
+    fn try_from(value: &String) -> Result<Self, Self::Error> {
+        Self::from_str(value)
+    }
+}
+
+impl TryFrom<String> for KeyId {
+    type Error = Error;
+
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        Self::new(value)
+    }
 }
 
 /// The cryptographic context in which a key is used
