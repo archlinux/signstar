@@ -6,6 +6,7 @@ members = [
     "nethsm-config",
     "signstar-common",
     "signstar-config",
+    "signstar-configure",
     "signstar-configure-build",
     "signstar-crypto",
     "signstar-request-signature",

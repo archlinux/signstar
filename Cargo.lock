@@ -5159,6 +5159,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "signstar-configure"
+version = "0.1.0"
+
+[[package]]
 name = "signstar-configure-build"
 version = "0.3.0"
 dependencies = [

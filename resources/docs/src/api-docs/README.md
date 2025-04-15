@@ -6,6 +6,7 @@
 - [nethsm-config](/rustdoc/nethsm_config)
 - [signstar-common](/rustdoc/signstar_common)
 - [signstar-config](/rustdoc/signstar_config)
+- [signstar-configure](/rustdoc/signstar_configure)
 - [signstar-configure-build](/rustdoc/signstar_configure_build)
 - [signstar-request-signature](/rustdoc/signstar_request_signature)
 - [signstar-sign](/rustdoc/signstar_sign)
