@@ -1,0 +1,15 @@
+[package]
+authors.workspace = true
+description = "Runtime configuration tool for Signstar hosts"
+edition.workspace = true
+homepage.workspace = true
+license.workspace = true
+name = "signstar-configure"
+repository.workspace = true
+rust-version.workspace = true
+version = "0.1.0"
+
+[dependencies]
+
+[lints]
+workspace = true
