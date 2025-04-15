@@ -59,7 +59,7 @@ pub enum Error {
         /// The path to a config file in which administrative secrets can not be stored.
         path: PathBuf,
         /// The source error.
-        source: confy::ConfyError,
+        source: Box<confy::ConfyError>,
     },
 
     /// Serializing a Signstar config as TOML string failed.
