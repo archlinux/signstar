@@ -8,6 +8,7 @@ members = [
   "signstar-configure-build",
   "signstar-common",
   "signstar-config",
+  "signstar-configure",
   "signstar-request-signature",
   "signstar-sign",
 ]
