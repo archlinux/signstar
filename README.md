@@ -23,7 +23,7 @@ Signstar consists of several loosely coupled components, some of which are used 
 - [signstar-common]: Shared components and data types for Signstar tools and libraries
 - [signstar-config]: Configuration file handling for Signstar hosts
 - [signstar-configure-build]: A commandline interface for the configuration of Signstar system during build-time
-- *signstar-configure*: An executable, that allows non-interactive configuration of an HSM based on a configuration ([#48])
+- [signstar-configure]: An executable, that non-interactively configures a Signstar host, its user's credentials and HSM backends
 - [signstar-crypto]: Common types and functionality for cryptography in Signstar
 - [signstar-request-signature]: An executable, run on a client host, that prepares data to be signed and retrieves a signature for it from a Signstar setup
 - [signstar-sign]: An executable, that allows signing of messages with the help of an HSM, based on a configuration
@@ -89,7 +89,6 @@ This project may be used under the terms of the [Apache-2.0] or [MIT] license.
 
 Changes to this project - unless stated otherwise - automatically fall under the terms of both of the aforementioned licenses.
 
-[#48]: https://gitlab.archlinux.org/archlinux/signstar/-/issues/48
 [Apache-2.0]: https://www.apache.org/licenses/LICENSE-2.0
 [David Runge]: https://archlinux.org/people/developers/#dvzrv
 [MIT]: https://opensource.org/licenses/MIT
@@ -116,6 +115,7 @@ Changes to this project - unless stated otherwise - automatically fall under the
 [pynitrokey]: https://github.com/Nitrokey/pynitrokey
 [signstar-common]: signstar-common/
 [signstar-config]: signstar-config/
+[signstar-configure]: signstar-configure/
 [signstar-configure-build]: signstar-configure-build/
 [signstar-crypto]: signstar-crypto/
 [signstar-request-signature]: signstar-request-signature/
