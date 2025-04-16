@@ -1,10 +1,6 @@
 //! Common, top-level error type for all components of signstar-config.
 
-use std::{
-    path::PathBuf,
-    process::{ExitCode, ExitStatus},
-    string::FromUtf8Error,
-};
+use std::{path::PathBuf, process::ExitCode, string::FromUtf8Error};
 
 /// An error that may occur when using Signstar config.
 #[derive(Debug, thiserror::Error)]
@@ -52,28 +48,6 @@ pub enum Error {
         source: std::io::Error,
     },
 
-    /// A command could not be executed.
-    #[error("The command \"{command}\" could not be executed:\n{source}")]
-    CommandExec {
-        /// The command that could not be executed.
-        command: String,
-        /// The source error.
-        source: std::io::Error,
-    },
-
-    /// A command exited unsuccessfully.
-    #[error(
-        "The command \"{command}\" exited with non-zero status code \"{exit_status}\":\nstderr:\n{stderr}"
-    )]
-    CommandNonZero {
-        /// The command that exited with a non-zero exit code.
-        command: String,
-        /// The exit status of `command`.
-        exit_status: ExitStatus,
-        /// The stderr of `command`.
-        stderr: String,
-    },
-
     /// Unable to write to stdin of a command.
     #[error("Unable to write to stdin of command \"{command}\"")]
     CommandWriteToStdin {
@@ -90,6 +64,10 @@ pub enum Error {
     /// An error specific to non-administrative secret handling.
     #[error("Error with non-administrative secret handling:\n{0}")]
     NonAdminSecretHandling(#[from] crate::non_admin_credentials::Error),
+
+    /// A common error.
+    #[error(transparent)]
+    SignstarCommon(#[from] signstar_common::error::Error),
 
     /// Low-level administrative credentials handling in signstar-common failed.
     #[error("Handling of administrative credentials failed:\n{0}")]
@@ -182,10 +160,10 @@ pub enum ErrorExitCode {
     /// Mapping for [`Error::CommandBackground`].
     CommandBackground = 13,
 
-    /// Mapping for [`Error::CommandExec`].
+    /// Mapping for [`signstar_common::error::Error::CommandExec`].
     CommandExec = 14,
 
-    /// Mapping for [`Error::CommandNonZero`].
+    /// Mapping for [`signstar_common::error::Error::CommandNonZero`].
     CommandNonZero = 15,
 
     /// Mapping for [`Error::CommandWriteToStdin`].
@@ -263,7 +241,8 @@ pub enum ErrorExitCode {
     /// Mapping for [`Error::Utf8String`].
     Utf8String = 18,
 
-    /// Mapping for [`crate::utils::Error::ExecutableNotFound`] wrapped in [`Error::Utils`].
+    /// Mapping for [`signstar_common::error::Error::ExecutableNotFound`] wrapped in
+    /// [`Error::Utils`].
     UtilsExecutableNotFound = 190,
 
     /// Mapping for [`crate::utils::Error::MappingSystemUserGet`] wrapped in [`Error::Utils`].
@@ -382,24 +361,33 @@ impl From<Error> for ErrorExitCode {
             },
             // utils related errors
             Error::Utils(error) => match error {
-                crate::utils::Error::ExecutableNotFound { .. } => Self::UtilsExecutableNotFound,
                 crate::utils::Error::MappingSystemUserGet(_) => Self::UtilsMappingSystemUserGet,
                 crate::utils::Error::SystemUserData { .. } => Self::UtilsSystemUserData,
                 crate::utils::Error::SystemUserLookup { .. } => Self::UtilsSystemUserLookup,
                 crate::utils::Error::SystemUserMismatch { .. } => Self::UtilsSystemUserMismatch,
                 crate::utils::Error::SystemUserNotRoot { .. } => Self::UtilsSystemUserNotRoot,
                 crate::utils::Error::SystemUserRoot => Self::UtilsSystemUserRoot,
+                crate::utils::Error::SignstarCommon(common) => common_error_to_exit_code(common),
             },
             // top-level errors and their exit codes
             Error::ApplyPermissions { .. } => Self::ApplyPermissions,
             Error::CommandAttachToStdin { .. } => Self::CommandAttachToStdin,
             Error::Chown { .. } => Self::Chown,
             Error::CommandBackground { .. } => Self::CommandBackground,
-            Error::CommandExec { .. } => Self::CommandExec,
-            Error::CommandNonZero { .. } => Self::CommandNonZero,
+            Error::SignstarCommon(common) => common_error_to_exit_code(common),
             Error::Thread { .. } => Self::Thread,
             Error::Utf8String { .. } => Self::Utf8String,
             Error::CommandWriteToStdin { .. } => Self::CommandWriteToStdin,
+        }
+    }
+}
+
+fn common_error_to_exit_code(error: signstar_common::error::Error) -> ErrorExitCode {
+    match error {
+        signstar_common::error::Error::CommandExec { .. } => ErrorExitCode::CommandExec,
+        signstar_common::error::Error::CommandNonZero { .. } => ErrorExitCode::CommandNonZero,
+        signstar_common::error::Error::ExecutableNotFound { .. } => {
+            ErrorExitCode::UtilsExecutableNotFound
         }
     }
 }

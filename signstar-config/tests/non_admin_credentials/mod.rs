@@ -64,12 +64,11 @@ fn load_credentials_for_user(#[case] config_data: &[u8]) -> TestResult {
             } = run_command_as_user(GET_CREDENTIALS_PAYLOAD, &[], system_user_id.as_ref(), None)?;
 
             if !status.success() {
-                return Err(signstar_config::Error::CommandNonZero {
+                return Err(signstar_common::error::Error::CommandNonZero {
                     command,
                     exit_status: status,
                     stderr,
-                }
-                .into());
+                })?;
             }
         }
     }

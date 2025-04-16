@@ -399,19 +399,18 @@ impl AdminCredentials {
                 let creds_command = get_command("systemd-creds")?;
                 let mut command = Command::new(creds_command);
                 let command = command.arg("decrypt").arg(path).arg("-");
-                let command_output =
-                    command
-                        .output()
-                        .map_err(|source| crate::Error::CommandExec {
-                            command: format!("{command:?}"),
-                            source,
-                        })?;
+                let command_output = command.output().map_err(|source| {
+                    signstar_common::error::Error::CommandExec {
+                        command: format!("{command:?}"),
+                        source,
+                    }
+                })?;
                 if !command_output.status.success() {
-                    return Err(crate::Error::CommandNonZero {
+                    return Err(signstar_common::error::Error::CommandNonZero {
                         command: format!("{command:?}"),
                         exit_status: command_output.status,
                         stderr: String::from_utf8_lossy(&command_output.stderr).into_owned(),
-                    });
+                    })?;
                 }
 
                 // Read the resulting TOML string from stdout and construct an AdminCredentials from
@@ -554,17 +553,17 @@ impl AdminCredentials {
                     })?;
 
                     let command_output = command_child.wait_with_output().map_err(|source| {
-                        crate::Error::CommandExec {
+                        signstar_common::error::Error::CommandExec {
                             command: format!("{command:?}"),
                             source,
                         }
                     })?;
                     if !command_output.status.success() {
-                        return Err(crate::Error::CommandNonZero {
+                        return Err(signstar_common::error::Error::CommandNonZero {
                             command: format!("{command:?}"),
                             exit_status: command_output.status,
                             stderr: String::from_utf8_lossy(&command_output.stderr).into_owned(),
-                        });
+                        })?;
                     }
                     (command_output.stdout, get_systemd_creds_credentials_file())
                 }

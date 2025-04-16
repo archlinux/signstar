@@ -12,3 +12,4 @@ version = "0.1.0"
 [dependencies]
 nethsm.workspace = true
 thiserror.workspace = true
+which.workspace = true

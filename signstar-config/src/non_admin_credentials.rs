@@ -486,23 +486,24 @@ impl SecretsReader for ExtendedUserMapping {
                         .arg("decrypt")
                         .arg(&secrets_file)
                         .arg("-");
-                    match command
-                        .output()
-                        .map_err(|source| crate::Error::CommandExec {
+                    match command.output().map_err(|source| {
+                        signstar_common::error::Error::CommandExec {
                             command: format!("{command:?}"),
                             source,
-                        }) {
+                        }
+                    }) {
                         Ok(command_output) => {
                             // fail if decryption did not result in a successful status code
                             if !command_output.status.success() {
                                 errors.push(CredentialsLoadingError::new(
                                     user_id,
-                                    crate::Error::CommandNonZero {
+                                    signstar_common::error::Error::CommandNonZero {
                                         command: format!("{command:?}"),
                                         exit_status: command_output.status,
                                         stderr: String::from_utf8_lossy(&command_output.stderr)
                                             .into_owned(),
-                                    },
+                                    }
+                                    .into(),
                                 ));
                                 continue;
                             }
@@ -527,7 +528,7 @@ impl SecretsReader for ExtendedUserMapping {
                             credentials.push(FullCredentials::new(user_id, Passphrase::new(creds)));
                         }
                         Err(error) => {
-                            errors.push(CredentialsLoadingError::new(user_id, error));
+                            errors.push(CredentialsLoadingError::new(user_id, error.into()));
                             continue;
                         }
                     }
@@ -706,19 +707,19 @@ impl SecretsWriter for ExtendedUserMapping {
 
                         let command_output =
                             command_child.wait_with_output().map_err(|source| {
-                                crate::Error::CommandExec {
+                                signstar_common::error::Error::CommandExec {
                                     command: format!("{command:?}"),
                                     source,
                                 }
                             })?;
 
                         if !command_output.status.success() {
-                            return Err(crate::Error::CommandNonZero {
+                            return Err(signstar_common::error::Error::CommandNonZero {
                                 command: format!("{command:?}"),
                                 exit_status: command_output.status,
                                 stderr: String::from_utf8_lossy(&command_output.stderr)
                                     .into_owned(),
-                            });
+                            })?;
                         }
                         command_output.stdout
                     }

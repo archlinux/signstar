@@ -71,9 +71,9 @@ pub enum Error {
         source: std::io::Error,
     },
 
-    /// A signstar-config error.
-    #[error("Signstar-config error:\n{0}")]
-    SignstarConfig(#[from] signstar_config::Error),
+    /// A common error.
+    #[error(transparent)]
+    SignstarCommon(#[from] signstar_common::error::Error),
 
     /// A timeout has been reached.
     #[error("Timeout of {timeout}ms reached while {context}")]
@@ -94,6 +94,10 @@ pub enum Error {
         /// The source error.
         source: std::io::Error,
     },
+
+    /// An error specific to NetHsm config handling.
+    #[error("NetHSM config error:\n{0}")]
+    NetHsmConfig(nethsm_config::Error),
 }
 
 /// Recursively lists files, their permissions and ownership.
@@ -236,15 +240,11 @@ pub fn start_credentials_socket() -> Result<BackgroundProcess, Error> {
 
     // Run systemd-socket-activate to provide /run/systemd/io.systemd.Credentials
     let command = "systemd-socket-activate";
-    let systemd_socket_activate = which(command).map_err(|source| {
-        Error::SignstarConfig(
-            signstar_config::utils::Error::ExecutableNotFound {
-                command: command.to_string(),
-                source,
-            }
-            .into(),
-        )
-    })?;
+    let systemd_socket_activate =
+        which(command).map_err(|source| signstar_common::error::Error::ExecutableNotFound {
+            command: command.to_string(),
+            source,
+        })?;
     let mut command = Command::new(systemd_socket_activate);
     let command = command.args([
         "--listen",
@@ -326,12 +326,10 @@ pub fn run_command_as_user(
     /// Returns an error if `command` can not be found in PATH.
     fn get_command(command: &str) -> Result<PathBuf, Error> {
         which(command).map_err(|source| {
-            Error::SignstarConfig(signstar_config::Error::Utils(
-                signstar_config::utils::Error::ExecutableNotFound {
-                    command: command.to_string(),
-                    source,
-                },
-            ))
+            Error::SignstarCommon(signstar_common::error::Error::ExecutableNotFound {
+                command: command.to_string(),
+                source,
+            })
         })
     }
 
@@ -366,12 +364,13 @@ pub fn run_command_as_user(
 
     let command_string = format!("{command:?}");
     log::debug!("Running command {command_string}");
-    let mut command_output = command.spawn().map_err(|source| {
-        Error::SignstarConfig(signstar_config::Error::CommandExec {
-            command: command_string.clone(),
-            source,
-        })
-    })?;
+    let mut command_output =
+        command
+            .spawn()
+            .map_err(|source| signstar_common::error::Error::CommandExec {
+                command: command_string.clone(),
+                source,
+            })?;
 
     if let Some(input) = command_input {
         command_output
@@ -379,7 +378,7 @@ pub fn run_command_as_user(
             .take()
             .expect("stdin to be set")
             .write_all(input)
-            .map_err(|source| signstar_config::Error::CommandExec {
+            .map_err(|source| signstar_common::error::Error::CommandExec {
                 command: command_string.clone(),
                 source,
             })?;
@@ -389,7 +388,7 @@ pub fn run_command_as_user(
     let mut stdout = String::new();
     BufReader::new(command_output.stdout.take().expect("stdout to be set"))
         .read_to_string(&mut stdout)
-        .map_err(|source| signstar_config::Error::CommandExec {
+        .map_err(|source| signstar_common::error::Error::CommandExec {
             command: command_string.clone(),
             source,
         })?;
@@ -398,7 +397,7 @@ pub fn run_command_as_user(
     let mut stderr = String::new();
     BufReader::new(command_output.stderr.take().expect("stderr to be set"))
         .read_to_string(&mut stderr)
-        .map_err(|source| signstar_config::Error::CommandExec {
+        .map_err(|source| signstar_common::error::Error::CommandExec {
             command: command_string.clone(),
             source,
         })?;
@@ -432,7 +431,7 @@ pub fn create_users(users: &[String]) -> TestResult {
 
         let command_output = command.output()?;
         if !command_output.status.success() {
-            return Err(signstar_config::Error::CommandNonZero {
+            return Err(signstar_common::error::Error::CommandNonZero {
                 command: format!("{command:?}"),
                 exit_status: command_output.status,
                 stderr: String::from_utf8_lossy(&command_output.stderr).into_owned(),
@@ -446,7 +445,7 @@ pub fn create_users(users: &[String]) -> TestResult {
         command.arg(user);
         let command_output = command.output()?;
         if !command_output.status.success() {
-            return Err(signstar_config::Error::CommandNonZero {
+            return Err(signstar_common::error::Error::CommandNonZero {
                 command: format!("{command:?}"),
                 exit_status: command_output.status,
                 stderr: String::from_utf8_lossy(&command_output.stderr).into_owned(),
@@ -494,20 +493,12 @@ pub fn prepare_system_with_config(
         ),
         Some(get_tmp_config(config_data)?.path()),
     )
-    .map_err(|source| {
-        Error::SignstarConfig(signstar_config::Error::Config(
-            signstar_config::config::Error::NetHsmConfig(source),
-        ))
-    })?;
+    .map_err(Error::NetHsmConfig)?;
 
     // Store Signstar config in default location
     config
         .store(Some(&get_default_config_file_path()))
-        .map_err(|source| {
-            Error::SignstarConfig(signstar_config::Error::Config(
-                signstar_config::config::Error::NetHsmConfig(source),
-            ))
-        })?;
+        .map_err(Error::NetHsmConfig)?;
 
     // Get extended user mappings for all users.
     let creds_mapping: Vec<ExtendedUserMapping> = config.into();

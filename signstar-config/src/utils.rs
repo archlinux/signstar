@@ -8,18 +8,13 @@ use which::which;
 /// An error that may occur when using signstar-config utils.
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
-    /// An executable that is supposed to be called, is not found.
-    #[error("Unable to to find executable \"{command}\"")]
-    ExecutableNotFound {
-        /// The executable that could not be found.
-        command: String,
-        /// The source error.
-        source: which::Error,
-    },
-
     /// An [`ExtendedUserMapping`] does not provide a system user.
     #[error("The user mapping does not provide a system user:\n{0}")]
     MappingSystemUserGet(String),
+
+    /// Common error.
+    #[error("Signstar-common error:\n{0}")]
+    SignstarCommon(#[from] signstar_common::error::Error),
 
     /// There is no data about a system user.
     #[error("Data for system user {user} is missing")]
@@ -84,10 +79,12 @@ pub enum NameOrUid {
 ///
 /// Returns an error if no executable matches the provided `command`.
 pub(crate) fn get_command(command: &str) -> Result<PathBuf, Error> {
-    which(command).map_err(|source| Error::ExecutableNotFound {
-        command: command.to_string(),
-        source,
-    })
+    which(command)
+        .map_err(|source| signstar_common::error::Error::ExecutableNotFound {
+            command: command.to_string(),
+            source,
+        })
+        .map_err(Into::into)
 }
 
 /// Fails if not running as root.
