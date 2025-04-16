@@ -11,8 +11,5 @@ https://docs.rs/signstar_test/latest/signstar_test/
 https://docs.rs/signstar_sign/latest/signstar_sign/
 
 # moved URLs that will be available only when merged
-https://signstar.archlinux.page/signstar-request-signature/design.html
-https://signstar.archlinux.page/signstar-request-signature/request.html
-https://signstar.archlinux.page/signstar-request-signature/response.html
 https://signstar.archlinux.page/rustdoc/signstar_test/
 https://signstar.archlinux.page/rustdoc/signstar_sign/
