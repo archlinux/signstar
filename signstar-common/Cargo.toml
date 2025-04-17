@@ -10,5 +10,11 @@ repository.workspace = true
 version = "0.1.1"
 
 [dependencies]
+log = { optional = true, workspace = true }
 nethsm.workspace = true
+simplelog = { optional = true, version = "0.12.2" }
+systemd-journal-logger = { optional = true, version = "2.2.1" }
 thiserror.workspace = true
+
+[features]
+logging = ["dep:log", "dep:simplelog", "dep:systemd-journal-logger"]

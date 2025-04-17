@@ -7,6 +7,10 @@ Shared components and data types for Signstar tools and libraries
 - <https://signstar.archlinux.page/rustdoc/signstar_common/> for development version of the crate
 - <https://docs.rs/signstar_common/latest/signstar_common/> for released versions of the crate
 
+## Features
+
+- `logging` enables the `signstar_config::logging` module which provides utilities for logging.
+
 ## Contributing
 
 Please refer to the [contributing guidelines] to learn how to contribute to this project.
