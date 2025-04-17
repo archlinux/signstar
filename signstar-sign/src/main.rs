@@ -6,6 +6,7 @@ use nethsm::{KeyId, NetHsm};
 use nethsm_config::UserMapping;
 use signstar_config::{CredentialsLoading, Error as ConfigError};
 use signstar_request_signature::{Request, Response, Sha512};
+use systemd_journal_logger::{JournalLog, connected_to_journal};
 
 /// Signstar signing error.
 #[derive(Debug, thiserror::Error)]
@@ -37,6 +38,14 @@ enum Error {
     /// Signing request processing error.
     #[error("Signing request error")]
     SigningRequest(#[from] signstar_request_signature::Error),
+
+    /// Journal initialization error.
+    #[error("Journal initialization error: {0}")]
+    Journal(std::io::Error),
+
+    /// Logger initialization error.
+    #[error("Logger initialization error: {0}")]
+    Logger(#[from] log::SetLoggerError),
 }
 
 /// Creates a new [`NetHsm`] object with correct connection and user settings and returns it
@@ -105,6 +114,18 @@ fn load_nethsm_keyid() -> Result<(NetHsm, KeyId), Error> {
 /// - a signature can not be created over the hasher state,
 /// - or the [`Response`] can not be written to the `writer`.
 fn sign_request(reader: impl std::io::Read, writer: impl std::io::Write) -> Result<(), Error> {
+    let logger = env_logger::Builder::from_env(env_logger::Env::new()).build();
+    log::set_max_level(logger.filter());
+    log::set_boxed_logger(if connected_to_journal() {
+        Box::new(
+            JournalLog::new()
+                .map_err(Error::Journal)?
+                .with_extra_fields(vec![("VERSION", env!("CARGO_PKG_VERSION"))]),
+        )
+    } else {
+        Box::new(logger)
+    })?;
+
     let req = Request::from_reader(reader)?;
 
     if !req.required.output.is_openpgp_v4() {
@@ -131,7 +152,7 @@ fn main() -> ExitCode {
     let result = sign_request(std::io::stdin(), std::io::stdout());
 
     if let Err(error) = result {
-        eprintln!("{error}");
+        log::error!("{error:#?}");
         ExitCode::FAILURE
     } else {
         ExitCode::SUCCESS

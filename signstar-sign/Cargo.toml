@@ -9,10 +9,13 @@ repository.workspace = true
 rust-version.workspace = true
 
 [dependencies]
+env_logger = "0.11.7"
+log.workspace = true
 nethsm.workspace = true
 nethsm-config.workspace = true
 signstar-config.workspace = true
 signstar-request-signature.workspace = true
+systemd-journal-logger = "2.2.1"
 thiserror.workspace = true
 
 [features]
