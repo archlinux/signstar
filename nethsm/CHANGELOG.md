@@ -6,6 +6,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.0] - 2025-04-22
+
+### Added
+- Add `OpenPgpUserIdList::first`
+- Add `From<nethsm_sdk_rs::models::UserRole>` for `UserRole`
+- [**breaking**] Return a list of `KeyId`s, not `String`s from `NetHsm::get_keys`
+- [**breaking**] Return `NamespaceId`s not `String`s from `NetHsm::get_namespaces`
+- [**breaking**] Return a list of `UserId`s not `String`s from `NetHsm::get_users`
+- [**breaking**] Rely on `NamespaceId` instead of `String` for robustness
+- Publicly re-export `chrono::DateTime` and `chrono::Utc`
+- [**breaking**] make `openpgp_sign_state` always return an armored OpenPGP signature
+- Require `Debug` to be implemented in public items
+- Add `NetHsm::set_agent`, allowing to modify the connection agent
+- [**breaking**] Initialize `NetHsm` using a `Connection`
+- Add `FullCredentials` which requires passphrases for credentials
+- Add custom `serde::Serialize` for `Passphrase`
+- Derive `serde::Deserialize` for `Passphrase`
+- Derive `Default` for `Passphrase`
+- Derive `Clone` for `Credentials`
+- Derive `Debug` for `Credentials`
+- Rely on `aws-lc-rs` as default crypto provider for `rustls`
+
+### Fixed
+- *(deps)* update rust crate pgp to 0.15
+
+### Other
+- Move `nethsm::key::Error` to top of doc for easier discovery
+- *(tests)* Change equality asserts to use `assert_eq!` for better error messages
+- Wrap inner errors in I/O other errors for error propagation
+- *(nethsm)* Log inner errors in `nethsm::openpgp` module
+- Add documentation for the `nethsm` crate and require it globally
+- Create `Agent` for `NetHsm` in a `tls::create_agent`
+- Adjust `NetHsm::new` for the use of `Connection`
+- Move `nethsm_config::Connection` to `nethsm::Connection`
+- Move `Url` to a `connection` module and improve error handling
+- Switch to rustfmt style edition 2024
+
 ## [0.7.3] - 2024-12-13
 
 ### Added
