@@ -6,6 +6,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2025-04-22
+
+### Added
+- Add `HermeticParallelConfig::get_iteration`
+- Add `UserMapping::get_nethsm_user_role_and_tag`
+- Add `UserMapping::get_nethsm_user_key_and_tag`
+- Add `FilterUserKeys` to allow filtering `UserMapping` contents
+- Add `UserMapping::get_nethsm_users_and_roles`
+- Add `NetHsmMetricsUsers::get_users_and_roles`
+- [**breaking**] Rely on `NamespaceId` instead of `String` for robustness
+- [**breaking**] Initialize `NetHsm` using a `Connection`
+- Add `HermeticParallelConfig::get_extended_mapping_for_user`
+- Add `ExtendedUserMapping`
+- Add HermeticParellelConfig::get_non_administrative_secret_handling
+- Add `HermeticParallelConfig::get_administrative_secret_handling`
+- Add `UserMapping::has_system_and_nethsm_user`
+- Derive useful `strum` macros for `AdministrativeSecretHandling`
+- Set non-administrative secret handling in `ParallelHermeticConfig`
+- Add `NonAdministrativeSecretHandling`
+- Set administrative secret handling in `ParallelHermeticConfig`
+- Add `AdministrativeSecretHandling`
+
+### Fixed
+- Adjust code to fix nightly clippy lint
+
+### Other
+- Move `nethsm_config::Connection` to `nethsm::Connection`
+- *(cargo)* Move zeroize to workspace dependencies
+- *(cargo)* Move confy to workspace dependencies
+- Switch to rustfmt style edition 2024
+- Fix minor spelling issue in config.rs
+- *(deps)* update rust crate dirs to v6
+
 ## [0.2.2] - 2024-12-08
 
 ### Other
