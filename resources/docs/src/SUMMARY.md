@@ -22,6 +22,8 @@
   - [Design](./signstar-request-signature/design.md)
   - [Request spec](./signstar-request-signature/request.md)
   - [Response spec](./signstar-request-signature/response.md)
+- [signstar-sign](./signstar-sign/README.md)
+- [signstar-test](./signstar-test/README.md)
 
 # Architecture
 

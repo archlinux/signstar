@@ -9,11 +9,17 @@ Raw cryptographic signatures and [OpenPGP data signatures] are supported.
 Signstar consists of several loosely coupled components, some of which are used in conjunction with one another.
 
 - [nethsm]: A library to provide interaction with the [Nitrokey NetHSM] to applications
+- [nethsm-backup]: A library to parse, decrypt, validate and browse [NetHSM backups]
 - [nethsm-cli]: A dedicated commandline interface to the [Nitrokey NetHSM], akin to Nitrokey's [pynitrokey], useful for general purpose, interactive use of the HSM
+- [nethsm-config]: A library for working with application configuration files for [Nitrokey NetHSM] devices
+- [nethsm-tests]: Containerized testing environments for NetHSM related projects
+- [signstar-common]: Shared components and data types for Signstar tools and libraries
+- [signstar-config]: Configuration file handling for Signstar hosts
 - [signstar-configure-build]: A commandline interface for the configuration of Signstar system during build-time
-- *signstar-sign*: An executable, that allows signing of messages with the help of a [Nitrokey NetHSM], based on a configuration ([#34])
 - *signstar-configure*: An executable, that allows non-interactive configuration of a [Nitrokey NetHSM] based on a configuration ([#48])
 - [signstar-request-signature]: An executable, run on a client host, that prepares data to be signed and retrieves a signature for it from a Signstar setup
+- [signstar-sign]: An executable, that allows signing of messages with the help of a [Nitrokey NetHSM], based on a configuration
+- [signstar-test]: Utilities used for test setups.
 
 ## Requirements
 
@@ -65,6 +71,7 @@ Changes to this project - unless stated otherwise - automatically fall under the
 
 [Apache-2.0]: https://www.apache.org/licenses/LICENSE-2.0
 [MIT]: https://opensource.org/licenses/MIT
+[NetHSM backups]: https://docs.nitrokey.com/nethsm/administration#backup
 [Nitrokey NetHSM]: https://www.nitrokey.com/products/nethsm
 [OpenPGP data signatures]: https://openpgp.dev/book/signing_data.html
 [SignstarOS]: resources/mkosi/signstar/README.md
@@ -72,9 +79,15 @@ Changes to this project - unless stated otherwise - automatically fall under the
 [design documentation]: resources/docs/design.md
 [contributing guidelines]: CONTRIBUTING.md
 [nethsm]: nethsm/
+[nethsm-backup]: nethsm-backup/
 [nethsm-cli]: nethsm-cli/
+[nethsm-config]: nethsm-config/
+[nethsm-tests]: nethsm-tests/
 [pynitrokey]: https://github.com/Nitrokey/pynitrokey
+[signstar-common]: signstar-common/
+[signstar-config]: signstar-config/
 [signstar-configure-build]: signstar-configure-build/
-[#34]: https://gitlab.archlinux.org/archlinux/signstar/-/issues/34
+[signstar-request-signature]: signstar-request-signature/
+[signstar-sign]: signstar-sign/
+[signstar-test]: signstar-test/
 [#48]: https://gitlab.archlinux.org/archlinux/signstar/-/issues/48
-[#49]: https://gitlab.archlinux.org/archlinux/signstar/-/issues/49
