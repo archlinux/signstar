@@ -23,7 +23,7 @@ log = "0.4.27"
 nethsm = { path = "nethsm", version = "0.8.0" }
 nethsm-backup = { path = "nethsm-backup", version = "0.1.0" }
 nethsm-config = { path = "nethsm-config", version = "0.2.2" }
-nethsm-tests = { path = "nethsm-tests", version = "0.1.2" }
+nethsm-tests = { path = "nethsm-tests", version = "0.2.0" }
 rand = "0.8.5"
 rsa = "0.9.7"
 rstest = "0.25.0"

@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2025-04-22
+
+### Added
+- Re-export `rustainers::Container` for ease of use
+- [**breaking**] Initialize `NetHsm` using a `Connection`
+
+### Fixed
+- Use `WaitStrategy::HttpSuccess` for checking NetHSM status
+
+### Other
+- Switch to rustfmt style edition 2024
+
 ## [0.1.2] - 2024-12-08
 
 ### Other
