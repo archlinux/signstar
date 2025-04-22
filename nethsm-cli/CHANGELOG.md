@@ -6,6 +6,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.0] - 2025-04-22
+
+### Added
+- [**breaking**] make `openpgp_sign_state` always return an armored OpenPGP signature
+- Add `signstar-request-signature send` subcommand for sending signing requests
+
+### Fixed
+- *(README)* Use even more `rpacket` instead of `sq` for OpenPGP packet dumping
+- *(README)* Use `rpacket` instead of `sq` for OpenPGP packet dumping
+
+### Other
+- Switch to rustfmt style edition 2024
+
 ## [0.6.0] - 2024-12-13
 
 ### Added
