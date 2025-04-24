@@ -4392,6 +4392,7 @@ name = "signstar-config"
 version = "0.1.0"
 dependencies = [
  "confy",
+ "log",
  "nethsm",
  "nethsm-config",
  "nix",
@@ -4400,7 +4401,6 @@ dependencies = [
  "rstest",
  "serde",
  "signstar-common",
- "signstar-test",
  "strum",
  "tempfile",
  "testresult",
@@ -4464,25 +4464,10 @@ dependencies = [
  "signstar-common",
  "signstar-config",
  "signstar-request-signature",
- "signstar-test",
  "tempfile",
  "testresult",
  "thiserror 2.0.12",
  "tokio",
- "which 7.0.3",
-]
-
-[[package]]
-name = "signstar-test"
-version = "0.1.0"
-dependencies = [
- "log",
- "nethsm-config",
- "signstar-common",
- "signstar-config",
- "tempfile",
- "testresult",
- "thiserror 2.0.12",
  "which 7.0.3",
 ]
 

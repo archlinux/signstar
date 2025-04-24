@@ -20,16 +20,19 @@ strum.workspace = true
 thiserror.workspace = true
 toml = "0.8.20"
 which = "7.0.2"
+tempfile = { version = "3.16.0", optional = true }
+testresult = { workspace = true, optional = true }
+log = { workspace = true, optional = true }
 
 [dev-dependencies]
 rstest.workspace = true
-signstar-test.workspace = true
 tempfile = "3.16.0"
 testresult.workspace = true
 
 [features]
 default = []
-_containerized-integration-test = []
+_containerized-integration-test = [ "test-helpers" ]
+test-helpers = [ "dep:log", "dep:tempfile", "dep:testresult" ]
 
 [lints]
 workspace = true

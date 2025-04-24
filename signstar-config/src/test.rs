@@ -73,7 +73,7 @@ pub enum Error {
 
     /// A signstar-config error.
     #[error("Signstar-config error:\n{0}")]
-    SignstarConfig(#[from] signstar_config::Error),
+    SignstarConfig(#[from] crate::Error),
 
     /// A timeout has been reached.
     #[error("Timeout of {timeout}ms reached while {context}")]
@@ -238,7 +238,7 @@ pub fn start_credentials_socket() -> Result<BackgroundProcess, Error> {
     let command = "systemd-socket-activate";
     let systemd_socket_activate = which(command).map_err(|source| {
         Error::SignstarConfig(
-            signstar_config::utils::Error::ExecutableNotFound {
+            crate::utils::Error::ExecutableNotFound {
                 command: command.to_string(),
                 source,
             }
@@ -326,8 +326,8 @@ pub fn run_command_as_user(
     /// Returns an error if `command` can not be found in PATH.
     fn get_command(command: &str) -> Result<PathBuf, Error> {
         which(command).map_err(|source| {
-            Error::SignstarConfig(signstar_config::Error::Utils(
-                signstar_config::utils::Error::ExecutableNotFound {
+            Error::SignstarConfig(crate::Error::Utils(
+                crate::utils::Error::ExecutableNotFound {
                     command: command.to_string(),
                     source,
                 },
@@ -367,7 +367,7 @@ pub fn run_command_as_user(
     let command_string = format!("{command:?}");
     log::debug!("Running command {command_string}");
     let mut command_output = command.spawn().map_err(|source| {
-        Error::SignstarConfig(signstar_config::Error::CommandExec {
+        Error::SignstarConfig(crate::Error::CommandExec {
             command: command_string.clone(),
             source,
         })
@@ -379,7 +379,7 @@ pub fn run_command_as_user(
             .take()
             .expect("stdin to be set")
             .write_all(input)
-            .map_err(|source| signstar_config::Error::CommandExec {
+            .map_err(|source| crate::Error::CommandExec {
                 command: command_string.clone(),
                 source,
             })?;
@@ -389,7 +389,7 @@ pub fn run_command_as_user(
     let mut stdout = String::new();
     BufReader::new(command_output.stdout.take().expect("stdout to be set"))
         .read_to_string(&mut stdout)
-        .map_err(|source| signstar_config::Error::CommandExec {
+        .map_err(|source| crate::Error::CommandExec {
             command: command_string.clone(),
             source,
         })?;
@@ -398,7 +398,7 @@ pub fn run_command_as_user(
     let mut stderr = String::new();
     BufReader::new(command_output.stderr.take().expect("stderr to be set"))
         .read_to_string(&mut stderr)
-        .map_err(|source| signstar_config::Error::CommandExec {
+        .map_err(|source| crate::Error::CommandExec {
             command: command_string.clone(),
             source,
         })?;
@@ -432,7 +432,7 @@ pub fn create_users(users: &[String]) -> TestResult {
 
         let command_output = command.output()?;
         if !command_output.status.success() {
-            return Err(signstar_config::Error::CommandNonZero {
+            return Err(crate::Error::CommandNonZero {
                 command: format!("{command:?}"),
                 exit_status: command_output.status,
                 stderr: String::from_utf8_lossy(&command_output.stderr).into_owned(),
@@ -446,7 +446,7 @@ pub fn create_users(users: &[String]) -> TestResult {
         command.arg(user);
         let command_output = command.output()?;
         if !command_output.status.success() {
-            return Err(signstar_config::Error::CommandNonZero {
+            return Err(crate::Error::CommandNonZero {
                 command: format!("{command:?}"),
                 exit_status: command_output.status,
                 stderr: String::from_utf8_lossy(&command_output.stderr).into_owned(),
@@ -495,18 +495,18 @@ pub fn prepare_system_with_config(
         Some(get_tmp_config(config_data)?.path()),
     )
     .map_err(|source| {
-        Error::SignstarConfig(signstar_config::Error::Config(
-            signstar_config::config::Error::NetHsmConfig(source),
-        ))
+        Error::SignstarConfig(crate::Error::Config(crate::config::Error::NetHsmConfig(
+            source,
+        )))
     })?;
 
     // Store Signstar config in default location
     config
         .store(Some(&get_default_config_file_path()))
         .map_err(|source| {
-            Error::SignstarConfig(signstar_config::Error::Config(
-                signstar_config::config::Error::NetHsmConfig(source),
-            ))
+            Error::SignstarConfig(crate::Error::Config(crate::config::Error::NetHsmConfig(
+                source,
+            )))
         })?;
 
     // Get extended user mappings for all users.

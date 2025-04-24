@@ -5,7 +5,7 @@ use std::{fs::File, io::Write};
 use rstest::rstest;
 use signstar_common::common::get_data_home;
 use signstar_config::non_admin_credentials::SecretsWriter;
-use signstar_test::{
+use signstar_config::test::{
     CommandOutput,
     create_users,
     list_files_in_dir,

@@ -29,7 +29,7 @@ openssl = "0.10.71"
 rcgen = "0.13.2"
 rstest.workspace = true
 signstar-common.workspace = true
-signstar-test.workspace = true
+signstar-config = { workspace = true, features = ["test-helpers"] }
 tempfile = "3.19.1"
 testresult.workspace = true
 tokio = { workspace = true, features = ["macros", "rt"] }

@@ -19,7 +19,6 @@ Signstar consists of several loosely coupled components, some of which are used 
 - *signstar-configure*: An executable, that allows non-interactive configuration of a [Nitrokey NetHSM] based on a configuration ([#48])
 - [signstar-request-signature]: An executable, run on a client host, that prepares data to be signed and retrieves a signature for it from a Signstar setup
 - [signstar-sign]: An executable, that allows signing of messages with the help of a [Nitrokey NetHSM], based on a configuration
-- [signstar-test]: Utilities used for test setups.
 
 ## Requirements
 
@@ -89,5 +88,4 @@ Changes to this project - unless stated otherwise - automatically fall under the
 [signstar-configure-build]: signstar-configure-build/
 [signstar-request-signature]: signstar-request-signature/
 [signstar-sign]: signstar-sign/
-[signstar-test]: signstar-test/
 [#48]: https://gitlab.archlinux.org/archlinux/signstar/-/issues/48

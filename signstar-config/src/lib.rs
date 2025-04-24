@@ -4,6 +4,8 @@ pub mod admin_credentials;
 pub mod config;
 pub mod error;
 pub mod non_admin_credentials;
+#[cfg(feature = "test-helpers")]
+pub mod test;
 pub mod utils;
 
 pub use admin_credentials::AdminCredentials;
