@@ -1,5 +1,5 @@
 use std::{fmt::Display, str::FromStr};
-
+use rsa::BigUint; // Add this import at the top of the file if not already present
 use base64ct::{Base64, Encoding};
 use nethsm_sdk_rs::models::KeyPrivateData;
 use rsa::{
@@ -304,6 +304,15 @@ impl CryptographicKeyContext {
     /// # Ok(())
     /// # }
     /// ```
+/// Validates the cryptographic context against a signing key setup.
+///
+/// Ensures the key type, mechanisms, and signature type are compatible with the cryptographic context.
+/// For OpenPGP, also checks that the version is supported (currently only V4).
+///
+/// # Errors
+///
+/// Returns an [`Error::Key`][`crate::Error::Key`] if the key setup is invalid for the context.
+/// Returns an [`Error::Default`] if the OpenPGP version is unsupported.
     pub fn validate_signing_key_setup(
         &self,
         key_type: KeyType,
@@ -344,32 +353,35 @@ impl CryptographicKeyContext {
                     });
                 }
             },
-            Self::OpenPgp {
-                user_ids: _,
-                version: _,
-            } => match (key_type, signature_type) {
-                (KeyType::Curve25519, SignatureType::EdDsa)
-                    if key_mechanisms.contains(&KeyMechanism::EdDsaSignature) => {}
-                (KeyType::EcP256, SignatureType::EcdsaP256)
-                    if key_mechanisms.contains(&KeyMechanism::EcdsaSignature) => {}
-                (KeyType::EcP384, SignatureType::EcdsaP384)
-                    if key_mechanisms.contains(&KeyMechanism::EcdsaSignature) => {}
-                (KeyType::EcP521, SignatureType::EcdsaP521)
-                    if key_mechanisms.contains(&KeyMechanism::EcdsaSignature) => {}
-                (KeyType::Rsa, SignatureType::Pkcs1)
-                    if key_mechanisms.contains(&KeyMechanism::RsaSignaturePkcs1) => {}
-                _ => {
-                    return Err(Error::InvalidOpenPgpSigningKeySetup {
-                        key_type,
-                        key_mechanisms: key_mechanisms.to_vec(),
-                        signature_type,
-                    });
+            Self::OpenPgp { user_ids: _, version } => {
+                // Check OpenPGP version compatibility
+                if *version == OpenPgpVersion::V4 {
+                    match (key_type, signature_type) {
+                        (KeyType::Curve25519, SignatureType::EdDsa)
+                            if key_mechanisms.contains(&KeyMechanism::EdDsaSignature) => {}
+                        (KeyType::EcP256, SignatureType::EcdsaP256)
+                            if key_mechanisms.contains(&KeyMechanism::EcdsaSignature) => {}
+                        (KeyType::EcP384, SignatureType::EcdsaP384)
+                            if key_mechanisms.contains(&KeyMechanism::EcdsaSignature) => {}
+                        (KeyType::EcP521, SignatureType::EcdsaP521)
+                            if key_mechanisms.contains(&KeyMechanism::EcdsaSignature) => {}
+                        (KeyType::Rsa, SignatureType::Pkcs1)
+                            if key_mechanisms.contains(&KeyMechanism::RsaSignaturePkcs1) => {}
+                        _ => {
+                            return Err(Error::InvalidOpenPgpSigningKeySetup {
+                                key_type,
+                                key_mechanisms: key_mechanisms.to_vec(),
+                                signature_type,
+                            });
+                        }
+                    }
+                } else {
+                    return Err(Error::Default(format!("Unsupported OpenPGP version: {:?}", version)));
                 }
-            },
+            }
         }
         Ok(())
     }
-}
 
 /// The validated setup for a cryptographic signing key
 #[derive(Clone, Debug, Deserialize, Hash, Eq, PartialEq, Serialize)]
@@ -584,7 +596,17 @@ pub struct PrivateKeyImport {
 /// let output = pad(&input, 4)?;
 /// assert_eq!(output, vec![0, 1, 2, 3]);
 /// ```
+/// Pads a buffer with leading zeros to reach a specified length.
+///
+/// # Errors
+///
+/// Returns an [`crate::Error::Default`] if:
+/// * The input buffer is empty.
+/// * The input buffer is longer than the target length.
 fn pad(buf: &[u8], len: usize) -> Result<Vec<u8>, crate::Error> {
+    if buf.is_empty() {
+        return Err(crate::Error::Default("Input buffer cannot be empty".into()));
+    }
     if len < buf.len() {
         return Err(crate::Error::Default(format!(
             "Input buffer should be upmost {len} bytes long but has {} bytes.",
@@ -793,14 +815,44 @@ impl PrivateKeyImport {
     /// let _import = PrivateKeyImport::from_rsa(prime_p, prime_q, public_exponent);
     /// # Ok(()) }
     /// ```
-    pub fn from_rsa(prime_p: Vec<u8>, prime_q: Vec<u8>, public_exponent: Vec<u8>) -> Self {
-        Self {
+
+        /// Creates a [`PrivateKeyImport`] from raw RSA private key parts.
+    ///
+    /// Takes two primes (`prime_p` and `prime_q`) and the public exponent.
+    /// Ensures the resulting RSA key meets the minimum bit length requirement (`MIN_RSA_BIT_LENGTH`).
+    ///
+    /// # Errors
+    ///
+    /// Returns an [`Error::InvalidKeyLengthRsa`] if the key length is less than [`MIN_RSA_BIT_LENGTH`].
+    pub fn from_rsa(prime_p: Vec<u8>, prime_q: Vec<u8>, public_exponent: Vec<u8>) -> Result<Self, Error> {
+        let p = BigUint::from_bytes_be(&prime_p);
+        let q = BigUint::from_bytes_be(&prime_q);
+        let e = BigUint::from_bytes_be(&public_exponent);
+
+        // Check that p and q are not zero or one
+        if p.is_zero() || p.is_one() || q.is_zero() || q.is_one() {
+            return Err(Error::NoPrimes);
+        }
+
+        // Check public exponent
+        if e.is_zero() || e.is_one() {
+            return Err(Error::Default("Invalid public exponent".into()));
+        }
+
+        // Check key length
+        let n = &p * &q;
+        let bit_length = n.bits() as u32;
+        if bit_length < MIN_RSA_BIT_LENGTH {
+            return Err(Error::InvalidKeyLengthRsa { key_length: bit_length });
+        }
+
+        Ok(Self {
             key_data: PrivateKeyData::Rsa {
                 prime_p,
                 prime_q,
                 public_exponent,
             },
-        }
+        })
     }
 
     /// Create [`PrivateKeyImport`] object from raw, private Elliptic Curve bytes.
@@ -823,8 +875,31 @@ impl PrivateKeyImport {
     /// let _import = PrivateKeyImport::from_raw_bytes(KeyType::Curve25519, bytes)?;
     /// # Ok(()) }
     /// ```
+    /// Creates a [`PrivateKeyImport`] from raw elliptic curve bytes.
+    ///
+    /// Takes the elliptic curve type and raw bytes in a curve-specific encoding.
+    /// Ensures the input bytes are not too short for the specified curve.
+    ///
+    /// # Errors
+    ///
+    /// Returns an [`crate::Error::Default`] if:
+    /// * The input bytes are too short for the key type.
+    /// * The key type is unsupported.
     pub fn from_raw_bytes(ec: KeyType, bytes: impl AsRef<[u8]>) -> Result<Self, crate::Error> {
         let bytes = bytes.as_ref();
+        let min_length = match ec {
+            KeyType::EcP224 => 1,
+            KeyType::EcP256 => 1,
+            KeyType::EcP384 => 1,
+            KeyType::EcP521 => 1,
+            KeyType::Curve25519 => 1,
+            ec => return Err(crate::Error::Default(format!("Unsupported key type: {ec}"))),
+        };
+        if bytes.len() < min_length {
+            return Err(crate::Error::Default(format!(
+                "Input bytes too short for key type {ec}"
+            )));
+        }
         Ok(Self {
             key_data: match ec {
                 KeyType::EcP224 => PrivateKeyData::EcP224(pad(bytes, 28)?),
@@ -836,7 +911,6 @@ impl PrivateKeyImport {
             },
         })
     }
-
     /// Get the matching [`KeyType`] for the data contained in the [`PrivateKeyImport`]
     pub fn key_type(&self) -> KeyType {
         match &self.key_data {
@@ -853,7 +927,10 @@ impl PrivateKeyImport {
         }
     }
 }
-
+/// Converts a [`PrivateKeyImport`] into a [`KeyPrivateData`].
+///
+/// Validates that the key data is not empty before encoding.
+/// Returns a default `KeyPrivateData` with `None` fields if the data is invalid.
 impl From<PrivateKeyImport> for KeyPrivateData {
     fn from(value: PrivateKeyImport) -> Self {
         match value.key_data {
@@ -861,22 +938,42 @@ impl From<PrivateKeyImport> for KeyPrivateData {
                 prime_p,
                 prime_q,
                 public_exponent,
-            } => KeyPrivateData {
-                prime_p: Some(Base64::encode_string(&prime_p)),
-                prime_q: Some(Base64::encode_string(&prime_q)),
-                public_exponent: Some(Base64::encode_string(&public_exponent)),
-                data: None,
-            },
+            } => {
+                if prime_p.is_empty() || prime_q.is_empty() || public_exponent.is_empty() {
+                    return KeyPrivateData {
+                        prime_p: None,
+                        prime_q: None,
+                        public_exponent: None,
+                        data: None,
+                    };
+                }
+                KeyPrivateData {
+                    prime_p: Some(Base64::encode_string(&prime_p)),
+                    prime_q: Some(Base64::encode_string(&prime_q)),
+                    public_exponent: Some(Base64::encode_string(&public_exponent)),
+                    data: None,
+                }
+            }
             PrivateKeyData::EcP224(data)
             | PrivateKeyData::EcP256(data)
             | PrivateKeyData::EcP384(data)
             | PrivateKeyData::EcP521(data)
-            | PrivateKeyData::Curve25519(data) => KeyPrivateData {
-                prime_p: None,
-                prime_q: None,
-                public_exponent: None,
-                data: Some(Base64::encode_string(&data)),
-            },
+            | PrivateKeyData::Curve25519(data) => {
+                if data.is_empty() {
+                    return KeyPrivateData {
+                        prime_p: None,
+                        prime_q: None,
+                        public_exponent: None,
+                        data: None,
+                    };
+                }
+                KeyPrivateData {
+                    prime_p: None,
+                    prime_q: None,
+                    public_exponent: None,
+                    data: Some(Base64::encode_string(&data)),
+                }
+            }
         }
     }
 }
