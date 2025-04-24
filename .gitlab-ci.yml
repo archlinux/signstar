@@ -128,13 +128,15 @@ test-readmes:
 build-image:
   extends: .default
   script:
+    # show the mkosi version
+    - mkosi --version
     - useradd -m testuser
     - chown -R testuser:testuser .
     # prepare an ephemeral OpenPGP signing key
-    - WORKDIR="$(pwd)" runuser -w WORKDIR -l testuser -c 'cd "$WORKDIR" && rsop generate-key test > test.tsk && rsop extract-cert > test.pgp < test.tsk && echo msg | rsop sign test.tsk > msg.sig && echo msg | rsop verify msg.sig test.pgp | cut -d " " -f2 > fingerprint.txt && gpg --import test.tsk'
-    # clone latest mkosi as we currently require some of its features and fixes
-    - WORKDIR="$(pwd)" runuser -w WORKDIR -l testuser -c 'cd "$WORKDIR" && git clone https://github.com/systemd/mkosi'
-    - WORKDIR="$(pwd)" runuser -w WORKDIR -l testuser -c 'cd "$WORKDIR" && PATH="$(pwd)/mkosi/bin:$PATH" mkosi --version && PATH="$(pwd)/mkosi/bin:$PATH" just build-image "$(cat fingerprint.txt)"'
+    - export KEY="$(mktemp)"
+    - rsop generate-key --signing-only test > "$KEY"
+    - chown testuser:testuser "$KEY"
+    - WORKDIR="$(pwd)" runuser -w WORKDIR,KEY -l testuser -c 'cd "$WORKDIR" && just build-image "$KEY"'
   stage: signstaros
   tags:
     - vm
@@ -142,15 +144,17 @@ build-image:
 build-test-image:
   extends: .default
   script:
+    # show the mkosi version
+    - mkosi --version
     - useradd -m testuser
     - chown -R testuser:testuser .
     # prepare an ephemeral OpenPGP signing key
-    - WORKDIR="$(pwd)" runuser -w WORKDIR -l testuser -c 'cd "$WORKDIR" && rsop generate-key test > test.tsk && rsop extract-cert > test.pgp < test.tsk && echo msg | rsop sign test.tsk > msg.sig && echo msg | rsop verify msg.sig test.pgp | cut -d " " -f2 > fingerprint.txt && gpg --import test.tsk'
+    - export KEY="$(mktemp)"
+    - rsop generate-key --signing-only test > "$KEY"
+    - chown testuser:testuser "$KEY"
     # install required Rust toolchain
     - WORKDIR="$(pwd)" runuser -w WORKDIR -l testuser -c 'cd "$WORKDIR" && just install-rust-dev-tools'
-    # clone latest mkosi as we currently require some of its features and fixes
-    - WORKDIR="$(pwd)" runuser -w WORKDIR -l testuser -c 'cd "$WORKDIR" && git clone https://github.com/systemd/mkosi'
-    - WORKDIR="$(pwd)" runuser -w WORKDIR -l testuser -c 'cd "$WORKDIR" && PATH="$(pwd)/mkosi/bin:$PATH" mkosi --version && PATH="$(pwd)/mkosi/bin:$PATH" just build-test-image "$(cat fingerprint.txt)"'
+    - WORKDIR="$(pwd)" runuser -w WORKDIR,KEY -l testuser -c 'cd "$WORKDIR" && just build-test-image "$KEY"'
   stage: signstaros
   tags:
     - vm

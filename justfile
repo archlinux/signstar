@@ -567,10 +567,10 @@ create-image-signing-key key cert common_name="archlinux.org" key_settings="rsa:
 
 # Builds an OS image using mkosi
 build-image openpgp_signing_key signing_key="resources/mkosi/signstar/mkosi.output/signing.key" signing_cert="resources/mkosi/signstar/mkosi.output/signing.pem" mkosi_options="":
-    just ensure-command gpg mkosi
+    just ensure-command rsop mkosi
 
     just create-image-signing-key {{ absolute_path(signing_key) }} {{ absolute_path(signing_cert) }}
-    gpg --export {{ openpgp_signing_key }} > {{ absolute_path("resources/mkosi/signstar/mkosi.extra/usr/lib/systemd/import-pubring.gpg") }}
+    cp {{ openpgp_signing_key }} {{ absolute_path("resources/mkosi/signstar/mkosi.extra/usr/lib/systemd/import-pubring.gpg") }}
     mkosi -f -C {{ absolute_path("resources/mkosi/signstar") }} {{ mkosi_options }} --secure-boot-key={{ absolute_path(signing_key) }} --secure-boot-certificate={{ absolute_path(signing_cert) }} --verity-key={{ absolute_path(signing_key) }} --verity-certificate={{ absolute_path(signing_cert) }} --key={{ openpgp_signing_key }} build
 
 # Builds an OS image using mkosi
