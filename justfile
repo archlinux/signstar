@@ -584,6 +584,7 @@ build-test-image openpgp_signing_key signing_key="resources/mkosi/signstar/mkosi
 
 # Runs an OS image using mkosi qemu
 run-image mkosi_options="" qemu_options="":
+    # To forward the host port 2222 to Signstar's SSH port 22 use `just run-image '' '-netdev user,id=n1,hostfwd=tcp::2222-:22 -device virtio-net-pci,netdev=n1'`
     just ensure-command mkosi
     mkosi -C resources/mkosi/signstar/ {{ mkosi_options }} qemu {{ qemu_options }}
 
