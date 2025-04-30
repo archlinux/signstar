@@ -29,7 +29,7 @@ async fn get_random_bytes(
     nethsm.use_credentials(&DEFAULT_OPERATOR_USER_ID.parse()?)?;
 
     let random_message = nethsm.random(LENGTH)?;
-    println!("A random message from the NetHSM: {:#?}", random_message);
+    println!("A random message from the NetHSM: {random_message:#?}");
 
     assert_eq!(usize::try_from(LENGTH)?, random_message.len(),);
 

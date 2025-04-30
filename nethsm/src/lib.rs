@@ -693,8 +693,7 @@ impl NetHsm {
             }
         } else {
             return Err(Error::Default(format!(
-                "The credentials for User ID \"{}\" need to be added before they can be used!",
-                user_id
+                "The credentials for User ID \"{user_id}\" need to be added before they can be used!"
             )));
         }
         Ok(())

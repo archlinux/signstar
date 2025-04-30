@@ -27,7 +27,7 @@ async fn initial_provisioning(
     nethsm.remove_credentials(&ADMIN_USER_ID.parse()?);
 
     let info = nethsm.info()?;
-    println!("The NetHSM info: {:?}", info);
+    println!("The NetHSM info: {info:?}");
 
     assert_eq!(nethsm.state()?, SystemState::Unprovisioned);
     nethsm.provision(
@@ -42,10 +42,7 @@ async fn initial_provisioning(
     let mut elapsed = 0;
     while elapsed <= timeout {
         if nethsm.state()? == SystemState::Operational {
-            println!(
-                "Waited at least {}ms until NetHSM became operational",
-                elapsed
-            );
+            println!("Waited at least {elapsed}ms until NetHSM became operational");
             break;
         }
         sleep(Duration::from_millis(interval)).await;
@@ -76,7 +73,7 @@ async fn initial_provisioning(
     assert_eq!(nethsm.state()?, SystemState::Operational);
 
     if elapsed > timeout {
-        panic!("NetHSM did not become operational within {}ms", timeout);
+        panic!("NetHSM did not become operational within {timeout}ms");
     }
 
     Ok(())

@@ -19,7 +19,7 @@ async fn namespace_lifecycle(
     let init_ns_len = nethsm.get_namespaces()?.len();
     println!("Namespaces: {:?}", nethsm.get_namespaces()?);
 
-    println!("Adding namespace {}...", namespace_test);
+    println!("Adding namespace {namespace_test}...");
     nethsm.add_namespace(&namespace_test.parse()?)?;
     let add_ns_len = nethsm.get_namespaces()?.len();
 
@@ -27,7 +27,7 @@ async fn namespace_lifecycle(
     println!("Namespaces: {:?}", nethsm.get_namespaces());
     assert!(init_ns_len < add_ns_len);
 
-    println!("Deleting namespace {}...", namespace_test);
+    println!("Deleting namespace {namespace_test}...");
     nethsm.delete_namespace(&namespace_test.parse()?)?;
     let end_ns_len = nethsm.get_namespaces()?.len();
     assert_eq!(init_ns_len, end_ns_len);

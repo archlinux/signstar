@@ -90,10 +90,7 @@ async fn import_key(nethsm: &NetHsm) -> TestResult {
         nethsm.get_key(&OTHER_KEY_ID.parse()?)?
     );
     let other_public_key = nethsm.get_public_key(&OTHER_KEY_ID.parse()?)?;
-    println!(
-        "The public key of an imported key on the NetHSM: {}",
-        other_public_key
-    );
+    println!("The public key of an imported key on the NetHSM: {other_public_key}");
 
     // import a certificate for a key, show it and delete it
     nethsm.import_key_certificate(&OTHER_KEY_ID.parse()?, other_public_key.into_bytes())?;

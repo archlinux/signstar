@@ -60,7 +60,7 @@ mod tests {
             let lines_vec = (0..lines)
                 .map(|_x| "this is a passphrase".to_string())
                 .collect::<Vec<String>>();
-            let path = testdir!().join(format!("passphrase_file_lines_{}.txt", lines));
+            let path = testdir!().join(format!("passphrase_file_lines_{lines}.txt"));
             let mut file = File::create(&path)?;
             file.write_all(lines_vec.join("\n").as_bytes())?;
 

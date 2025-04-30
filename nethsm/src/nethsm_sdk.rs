@@ -74,7 +74,7 @@ impl<T> From<nethsm_sdk_rs::apis::Error<T>> for NetHsmApiError<T> {
                 },
                 nethsm_sdk_rs::ureq::Error::Transport(transport) => Self {
                     error: None,
-                    message: Some(format!("{}", transport)),
+                    message: Some(format!("{transport}")),
                 },
             },
             nethsm_sdk_rs::apis::Error::ResponseError(resp) => Self {
@@ -101,9 +101,9 @@ impl<T> From<nethsm_sdk_rs::apis::Error<T>> for NetHsmApiError<T> {
 impl<T> Display for NetHsmApiError<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         if let Some(message) = self.message.as_ref() {
-            write!(f, "{}", message)?;
+            write!(f, "{message}")?;
         } else if let Some(error) = self.error.as_ref() {
-            write!(f, "{}", error)?;
+            write!(f, "{error}")?;
         }
         Ok(())
     }

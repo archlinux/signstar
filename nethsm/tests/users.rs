@@ -87,7 +87,7 @@ async fn create_users(
         Passphrase::new(ADMIN2_USER_PASSPHRASE.to_string()),
         Some(ADMIN2_USER_ID.parse()?),
     )?;
-    println!("Created Administrator User: {}", ADMIN2_USER_ID);
+    println!("Created Administrator User: {ADMIN2_USER_ID}");
     assert_eq!(nethsm.get_users()?.len(), 2);
     println!(
         "Administrator user data: {:?}",
@@ -100,7 +100,7 @@ async fn create_users(
         Passphrase::new(DEFAULT_OPERATOR_USER_PASSPHRASE.to_string()),
         None,
     )?;
-    println!("Created Operator User: {}", operator_user);
+    println!("Created Operator User: {operator_user}");
     assert_eq!(nethsm.get_users()?.len(), 3);
     println!("Operator user data: {:?}", nethsm.get_user(&operator_user)?);
 
@@ -116,7 +116,7 @@ async fn create_users(
         Passphrase::new(OTHER_OPERATOR_USER_PASSPHRASE.to_string()),
         Some(OTHER_OPERATOR_USER_ID.parse()?),
     )?;
-    println!("Created Operator User: {}", other_operator_user);
+    println!("Created Operator User: {other_operator_user}");
     assert_eq!(nethsm.get_users()?.len(), 4);
     println!(
         "Operator user data: {:?}",
@@ -335,7 +335,7 @@ async fn create_users_in_namespaces(
         Passphrase::new("some-custom-user-passphrase".to_string()),
         None,
     )?;
-    println!("Created custom user {}", custom_user);
+    println!("Created custom user {custom_user}");
 
     nethsm.use_credentials(&ADMIN_USER_ID.parse()?)?;
     assert_eq!(nethsm.get_namespaces()?.len(), 2);

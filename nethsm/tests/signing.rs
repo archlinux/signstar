@@ -40,14 +40,11 @@ async fn signing(
 
     // create an ed25519 signature
     let signature = nethsm.sign(&DEFAULT_KEY_ID.parse()?, SignatureType::EdDsa, MESSAGE)?;
-    println!(
-        "A raw signature created using the default key on the NetHSM: {:?}",
-        signature
-    );
+    println!("A raw signature created using the default key on the NetHSM: {signature:?}");
 
     // verify the ed25519 signature
     let pubkey = nethsm.get_public_key(&DEFAULT_KEY_ID.parse()?)?;
-    println!("The default key on the NetHSM: {}", pubkey);
+    println!("The default key on the NetHSM: {pubkey}");
     let pubkey_bytes = ed25519_dalek::pkcs8::PublicKeyBytes::from_public_key_pem(&pubkey)?;
     let pubkey_verifier = ed25519_dalek::VerifyingKey::from_bytes(&pubkey_bytes.to_bytes())?;
     let signature_parsed = ed25519_dalek::Signature::from_slice(&signature)?;
@@ -63,21 +60,17 @@ async fn signing(
     // create an RSA PKCS1 signature
     let signature = nethsm.sign(&OTHER_KEY_ID.parse()?, SignatureType::Pkcs1, MESSAGE)?;
 
-    println!(
-        "A raw signature created using another key on the NetHSM: {:?}",
-        signature
-    );
+    println!("A raw signature created using another key on the NetHSM: {signature:?}");
 
     // verify the RSA PKCS1 signature
     let pubkey = nethsm.get_public_key(&OTHER_KEY_ID.parse()?)?;
-    println!("The public key of another key on the NetHSM: {}", pubkey);
+    println!("The public key of another key on the NetHSM: {pubkey}");
 
     let pubkey = RsaPublicKey::from_public_key_pem(&pubkey)?;
     let verifying_key: VerifyingKey<Sha256> = VerifyingKey::new_unprefixed(pubkey);
     let signature_parsed = rsa::pkcs1v15::Signature::try_from(signature.as_slice())?;
     println!(
-        "A signature created using an RSA pubkey for which the NetHSM provides the private key: {:?}",
-        signature_parsed
+        "A signature created using an RSA pubkey for which the NetHSM provides the private key: {signature_parsed:?}"
     );
     verifying_key.verify(MESSAGE, &signature_parsed)?;
 

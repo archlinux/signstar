@@ -330,8 +330,7 @@ pub(crate) fn create_agent(
         .unwrap_or(100);
     let timeout_seconds = timeout_seconds.unwrap_or(10);
     info!(
-        "NetHSM connection configured with \"max_idle_connection\" {} and \"timeout_seconds\" {}.",
-        max_idle_connections, timeout_seconds
+        "NetHSM connection configured with \"max_idle_connection\" {max_idle_connections} and \"timeout_seconds\" {timeout_seconds}."
     );
 
     Ok(AgentBuilder::new()

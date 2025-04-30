@@ -2463,7 +2463,7 @@ mod tests {
             ConfigSettings::new("test".to_string(), ConfigInteractivity::Interactive, None),
             Some(&config_file),
         )?;
-        println!("{:#?}", config);
+        println!("{config:#?}");
         config.store(Some(&config_file))?;
         println!("config file:\n{}", std::fs::read_to_string(config_file)?);
         Ok(())
@@ -2600,12 +2600,12 @@ mod tests {
         #[base_dir = "tests/fixtures/duplicate-authorized-keys-share-uploader/"]
         config_file: PathBuf,
     ) -> TestResult {
-        println!("Using configuration {:?}", config_file);
+        println!("Using configuration {config_file:?}");
         let config_file_string = config_file
             .clone()
             .into_os_string()
             .into_string()
-            .map_err(|_x| format!("Can't convert {:?}", config_file))?;
+            .map_err(|_x| format!("Can't convert {config_file:?}"))?;
         // when using plaintext or systemd-creds for administrative credentials, there are no share
         // uploaders
         if config_file_string.ends_with("admin-plaintext.toml")
@@ -2642,12 +2642,12 @@ mod tests {
         #[base_dir = "tests/fixtures/duplicate-authorized-keys-share-downloader/"]
         config_file: PathBuf,
     ) -> TestResult {
-        println!("Using configuration {:?}", config_file);
+        println!("Using configuration {config_file:?}");
         let config_file_string = config_file
             .clone()
             .into_os_string()
             .into_string()
-            .map_err(|_x| format!("Can't convert {:?}", config_file))?;
+            .map_err(|_x| format!("Can't convert {config_file:?}"))?;
         // when using plaintext or systemd-creds for administrative credentials, there are no share
         // downloaders
         if config_file_string.ends_with("admin-plaintext.toml")
@@ -2704,12 +2704,12 @@ mod tests {
         #[base_dir = "tests/fixtures/missing-share-download-user/"]
         config_file: PathBuf,
     ) -> TestResult {
-        println!("Using configuration {:?}", config_file);
+        println!("Using configuration {config_file:?}");
         let config_file_string = config_file
             .clone()
             .into_os_string()
             .into_string()
-            .map_err(|_x| format!("Can't convert {:?}", config_file))?;
+            .map_err(|_x| format!("Can't convert {config_file:?}"))?;
         // when using plaintext or systemd-creds for administrative credentials, there are no share
         // downloaders
         if config_file_string.ends_with("admin-plaintext.toml")
@@ -2744,12 +2744,12 @@ mod tests {
         #[base_dir = "tests/fixtures/missing-share-upload-user/"]
         config_file: PathBuf,
     ) -> TestResult {
-        println!("Using configuration {:?}", config_file);
+        println!("Using configuration {config_file:?}");
         let config_file_string = config_file
             .clone()
             .into_os_string()
             .into_string()
-            .map_err(|_x| format!("Can't convert {:?}", config_file))?;
+            .map_err(|_x| format!("Can't convert {config_file:?}"))?;
         // when using plaintext or systemd-creds for administrative credentials, there are no share
         // downloaders
         if config_file_string.ends_with("admin-plaintext.toml")
@@ -2784,12 +2784,12 @@ mod tests {
         #[base_dir = "tests/fixtures/no-sss-but-shares/"]
         config_file: PathBuf,
     ) -> TestResult {
-        println!("Using configuration {:?}", config_file);
+        println!("Using configuration {config_file:?}");
         let config_file_string = config_file
             .clone()
             .into_os_string()
             .into_string()
-            .map_err(|_x| format!("Can't convert {:?}", config_file))?;
+            .map_err(|_x| format!("Can't convert {config_file:?}"))?;
         // when using shamir's secret sharing for administrative credentials, there ought to be
         // share downloaders and uploaders
         if config_file_string.ends_with("admin-shamirs-secret-sharing.toml") {

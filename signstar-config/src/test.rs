@@ -415,9 +415,9 @@ pub fn run_command_as_user(
 
 /// Creates a set of users.
 pub fn create_users(users: &[String]) -> TestResult {
-    debug!("Creating users: {:?}", users);
+    debug!("Creating users: {users:?}");
     for user in users {
-        debug!("Creating user: {}", user);
+        debug!("Creating user: {user}");
 
         // create the user and its home
         let mut command = Command::new("useradd");

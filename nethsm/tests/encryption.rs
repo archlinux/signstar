@@ -45,9 +45,9 @@ async fn symmetric_encryption_decryption(
 
     // prepare a raw message
     let message = MESSAGE.as_bytes();
-    println!("raw message: {:?}", message);
+    println!("raw message: {message:?}");
     let initialization_vector = Some(IV.as_bytes());
-    println!("raw initialization vector: {:?}", initialization_vector);
+    println!("raw initialization vector: {initialization_vector:?}");
 
     let encrypted_message = nethsm.encrypt(
         &ENC_KEY_ID.parse()?,
@@ -56,7 +56,7 @@ async fn symmetric_encryption_decryption(
         initialization_vector,
     )?;
 
-    println!("raw encrypted message: {:?}", encrypted_message);
+    println!("raw encrypted message: {encrypted_message:?}");
 
     let decrypted_message = nethsm.decrypt(
         &ENC_KEY_ID.parse()?,
@@ -64,7 +64,7 @@ async fn symmetric_encryption_decryption(
         &encrypted_message,
         initialization_vector,
     )?;
-    println!("raw decrypted message: {:?}", decrypted_message);
+    println!("raw decrypted message: {decrypted_message:?}");
 
     assert_eq!(decrypted_message, MESSAGE.as_bytes());
 
@@ -88,7 +88,7 @@ async fn asymmetric_decryption(
         RsaPublicKey::from_public_key_pem(&nethsm.get_public_key(&OTHER_KEY_ID.parse()?)?)?;
     let mut rng = rand::thread_rng();
     let encrypted_message = pubkey.encrypt(&mut rng, Pkcs1v15Encrypt, MESSAGE.as_bytes())?;
-    println!("raw encrypted message: {:?}", encrypted_message);
+    println!("raw encrypted message: {encrypted_message:?}");
 
     let decrypted_message = nethsm.decrypt(
         &OTHER_KEY_ID.parse()?,
@@ -96,7 +96,7 @@ async fn asymmetric_decryption(
         &encrypted_message,
         None,
     )?;
-    println!("raw decrypted message: {:?}", decrypted_message);
+    println!("raw decrypted message: {decrypted_message:?}");
 
     assert_eq!(&decrypted_message, MESSAGE.as_bytes(),);
 

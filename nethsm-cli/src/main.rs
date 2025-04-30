@@ -437,7 +437,7 @@ fn main() -> Result<(), Error> {
                 }
             },
             EnvCommand::List => {
-                println!("{:#?}", config);
+                println!("{config:#?}");
             }
         },
         Command::Health(command) => match command {
@@ -1137,7 +1137,7 @@ fn main() -> Result<(), Error> {
                     )?;
 
                 let user_data = nethsm.get_user(&command.name)?;
-                println!("{:?}", user_data);
+                println!("{user_data:?}");
                 // only users in the Operator role can have tags
                 if user_data.role == UserRole::Operator.into() {
                     println!("{:?}", nethsm.get_user_tags(&command.name)?);

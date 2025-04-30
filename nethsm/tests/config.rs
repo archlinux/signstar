@@ -63,7 +63,7 @@ async fn tls_cert(
     nethsm.use_credentials(&ADMIN_USER_ID.parse()?)?;
     let initial_cert_file = testdir!().join("initial_cert.pem");
     let initial_cert = nethsm.get_tls_cert()?;
-    println!("initial cert\n{}", initial_cert);
+    println!("initial cert\n{initial_cert}");
     std::fs::write(initial_cert_file, initial_cert)?;
 
     // N-Administrators can not generate a TLS cert
@@ -79,7 +79,7 @@ async fn tls_cert(
 
     let updated_cert_file = testdir!().join("updated_cert.pem");
     let updated_cert = nethsm.get_tls_cert()?;
-    println!("updated cert\n{}", updated_cert);
+    println!("updated cert\n{updated_cert}");
     std::fs::write(updated_cert_file, updated_cert.clone())?;
 
     let csr_file = testdir!().join("updated_cert.csr");
@@ -110,7 +110,7 @@ async fn tls_cert(
         common_name: "Foobar Inc".to_string(),
         email_address: Some("foobar@mcfooface.com".to_string()),
     })?;
-    println!("A TLS CSR for the NetHSM:\n{}", csr);
+    println!("A TLS CSR for the NetHSM:\n{csr}");
     std::fs::write(csr_file, csr)?;
 
     // N-Administrators can not set the TLS cert
@@ -148,7 +148,7 @@ async fn network(
     // R-Administrators can get and set network settings
     nethsm.use_credentials(&ADMIN_USER_ID.parse()?)?;
     let network_config = nethsm.get_network()?;
-    println!("NetHSM network config: {:?}", network_config);
+    println!("NetHSM network config: {network_config:?}");
     assert_eq!("192.168.1.1".to_string(), network_config.ip_address);
 
     nethsm.set_network(NetworkConfig::new(
@@ -157,7 +157,7 @@ async fn network(
         "0.0.0.0".to_string(),
     ))?;
     let network_config = nethsm.get_network()?;
-    println!("NetHSM network config: {:?}", network_config);
+    println!("NetHSM network config: {network_config:?}");
     assert_eq!(ip_address, network_config.ip_address);
     Ok(())
 }
@@ -178,14 +178,14 @@ async fn time(
     // R-Administrators can get and set system time
     nethsm.use_credentials(&ADMIN_USER_ID.parse()?)?;
     let time = nethsm.get_time()?;
-    println!("NetHSM time: {}", time);
+    println!("NetHSM time: {time}");
 
     let time = Utc::now();
-    println!("The current time: {}", time);
+    println!("The current time: {time}");
     nethsm.set_time(time)?;
 
     let time = nethsm.get_time()?;
-    println!("NetHSM time: {}", time);
+    println!("NetHSM time: {time}");
     Ok(())
 }
 
@@ -339,12 +339,12 @@ async fn commit_update(
         let max_tries = 3;
         let mut tries = 0;
         while let Err(error) = nethsm.upload_update(file.clone()) {
-            eprintln!("{}", error);
+            eprintln!("{error}");
             if tries < max_tries {
                 tries += 1;
             } else {
                 eprintln!("maximum upload failures reached!");
-                if format!("{}", error).contains("(status code 400)") {
+                if format!("{error}").contains("(status code 400)") {
                     eprintln!("Encountered an issue with the container, bailing out...");
                     return Ok(());
                 }
@@ -379,12 +379,12 @@ async fn cancel_update(
         let max_tries = 3;
         let mut tries = 0;
         while let Err(error) = nethsm.upload_update(file.clone()) {
-            eprintln!("{}", error);
+            eprintln!("{error}");
             if tries < max_tries {
                 tries += 1;
             } else {
                 eprintln!("maximum upload failures reached!");
-                if format!("{}", error).contains("(status code 400)") {
+                if format!("{error}").contains("(status code 400)") {
                     eprintln!("Encountered an issue with the container, bailing out...");
                     return Ok(());
                 }

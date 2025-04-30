@@ -245,7 +245,7 @@ fn add_users_to_nethsm(nethsm: &NetHsm) -> TestResult {
 
     println!("Adding users to NetHSM...");
     for (role, user_id, passphrase, real_name) in users.into_iter() {
-        println!("Adding user: {}", user_id);
+        println!("Adding user: {user_id}");
         nethsm.add_user(
             real_name.to_string(),
             role,
@@ -256,7 +256,7 @@ fn add_users_to_nethsm(nethsm: &NetHsm) -> TestResult {
     println!("users: {:?}", nethsm.get_users()?);
     println!("Creating namespaces...");
     for namespace in [NAMESPACE1, NAMESPACE2] {
-        println!("Creating namespace: {}", namespace);
+        println!("Creating namespace: {namespace}");
         nethsm.add_namespace(&namespace.parse()?)?;
     }
     println!("namespaces: {:?}", nethsm.get_namespaces()?);
@@ -356,10 +356,8 @@ pub async fn nethsm_with_keys(
 #[fixture]
 pub fn update_file() -> TestResult<PathBuf> {
     let file_name = "update.img.bin";
-    let update_link = format!(
-        "https://raw.githubusercontent.com/Nitrokey/nethsm-sdk-py/main/tests/{}",
-        file_name
-    );
+    let update_link =
+        format!("https://raw.githubusercontent.com/Nitrokey/nethsm-sdk-py/main/tests/{file_name}");
     let download_dir = PathBuf::from(std::env::var("CARGO_TARGET_DIR").unwrap_or("/tmp".into()));
     let file = download_dir.join(file_name);
 
@@ -370,6 +368,6 @@ pub fn update_file() -> TestResult<PathBuf> {
         assert!(file.exists());
     }
 
-    println!("Update file downloaded: {:?}", file);
+    println!("Update file downloaded: {file:?}");
     Ok(file)
 }
