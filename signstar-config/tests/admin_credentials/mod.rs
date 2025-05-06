@@ -14,7 +14,8 @@ use signstar_config::admin_credentials::AdminCredentials;
 use signstar_config::test::{get_tmp_config, write_machine_id};
 use testresult::TestResult;
 
-use crate::utils::SIGNSTAR_ADMIN_CREDS_SIMPLE;
+/// Simple configuration
+const SIGNSTAR_ADMIN_CREDS_SIMPLE: &[u8] = include_bytes!("../fixtures/admin-creds-simple.toml");
 
 #[rstest]
 fn fail_to_load_on_path_not_a_file() -> TestResult {
