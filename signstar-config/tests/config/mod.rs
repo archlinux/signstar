@@ -20,7 +20,8 @@ use signstar_config::config::load_config;
 use signstar_config::test::get_tmp_config;
 use testresult::TestResult;
 
-use crate::utils::SIGNSTAR_CONFIG_FULL;
+/// Full configuration
+const SIGNSTAR_CONFIG_FULL: &[u8] = include_bytes!("../fixtures/signstar-config-full.toml");
 
 #[rstest]
 #[case(get_default_config_dir_path())]
