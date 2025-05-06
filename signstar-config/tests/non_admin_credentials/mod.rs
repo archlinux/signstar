@@ -21,7 +21,12 @@ use signstar_config::test::{
 use signstar_config::{error::ErrorExitCode, non_admin_credentials::SecretsWriter};
 use testresult::TestResult;
 
-use crate::utils::{SIGNSTAR_CONFIG_FULL, SIGNSTAR_CONFIG_PLAINTEXT};
+/// Plaintext configuration
+const SIGNSTAR_CONFIG_PLAINTEXT: &[u8] =
+    include_bytes!("../fixtures/signstar-config-plaintext.toml");
+
+/// Full configuration
+const SIGNSTAR_CONFIG_FULL: &[u8] = include_bytes!("../fixtures/signstar-config-full.toml");
 
 const GET_CREDENTIALS_PAYLOAD: &str = "/usr/local/bin/examples/get-nethsm-credentials";
 
