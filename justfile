@@ -255,9 +255,9 @@ test:
     just ensure-command cargo mold
 
     if [[ "$ignored" == "true" ]]; then
-        cargo nextest run --all --run-ignored ignored-only
+        cargo nextest run --locked --all --run-ignored ignored-only
     else
-        cargo nextest run --all
+        cargo nextest run --locked --all
         just test-docs
         just docs
     fi
@@ -265,7 +265,7 @@ test:
 # Runs all doc tests
 test-docs:
     just ensure-command cargo
-    cargo test --doc
+    cargo test --locked --doc
 
 # Runs per project end-to-end tests found in a project README.md
 test-readme project:
