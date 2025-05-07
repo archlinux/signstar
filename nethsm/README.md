@@ -23,6 +23,10 @@ The tests handle the creation and teardown of containers as needed.
 cargo test --all -- --ignored
 ```
 
+## Features
+
+- `test-helpers` enables the `signstar_config::test` module which provides utilities for test setups that are also useful for other crates.
+
 ## Contributing
 
 Please refer to the [contributing guidelines] to learn how to contribute to this project.

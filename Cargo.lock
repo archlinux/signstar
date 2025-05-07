@@ -2780,7 +2780,6 @@ dependencies = [
  "md-5",
  "nethsm-backup",
  "nethsm-sdk-rs",
- "nethsm-tests",
  "p224",
  "p256",
  "p384",
@@ -2816,7 +2815,6 @@ dependencies = [
  "aes-gcm",
  "log",
  "nethsm",
- "nethsm-tests",
  "rstest",
  "rustainers",
  "scrypt",
@@ -2878,20 +2876,6 @@ dependencies = [
  "serde_json",
  "ureq",
  "url",
-]
-
-[[package]]
-name = "nethsm-tests"
-version = "0.2.0"
-dependencies = [
- "chrono",
- "nethsm",
- "rstest",
- "rustainers",
- "testresult",
- "tokio",
- "ureq",
- "uuid",
 ]
 
 [[package]]

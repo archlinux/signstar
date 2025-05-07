@@ -12,7 +12,6 @@ Signstar consists of several loosely coupled components, some of which are used 
 - [nethsm-backup]: A library to parse, decrypt, validate and browse [NetHSM backups]
 - [nethsm-cli]: A dedicated commandline interface to the [Nitrokey NetHSM], akin to Nitrokey's [pynitrokey], useful for general purpose, interactive use of the HSM
 - [nethsm-config]: A library for working with application configuration files for [Nitrokey NetHSM] devices
-- [nethsm-tests]: Containerized testing environments for NetHSM related projects
 - [signstar-common]: Shared components and data types for Signstar tools and libraries
 - [signstar-config]: Configuration file handling for Signstar hosts
 - [signstar-configure-build]: A commandline interface for the configuration of Signstar system during build-time
@@ -81,7 +80,6 @@ Changes to this project - unless stated otherwise - automatically fall under the
 [nethsm-backup]: nethsm-backup/
 [nethsm-cli]: nethsm-cli/
 [nethsm-config]: nethsm-config/
-[nethsm-tests]: nethsm-tests/
 [pynitrokey]: https://github.com/Nitrokey/pynitrokey
 [signstar-common]: signstar-common/
 [signstar-config]: signstar-config/

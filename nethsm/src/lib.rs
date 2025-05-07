@@ -241,6 +241,9 @@ pub use openpgp::{
     tsk_to_private_key_import,
 };
 
+#[cfg(feature = "test-helpers")]
+pub mod test;
+
 mod tls;
 use tls::create_agent;
 pub use tls::{ConnectionSecurity, HostCertificateFingerprints};

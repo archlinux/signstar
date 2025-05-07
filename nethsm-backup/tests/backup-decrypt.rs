@@ -2,9 +2,9 @@
 //!
 //! Attempts to verify several properties of the decrypted backup and writes out all keys.
 
+use nethsm::test::{ADMIN_USER_ID, BACKUP_USER_ID, NetHsmImage, nethsm_with_users};
 use nethsm::{NetHsm, Passphrase, UserId};
 use nethsm_backup::Backup;
-use nethsm_tests::{ADMIN_USER_ID, BACKUP_USER_ID, NetHsmImage, nethsm_with_users};
 use rstest::rstest;
 use rustainers::Container;
 use testdir::testdir;

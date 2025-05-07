@@ -1,7 +1,7 @@
 //! Tests of NetHSM namespaces.
 
 use nethsm::NetHsm;
-use nethsm_tests::{NetHsmImage, nethsm_with_users};
+use nethsm::test::{NetHsmImage, nethsm_with_users};
 use rstest::rstest;
 use rustainers::Container;
 use testresult::TestResult;

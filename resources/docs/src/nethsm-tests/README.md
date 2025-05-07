@@ -1,1 +1,0 @@
-../../../../nethsm-tests/README.md
