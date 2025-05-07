@@ -454,6 +454,50 @@ impl KeyMechanism {
     }
 }
 
+impl From<&nethsm_sdk_rs::models::KeyMechanism> for KeyMechanism {
+    fn from(value: &nethsm_sdk_rs::models::KeyMechanism) -> Self {
+        match value {
+            nethsm_sdk_rs::models::KeyMechanism::AesDecryptionCbc => Self::AesDecryptionCbc,
+            nethsm_sdk_rs::models::KeyMechanism::AesEncryptionCbc => Self::AesEncryptionCbc,
+            nethsm_sdk_rs::models::KeyMechanism::EcdsaSignature => Self::EcdsaSignature,
+            nethsm_sdk_rs::models::KeyMechanism::EdDsaSignature => Self::EdDsaSignature,
+            nethsm_sdk_rs::models::KeyMechanism::RsaDecryptionOaepMd5 => Self::RsaDecryptionOaepMd5,
+            nethsm_sdk_rs::models::KeyMechanism::RsaDecryptionOaepSha1 => {
+                Self::RsaDecryptionOaepSha1
+            }
+            nethsm_sdk_rs::models::KeyMechanism::RsaDecryptionOaepSha224 => {
+                Self::RsaDecryptionOaepSha224
+            }
+            nethsm_sdk_rs::models::KeyMechanism::RsaDecryptionOaepSha256 => {
+                Self::RsaDecryptionOaepSha256
+            }
+            nethsm_sdk_rs::models::KeyMechanism::RsaDecryptionOaepSha384 => {
+                Self::RsaDecryptionOaepSha384
+            }
+            nethsm_sdk_rs::models::KeyMechanism::RsaDecryptionOaepSha512 => {
+                Self::RsaDecryptionOaepSha512
+            }
+            nethsm_sdk_rs::models::KeyMechanism::RsaDecryptionPkcs1 => Self::RsaDecryptionPkcs1,
+            nethsm_sdk_rs::models::KeyMechanism::RsaDecryptionRaw => Self::RsaDecryptionRaw,
+            nethsm_sdk_rs::models::KeyMechanism::RsaSignaturePkcs1 => Self::RsaSignaturePkcs1,
+            nethsm_sdk_rs::models::KeyMechanism::RsaSignaturePssMd5 => Self::RsaSignaturePssMd5,
+            nethsm_sdk_rs::models::KeyMechanism::RsaSignaturePssSha1 => Self::RsaSignaturePssSha1,
+            nethsm_sdk_rs::models::KeyMechanism::RsaSignaturePssSha224 => {
+                Self::RsaSignaturePssSha224
+            }
+            nethsm_sdk_rs::models::KeyMechanism::RsaSignaturePssSha256 => {
+                Self::RsaSignaturePssSha256
+            }
+            nethsm_sdk_rs::models::KeyMechanism::RsaSignaturePssSha384 => {
+                Self::RsaSignaturePssSha384
+            }
+            nethsm_sdk_rs::models::KeyMechanism::RsaSignaturePssSha512 => {
+                Self::RsaSignaturePssSha512
+            }
+        }
+    }
+}
+
 impl From<KeyMechanism> for nethsm_sdk_rs::models::KeyMechanism {
     fn from(value: KeyMechanism) -> Self {
         match value {
