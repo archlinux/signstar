@@ -39,7 +39,7 @@ struct SshSetup {
     close: oneshot::Sender<&'static str>,
 }
 
-async fn start() -> TestResult<SshSetup> {
+async fn start(temp_dir: impl AsRef<std::path::Path>) -> TestResult<SshSetup> {
     let (tx1, mut rx1) = oneshot::channel();
 
     let m = move |vec: &[u8]| {
@@ -60,7 +60,7 @@ async fn start() -> TestResult<SshSetup> {
     let key_pair: PrivateKey = Ed25519Keypair::random(&mut rand::thread_rng()).into();
     let public_key = key_pair.public_key().to_string();
 
-    let agent_socket_path = testdir::testdir!().join("agent.sock");
+    let agent_socket_path = temp_dir.as_ref().join("agent.sock");
     let asp = agent_socket_path.clone();
 
     tokio::spawn(async move {
@@ -96,7 +96,8 @@ async fn ssh_roundtrip() -> TestResult {
         .filter_level(log::LevelFilter::Info)
         .init();
 
-    let setup = start().await?;
+    let temp_dir = tempfile::tempdir()?;
+    let setup = start(&temp_dir).await?;
 
     info!("Connecting to {:?}", setup.server_host);
 
