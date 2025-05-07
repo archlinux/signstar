@@ -20,6 +20,7 @@ use std::sync::Arc;
 use base64::Engine;
 use base64::prelude::BASE64_STANDARD;
 use log::{debug, info};
+use rand::RngCore;
 use russh::keys::ssh_encoding::Encode;
 use russh::keys::ssh_key::{PrivateKey, PublicKey, private::Ed25519Keypair};
 use russh::server::{self, Msg, Server as _, Session as ServerSession};
@@ -57,10 +58,11 @@ async fn start() -> TestResult<SshSetup> {
     };
     let listener = TcpListener::bind("127.0.0.1:0").await?;
     let addr = listener.local_addr()?;
-    let key_pair: PrivateKey = Ed25519Keypair::random(&mut rand::thread_rng()).into();
+    let mut rng = rand::thread_rng();
+    let key_pair: PrivateKey = Ed25519Keypair::random(&mut rng).into();
     let public_key = key_pair.public_key().to_string();
 
-    let agent_socket_path = testdir::testdir!().join("agent.sock");
+    let agent_socket_path = std::env::temp_dir().join(rng.next_u64().to_string());
     let asp = agent_socket_path.clone();
 
     tokio::spawn(async move {
