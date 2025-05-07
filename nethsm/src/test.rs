@@ -1,10 +1,17 @@
 #![doc = include_str!("../README.md")]
+#![allow(missing_docs)]
 
 use std::fs::File;
 use std::path::PathBuf;
 
 use chrono::Utc;
-use nethsm::{
+use rstest::fixture;
+// Publicly re-export, so that consumers do not have to rely on rustainers directly .
+pub use rustainers::Container;
+use rustainers::runner::Runner;
+use testresult::TestResult;
+
+use crate::{
     Connection,
     ConnectionSecurity,
     Credentials,
@@ -16,11 +23,6 @@ use nethsm::{
     Url,
     UserRole,
 };
-use rstest::fixture;
-// Publicly re-export, so that consumers do not have to rely on rustainers directly .
-pub use rustainers::Container;
-use rustainers::runner::Runner;
-use testresult::TestResult;
 
 /// Identifier for an admin user.
 pub static ADMIN_USER_ID: &str = "admin";

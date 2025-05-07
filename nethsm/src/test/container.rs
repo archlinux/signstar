@@ -1,4 +1,3 @@
-use nethsm::Url;
 use rustainers::{
     ExposedPort,
     ImageName,
@@ -9,6 +8,8 @@ use rustainers::{
 };
 use testresult::TestResult;
 use uuid::{NoContext, Uuid, timestamp::Timestamp};
+
+use crate::Url;
 
 /// The NetHSM container image and specific tag
 ///

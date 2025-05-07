@@ -16,8 +16,7 @@ scrypt = "0.11.0"
 thiserror.workspace = true
 
 [dev-dependencies]
-nethsm.workspace = true
-nethsm-tests.workspace = true
+nethsm = { features = ["test-helpers"], workspace = true }
 rstest.workspace = true
 rustainers.workspace = true
 testdir.workspace = true

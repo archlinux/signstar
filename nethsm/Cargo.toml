@@ -31,21 +31,24 @@ picky-asn1-der = "0.5.1"
 picky-asn1-x509 = "0.14.1"
 rand.workspace = true
 rsa = { workspace = true, features = ["pem"] }
+rstest = { optional = true, workspace = true }
+rustainers = { optional = true, workspace = true }
 rustls = { version = "0.23.19" }
 rustls-native-certs = "0.8.1"
 secrecy = { version = "0.10.3", features = ["serde"] }
-serde.workspace = true
 serde_json = "1.0.133"
+serde.workspace = true
 sha1 = "0.10.6"
 sha2.workspace = true
 strum.workspace = true
+testresult = { optional = true, workspace = true }
 thiserror.workspace = true
 ureq = { workspace = true, features = ["json"] }
 url = { version = "2.5.4", features = ["serde"] }
+uuid = { optional = true, workspace = true }
 
 [dev-dependencies]
 ed25519-dalek = { workspace = true, features = ["pkcs8", "pem", "rand_core"] }
-nethsm-tests.workspace = true
 rsa = { workspace = true, features = ["getrandom", "sha2", "pem"] }
 rstest.workspace = true
 rustainers.workspace = true
@@ -53,6 +56,10 @@ testdir.workspace = true
 testresult.workspace = true
 tokio.workspace = true
 uuid.workspace = true
+
+[features]
+default = []
+test-helpers = [ "dep:rstest", "dep:rustainers", "dep:testresult", "dep:uuid" ]
 
 [lints]
 workspace = true

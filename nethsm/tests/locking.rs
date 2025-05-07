@@ -1,13 +1,13 @@
 //! Tests for NetHSM device locking.
 
-use nethsm::{NetHsm, Passphrase, SystemState, UserId};
-use nethsm_tests::{
+use nethsm::test::{
     ADMIN_USER_ID,
     NAMESPACE1_ADMIN_USER_ID,
     NetHsmImage,
     UNLOCK_PASSPHRASE,
     nethsm_with_users,
 };
+use nethsm::{NetHsm, Passphrase, SystemState, UserId};
 use rstest::rstest;
 use rustainers::Container;
 use testresult::TestResult;

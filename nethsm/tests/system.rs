@@ -1,14 +1,14 @@
 //! Tests for system features such as backups.
 
 use chrono::Utc;
-use nethsm::{NetHsm, Passphrase, UserId};
-use nethsm_tests::{
+use nethsm::test::{
     ADMIN_USER_ID,
     BACKUP_USER_ID,
     NetHsmImage,
     nethsm_with_users,
     unprovisioned_nethsm,
 };
+use nethsm::{NetHsm, Passphrase, UserId};
 use rstest::rstest;
 use rustainers::Container;
 use testdir::testdir;

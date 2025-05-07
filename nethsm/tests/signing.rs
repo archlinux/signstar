@@ -2,15 +2,15 @@
 
 use nethsm::Credentials;
 use nethsm::Passphrase;
+use nethsm::test::DEFAULT_KEY_ID;
+use nethsm::test::DEFAULT_OPERATOR_USER_ID;
+use nethsm::test::DEFAULT_OPERATOR_USER_PASSPHRASE;
+use nethsm::test::NetHsmImage;
+use nethsm::test::OTHER_KEY_ID;
+use nethsm::test::OTHER_OPERATOR_USER_ID;
+use nethsm::test::OTHER_OPERATOR_USER_PASSPHRASE;
+use nethsm::test::nethsm_with_keys;
 use nethsm::{NetHsm, SignatureType};
-use nethsm_tests::DEFAULT_KEY_ID;
-use nethsm_tests::DEFAULT_OPERATOR_USER_ID;
-use nethsm_tests::DEFAULT_OPERATOR_USER_PASSPHRASE;
-use nethsm_tests::NetHsmImage;
-use nethsm_tests::OTHER_KEY_ID;
-use nethsm_tests::OTHER_OPERATOR_USER_ID;
-use nethsm_tests::OTHER_OPERATOR_USER_PASSPHRASE;
-use nethsm_tests::nethsm_with_keys;
 use rsa::RsaPublicKey;
 use rsa::pkcs1v15::VerifyingKey;
 use rsa::pkcs8::DecodePublicKey;
