@@ -132,6 +132,7 @@ integration-test:
     - useradd -m testuser
     - chown -R testuser:testuser .
     - WORKDIR="$(pwd)" runuser -w WORKDIR,SIGNSTAR_COVERAGE -l testuser -c 'env && cd "$WORKDIR" && just install-rust-dev-tools'
+    - WORKDIR="$(pwd)" runuser -w WORKDIR,SIGNSTAR_COVERAGE -l testuser -c 'env && cd "$WORKDIR" && just nethsm-integration-tests'
     - WORKDIR="$(pwd)" runuser -w WORKDIR,SIGNSTAR_COVERAGE -l testuser -c 'env && cd "$WORKDIR" && just containerized-integration-tests'
   stage: test
   timeout: 20m
