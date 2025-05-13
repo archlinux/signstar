@@ -198,6 +198,8 @@ lint:
     just lint-recipe test
     just lint-recipe 'ensure-command test'
 
+    just check-shell-script .cargo/runner.sh
+
     cargo clippy --tests --all -- -D warnings
 
 # Checks a shell script using shellcheck.

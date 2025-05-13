@@ -17,6 +17,7 @@ path = [
     "**.toml",
     "*.json",
     "Cargo.lock",
+    ".cargo/runner.sh",
     ".codespellrc",
     ".containers/Containerfile.integration-test",
     ".env",
