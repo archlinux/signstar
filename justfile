@@ -11,24 +11,29 @@ ignored := "false"
 
 output_dir := "output"
 
-# Runs all checks and tests. Since this is the first recipe it is run by default.
-run-pre-commit-hook: check test
+# Lists all available recipes.
+default:
+    just --list
 
 # Runs all check targets
+[group('check')]
 check: check-spelling check-formatting lint check-unused-deps check-dependencies check-licenses check-links
 
 # Faster checks need to be executed first for better UX.  For example
 # codespell is very fast. cargo fmt does not need to download crates etc.
 
 # Installs all tools required for development
+[group('dev')]
 dev-install: install-pacman-dev-packages install-rust-dev-tools
 
 # Installs development packages using pacman
+[group('dev')]
 install-pacman-dev-packages:
     # All packages are set in the `.env` file
     run0 pacman -S --needed --noconfirm $PACMAN_PACKAGES
 
 # Installs all Rust tools required for development
+[group('dev')]
 install-rust-dev-tools:
     rustup default stable
     rustup component add clippy
@@ -36,6 +41,7 @@ install-rust-dev-tools:
     rustup component add --toolchain nightly rustfmt
 
 # Ensures that one or more required commands are installed
+[private]
 ensure-command +command:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -50,6 +56,7 @@ ensure-command +command:
     done
 
 # Checks commit messages for correctness
+[group('check')]
 check-commits:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -113,20 +120,20 @@ check-commits:
         fi
     done
 
-# Runs checks before pushing commits to remote repository.
-run-pre-push-hook: check-commits
-
 # Checks common spelling mistakes
+[group('check')]
 check-spelling:
     just ensure-command codespell
     codespell
 
 # Gets names of all workspace members
+[private]
 get-workspace-members:
     just ensure-command cargo jq
     cargo metadata --format-version=1 |jq -r '.workspace_members[] | capture("/(?<name>[a-z-]+)#.*").name'
 
 # Checks if a string matches a workspace member exactly
+[private]
 is-workspace-member package:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -141,6 +148,7 @@ is-workspace-member package:
     exit 1
 
 # Gets metadata version of a workspace member
+[private]
 get-workspace-member-version package:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -157,6 +165,7 @@ get-workspace-member-version package:
     printf "$version\n"
 
 # Checks for unused dependencies
+[group('check')]
 check-unused-deps:
     #!/usr/bin/env bash
     set -euxo pipefail
@@ -168,6 +177,7 @@ check-unused-deps:
     done
 
 # Checks source code formatting
+[group('check')]
 check-formatting:
     just ensure-command rustup
     just --unstable --fmt --check
@@ -175,11 +185,13 @@ check-formatting:
     cargo +nightly fmt -- --check
 
 # Updates the local cargo index and displays which crates would be updated
+[private]
 dry-update:
     just ensure-command cargo
     cargo update --dry-run --verbose
 
 # Lints the source code
+[group('check')]
 lint:
     just ensure-command cargo cargo-clippy mold tangler
 
@@ -203,31 +215,37 @@ lint:
     cargo clippy --tests --all -- -D warnings
 
 # Checks a shell script using shellcheck.
+[group('check')]
 check-shell-script file:
     just ensure-command shellcheck
     shellcheck --shell bash {{ file }}
 
 # Check justfile recipe for shell issues
+[group('check')]
 lint-recipe recipe:
     just ensure-command rg shellcheck
     just -vv -n {{ recipe }} 2>&1 | rg -v '===> Running recipe' | shellcheck -
 
 # Checks for issues with dependencies
+[group('check')]
 check-dependencies: dry-update
     just ensure-command cargo-deny
     cargo deny --all-features check
 
 # Checks licensing status
+[group('check')]
 check-licenses:
     just ensure-command reuse
     reuse lint
 
 # Build project and optionally provide further `cargo-build` options
+[group('build')]
 build project *cargo_build_options:
     just ensure-command cargo
     cargo build -p {{ project }} {{ cargo_build_options }}
 
 # Build local documentation
+[group('build')]
 docs:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -254,6 +272,7 @@ docs:
     mv "$target_dir/doc/nethsm.tmp" "$target_dir/doc/nethsm"
 
 # Runs all unit tests. By default ignored tests are not run. Run with `ignored=true` to run only ignored tests
+[group('test')]
 test:
     #!/usr/bin/env bash
     set -euxo pipefail
@@ -270,11 +289,13 @@ test:
     fi
 
 # Runs all doc tests
+[group('test')]
 test-docs:
     just ensure-command cargo
     cargo test --locked --doc
 
 # Runs per project end-to-end tests found in a project README.md
+[group('test')]
 test-readme project:
     #!/usr/bin/env bash
     set -euxo pipefail
@@ -371,12 +392,22 @@ test-readme project:
     run_test
 
 # Runs end-to-end tests found in project README.md files for all projects supporting it
+[group('test')]
 test-readmes:
     just test-readme nethsm-cli
     just test-readme signstar-configure-build
     just test-readme signstar-request-signature
 
+# Runs checks and tests before a commit.
+[private]
+run-pre-commit-hook: check test
+
+# Runs checks before pushing commits to remote repository.
+[private]
+run-pre-push-hook: check-commits
+
 # Adds pre-commit and pre-push git hooks
+[group('git')]
 add-hooks:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -388,11 +419,13 @@ add-hooks:
     chmod +x .git/hooks/pre-push
 
 # Check for stale links in documentation
+[group('check')]
 check-links:
     just ensure-command lychee
     lychee .
 
 # Fixes common issues. Files need to be git add'ed
+[group('dev')]
 fix:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -427,6 +460,7 @@ render-script := '''
 '''
 
 # Render `manpages` or `shell_completions` (`kind`) of a given package (`pkg`).
+[group('build')]
 generate kind pkg:
     #!/usr/bin/bash
 
@@ -453,6 +487,7 @@ generate kind pkg:
     rm --force "$script"
 
 # Continuously run integration tests for a given number of rounds
+[group('test')]
 flaky test='just test-readme nethsm-cli' rounds='999999999999':
     #!/usr/bin/bash
     set -euo pipefail
@@ -465,6 +500,7 @@ flaky test='just test-readme nethsm-cli' rounds='999999999999':
     done
 
 # Prepares the release of a crate by updating dependencies, incrementing the crate version and creating a changelog entry (optionally, the version can be set explicitly)
+[group('release')]
 prepare-release package version="":
     #!/usr/bin/env bash
     set -euo pipefail
@@ -504,6 +540,7 @@ prepare-release package version="":
     git push --set-upstream origin "$branch_name"
 
 # Creates a release of a crate in the workspace by creating a tag and pushing it
+[group('release')]
 release package:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -527,6 +564,7 @@ release package:
     git push origin refs/tags/"$current_version"
 
 # Publishes a crate in the workspace from GitLab CI in a pipeline for tags
+[group('release')]
 ci-publish:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -563,6 +601,7 @@ ci-publish:
     cargo publish -p "$crate"
 
 # Creates a signing key and certificate for Secure Boot and verity signing if not both `key` and `cert` exist
+[group('signstaros')]
 create-image-signing-key key cert common_name="archlinux.org" key_settings="rsa:3072":
     if ! {{ path_exists(key) }}; then \
         if ! {{ path_exists(cert) }}; then \
@@ -573,6 +612,7 @@ create-image-signing-key key cert common_name="archlinux.org" key_settings="rsa:
     fi
 
 # Builds an OS image using mkosi
+[group('signstaros')]
 build-image openpgp_signing_key signing_key="resources/mkosi/signstar/mkosi.output/signing.key" signing_cert="resources/mkosi/signstar/mkosi.output/signing.pem" mkosi_options="":
     just ensure-command rsop mkosi
 
@@ -581,6 +621,7 @@ build-image openpgp_signing_key signing_key="resources/mkosi/signstar/mkosi.outp
     mkosi -f -C {{ absolute_path("resources/mkosi/signstar") }} {{ mkosi_options }} --secure-boot-key={{ absolute_path(signing_key) }} --secure-boot-certificate={{ absolute_path(signing_cert) }} --verity-key={{ absolute_path(signing_key) }} --verity-certificate={{ absolute_path(signing_cert) }} --key={{ openpgp_signing_key }} build
 
 # Builds an OS image using mkosi
+[group('signstaros')]
 build-test-image openpgp_signing_key signing_key="resources/mkosi/signstar/mkosi.output/signing.key" signing_cert="resources/mkosi/signstar/mkosi.output/signing.pem" mkosi_options="":
     just build signstar-configure-build
     mkdir -p resources/mkosi/signstar/mkosi.profiles/local-testing/mkosi.extra/usr/local/bin/ resources/mkosi/signstar/mkosi.profiles/local-testing/mkosi.extra/usr/local/share/signstar/
@@ -590,12 +631,14 @@ build-test-image openpgp_signing_key signing_key="resources/mkosi/signstar/mkosi
     # mkosi -f -C {{ absolute_path("resources/mkosi/signstar") }} {{ mkosi_options }} --secure-boot-key={{ absolute_path(signing_key) }} --secure-boot-certificate={{ absolute_path(signing_cert) }} --verity-key={{ absolute_path(signing_key) }} --verity-certificate={{ absolute_path(signing_cert) }} --key={{ openpgp_signing_key }} --profile local-testing build
 
 # Runs an OS image using mkosi qemu
+[group('signstaros')]
 run-image mkosi_options="" qemu_options="":
     # To forward the host port 2222 to Signstar's SSH port 22 use `just run-image '' '-netdev user,id=n1,hostfwd=tcp::2222-:22 -device virtio-net-pci,netdev=n1'`
     just ensure-command mkosi
     mkosi -C resources/mkosi/signstar/ {{ mkosi_options }} qemu {{ qemu_options }}
 
 # Builds the documentation book using mdbook and stages all necessary rustdocs alongside
+[group('build')]
 build-book: docs
     #!/usr/bin/env bash
     set -euo pipefail
@@ -619,22 +662,26 @@ build-book: docs
     cp -r "$target_dir/doc/"*.{js,html} "$rustdoc_dir"
 
 # Serves the documentation book using miniserve
+[group('dev')]
 serve-book: build-book
     just ensure-command miniserve
     miniserve --index=index.html {{ output_dir }}/docs
 
 # Watches the documentation book contents and rebuilds on change using mdbook (useful for development)
+[group('dev')]
 watch-book:
     just ensure-command watchexec
     watchexec --exts md,toml,js --delay-run 5s :w
     just build-book
 
 # Returns the target directory for cargo.
+[private]
 get-cargo-target-dir:
     just ensure-command cargo jq
     cargo metadata --format-version 1 | jq -r '.target_directory'
 
 # Runs the tests that are made available with the "_containerized-integration-test" feature of all configured projects in a separate container
+[group('test')]
 containerized-integration-tests:
     just ensure-command bash cargo cargo-nextest jq podman
     cargo nextest run --features _containerized-integration-test --filterset 'kind(test)'
