@@ -15,7 +15,6 @@ stages:
     - pacman-key --init
     - pacman -Sy --needed --noconfirm archlinux-keyring
     - source .env && pacman -Syu --needed --noconfirm $PACMAN_PACKAGES
-    - just install-rust-dev-tools
   interruptible: true
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
@@ -23,15 +22,12 @@ stages:
 
 # default setup with Rust tools running on default branch and in MRs
 .default-rust:
+  extends: .default
   before_script:
     - pacman-key --init
     - pacman -Sy --needed --noconfirm archlinux-keyring
     - source .env && pacman -Syu --needed --noconfirm $PACMAN_PACKAGES
     - just install-rust-dev-tools
-  interruptible: true
-  rules:
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
 
 check-commits:
   extends: .default
