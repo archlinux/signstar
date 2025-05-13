@@ -795,3 +795,9 @@ create-coverage-report mode="nodoc":
     # https://docs.gitlab.com/ci/testing/metrics_reports/
     printf "Test-coverage ${percentage}\n" > "$target_dir/llvm-cov/coverage-metrics.txt"
     printf "Test-coverage: ${percentage}%%\n"
+
+# Runs the tests that are made available with the `_nethsm-integration-test` feature and for which the binary_id matches `::nethsm`
+[group('test')]
+nethsm-integration-tests *options:
+    just ensure-command bash cargo cargo-nextest jq podman
+    cargo nextest run --features _nethsm-integration-test --filterset 'kind(test) and binary_id(/::nethsm$/)' {{ options }}
