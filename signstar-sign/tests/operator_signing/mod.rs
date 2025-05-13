@@ -49,7 +49,7 @@ async fn load_credentials_for_user(#[case] config_data: &[u8]) -> TestResult {
     env_logger::init_from_env(env_logger::Env::new().default_filter_or("info"));
     let CertifiedKey { cert, key_pair } = generate_simple_self_signed(vec!["localhost".into()])?;
 
-    let dir = tempdir()?.into_path();
+    let dir = tempdir()?.keep();
     let key_file = dir.join("key.pem");
     let cert_file = dir.join("cert.pem");
 
