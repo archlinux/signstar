@@ -215,7 +215,7 @@ check-shell-code:
 [group('check')]
 check-rust-code:
     just ensure-command cargo cargo-clippy mold
-    cargo clippy --tests --all -- -D warnings
+    cargo clippy --all-features --all-targets --workspace -- -D warnings
 
 # Checks a shell script using shellcheck.
 [group('check')]
