@@ -2,6 +2,7 @@ use std::{fmt::Display, str::FromStr};
 
 use base64ct::{Base64, Encoding};
 use nethsm_sdk_rs::models::KeyPrivateData;
+use pgp::{SignedPublicKey, types::PublicKeyTrait};
 use rsa::{
     RsaPrivateKey,
     pkcs8::DecodePrivateKey,
@@ -10,7 +11,15 @@ use rsa::{
 };
 use serde::{Deserialize, Serialize};
 
-use crate::{KeyMechanism, KeyType, OpenPgpUserIdList, OpenPgpVersion, SignatureType, TlsKeyType};
+use crate::{
+    KeyMechanism,
+    KeyType,
+    OpenPgpUserId,
+    OpenPgpUserIdList,
+    OpenPgpVersion,
+    SignatureType,
+    TlsKeyType,
+};
 
 /// The minimum bit length for an RSA key
 ///
@@ -120,6 +129,13 @@ pub enum Error {
         key_type: KeyType,
         key_mechanisms: Vec<KeyMechanism>,
         signature_type: SignatureType,
+    },
+
+    /// An OpenPGP error.
+    #[error("An OpenPGP error occurred while {context}:\n{source}")]
+    OpenPgp {
+        context: &'static str,
+        source: crate::openpgp::Error,
     },
 }
 
@@ -368,6 +384,44 @@ impl CryptographicKeyContext {
             },
         }
         Ok(())
+    }
+}
+
+impl TryFrom<SignedPublicKey> for CryptographicKeyContext {
+    type Error = Error;
+
+    /// Creates a [`CryptographicKeyContext`] from [`SignedPublicKey`].
+    ///
+    /// Drops any invalid OpenPGP User ID (e.g. non-UTF-8).
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if
+    ///
+    /// - duplicate OpenPGP User IDs are encountered in `value`,
+    /// - or no valid OpenPGP version can be derived from the OpenPGP primary key in `value`.
+    fn try_from(value: SignedPublicKey) -> Result<Self, Self::Error> {
+        let user_ids: Vec<OpenPgpUserId> = value
+            .details
+            .users
+            .iter()
+            .filter_map(|signed_user| signed_user.try_into().ok())
+            .collect();
+
+        Ok(Self::OpenPgp {
+            user_ids: OpenPgpUserIdList::new(user_ids).map_err(|source| Error::OpenPgp {
+                context: "creating a list of OpenPGP User IDs",
+                source,
+            })?,
+            version: value
+                .primary_key
+                .version()
+                .try_into()
+                .map_err(|source| Error::OpenPgp {
+                    context: "deriving an OpenPGP version from a primary key",
+                    source,
+                })?,
+        })
     }
 }
 
