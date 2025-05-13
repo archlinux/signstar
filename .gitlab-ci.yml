@@ -58,10 +58,16 @@ formatting:
     - just check-formatting
   stage: check
 
-lint:
+shell-code:
+  extends: .default
+  script:
+    - just check-shell-code
+  stage: check
+
+rust-code:
   extends: .default-rust
   script:
-    - just lint
+    - just check-rust-code
   stage: check
 
 unused-deps:
