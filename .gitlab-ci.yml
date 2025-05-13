@@ -29,7 +29,7 @@ stages:
     - source .env && pacman -Syu --needed --noconfirm $PACMAN_PACKAGES
     - just install-rust-dev-tools
 
-check-commits:
+commits:
   extends: .default
   script:
     # fetch the default branch as we need it for comparison
