@@ -200,6 +200,11 @@ lint:
 
     cargo clippy --tests --all -- -D warnings
 
+# Checks a shell script using shellcheck.
+check-shell-script file:
+    just ensure-command shellcheck
+    shellcheck --shell bash {{ file }}
+
 # Check justfile recipe for shell issues
 lint-recipe recipe:
     just ensure-command rg shellcheck
