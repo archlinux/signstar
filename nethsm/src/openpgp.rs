@@ -5,6 +5,7 @@ use std::{
     collections::HashSet,
     fmt::{Debug, Display},
     str::FromStr,
+    string::FromUtf8Error,
 };
 
 use base64ct::{Base64, Encoding as _};
@@ -44,6 +45,7 @@ use pgp::{
         SecretKeyTrait,
         SecretParams,
         SignatureBytes,
+        SignedUser,
         Version,
     },
 };
@@ -102,6 +104,18 @@ pub enum Error {
     /// The User ID is too large
     #[error("The OpenPGP User ID is too large: {user_id}")]
     UserIdTooLarge { user_id: String },
+
+    /// A UTF-8 error when trying to create a string from bytes.
+    #[error("Creating a valid UTF-8 string from bytes failed while {context}:\n{source}")]
+    FromUtf8 {
+        /// The context in which a UTF-8 error occurred.
+        ///
+        /// This is meant to complete the sentence "Creating a valid UTF-8 string from bytes failed
+        /// while ".
+        context: &'static str,
+        /// The source error.
+        source: FromUtf8Error,
+    },
 }
 
 /// The OpenPGP version
@@ -189,6 +203,27 @@ impl FromStr for OpenPgpVersion {
 impl From<OpenPgpVersion> for String {
     fn from(value: OpenPgpVersion) -> Self {
         value.to_string()
+    }
+}
+
+impl TryFrom<KeyVersion> for OpenPgpVersion {
+    type Error = Error;
+
+    /// Creates an [`OpenPgpVersion`] from a [`KeyVersion`].
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if an invalid OpenPGP version is encountered.
+    fn try_from(value: KeyVersion) -> Result<Self, Self::Error> {
+        Ok(match value {
+            KeyVersion::V4 => Self::V4,
+            KeyVersion::V6 => Self::V6,
+            _ => {
+                return Err(Error::InvalidOpenPgpVersion(
+                    Into::<u8>::into(value).to_string(),
+                ));
+            }
+        })
     }
 }
 
@@ -322,6 +357,25 @@ impl FromStr for OpenPgpUserId {
 impl From<OpenPgpUserId> for String {
     fn from(value: OpenPgpUserId) -> Self {
         value.to_string()
+    }
+}
+
+impl TryFrom<&SignedUser> for OpenPgpUserId {
+    type Error = Error;
+
+    /// Creates an [`OpenPgpUserId`] from [`SignedUser`].
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the [`SignedUser`]'s User ID can not be converted to a valid UTF-8
+    /// string.
+    fn try_from(value: &SignedUser) -> Result<Self, Self::Error> {
+        Self::new(
+            String::from_utf8(value.id.id().to_vec()).map_err(|source| Error::FromUtf8 {
+                context: "converting an OpenPGP UserID",
+                source,
+            })?,
+        )
     }
 }
 
