@@ -79,13 +79,13 @@ dependencies:
   stage: check
 
 licenses:
-  extends: .default-rust
+  extends: .default
   script:
     - just check-licenses
   stage: check
 
 links:
-  extends: .default-rust
+  extends: .default
   script:
     - just check-links
   stage: check
