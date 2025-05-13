@@ -104,6 +104,7 @@ integration-test:
     - WORKDIR="$(pwd)" runuser -w WORKDIR -l testuser -c 'env && cd "$WORKDIR" && just install-rust-dev-tools'
     - WORKDIR="$(pwd)" runuser -w WORKDIR -l testuser -c 'env && cd "$WORKDIR" && just ignored=true test'
     - WORKDIR="$(pwd)" runuser -w WORKDIR -l testuser -c 'env && cd "$WORKDIR" && just containerized-integration-tests'
+    - WORKDIR="$(pwd)" runuser -w WORKDIR -l testuser -c 'env && cd "$WORKDIR" && just nethsm-integration-tests'
   stage: test
   tags:
     - vm
