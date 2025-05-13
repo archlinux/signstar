@@ -1,5 +1,0 @@
-FROM archlinux
-
-WORKDIR /test
-
-RUN pacman-key --init && pacman -Sy --needed --noconfirm archlinux-keyring && cat .env && source /test/.env && pacman -Syu --needed --noconfirm cargo cargo-nextest

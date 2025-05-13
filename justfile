@@ -634,57 +634,7 @@ get-cargo-target-dir:
     just ensure-command cargo jq
     cargo metadata --format-version 1 | jq -r '.target_directory'
 
-# Returns all names of tests by project and features (the names are cargo-nextest compatible)
-get-tests-by-features project features:
-    just ensure-command cargo cargo-nextest jq
-
-    cargo nextest list --package {{ project }} --no-default-features --features {{ features }} --message-format json 2>/dev/null | jq -r '."rust-suites"[] | ."binary-id" as $x | ."testcases" | to_entries[] | if (.value."filter-match"."status") == "matches" then (.key) else null end | select(. != null) as $y | "\($x) \($y)"'
-
-# Builds a container image that enables running dedicated integration tests of the project in containers
-build-container-integration-test-image:
-    just ensure-command podman
-
-    podman build --volume "$PWD:/test" --tag arch-signstar-integration-test --file .containers/Containerfile.integration-test .
-
-# Runs all tests of a project that are made available with the `_nethsm-integration-test` feature based on a filterset.
-nethsm-integration-test project filterset:
-    just ensure-command podman
-
-    cargo nextest run --package {{ project }} --features _nethsm-integration-test --filterset '{{ filterset }}'
-
-# Runs each test of a project that is made available with the "_containerized-integration-test" feature in a separate container
-containerized-integration-test project:
-    #!/usr/bin/env bash
-    set -euo pipefail
-
-    just ensure-command cargo-nextest podman
-
-    readonly features=_containerized-integration-test
-    project={{ project }}
-    raw_tests="$(just get-tests-by-features "$project" "$features")"
-    target_dir="$(just get-cargo-target-dir)"
-    readarray -t tests <<< "$raw_tests"
-
-    tmpdir="$(mktemp --dry-run --directory)"
-    readonly test_tmpdir="$tmpdir"
-    mkdir -p "$test_tmpdir"
-
-    # remove temporary dir on exit
-    cleanup() (
-      if [[ -n "${test_tmpdir:-}" ]]; then
-        rm -rf "${test_tmpdir}"
-      fi
-    )
-
-    # create an archive with the special containerized tests
-    cargo nextest archive --archive-file "$test_tmpdir/tests.tar.zst" --features _containerized-integration-test --package "$project"
-
-    for test in "${tests[@]}"; do
-        printf "Running test %s\n" "$test"
-        podman run -e RUST_LOG=info -e RUST_BACKTRACE=1 --rm --interactive --tty --volume "$test_tmpdir:/mnt" --volume "$PWD:/test" --volume "$target_dir/debug:/usr/local/bin" arch-signstar-integration-test cargo nextest run --nocapture --archive-file "/mnt/tests.tar.zst" --workspace-remap "/test" "${test/ */}" "${test/* /}"
-    done
-
 # Runs the tests that are made available with the "_containerized-integration-test" feature of all configured projects in a separate container
 containerized-integration-tests:
-    just containerized-integration-test signstar-config
-    just containerized-integration-test signstar-sign
+    just ensure-command bash cargo cargo-nextest jq podman
+    cargo nextest run --features _containerized-integration-test --filterset 'kind(test)'
