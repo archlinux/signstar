@@ -694,3 +694,9 @@ get-cargo-target-dir:
 containerized-integration-tests:
     just ensure-command bash cargo cargo-nextest jq podman
     cargo nextest run --features _containerized-integration-test --filterset 'kind(test)'
+
+# Runs the tests that are made available with the `_nethsm-integration-test` feature and for which the binary_id matches `::nethsm`
+[group('test')]
+nethsm-integration-tests *options:
+    just ensure-command bash cargo cargo-nextest jq podman
+    cargo nextest run --features _nethsm-integration-test --filterset 'kind(test) and binary_id(/::nethsm$/)' {{ options }}
