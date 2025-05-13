@@ -15,9 +15,9 @@ output_dir := "output"
 default:
     just --list
 
-# Runs all check targets
+# Runs all check recipes (except those for commit messages).
 [group('check')]
-check: check-spelling check-formatting lint check-unused-deps check-dependencies check-licenses check-links
+check: check-spelling check-formatting check-shell-code check-rust-code check-unused-deps check-dependencies check-licenses check-links
 
 # Faster checks need to be executed first for better UX.  For example
 # codespell is very fast. cargo fmt does not need to download crates etc.
@@ -190,28 +190,31 @@ dry-update:
     just ensure-command cargo
     cargo update --dry-run --verbose
 
-# Lints the source code
+# Checks shell code using shellcheck.
 [group('check')]
-lint:
-    just ensure-command cargo cargo-clippy mold tangler
+check-shell-code:
+    just check-shell-readme nethsm-cli
+    just check-shell-readme signstar-configure-build
+    just check-shell-readme signstar-request-signature
 
-    tangler bash < nethsm-cli/README.md | shellcheck --shell bash -
-    tangler bash < signstar-request-signature/README.md | shellcheck --shell bash -
-
-    just lint-recipe 'test-readme nethsm-cli'
-    just lint-recipe check-commits
-    just lint-recipe check-unused-deps
-    just lint-recipe ci-publish
-    just lint-recipe 'generate shell_completions nethsm-cli'
-    just lint-recipe 'is-workspace-member nethsm'
-    just lint-recipe 'release nethsm'
-    just lint-recipe docs
-    just lint-recipe flaky
-    just lint-recipe test
-    just lint-recipe 'ensure-command test'
+    just check-shell-recipe 'test-readme nethsm-cli'
+    just check-shell-recipe check-commits
+    just check-shell-recipe check-unused-deps
+    just check-shell-recipe ci-publish
+    just check-shell-recipe 'generate shell_completions nethsm-cli'
+    just check-shell-recipe 'is-workspace-member nethsm'
+    just check-shell-recipe 'release nethsm'
+    just check-shell-recipe docs
+    just check-shell-recipe flaky
+    just check-shell-recipe test
+    just check-shell-recipe 'ensure-command test'
 
     just check-shell-script .cargo/runner.sh
 
+# Checks the Rust source code using cargo-clippy.
+[group('check')]
+check-rust-code:
+    just ensure-command cargo cargo-clippy mold
     cargo clippy --tests --all -- -D warnings
 
 # Checks a shell script using shellcheck.
@@ -220,9 +223,15 @@ check-shell-script file:
     just ensure-command shellcheck
     shellcheck --shell bash {{ file }}
 
-# Check justfile recipe for shell issues
+# Checks the script examples of a project's README using shellcheck.
 [group('check')]
-lint-recipe recipe:
+check-shell-readme project:
+    just ensure-command shellcheck tangler
+    tangler bash < {{ project }}/README.md | shellcheck --shell bash -
+
+# Checks justfile recipe relying on shell semantics using shellcheck.
+[group('check')]
+check-shell-recipe recipe:
     just ensure-command rg shellcheck
     just -vv -n {{ recipe }} 2>&1 | rg -v '===> Running recipe' | shellcheck -
 
