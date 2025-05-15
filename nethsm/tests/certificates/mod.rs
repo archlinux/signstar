@@ -163,7 +163,6 @@ async fn user_tags(nethsm: &NetHsm) -> TestResult {
     Ok(())
 }
 
-#[ignore = "requires Podman"]
 #[rstest]
 #[tokio::test]
 async fn certificates(

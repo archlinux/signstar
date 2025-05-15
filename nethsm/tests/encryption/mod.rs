@@ -25,7 +25,6 @@ static MESSAGE: &str = "Hello World! This is a message!!";
 // multiple of 16 bytes long
 static IV: &str = "This is unsafe!!";
 
-#[ignore = "requires Podman"]
 #[rstest]
 #[tokio::test]
 async fn symmetric_encryption_decryption(
@@ -71,7 +70,6 @@ async fn symmetric_encryption_decryption(
     Ok(())
 }
 
-#[ignore = "requires Podman"]
 #[rstest]
 #[tokio::test]
 async fn asymmetric_decryption(

@@ -21,19 +21,12 @@ use rustainers::Container;
 use testresult::TestResult;
 
 #[rstest]
-#[ignore = "requires Podman"]
 #[case(KeyType::Curve25519, vec![KeyMechanism::EdDsaSignature], None)]
-#[ignore = "requires Podman"]
 #[case(KeyType::EcP224, vec![KeyMechanism::EcdsaSignature], None)]
-#[ignore = "requires Podman"]
 #[case(KeyType::EcP256, vec![KeyMechanism::EcdsaSignature], None)]
-#[ignore = "requires Podman"]
 #[case(KeyType::EcP384, vec![KeyMechanism::EcdsaSignature], None)]
-#[ignore = "requires Podman"]
 #[case(KeyType::EcP521, vec![KeyMechanism::EcdsaSignature], None)]
-#[ignore = "requires Podman"]
 #[case(KeyType::Generic, vec![KeyMechanism::AesDecryptionCbc, KeyMechanism::AesEncryptionCbc], Some(DEFAULT_AES_BITS))]
-#[ignore = "requires Podman"]
 #[case(KeyType::Rsa, vec![KeyMechanism::RsaSignaturePssSha512], Some(DEFAULT_RSA_BITS))]
 #[tokio::test]
 async fn generate_keys(
@@ -267,7 +260,6 @@ fn rsa_key() -> TestResult<PrivateKeyImport> {
 }
 
 #[rstest]
-#[ignore = "requires Podman"]
 #[tokio::test]
 async fn import_keys(
     #[future] nethsm_with_users: TestResult<(NetHsm, Container<NetHsmImage>)>,

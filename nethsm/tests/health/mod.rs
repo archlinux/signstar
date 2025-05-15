@@ -6,7 +6,6 @@ use rstest::rstest;
 use rustainers::Container;
 use testresult::TestResult;
 
-#[ignore = "requires Podman"]
 #[rstest]
 #[tokio::test]
 async fn alive(
@@ -26,7 +25,6 @@ async fn alive(
     Ok(())
 }
 
-#[ignore = "requires Podman"]
 #[rstest]
 #[tokio::test]
 async fn ready(
@@ -46,7 +44,6 @@ async fn ready(
     Ok(())
 }
 
-#[ignore = "requires Podman"]
 #[rstest]
 #[tokio::test]
 async fn state(

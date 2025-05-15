@@ -1,23 +1,20 @@
-//! Tests for system features such as backups.
+//! Creates a fresh backup and tries to decrypt it.
+//!
+//! Attempts to verify several properties of the decrypted backup and writes out all keys.
+#![cfg(feature = "_nethsm-integration-test")]
 
-use chrono::Utc;
-use nethsm::test::{
-    ADMIN_USER_ID,
-    BACKUP_USER_ID,
-    NetHsmImage,
-    nethsm_with_users,
-    unprovisioned_nethsm,
-};
+/// Integration tests
+use nethsm::test::{ADMIN_USER_ID, BACKUP_USER_ID, NetHsmImage, nethsm_with_users};
 use nethsm::{NetHsm, Passphrase, UserId};
+use nethsm_backup::Backup;
 use rstest::rstest;
 use rustainers::Container;
 use testdir::testdir;
 use testresult::TestResult;
 
-#[ignore = "requires Podman"]
 #[rstest]
 #[tokio::test]
-async fn create_backup_and_restore(
+async fn create_backup_and_decrypt_it(
     #[future] nethsm_with_users: TestResult<(NetHsm, Container<NetHsmImage>)>,
 ) -> TestResult {
     let (nethsm, _container) = nethsm_with_users.await?;
@@ -45,33 +42,15 @@ async fn create_backup_and_restore(
     std::fs::write(&backup_file, backup.clone())?;
     println!("Written NetHSM backup file: {:?}", &backup_file);
 
-    // use the admin user again for the restore call
-    nethsm.use_credentials(&admin_user_id)?;
-    nethsm.restore(
-        Passphrase::new(new_backup_passphrase.to_string()),
-        Utc::now(),
-        std::fs::read(backup_file)?,
-    )?;
+    let backup = Backup::parse(std::fs::File::open(&backup_file)?)?;
+    let backup = backup.decrypt(new_backup_passphrase.as_bytes())?;
 
-    Ok(())
-}
+    assert_eq!(backup.version()?, [0]);
 
-#[ignore = "requires Podman"]
-#[rstest]
-#[tokio::test]
-async fn system_info(
-    #[future] unprovisioned_nethsm: TestResult<(NetHsm, Container<NetHsmImage>)>,
-    #[future] nethsm_with_users: TestResult<(NetHsm, Container<NetHsmImage>)>,
-) -> TestResult {
-    let (unprovisioned_nethsm, _container) = unprovisioned_nethsm.await?;
-    let (nethsm, _container) = nethsm_with_users.await?;
-
-    println!("Retrieving system info for unprovisioned device...");
-    assert!(unprovisioned_nethsm.system_info().is_err());
-
-    println!("Retrieving system info for operational device...");
-    assert!(nethsm.system_info().is_ok());
-    println!("{:?}", nethsm.system_info()?);
+    for item in backup.items_iter() {
+        let key = item?.0;
+        println!("{key}");
+    }
 
     Ok(())
 }
