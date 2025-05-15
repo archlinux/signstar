@@ -22,7 +22,6 @@ use testresult::TestResult;
 
 static MESSAGE: &[u8] = b"Hello World!";
 
-#[ignore = "requires Podman"]
 #[rstest]
 #[tokio::test]
 async fn signing(

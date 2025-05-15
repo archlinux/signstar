@@ -13,7 +13,6 @@ use testresult::TestResult;
 
 static LENGTH: u32 = 32;
 
-#[ignore = "requires Podman"]
 #[rstest]
 #[tokio::test]
 async fn get_random_bytes(

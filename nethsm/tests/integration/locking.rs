@@ -12,7 +12,6 @@ use rstest::rstest;
 use rustainers::Container;
 use testresult::TestResult;
 
-#[ignore = "requires Podman"]
 #[rstest]
 #[tokio::test]
 async fn lock_and_unlock(
