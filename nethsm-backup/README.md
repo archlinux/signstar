@@ -52,6 +52,10 @@ for (key, value) in decryptor
 # Ok(()) }
 ```
 
+## Features
+
+- `_nethsm-integration-test` enables tests that require `podman` for starting test dependencies in containers.
+
 ## Contributing
 
 Please refer to the [contributing guidelines] to learn how to contribute to this project.

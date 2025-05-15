@@ -47,7 +47,6 @@ static NAMESPACE2_BACKUP_USER_PASSPHRASE: &str = "just-a-namespace2-backup-passp
 /// Second namespace's backup user's real name.
 static NAMESPACE2_BACKUP_REAL_NAME: &str = "Namespace2 backup";
 
-#[ignore = "requires Podman"]
 #[rstest]
 #[tokio::test]
 async fn create_users(
@@ -138,7 +137,6 @@ async fn create_users(
     Ok(())
 }
 
-#[ignore = "requires Podman"]
 #[rstest]
 #[tokio::test]
 async fn create_users_in_namespaces(
