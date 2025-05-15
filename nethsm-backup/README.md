@@ -52,6 +52,10 @@ for (key, value) in decryptor
 # Ok(()) }
 ```
 
+## Features
+
+- `_containerized-integration-test` enables tests that require to be run in a separate, ephemeral container each.
+
 ## Contributing
 
 Please refer to the [contributing guidelines] to learn how to contribute to this project.

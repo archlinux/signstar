@@ -14,7 +14,6 @@ use rustainers::Container;
 use testdir::testdir;
 use testresult::TestResult;
 
-#[ignore = "requires Podman"]
 #[rstest]
 #[tokio::test]
 async fn create_backup_and_restore(
@@ -56,7 +55,6 @@ async fn create_backup_and_restore(
     Ok(())
 }
 
-#[ignore = "requires Podman"]
 #[rstest]
 #[tokio::test]
 async fn system_info(

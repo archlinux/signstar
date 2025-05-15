@@ -27,7 +27,6 @@ use rustainers::Container;
 use testdir::testdir;
 use testresult::TestResult;
 
-#[ignore = "requires Podman"]
 #[rstest]
 #[tokio::test]
 async fn boot_mode(
@@ -47,7 +46,6 @@ async fn boot_mode(
     Ok(())
 }
 
-#[ignore = "requires Podman"]
 #[rstest]
 #[tokio::test]
 async fn tls_cert(
@@ -123,7 +121,6 @@ async fn tls_cert(
     Ok(())
 }
 
-#[ignore = "requires Podman"]
 #[rstest]
 #[tokio::test]
 async fn network(
@@ -162,7 +159,6 @@ async fn network(
     Ok(())
 }
 
-#[ignore = "requires Podman"]
 #[rstest]
 #[tokio::test]
 async fn time(
@@ -189,7 +185,6 @@ async fn time(
     Ok(())
 }
 
-#[ignore = "requires Podman"]
 #[rstest]
 #[tokio::test]
 async fn set_unlock_passphrase(
@@ -221,7 +216,6 @@ async fn set_unlock_passphrase(
     Ok(())
 }
 
-#[ignore = "requires Podman"]
 #[rstest]
 #[tokio::test]
 async fn logging(
@@ -236,7 +230,6 @@ async fn logging(
     Ok(())
 }
 
-#[ignore = "requires Podman"]
 #[rstest]
 #[tokio::test]
 async fn set_backup_passphrase(
@@ -263,7 +256,6 @@ async fn set_backup_passphrase(
     Ok(())
 }
 
-#[ignore = "requires Podman"]
 #[rstest]
 #[tokio::test]
 async fn factory_reset(
@@ -277,7 +269,6 @@ async fn factory_reset(
     Ok(())
 }
 
-#[ignore = "requires Podman"]
 #[rstest]
 #[tokio::test]
 async fn reboot(
@@ -291,7 +282,6 @@ async fn reboot(
     Ok(())
 }
 
-#[ignore = "requires Podman"]
 #[rstest]
 #[tokio::test]
 async fn shutdown(
@@ -305,7 +295,6 @@ async fn shutdown(
     Ok(())
 }
 
-#[ignore = "requires Podman"]
 #[rstest]
 #[tokio::test]
 async fn fail_upload_update(
@@ -322,7 +311,6 @@ async fn fail_upload_update(
     Ok(())
 }
 
-#[ignore = "requires Podman"]
 #[rstest]
 #[tokio::test]
 async fn commit_update(
@@ -362,7 +350,6 @@ async fn commit_update(
     Ok(())
 }
 
-#[ignore = "requires Podman"]
 #[rstest]
 #[tokio::test]
 async fn cancel_update(
@@ -402,7 +389,6 @@ async fn cancel_update(
     Ok(())
 }
 
-#[ignore = "requires Podman"]
 #[rstest]
 #[tokio::test]
 async fn get_tls_public_key_of_provisioned_nethsm(
@@ -420,7 +406,6 @@ async fn get_tls_public_key_of_provisioned_nethsm(
     Ok(())
 }
 
-#[ignore = "requires Podman"]
 #[rstest]
 #[tokio::test]
 async fn get_tls_public_key_of_unprovisioned_nethsm(

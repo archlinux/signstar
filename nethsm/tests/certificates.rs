@@ -163,18 +163,23 @@ async fn user_tags(nethsm: &NetHsm) -> TestResult {
     Ok(())
 }
 
-#[ignore = "requires Podman"]
-#[rstest]
-#[tokio::test]
-async fn certificates(
-    #[future] nethsm_with_users: TestResult<(NetHsm, Container<NetHsmImage>)>,
-) -> TestResult {
-    let (nethsm, _container) = nethsm_with_users.await?;
+/// Integration tests
+#[cfg(feature = "_containerized-integration-test")]
+pub mod integration {
+    use super::*;
 
-    generate_signing_key(&nethsm).await?;
-    import_key(&nethsm).await?;
-    generate_symmetric_encryption_key(&nethsm).await?;
-    user_tags(&nethsm).await?;
+    #[rstest]
+    #[tokio::test]
+    async fn certificates(
+        #[future] nethsm_with_users: TestResult<(NetHsm, Container<NetHsmImage>)>,
+    ) -> TestResult {
+        let (nethsm, _container) = nethsm_with_users.await?;
 
-    Ok(())
+        generate_signing_key(&nethsm).await?;
+        import_key(&nethsm).await?;
+        generate_symmetric_encryption_key(&nethsm).await?;
+        user_tags(&nethsm).await?;
+
+        Ok(())
+    }
 }

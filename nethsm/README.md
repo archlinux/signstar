@@ -26,6 +26,7 @@ cargo test --all -- --ignored
 ## Features
 
 - `test-helpers` enables the `signstar_config::test` module which provides utilities for test setups that are also useful for other crates.
+- `_containerized-integration-test` enables tests that require to be run in a separate, ephemeral container each.
 
 ## Contributing
 

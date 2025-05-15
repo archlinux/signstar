@@ -16,7 +16,6 @@ use rustainers::Container;
 use testresult::TestResult;
 use tokio::time::sleep;
 
-#[ignore = "requires Podman"]
 #[rstest]
 #[tokio::test]
 async fn initial_provisioning(

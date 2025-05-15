@@ -60,6 +60,7 @@ uuid.workspace = true
 [features]
 default = []
 test-helpers = [ "dep:rstest", "dep:rustainers", "dep:testresult", "dep:uuid" ]
+_containerized-integration-test = [ "test-helpers" ]
 
 [lints]
 workspace = true
