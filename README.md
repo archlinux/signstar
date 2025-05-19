@@ -57,6 +57,18 @@ The `justfile` contains recipes for generating integration useful for packaging:
 
 The target directory is created automatically.
 
+## Releases
+
+Releases of [components] are created by the developers of this project.
+
+[OpenPGP certificates] with the following [OpenPGP fingerprints] can be used to verify signed tags:
+
+- [`991F6E3F0765CF6295888586139B09DA5BF0D338`] ([David Runge] &lt;<dvzrv@archlinux.org>&gt;)
+- [`653909A2F0E37C106F5FAF546C8857E0D8E8F074`] ([Wiktor Kwapisiewicz] &lt;<wiktor@archlinux.org>&gt;)
+
+Some of the above are part of [archlinux-keyring] and certified by at least three [main signing keys] of the distribution.
+All certificate are cross-signed and can be retrieved from [OpenPGP keyservers].
+
 ## Contributing
 
 Please refer to the [contributing guidelines] to learn how to contribute to this project.
@@ -67,23 +79,33 @@ This project may be used under the terms of the [Apache-2.0] or [MIT] license.
 
 Changes to this project - unless stated otherwise - automatically fall under the terms of both of the aforementioned licenses.
 
+[#48]: https://gitlab.archlinux.org/archlinux/signstar/-/issues/48
 [Apache-2.0]: https://www.apache.org/licenses/LICENSE-2.0
+[David Runge]: https://archlinux.org/people/developers/#dvzrv
 [MIT]: https://opensource.org/licenses/MIT
 [NetHSM backups]: https://docs.nitrokey.com/nethsm/administration#backup
 [Nitrokey NetHSM]: https://www.nitrokey.com/products/nethsm
+[OpenPGP certificates]: https://openpgp.dev/book/certificates.html
 [OpenPGP data signatures]: https://openpgp.dev/book/signing_data.html
+[OpenPGP fingerprints]: https://openpgp.dev/book/certificates.html#fingerprint
+[OpenPGP keyservers]: https://wiki.archlinux.org/title/OpenPGP#Keyserver
 [SignstarOS]: resources/mkosi/signstar/README.md
 [TPM-2.0]: https://en.wikipedia.org/wiki/Trusted_Platform_Module
-[design documentation]: resources/docs/design.md
+[Wiktor Kwapisiewicz]: https://archlinux.org/people/support-staff/#wiktor
+[`653909A2F0E37C106F5FAF546C8857E0D8E8F074`]: https://pgpkeys.eu/pks/lookup?search=653909A2F0E37C106F5FAF546C8857E0D8E8F074&fingerprint=on&op=index
+[`991F6E3F0765CF6295888586139B09DA5BF0D338`]: https://pgpkeys.eu/pks/lookup?search=991F6E3F0765CF6295888586139B09DA5BF0D338&fingerprint=on&op=index
+[archlinux-keyring]: https://gitlab.archlinux.org/archlinux/archlinux-keyring
+[compontes]: #components
 [contributing guidelines]: CONTRIBUTING.md
-[nethsm]: nethsm/
+[design documentation]: resources/docs/design.md
+[main signing keys]: https://archlinux.org/master-keys/
 [nethsm-backup]: nethsm-backup/
 [nethsm-cli]: nethsm-cli/
 [nethsm-config]: nethsm-config/
+[nethsm]: nethsm/
 [pynitrokey]: https://github.com/Nitrokey/pynitrokey
 [signstar-common]: signstar-common/
 [signstar-config]: signstar-config/
 [signstar-configure-build]: signstar-configure-build/
 [signstar-request-signature]: signstar-request-signature/
 [signstar-sign]: signstar-sign/
-[#48]: https://gitlab.archlinux.org/archlinux/signstar/-/issues/48
