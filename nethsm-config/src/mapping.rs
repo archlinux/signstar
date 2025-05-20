@@ -443,11 +443,11 @@ impl UserMapping {
     ///     system_user: "user1".parse()?,
     ///     ssh_authorized_keys: AuthorizedKeyEntryList::new(vec!["ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?])?,
     /// };
-    /// assert!(mapping.get_nethsm_user_role_and_tag().is_none());
+    /// assert_eq!(mapping.get_nethsm_user_role_and_tags(), Vec::new());
     /// # Ok(())
     /// # }
     /// ```
-    pub fn get_nethsm_user_role_and_tag(&self) -> Option<(UserId, UserRole, &str)> {
+    pub fn get_nethsm_user_role_and_tags(&self) -> Vec<(UserId, UserRole, Vec<String>)> {
         match self {
             UserMapping::SystemNetHsmOperatorSigning {
                 nethsm_user,
@@ -455,14 +455,39 @@ impl UserMapping {
                 system_user: _,
                 ssh_authorized_key: _,
                 tag,
-            } => Some((nethsm_user.clone(), UserRole::Operator, tag)),
-            UserMapping::SystemNetHsmBackup { .. }
-            | UserMapping::NetHsmOnlyAdmin(..)
-            | UserMapping::SystemNetHsmMetrics { .. }
-            | UserMapping::HermeticSystemNetHsmMetrics { .. }
-            | UserMapping::SystemOnlyShareDownload { .. }
-            | UserMapping::SystemOnlyShareUpload { .. }
-            | UserMapping::SystemOnlyWireGuardDownload { .. } => None,
+            } => vec![(
+                nethsm_user.clone(),
+                UserRole::Operator,
+                vec![tag.to_string()],
+            )],
+            UserMapping::SystemNetHsmBackup {
+                nethsm_user,
+                ssh_authorized_key: _,
+                system_user: _,
+            } => vec![(nethsm_user.clone().into(), UserRole::Backup, Vec::new())],
+            UserMapping::NetHsmOnlyAdmin(user_id) => {
+                vec![(user_id.clone(), UserRole::Administrator, Vec::new())]
+            }
+            UserMapping::SystemNetHsmMetrics {
+                nethsm_users,
+                ssh_authorized_key: _,
+                system_user: _,
+            } => nethsm_users
+                .get_users_and_roles()
+                .iter()
+                .map(|(user, role)| (user.clone(), *role, Vec::new()))
+                .collect(),
+            UserMapping::HermeticSystemNetHsmMetrics {
+                nethsm_users,
+                system_user: _,
+            } => nethsm_users
+                .get_users_and_roles()
+                .iter()
+                .map(|(user, role)| (user.clone(), *role, Vec::new()))
+                .collect(),
+            UserMapping::SystemOnlyShareDownload { .. } => Vec::new(),
+            UserMapping::SystemOnlyShareUpload { .. } => Vec::new(),
+            UserMapping::SystemOnlyWireGuardDownload { .. } => Vec::new(),
         }
     }
 
