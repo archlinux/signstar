@@ -103,7 +103,12 @@ async fn load_credentials_for_user(#[case] config_data: &[u8]) -> TestResult {
     // Retrieve backend credentials for each system user
     for mapping in &creds_mapping {
         if let Some(system_user_id) = mapping.get_user_mapping().get_system_user() {
-            let CommandOutput { status, stdout, .. } = run_command_as_user(
+            let CommandOutput {
+                status,
+                stdout,
+                stderr,
+                ..
+            } = run_command_as_user(
                 SIGNSTAR_SIGN_PAYLOAD,
                 &[],
                 system_user_id.as_ref(),
@@ -139,6 +144,9 @@ async fn load_credentials_for_user(#[case] config_data: &[u8]) -> TestResult {
 "#,
                 ),
             )?;
+            if !status.success() {
+                log::error!("Standard error: {stderr}");
+            }
             assert!(
                 status.success(),
                 "requires the command to exit successfully"
