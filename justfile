@@ -39,6 +39,8 @@ install-rust-dev-tools:
     rustup component add clippy
     rustup toolchain install nightly
     rustup component add --toolchain nightly rustfmt
+    # llvm-tools-preview for code coverage
+    rustup component add llvm-tools-preview
 
 # Ensures that one or more required commands are installed
 [private]
@@ -694,3 +696,74 @@ get-cargo-target-dir:
 containerized-integration-tests:
     just ensure-command bash cargo cargo-nextest jq podman
     cargo nextest run --features _containerized-integration-test --filterset 'kind(test)'
+
+# Creates code coverage for all projects.
+[group('test')]
+test-coverage mode="nodoc":
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    target_dir="$(just get-cargo-target-dir)"
+
+    # Clean any previous code coverage run.
+    rm -rf "$target_dir/llvm-cov"
+    mkdir -p "$target_dir/llvm-cov"
+
+    just ensure-command cargo-llvm-cov cargo-nextest
+
+    # Options for cargo
+    cargo_options=(+nightly)
+
+    # Run nextest coverage
+    cargo "${cargo_options[@]}" llvm-cov --branch --no-report nextest
+
+    # The chosen reporting style (defaults to without doctest coverage)
+    reporting_style="without doctest coverage"
+
+    # Options for creating cobertura coverage report with cargo-llvm-cov
+    cargo_llvm_cov_cobertura_options=(
+        --cobertura
+        --output-path "$target_dir/llvm-cov/cobertura-coverage.xml"
+    )
+
+    # Options for creating HTML coverage report with cargo-llvm-cov
+    cargo_llvm_cov_html_options=(
+        --html
+    )
+
+    # Options for creating coverage report summary with cargo-llvm-cov
+    cargo_llvm_cov_summary_options=(
+        --json
+        --summary-only
+    )
+
+    if [[ "{{ mode }}" == "doc" ]]; then
+        reporting_style="with doctest coverage"
+        # The support for doctest coverage is a nightly feature
+        cargo_llvm_cov_cobertura_options+=(--doctests)
+        cargo_llvm_cov_html_options+=(--doctests)
+        cargo_llvm_cov_summary_options+=(--doctests)
+
+        # nextest coverage needs to be manually merged with doctest coverage:
+        # https://nexte.st/docs/integrations/test-coverage/?h=doc#collecting-coverage-data-from-doctests
+        cargo "${cargo_options[@]}" llvm-cov --branch --no-report --doc
+    fi
+
+    printf "Creating report %s\n" "$reporting_style"
+
+    # Create cobertura coverage report
+    cargo "${cargo_options[@]}" llvm-cov report "${cargo_llvm_cov_cobertura_options[@]}"
+
+    # Create HTML coverage report
+    cargo "${cargo_options[@]}" llvm-cov report "${cargo_llvm_cov_html_options[@]}"
+
+    # Get total coverage percentage from summary
+    percentage="$(cargo "${cargo_options[@]}" llvm-cov report "${cargo_llvm_cov_summary_options[@]}" | jq '.data[0].totals.lines.percent')"
+
+    # Trim percentage to 4 decimal places.
+    percentage=$(LC_ALL=C printf "%.4f\n" $percentage)
+
+    # Writes to target/coverage-metrics.txt for Gitlab CI metric consumption.
+    # https://docs.gitlab.com/ci/testing/metrics_reports/
+    printf "Test-coverage ${percentage}\n" > "$target_dir/coverage-metrics.txt"
+    printf "Test-coverage: ${percentage}%%\n"
