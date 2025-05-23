@@ -21,7 +21,10 @@ readonly first_test_argument="${2:-}"
 # Otherwise run on the host.
 if [[ "$test_executable_path" == *integration* ]] && [[ "$first_test_argument" != "--list" ]]; then
   target_dir="$(just get-cargo-target-dir)"
+
   readonly podman_run_options=(
+    # set cargo-llvm-cov profile file to capture coverage data
+    --env LLVM_PROFILE_FILE="${LLVM_PROFILE_FILE:-}"
     --env RUST_LOG=info
     --env RUST_BACKTRACE=1
     --rm
@@ -31,6 +34,8 @@ if [[ "$test_executable_path" == *integration* ]] && [[ "$first_test_argument" !
     --volume "$target_dir/debug:/usr/local/bin"
     # Mount the test executable into the container at the same location as on the host
     --volume "$test_executable_path:$test_executable_path"
+    # Mount the target dir so that coverage data is written to correct location
+    --volume "$target_dir:$target_dir"
     archlinux:latest
   )
 
