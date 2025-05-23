@@ -39,6 +39,8 @@ install-rust-dev-tools:
     rustup component add clippy
     rustup toolchain install nightly
     rustup component add --toolchain nightly rustfmt
+    # llvm-tools-preview for code coverage
+    rustup component add llvm-tools-preview
 
 # Ensures that one or more required commands are installed
 [private]
@@ -287,10 +289,10 @@ test:
     set -euxo pipefail
 
     readonly ignored="{{ ignored }}"
-    just ensure-command cargo mold
+    just ensure-command cargo mold cargo-nextest
 
     if [[ "$ignored" == "true" ]]; then
-        cargo nextest run --locked --all --run-ignored ignored-only
+        cargo nextest run --locked --all --run-ignored only
     else
         cargo nextest run --locked --all
         just test-docs
@@ -694,3 +696,66 @@ get-cargo-target-dir:
 containerized-integration-tests:
     just ensure-command bash cargo cargo-nextest jq podman
     cargo nextest run --features _containerized-integration-test --filterset 'kind(test)'
+
+# Creates code coverage for all projects.
+[group('test')]
+test-coverage:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    just ensure-command cargo-llvm-cov cargo-nextest
+
+    target_dir="$(just get-cargo-target-dir)"
+
+    # Containerized integration tests require examples and bins to be built
+    cargo build --examples --bins
+
+    # Options for cargo
+    cargo_options=(+nightly)
+
+    # Clean any previous code coverage run.
+    cargo "${cargo_options[@]}" llvm-cov clean --workspace
+
+    # Run nextest coverage
+    cargo "${cargo_options[@]}" llvm-cov --branch --no-report nextest --run-ignored=all --features _containerized-integration-test --profile ci
+
+    # nextest coverage needs to be manually merged with doctest coverage:
+    # https://nexte.st/docs/integrations/test-coverage/?h=doc#collecting-coverage-data-from-doctests
+    cargo "${cargo_options[@]}" llvm-cov --branch --no-report --doc
+
+    # Options for creating cobertura coverage report with cargo-llvm-cov
+    cargo_llvm_cov_cobertura_options=(
+        --doctests
+        --cobertura
+        --output-path "$target_dir/cobertura-coverage.xml"
+    )
+
+    # Create cobertura coverage report
+    cargo "${cargo_options[@]}" llvm-cov report "${cargo_llvm_cov_cobertura_options[@]}"
+
+    # Options for creating HTML coverage report with cargo-llvm-cov
+    cargo_llvm_cov_html_options=(
+        --doctests
+        --html
+    )
+
+    # Create HTML coverage report
+    cargo "${cargo_options[@]}" llvm-cov report "${cargo_llvm_cov_html_options[@]}"
+
+    # Options for creating coverage report summary with cargo-llvm-cov
+    cargo_llvm_cov_summary_options=(
+        --doctests
+        --json
+        --summary-only
+    )
+
+    # Get total coverage percentage from summary
+    percentage="$(cargo "${cargo_options[@]}" llvm-cov report "${cargo_llvm_cov_summary_options[@]}" | jq '.data[0].totals.lines.percent')"
+
+    # Trim percentage to 4 decimal places.
+    percentage=$(LC_NUMERIC=C printf "%.4f\n" $percentage)
+
+    # Writes to target/coverage-metrics.txt for Gitlab CI metric consumption.
+    # https://docs.gitlab.com/ci/testing/metrics_reports/
+    printf "Test-coverage ${percentage}\n" > "$target_dir/coverage-metrics.txt"
+    printf "Test-coverage: ${percentage}%%\n"
