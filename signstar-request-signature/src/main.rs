@@ -1,5 +1,7 @@
 //! Application for the creation of signing requests and their optional sending via SSH.
 
+use std::process::ExitCode;
+
 use clap::Parser;
 use signstar_request_signature::{
     Error,
@@ -33,12 +35,7 @@ async fn send_request_via_ssh(send_command: SendCommand) -> Result<Response, Err
     Ok(response)
 }
 
-#[tokio::main]
-async fn main() -> Result<(), Error> {
-    env_logger::init();
-
-    let args = Cli::parse();
-
+async fn run_command(args: Cli) -> Result<(), Error> {
     match args {
         Cli::Prepare(prepare) => {
             Request::for_file(prepare.input)?.to_writer(std::io::stdout())?;
@@ -50,4 +47,19 @@ async fn main() -> Result<(), Error> {
         }
     }
     Ok(())
+}
+
+#[tokio::main]
+async fn main() -> ExitCode {
+    env_logger::init();
+
+    let args = Cli::parse();
+    let result = run_command(args).await;
+
+    if let Err(error) = result {
+        eprintln!("{error}");
+        ExitCode::FAILURE
+    } else {
+        ExitCode::SUCCESS
+    }
 }

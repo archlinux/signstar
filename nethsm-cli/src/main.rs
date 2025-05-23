@@ -1,6 +1,7 @@
 use std::fs::{File, read, read_to_string};
 use std::io::{Write, stdout};
 use std::path::{Path, PathBuf};
+use std::process::ExitCode;
 
 use chrono::Utc;
 use clap::Parser;
@@ -116,8 +117,7 @@ impl FileOrStdout {
     }
 }
 
-fn main() -> Result<(), Error> {
-    let cli = Cli::parse();
+fn run_command(cli: Cli) -> Result<(), Error> {
     let config = Config::new(
         ConfigSettings::new("nethsm".to_string(), ConfigInteractivity::Interactive, None),
         cli.config.as_deref(),
@@ -1212,4 +1212,16 @@ fn main() -> Result<(), Error> {
     }
 
     Ok(())
+}
+
+fn main() -> ExitCode {
+    let cli = Cli::parse();
+    let result = run_command(cli);
+
+    if let Err(error) = result {
+        eprintln!("{error}");
+        ExitCode::FAILURE
+    } else {
+        ExitCode::SUCCESS
+    }
 }
