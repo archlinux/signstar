@@ -95,7 +95,7 @@ Changes to this project - unless stated otherwise - automatically fall under the
 [`653909A2F0E37C106F5FAF546C8857E0D8E8F074`]: https://pgpkeys.eu/pks/lookup?search=653909A2F0E37C106F5FAF546C8857E0D8E8F074&fingerprint=on&op=index
 [`991F6E3F0765CF6295888586139B09DA5BF0D338`]: https://pgpkeys.eu/pks/lookup?search=991F6E3F0765CF6295888586139B09DA5BF0D338&fingerprint=on&op=index
 [archlinux-keyring]: https://gitlab.archlinux.org/archlinux/archlinux-keyring
-[compontes]: #components
+[components]: #components
 [contributing guidelines]: CONTRIBUTING.md
 [design documentation]: resources/docs/design.md
 [main signing keys]: https://archlinux.org/master-keys/
