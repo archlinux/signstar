@@ -313,6 +313,9 @@ test-readme project:
 
     readonly project="{{ project }}"
     readonly cargo_home="${CARGO_HOME:-$HOME/.cargo}"
+    readonly cov_home=$(mktemp --directory)
+    readonly workspace="$PWD"
+
     container_id=""
     podman_create_options=(
         --rm
@@ -354,14 +357,23 @@ test-readme project:
 
     just ensure-command cargo mold podman tangler
 
+    install_executable() {
+        local exe_project
+        local name
+        readonly exe_project="$1"
+        readonly name="${2:-$exe_project}"
+        printf '#!/bin/bash\n\ncargo +nightly llvm-cov --manifest-path %s/Cargo.toml -p "%s" --branch --no-report run -- "$@"' "$workspace" "$exe_project" > "$cov_home/$name"
+        chmod +x "$cov_home/$name"
+    }
+
     install_executables() {
-        printf "Installing executables of %s...\n" "{{ project }}"
         case "$project" in
             nethsm-cli)
-                cargo install --locked --path signstar-request-signature
+                install_executable signstar-request-signature
+                install_executable {{ project }} nethsm
             ;;
         esac
-        cargo install --locked --path {{ project }}
+        install_executable {{ project }}
     }
 
     create_container() {
@@ -391,7 +403,7 @@ test-readme project:
             ;;
             *)
                 # NOTE: the test is run on the calling host against a nethsm container
-                cd "$project" && tangler bash < README.md | PATH="$cargo_home/bin:$PATH" bash -euxo pipefail -
+                cd "$project" && tangler bash < README.md | PATH="$cov_home:$PATH" bash -euxo pipefail -
             ;;
         esac
     }
@@ -722,6 +734,9 @@ test-coverage:
     # nextest coverage needs to be manually merged with doctest coverage:
     # https://nexte.st/docs/integrations/test-coverage/?h=doc#collecting-coverage-data-from-doctests
     cargo "${cargo_options[@]}" llvm-cov --branch --no-report --doc
+
+    # run readmes to gather coverage from that too
+    just test-readmes
 
     # Options for creating cobertura coverage report with cargo-llvm-cov
     cargo_llvm_cov_cobertura_options=(
