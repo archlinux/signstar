@@ -10,7 +10,7 @@ use chrono::Utc;
 use rstest::fixture;
 // Publicly re-export, so that consumers do not have to rely on rustainers directly .
 pub use rustainers::Container;
-use rustainers::runner::Runner;
+use rustainers::runner::{RunOption, Runner};
 use testresult::TestResult;
 
 use crate::{
@@ -154,7 +154,8 @@ pub async fn create_container() -> TestResult<Container<NetHsmImage>> {
     let runner = Runner::podman()?;
     let image = NetHsmImage::default();
     println!("image: {:#?}", image.image);
-    let container = runner.start(image).await?;
+    let run_options = RunOption::builder().with_remove(true).build();
+    let container = runner.start_with_options(image, run_options).await?;
     println!("serving URL: {}", container.url().await?);
     Ok(container)
 }
