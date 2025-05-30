@@ -42,7 +42,7 @@ testdir = "0.9.3"
 testresult = "0.4.1"
 thiserror = "2.0.4"
 tokio = { version = "1.42.0", features = ["macros"] }
-ureq = "2.12.1"
+ureq = "3.0.0"
 uuid = { version = "1.11.0", features = ["v7"] }
 zeroize = { version = "1.8.1", features = ["zeroize_derive", "serde"] }
 
