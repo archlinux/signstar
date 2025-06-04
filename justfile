@@ -184,10 +184,12 @@ check-rust-derives:
 # Checks source code formatting
 [group('check')]
 check-formatting:
-    just ensure-command rustup
+    just ensure-command rustup taplo
     just --unstable --fmt --check
     # We're using nightly to properly group imports, see rustfmt.toml
     cargo +nightly fmt -- --check
+
+    taplo format --check
 
 # Updates the local cargo index and displays which crates would be updated
 [private]
@@ -454,6 +456,7 @@ fix:
     codespell --write-changes
     just --unstable --fmt
     cargo clippy --fix --allow-staged
+    taplo format
 
     cargo sort-derives
 
