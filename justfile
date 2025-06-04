@@ -17,7 +17,7 @@ default:
 
 # Runs all check recipes (except those for commit messages).
 [group('check')]
-check: check-spelling check-formatting check-shell-code check-rust-code check-unused-deps check-dependencies check-licenses check-links
+check: check-spelling check-formatting check-shell-code check-rust-code check-rust-derives check-unused-deps check-dependencies check-licenses check-links
 
 # Faster checks need to be executed first for better UX.  For example
 # codespell is very fast. cargo fmt does not need to download crates etc.
@@ -175,6 +175,11 @@ check-unused-deps:
     for name in $(just get-workspace-members); do
         cargo machete "$name"
     done
+
+# Checks for consistent sorting of rust derives
+[group('check')]
+check-rust-derives:
+    cargo sort-derives --check
 
 # Checks source code formatting
 [group('check')]
@@ -449,6 +454,8 @@ fix:
     codespell --write-changes
     just --unstable --fmt
     cargo clippy --fix --allow-staged
+
+    cargo sort-derives
 
     # fmt must be last as clippy's changes may break formatting
     cargo +nightly fmt
