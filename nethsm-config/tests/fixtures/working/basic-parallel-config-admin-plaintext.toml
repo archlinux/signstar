@@ -1,11 +1,11 @@
 
-iteration = 1
 admin_secret_handling = "plaintext"
+iteration = 1
 non_admin_secret_handling = "systemd-creds"
 
 [[connections]]
-url = "https://localhost:8443/api/v1/"
 tls_security = "Unsafe"
+url = "https://localhost:8443/api/v1/"
 
 [[users]]
 nethsm_only_admin = "admin"
@@ -25,7 +25,7 @@ system_user = "ssh-metrics1"
 
 [users.system_nethsm_metrics.nethsm_users]
 metrics_user = "metrics1"
-operator_users = ["operator1metrics1", "ns1~operator1metrics1"]
+operator_users = ["ns1~operator1metrics1", "operator1metrics1"]
 
 [[users]]
 
@@ -37,8 +37,8 @@ tag = "tag1"
 
 [users.system_nethsm_operator_signing.nethsm_key_setup]
 key_id = "key1"
-key_type = "Curve25519"
 key_mechanisms = ["EdDsaSignature"]
+key_type = "Curve25519"
 signature_type = "EdDsa"
 
 [users.system_nethsm_operator_signing.nethsm_key_setup.key_context.openpgp]
@@ -55,8 +55,8 @@ tag = "tag2"
 
 [users.system_nethsm_operator_signing.nethsm_key_setup]
 key_id = "key2"
-key_type = "Curve25519"
 key_mechanisms = ["EdDsaSignature"]
+key_type = "Curve25519"
 signature_type = "EdDsa"
 
 [users.system_nethsm_operator_signing.nethsm_key_setup.key_context.openpgp]
@@ -76,8 +76,8 @@ tag = "tag1"
 
 [users.system_nethsm_operator_signing.nethsm_key_setup]
 key_id = "key1"
-key_type = "Curve25519"
 key_mechanisms = ["EdDsaSignature"]
+key_type = "Curve25519"
 signature_type = "EdDsa"
 
 [users.system_nethsm_operator_signing.nethsm_key_setup.key_context.openpgp]
@@ -94,8 +94,8 @@ tag = "tag2"
 
 [users.system_nethsm_operator_signing.nethsm_key_setup]
 key_id = "key2"
-key_type = "Curve25519"
 key_mechanisms = ["EdDsaSignature"]
+key_type = "Curve25519"
 signature_type = "EdDsa"
 
 [users.system_nethsm_operator_signing.nethsm_key_setup.key_context.openpgp]
@@ -114,5 +114,7 @@ operator_users = ["operator2metrics1"]
 [[users]]
 
 [users.system_only_wireguard_download]
-ssh_authorized_keys = ["ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIClIXZdx0aDOPcIQA+6Qx68cwSUgGTL3TWzDSX3qUEOQ user@host"]
+ssh_authorized_keys = [
+    "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIClIXZdx0aDOPcIQA+6Qx68cwSUgGTL3TWzDSX3qUEOQ user@host",
+]
 system_user = "ssh-wireguard-down"
