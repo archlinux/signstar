@@ -33,7 +33,7 @@ signstar-config = { workspace = true, features = ["test-helpers"] }
 tempfile = "3.19.1"
 testresult.workspace = true
 tokio = { workspace = true, features = ["macros", "rt"] }
-which = "7.0.2"
+which = "8.0.0"
 
 [lints]
 workspace = true
