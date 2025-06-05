@@ -7,10 +7,6 @@ set dotenv-load := true
 
 coverage := env("SIGNSTAR_COVERAGE", "false")
 
-# Whether to run ignored tests (set to "true" to run ignored tests)
-
-ignored := "false"
-
 # The output directory for documentation artifacts
 
 output_dir := "output"
@@ -291,34 +287,23 @@ docs:
     done
     mv "$target_dir/doc/nethsm.tmp" "$target_dir/doc/nethsm"
 
-# Runs all unit tests. By default ignored tests are not run. Run with `ignored=true` to run only ignored tests
+# Runs all unit tests
 [group('test')]
 test:
     #!/usr/bin/env bash
     set -euxo pipefail
 
-    readonly ignored="{{ ignored }}"
     readonly coverage="{{ coverage }}"
 
-    if [[ "$ignored" == "true" ]]; then
-        if [[ "$coverage" == "true" ]]; then
-            just ensure-command cargo cargo-llvm-cov cargo-nextest mold
-            cargo llvm-cov --no-report nextest --locked --all --run-ignored ignored-only
-        else
-            just ensure-command cargo cargo-nextest mold
-            cargo nextest run --locked --all --run-ignored ignored-only
-        fi
+    if [[ "$coverage" == "true" ]]; then
+        just ensure-command cargo cargo-llvm-cov cargo-nextest mold
+        cargo llvm-cov --no-report nextest --locked --all
     else
-        if [[ "$coverage" == "true" ]]; then
-            just ensure-command cargo cargo-llvm-cov cargo-nextest mold
-            cargo llvm-cov --no-report nextest --locked --all
-        else
-            just ensure-command cargo cargo-nextest mold
-            cargo nextest run --locked --all
-        fi
-        just test-docs
-        just docs
+        just ensure-command cargo cargo-nextest mold
+        cargo nextest run --locked --all
     fi
+    just test-docs
+    just docs
 
 # Runs all doc tests
 [group('test')]
