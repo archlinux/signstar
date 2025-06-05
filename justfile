@@ -3,10 +3,6 @@
 
 set dotenv-load := true
 
-# Whether to run ignored tests (set to "true" to run ignored tests)
-
-ignored := "false"
-
 # The output directory for documentation artifacts
 
 output_dir := "output"
@@ -287,22 +283,17 @@ docs:
     done
     mv "$target_dir/doc/nethsm.tmp" "$target_dir/doc/nethsm"
 
-# Runs all unit tests. By default ignored tests are not run. Run with `ignored=true` to run only ignored tests
+# Runs all unit tests
 [group('test')]
 test:
     #!/usr/bin/env bash
     set -euxo pipefail
 
-    readonly ignored="{{ ignored }}"
     just ensure-command cargo cargo-nextest mold
 
-    if [[ "$ignored" == "true" ]]; then
-        cargo nextest run --locked --all --run-ignored ignored-only
-    else
-        cargo nextest run --locked --all
-        just test-docs
-        just docs
-    fi
+    cargo nextest run --locked --all
+    just test-docs
+    just docs
 
 # Runs all doc tests
 [group('test')]
