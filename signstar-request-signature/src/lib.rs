@@ -73,7 +73,7 @@ pub enum Error {
 }
 
 /// Type of the input hash.
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "lowercase")]
 pub enum HashType {
     /// State of the SHA-512 hasher, as understood by the [`sha2`
@@ -85,7 +85,7 @@ pub enum HashType {
 }
 
 /// The requested signature type.
-#[derive(Debug, Serialize, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum SignatureType {
     /// OpenPGP signature (version 4).
     #[serde(rename = "OpenPGPv4")]
@@ -93,7 +93,7 @@ pub enum SignatureType {
 }
 
 /// Input of the signing request process.
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct SignatureRequestInput {
     #[serde(rename = "type")]
     hash_type: HashType,
@@ -101,7 +101,7 @@ pub struct SignatureRequestInput {
 }
 
 /// Outputs of the signing process.
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct SignatureRequestOutput {
     /// Type of the signature to be produced.
     #[serde(rename = "type")]
@@ -154,7 +154,7 @@ impl TryFrom<SignatureRequestInput> for sha2::Sha512 {
 }
 
 /// Required parameters for the signing request operation.
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct Required {
     /// Inputs of the signing procedure.
     pub input: SignatureRequestInput,
@@ -164,7 +164,7 @@ pub struct Required {
 }
 
 /// Signing request.
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct Request {
     /// Version of this signing request.
     pub version: Version,
@@ -302,7 +302,7 @@ impl Request {
 /// The details of the format are documented in the [response specification].
 ///
 /// [response specification]: https://signstar.archlinux.page/signstar-request-signature/resources/docs/response.html
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct Response {
     /// Version of this signing response.
     pub version: Version,

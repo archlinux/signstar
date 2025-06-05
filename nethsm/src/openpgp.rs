@@ -201,7 +201,7 @@ impl TryFrom<String> for OpenPgpVersion {
 }
 
 /// A distinction between types of OpenPGP User IDs
-#[derive(Clone, Debug, Hash, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
 enum OpenPgpUserIdType {
     /// An OpenPGP User ID that contains a valid e-mail address (e.g. "John Doe
     /// <john@example.org>")
@@ -228,7 +228,7 @@ enum OpenPgpUserIdType {
 /// As such, this type only allows a maximum length of 4096 bytes as middle ground.
 ///
 /// [OpenPGP User IDs]: https://www.rfc-editor.org/rfc/rfc9580.html#name-user-id-packet-type-id-13
-#[derive(Clone, Debug, serde::Deserialize, Hash, Eq, PartialEq, serde::Serialize)]
+#[derive(Clone, Debug, serde::Deserialize, Eq, Hash, PartialEq, serde::Serialize)]
 #[serde(into = "String", try_from = "String")]
 pub struct OpenPgpUserId(OpenPgpUserIdType);
 
@@ -336,7 +336,7 @@ impl TryFrom<String> for OpenPgpUserId {
 /// A list of [`OpenPgpUserId`]
 ///
 /// The items of the list are guaranteed to be unique.
-#[derive(Clone, Debug, serde::Deserialize, Hash, Eq, PartialEq, serde::Serialize)]
+#[derive(Clone, Debug, serde::Deserialize, Eq, Hash, PartialEq, serde::Serialize)]
 #[serde(into = "Vec<String>", try_from = "Vec<String>")]
 pub struct OpenPgpUserIdList(Vec<OpenPgpUserId>);
 

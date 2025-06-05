@@ -37,7 +37,7 @@ pub enum Error {
 }
 
 /// A filter for retrieving information about users and keys.
-#[derive(Clone, Debug, Deserialize, Hash, Eq, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 pub enum FilterUserKeys {
     /// Consider both system-wide and namespaced users and keys.
     All,
@@ -60,7 +60,7 @@ pub enum FilterUserKeys {
 /// This struct tracks a user that is intended for the use in the
 /// [`Metrics`][`nethsm::UserRole::Metrics`] role and a list of users, that are intended to be used
 /// in the [`Operator`][`nethsm::UserRole::Operator`] role.
-#[derive(Clone, Debug, Deserialize, Hash, Eq, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 pub struct NetHsmMetricsUsers {
     metrics_user: SystemWideUserId,
     operator_users: Vec<UserId>,
@@ -179,7 +179,7 @@ impl NetHsmMetricsUsers {
 }
 
 /// User mapping between system users and [`NetHsm`][`nethsm::NetHsm`] users
-#[derive(Clone, Debug, Deserialize, Hash, Eq, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 pub enum UserMapping {
     /// A NetHsm user in the Administrator role, without a system user mapped to it
     #[serde(rename = "nethsm_only_admin")]

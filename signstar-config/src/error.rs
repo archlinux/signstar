@@ -123,7 +123,7 @@ pub enum Error {
 }
 
 /// Mapping for relevant [`Error`] variants to an [`ExitCode`].
-#[derive(Clone, Copy, Debug, num_enum::IntoPrimitive, Eq, Ord, PartialEq, PartialOrd)]
+#[derive(Clone, Copy, Debug, Eq, num_enum::IntoPrimitive, Ord, PartialEq, PartialOrd)]
 #[repr(u8)]
 pub enum ErrorExitCode {
     /// Mapping for [`crate::admin_credentials::Error::AdministratorMissing`] wrapped in
