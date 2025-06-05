@@ -1,8 +1,8 @@
 iteration = 1
 
 [[connections]]
-url = "https://localhost:8443/api/v1/"
 tls_security = "Unsafe"
+url = "https://localhost:8443/api/v1/"
 
 [[users]]
 nethsm_only_admin = "admin"
@@ -11,12 +11,16 @@ nethsm_only_admin = "admin"
 
 # NOTE: the authorized_keys are dummy entries for now
 [users.system_only_share_download]
-ssh_authorized_keys = ["ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOh96uFTnvX6P1ebbLxXFvy6sK7qFqlMHDOuJ0TmuXQQ user@host"]
+ssh_authorized_keys = [
+    "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOh96uFTnvX6P1ebbLxXFvy6sK7qFqlMHDOuJ0TmuXQQ user@host",
+]
 system_user = "ssh-share-down"
 
 [[users]]
 
 # NOTE: the authorized_keys are dummy entries for now
 [users.system_only_share_upload]
-ssh_authorized_keys = ["ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOh96uFTnvX6P1ebbLxXFvy6sK7qFqlMHDOuJ0TmuXQQ user@host"]
+ssh_authorized_keys = [
+    "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOh96uFTnvX6P1ebbLxXFvy6sK7qFqlMHDOuJ0TmuXQQ user@host",
+]
 system_user = "ssh-share-up"

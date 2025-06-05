@@ -15,7 +15,7 @@ ignored = ["md-5"]
 [dependencies]
 base64ct = { version = "1.6.0", features = ["alloc", "std"] }
 chrono = { workspace = true, features = ["alloc"] }
-ed25519-dalek = { workspace = true, features = ["pkcs8", "pem"] }
+ed25519-dalek = { workspace = true, features = ["pem", "pkcs8"] }
 email_address = "0.2.9"
 hex = { version = "0.4.3", features = ["serde"] }
 log = "0.4.22"
@@ -36,8 +36,8 @@ rustainers = { optional = true, workspace = true }
 rustls = { version = "0.23.19" }
 rustls-native-certs = "0.8.1"
 secrecy = { version = "0.10.3", features = ["serde"] }
-serde_json = "1.0.133"
 serde.workspace = true
+serde_json = "1.0.133"
 sha1 = "0.10.6"
 sha2.workspace = true
 strum.workspace = true
@@ -48,8 +48,8 @@ url = { version = "2.5.4", features = ["serde"] }
 uuid = { optional = true, workspace = true }
 
 [dev-dependencies]
-ed25519-dalek = { workspace = true, features = ["pkcs8", "pem", "rand_core"] }
-rsa = { workspace = true, features = ["getrandom", "sha2", "pem"] }
+ed25519-dalek = { workspace = true, features = ["pem", "pkcs8", "rand_core"] }
+rsa = { workspace = true, features = ["getrandom", "pem", "sha2"] }
 rstest.workspace = true
 rustainers.workspace = true
 testdir.workspace = true
@@ -59,7 +59,7 @@ uuid.workspace = true
 
 [features]
 default = []
-test-helpers = [ "dep:rstest", "dep:rustainers", "dep:testresult", "dep:uuid" ]
+test-helpers = ["dep:rstest", "dep:rustainers", "dep:testresult", "dep:uuid"]
 
 [lints]
 workspace = true

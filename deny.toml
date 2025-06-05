@@ -1,25 +1,24 @@
 [advisories]
+ignore = [
+    "RUSTSEC-2023-0050", # nethsm-sdk-rs uses unmaintained multipart until something else becomes available: https://github.com/Nitrokey/nethsm-sdk-rs/issues/29
+    "RUSTSEC-2023-0071", # side-channel attacks are not relevant for our use-case (only used in tests)
+]
 version = 2
 yanked = "deny"
-ignore = [
-  "RUSTSEC-2023-0071",  # side-channel attacks are not relevant for our use-case (only used in tests)
-  "RUSTSEC-2023-0050",  # nethsm-sdk-rs uses unmaintained multipart until something else becomes available: https://github.com/Nitrokey/nethsm-sdk-rs/issues/29
-]
 
 [bans]
-deny = [
-]
+deny = []
 multiple-versions = "allow"
 
 [licenses]
-version = 2
 allow = [
-  "Apache-2.0",
-  "BSD-3-Clause",
-  "BSL-1.0",
-  "ISC",
-  "MIT",
-  "MPL-2.0",
-  "OpenSSL",
-  "Unicode-3.0",
+    "Apache-2.0",
+    "BSD-3-Clause",
+    "BSL-1.0",
+    "ISC",
+    "MIT",
+    "MPL-2.0",
+    "OpenSSL",
+    "Unicode-3.0",
 ]
+version = 2

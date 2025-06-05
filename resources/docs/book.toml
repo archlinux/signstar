@@ -1,8 +1,5 @@
 [book]
-authors = [
-    "David Runge",
-    "Wiktor Kwapisiewicz",
-]
+authors = ["David Runge", "Wiktor Kwapisiewicz"]
 language = "en"
 multilingual = false
 src = "src"
@@ -19,4 +16,4 @@ command = "mdbook-mermaid"
 [output]
 
 [output.html]
-additional-js = ["mermaid.min.js", "mermaid-init.js"]
+additional-js = ["mermaid-init.js", "mermaid.min.js"]

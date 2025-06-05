@@ -16,8 +16,8 @@ signstar-request-signature.workspace = true
 thiserror.workspace = true
 
 [features]
-default = []
 _containerized-integration-test = []
+default = []
 
 [dev-dependencies]
 actix-web = { version = "4.10.2", features = ["openssl"] }

@@ -9,6 +9,7 @@ version = "0.1.0"
 
 [dependencies]
 confy.workspace = true
+log = { workspace = true, optional = true }
 nethsm.workspace = true
 nethsm-config.workspace = true
 nix = { version = "0.30.0", features = ["user"] }
@@ -17,12 +18,11 @@ rand.workspace = true
 serde.workspace = true
 signstar-common.workspace = true
 strum.workspace = true
+tempfile = { version = "3.16.0", optional = true }
+testresult = { workspace = true, optional = true }
 thiserror.workspace = true
 toml = "0.8.20"
 which = "8.0.0"
-tempfile = { version = "3.16.0", optional = true }
-testresult = { workspace = true, optional = true }
-log = { workspace = true, optional = true }
 
 [dev-dependencies]
 rstest.workspace = true
@@ -30,9 +30,9 @@ tempfile = "3.16.0"
 testresult.workspace = true
 
 [features]
+_containerized-integration-test = ["test-helpers"]
 default = []
-_containerized-integration-test = [ "test-helpers" ]
-test-helpers = [ "dep:log", "dep:tempfile", "dep:testresult" ]
+test-helpers = ["dep:log", "dep:tempfile", "dep:testresult"]
 
 [lints]
 workspace = true

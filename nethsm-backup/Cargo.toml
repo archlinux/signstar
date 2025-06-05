@@ -2,7 +2,7 @@
 name = "nethsm-backup"
 version = "0.1.1"
 description = "A library and binary for working with encrypted NetHSM backups"
-keywords = ["encryption", "hsm", "nethsm", "backup"]
+keywords = ["backup", "encryption", "hsm", "nethsm"]
 authors.workspace = true
 edition.workspace = true
 homepage.workspace = true

@@ -1,16 +1,16 @@
 [workspace]
-resolver = "3"
 members = [
-  "nethsm",
-  "nethsm-backup",
-  "nethsm-cli",
-  "nethsm-config",
-  "signstar-configure-build",
-  "signstar-common",
-  "signstar-config",
-  "signstar-request-signature",
-  "signstar-sign",
+    "nethsm",
+    "nethsm-backup",
+    "nethsm-cli",
+    "nethsm-config",
+    "signstar-common",
+    "signstar-config",
+    "signstar-configure-build",
+    "signstar-request-signature",
+    "signstar-sign",
 ]
+resolver = "3"
 
 [workspace.dependencies]
 chrono = "0.4.38"
@@ -44,16 +44,16 @@ thiserror = "2.0.4"
 tokio = { version = "1.42.0", features = ["macros"] }
 ureq = "2.12.1"
 uuid = { version = "1.11.0", features = ["v7"] }
-zeroize = { version = "1.8.1", features = ["zeroize_derive", "serde"] }
+zeroize = { version = "1.8.1", features = ["serde", "zeroize_derive"] }
 
 [workspace.lints.rust]
-missing_docs = "deny"
 missing_debug_implementations = "deny"
+missing_docs = "deny"
 
 [workspace.package]
 authors = [
-  "David Runge <dvzrv@archlinux.org>",
-  "Wiktor Kwapisiewicz <wiktor@archlinux.org>",
+    "David Runge <dvzrv@archlinux.org>",
+    "Wiktor Kwapisiewicz <wiktor@archlinux.org>",
 ]
 edition = "2024"
 homepage = "https://gitlab.archlinux.org/archlinux/signstar"
@@ -62,8 +62,8 @@ repository = "https://gitlab.archlinux.org/archlinux/signstar"
 rust-version = "1.85.0"
 
 [profile.release]
-lto = true
 codegen-units = 1
+lto = true
 opt-level = "z"
 
 # Enable optimizations for crates that are extremely slow unoptimized
