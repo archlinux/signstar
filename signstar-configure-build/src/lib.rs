@@ -162,7 +162,7 @@ impl FromStr for ConfigPath {
 ///
 /// [sshd_config]: https://man.archlinux.org/man/sshd_config.5
 /// [ForceCommand]: https://man.archlinux.org/man/sshd_config.5#ForceCommand
-#[derive(Debug, strum::AsRefStr, strum::Display, strum::EnumString, strum::VariantNames)]
+#[derive(strum::AsRefStr, Debug, strum::Display, strum::EnumString, strum::VariantNames)]
 pub enum SshForceCommand {
     /// Enforce calling signstar-download-backup
     #[strum(serialize = "signstar-download-backup")]

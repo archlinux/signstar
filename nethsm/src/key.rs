@@ -232,7 +232,7 @@ impl TryFrom<String> for KeyId {
 /// Each key can only be used in one cryptographic context.
 /// This is because the NetHSM offers only a single certificate slot per key, which can be used to
 /// attach certificates for a specific cryptographic use.
-#[derive(Clone, Debug, Deserialize, Hash, Eq, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 pub enum CryptographicKeyContext {
     /// A key is used in an OpenPGP context
     #[serde(rename = "openpgp")]
@@ -372,7 +372,7 @@ impl CryptographicKeyContext {
 }
 
 /// The validated setup for a cryptographic signing key
-#[derive(Clone, Debug, Deserialize, Hash, Eq, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 pub struct SigningKeySetup {
     key_id: KeyId,
     key_type: KeyType,

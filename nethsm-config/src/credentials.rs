@@ -42,7 +42,7 @@ pub enum Error {
 /// A set of credentials for a [`NetHsm`][`nethsm::NetHsm`]
 ///
 /// Tracks the [`UserRole`], [`UserId`] and optionally the passphrase of the user.
-#[derive(Clone, Debug, Deserialize, Hash, PartialEq, Eq, Serialize, Zeroize)]
+#[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize, Zeroize)]
 pub struct ConfigCredentials {
     #[zeroize(skip)]
     role: UserRole,
@@ -117,7 +117,7 @@ impl From<ConfigCredentials> for Credentials {
 ///
 /// The username may only contain characters in the set of alphanumeric characters and the `'_'`
 /// character.
-#[derive(Clone, Debug, Deserialize, Hash, Eq, PartialEq, Serialize, Zeroize)]
+#[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize, Zeroize)]
 #[serde(into = "String", try_from = "String")]
 pub struct SystemUserId(String);
 
@@ -191,7 +191,7 @@ impl TryFrom<String> for SystemUserId {
 /// This type ensures compliance with SSH's [AuhtorizedKeysFile] format.
 ///
 /// [AuhtorizedKeysFile]: https://man.archlinux.org/man/sshd.8#AUTHORIZED_KEYS_FILE_FORMAT
-#[derive(Clone, Debug, Deserialize, Hash, Eq, PartialEq, Serialize, Zeroize)]
+#[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize, Zeroize)]
 #[serde(into = "String", try_from = "String")]
 pub struct AuthorizedKeyEntry(String);
 
@@ -271,7 +271,7 @@ impl TryFrom<String> for AuthorizedKeyEntry {
 ///
 /// The list is guaranteed to contain at least one item and be unique (no duplicate SSH public key
 /// can exist).
-#[derive(Clone, Debug, Deserialize, Hash, Eq, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 #[serde(into = "Vec<String>", try_from = "Vec<String>")]
 pub struct AuthorizedKeyEntryList(Vec<AuthorizedKeyEntry>);
 

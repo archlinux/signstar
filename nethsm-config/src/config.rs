@@ -173,7 +173,7 @@ pub enum Error {
 /// This enum is used by [`Config`] and [`DeviceConfig`] to define whether missing items are
 /// prompted for interactively ([`ConfigInteractivity::Interactive`]) or not
 /// ([`ConfigInteractivity::NonInteractive`]).
-#[derive(Copy, Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 pub enum ConfigInteractivity {
     /// The configuration may spawn interactive prompts to request more data (e.g. usernames or
     /// passphrases)
