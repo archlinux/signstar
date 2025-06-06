@@ -4,6 +4,7 @@ use std::process::ExitCode;
 
 use nethsm::{KeyId, NetHsm};
 use nethsm_config::UserMapping;
+use signstar_common::cli::setup_logging;
 use signstar_config::{CredentialsLoading, Error as ConfigError};
 use signstar_request_signature::{Request, Response, Sha512};
 
@@ -35,8 +36,12 @@ enum Error {
     NetHsm(#[from] nethsm::Error),
 
     /// Signing request processing error.
-    #[error("Signing request error")]
+    #[error("Signing request error: {0}")]
     SigningRequest(#[from] signstar_request_signature::Error),
+
+    /// Signstar command CLI error.
+    #[error("Signstar command CLI error")]
+    Cli(#[from] signstar_common::cli::Error),
 }
 
 /// Creates a new [`NetHsm`] object with correct connection and user settings and returns it
@@ -105,6 +110,8 @@ fn load_nethsm_keyid() -> Result<(NetHsm, KeyId), Error> {
 /// - a signature can not be created over the hasher state,
 /// - or the [`Response`] can not be written to the `writer`.
 fn sign_request(reader: impl std::io::Read, writer: impl std::io::Write) -> Result<(), Error> {
+    setup_logging()?;
+
     let req = Request::from_reader(reader)?;
 
     if !req.required.output.is_openpgp_v4() {
@@ -131,7 +138,7 @@ fn main() -> ExitCode {
     let result = sign_request(std::io::stdin(), std::io::stdout());
 
     if let Err(error) = result {
-        eprintln!("{error}");
+        log::error!(error:err; "Processing signing request failed: {error:#?}");
         ExitCode::FAILURE
     } else {
         ExitCode::SUCCESS
