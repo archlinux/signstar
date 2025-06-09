@@ -2,6 +2,7 @@
 
 use std::{fs::File, io::Write};
 
+use log::LevelFilter;
 use rstest::rstest;
 use signstar_common::common::get_data_home;
 use signstar_config::non_admin_credentials::SecretsWriter;
@@ -46,7 +47,7 @@ async fn sign_data(_req: HttpRequest) -> impl Responder {
 #[case(SIGNSTAR_CONFIG_FULL)]
 #[tokio::test]
 async fn load_credentials_for_user(#[case] config_data: &[u8]) -> TestResult {
-    env_logger::init_from_env(env_logger::Env::new().default_filter_or("info"));
+    signstar_common::cli::setup_logging(LevelFilter::Info)?;
     let CertifiedKey { cert, key_pair } = generate_simple_self_signed(vec!["localhost".into()])?;
 
     let dir = tempdir()?.keep();

@@ -2,9 +2,10 @@
 
 use std::process::ExitCode;
 
+use clap::Parser;
+use clap_verbosity_flag::Verbosity;
 use nethsm::{KeyId, NetHsm};
 use nethsm_config::UserMapping;
-use signstar_common::cli::setup_logging;
 use signstar_config::{CredentialsLoading, Error as ConfigError};
 use signstar_request_signature::{Request, Response, Sha512};
 
@@ -110,8 +111,6 @@ fn load_nethsm_keyid() -> Result<(NetHsm, KeyId), Error> {
 /// - a signature can not be created over the hasher state,
 /// - or the [`Response`] can not be written to the `writer`.
 fn sign_request(reader: impl std::io::Read, writer: impl std::io::Write) -> Result<(), Error> {
-    setup_logging()?;
-
     let req = Request::from_reader(reader)?;
 
     if !req.required.output.is_openpgp_v4() {
@@ -133,8 +132,21 @@ fn sign_request(reader: impl std::io::Read, writer: impl std::io::Write) -> Resu
     Ok(())
 }
 
+#[derive(Debug, Parser)]
+struct Cli {
+    #[command(flatten)]
+    verbosity: Verbosity,
+}
+
 /// Signs the signing request on standard input and returns a signing response on standard output.
 fn main() -> ExitCode {
+    let args = Cli::parse();
+
+    if let Err(error) = signstar_common::cli::setup_logging(args.verbosity) {
+        eprintln!("{error}");
+        return ExitCode::FAILURE;
+    }
+
     let result = sign_request(std::io::stdin(), std::io::stdout());
 
     if let Err(error) = result {

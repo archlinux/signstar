@@ -19,7 +19,7 @@ use std::sync::Arc;
 
 use base64::Engine;
 use base64::prelude::BASE64_STANDARD;
-use log::{debug, info};
+use log::{LevelFilter, debug, info};
 use russh::keys::ssh_encoding::Encode;
 use russh::keys::ssh_key::{PrivateKey, PublicKey, private::Ed25519Keypair};
 use russh::server::{self, Msg, Server as _, Session as ServerSession};
@@ -91,7 +91,7 @@ async fn start(temp_dir: impl AsRef<std::path::Path>) -> TestResult<SshSetup> {
 
 #[tokio::test]
 async fn ssh_roundtrip() -> TestResult {
-    signstar_common::cli::setup_logging()?;
+    signstar_common::cli::setup_logging(LevelFilter::Info)?;
 
     let temp_dir = tempfile::tempdir()?;
     let setup = start(&temp_dir).await?;

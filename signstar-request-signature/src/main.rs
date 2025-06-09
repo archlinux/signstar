@@ -53,7 +53,7 @@ async fn run_command(args: Cli) -> Result<(), Error> {
 async fn main() -> ExitCode {
     let args = Cli::parse();
 
-    if let Err(error) = signstar_common::cli::setup_logging() {
+    if let Err(error) = signstar_common::cli::setup_logging(args.verbosity) {
         eprintln!("{error}");
         return ExitCode::FAILURE;
     }
