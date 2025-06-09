@@ -6,7 +6,19 @@ use clap::Parser;
 
 /// Command line arguments for signing.
 #[derive(Debug, Parser)]
-pub enum Cli {
+pub struct Cli {
+    /// Global processing log verbosity.
+    #[command(flatten)]
+    pub verbosity: clap_verbosity_flag::Verbosity,
+
+    /// Command to be executed.
+    #[command(subcommand)]
+    pub command: Command,
+}
+
+/// Command line arguments for signing.
+#[derive(Debug, Parser)]
+pub enum Command {
     /// Prepare signing request for a file.
     Prepare(PrepareCommand),
 

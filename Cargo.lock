@@ -989,6 +989,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "clap-verbosity-flag"
+version = "3.0.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "eeab6a5cdfc795a05538422012f20a5496f050223c91be4e5420bfd13c641fb1"
+dependencies = [
+ "clap",
+ "log",
+]
+
+[[package]]
 name = "clap_builder"
 version = "4.5.37"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4491,7 +4501,7 @@ version = "0.1.1"
 dependencies = [
  "base64 0.22.1",
  "clap",
- "env_logger",
+ "clap-verbosity-flag",
  "hmac",
  "log",
  "rand 0.8.5",
@@ -4503,6 +4513,7 @@ dependencies = [
  "serde_json",
  "sha1",
  "sha2 0.11.0-pre.5",
+ "signstar-common",
  "ssh-agent-lib",
  "tempfile",
  "testdir",

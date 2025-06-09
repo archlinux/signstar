@@ -7,7 +7,7 @@ use signstar_request_signature::{
     Error,
     Request,
     Response,
-    cli::{Cli, SendCommand},
+    cli::{Cli, Command, SendCommand},
     ssh::client::ConnectOptions,
 };
 
@@ -36,11 +36,11 @@ async fn send_request_via_ssh(send_command: SendCommand) -> Result<Response, Err
 }
 
 async fn run_command(args: Cli) -> Result<(), Error> {
-    match args {
-        Cli::Prepare(prepare) => {
+    match args.command {
+        Command::Prepare(prepare) => {
             Request::for_file(prepare.input)?.to_writer(std::io::stdout())?;
         }
-        Cli::Send(send_command) => {
+        Command::Send(send_command) => {
             send_request_via_ssh(send_command)
                 .await?
                 .to_writer(std::io::stdout())?;
@@ -51,13 +51,17 @@ async fn run_command(args: Cli) -> Result<(), Error> {
 
 #[tokio::main]
 async fn main() -> ExitCode {
-    env_logger::init();
-
     let args = Cli::parse();
+
+    if let Err(error) = signstar_common::cli::setup_logging() {
+        eprintln!("{error}");
+        return ExitCode::FAILURE;
+    }
+
     let result = run_command(args).await;
 
     if let Err(error) = result {
-        eprintln!("{error}");
+        log::error!(error:err; "Processing signing request failed: {error:#?}");
         ExitCode::FAILURE
     } else {
         ExitCode::SUCCESS

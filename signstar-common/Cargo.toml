@@ -16,4 +16,4 @@ systemd-journal-logger = { optional = true, version = "2.2.1" }
 thiserror.workspace = true
 
 [features]
-cli = [ "dep:log", "dep:systemd-journal-logger" ]
+cli = ["dep:log", "dep:systemd-journal-logger"]

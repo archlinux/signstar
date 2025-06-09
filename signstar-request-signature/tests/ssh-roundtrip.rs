@@ -91,10 +91,7 @@ async fn start(temp_dir: impl AsRef<std::path::Path>) -> TestResult<SshSetup> {
 
 #[tokio::test]
 async fn ssh_roundtrip() -> TestResult {
-    env_logger::builder()
-        .is_test(true)
-        .filter_level(log::LevelFilter::Info)
-        .init();
+    signstar_common::cli::setup_logging()?;
 
     let temp_dir = tempfile::tempdir()?;
     let setup = start(&temp_dir).await?;
