@@ -96,6 +96,27 @@ test:
     - just test
   stage: test
 
+test-coverage:
+  extends: .default-rust
+  script:
+    - just test-coverage doc
+  stage: test
+  tags:
+    - vm
+  # This is a regex that looks at the output from the `just test-coverage` command
+  # and extracts the coverage percent from it.
+  coverage: '/Test-coverage: ([0-9.]*)%/'
+  artifacts:
+    paths:
+      - target/llvm-cov/html
+    reports:
+      coverage_report:
+        coverage_format: cobertura
+        path: target/llvm-cov/cobertura-coverage.xml
+      # Expose the code coverage as a GitLab metric.
+      # This allows us to easily spot changes in the overall coverage.
+      metrics: target/llvm-cov/coverage-metrics.txt
+
 integration-test:
   extends: .default
   script:
