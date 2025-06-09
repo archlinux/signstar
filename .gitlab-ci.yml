@@ -116,6 +116,9 @@ test-coverage:
       # Expose the code coverage as a GitLab metric.
       # This allows us to easily spot changes in the overall coverage.
       metrics: target/llvm-cov/coverage-metrics.txt
+      # Unit test reports
+      # See: https://gitlab.archlinux.org/help/ci/testing/unit_test_reports#how-to-set-it-up
+      junit: target/nextest/default/junit.xml
 
 integration-test:
   extends: .default
