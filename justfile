@@ -744,6 +744,8 @@ build-coverage mode="nodoc":
 
     target_dir="$(just get-cargo-target-dir)"
 
+    mkdir --parents "$target_dir/llvm-cov/"
+
     just ensure-command cargo-llvm-cov cargo-nextest
 
     # Options for cargo
