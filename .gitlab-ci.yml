@@ -108,6 +108,20 @@ integration-test:
     - chown -R testuser:testuser .
     - WORKDIR="$(pwd)" runuser -w WORKDIR -l testuser -c 'env && cd "$WORKDIR" && just install-rust-dev-tools'
     - WORKDIR="$(pwd)" runuser -w WORKDIR -l testuser -c 'env && cd "$WORKDIR" && just ignored=true test-with-coverage'
+  stage: test
+  tags:
+    - vm
+  artifacts:
+    expire_in: 1 hour
+    paths:
+      - target/llvm-cov-target
+
+containerized-test:
+  extends: .default
+  script:
+    - useradd -m testuser
+    - chown -R testuser:testuser .
+    - WORKDIR="$(pwd)" runuser -w WORKDIR -l testuser -c 'env && cd "$WORKDIR" && just install-rust-dev-tools'
     - WORKDIR="$(pwd)" runuser -w WORKDIR -l testuser -c 'env && cd "$WORKDIR" && just containerized-integration-tests-with-coverage'
   stage: test
   tags:
