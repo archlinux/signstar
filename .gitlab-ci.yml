@@ -10,6 +10,13 @@ stages:
   - report
   - pages
 
+cache: &global_cache
+  key: ${CI_COMMIT_REF_SLUG}
+  paths:
+    - .cargo
+    - target
+  policy: pull-push
+
 # default setup running on default branch and in MRs
 .default:
   before_script:
@@ -100,6 +107,8 @@ test:
     expire_in: 1 hour
     paths:
       - target/llvm-cov-target
+  cache:
+    <<: *global_cache
 
 integration-test:
   extends: .default
@@ -115,6 +124,8 @@ integration-test:
     expire_in: 1 hour
     paths:
       - target/llvm-cov-target
+  cache:
+    <<: *global_cache
 
 containerized-test:
   extends: .default
@@ -130,6 +141,8 @@ containerized-test:
     expire_in: 1 hour
     paths:
       - target/llvm-cov-target
+  cache:
+    <<: *global_cache
 
 test-readmes:
   extends: .default
