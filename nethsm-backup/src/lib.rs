@@ -298,7 +298,7 @@ impl Backup {
     ///
     /// Even though this function returns a `Result` it is unlikely to fail since all parameters are
     /// static.
-    pub fn decrypt(&self, passphrase: &[u8]) -> Result<BackupDecryptor> {
+    pub fn decrypt(&self, passphrase: &[u8]) -> Result<BackupDecryptor<'_>> {
         BackupDecryptor::new(self, passphrase)
     }
 }
