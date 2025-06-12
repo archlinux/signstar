@@ -13,7 +13,6 @@ stages:
 
 cache:
   paths:
-    - .cargo
     - target
   policy: pull-push
 
