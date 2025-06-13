@@ -123,6 +123,7 @@ test:
 
 integration-test:
   extends: .default
+  timeout: 30m
   script:
     - useradd -m testuser
     - chown -R testuser:testuser .
