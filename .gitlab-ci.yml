@@ -126,10 +126,10 @@ integration-test:
   script:
     - useradd -m testuser
     - chown -R testuser:testuser .
-    - WORKDIR="$(pwd)" runuser -w WORKDIR -l testuser -c 'env && cd "$WORKDIR" && just install-rust-dev-tools'
-    - WORKDIR="$(pwd)" runuser -w WORKDIR -l testuser -c 'env && cd "$WORKDIR" && just ignored=true test-with-coverage'
-    - WORKDIR="$(pwd)" runuser -w WORKDIR -l testuser -c 'env && cd "$WORKDIR" && just containerized-integration-tests-with-coverage'
-    - WORKDIR="$(pwd)" runuser -w WORKDIR -l testuser -c 'env && cd "$WORKDIR" && just build-coverage'
+    - WORKDIR="$(pwd)" runuser -w WORKDIR,CARGO_HOME -l testuser -c 'env && cd "$WORKDIR" && just install-rust-dev-tools'
+    - WORKDIR="$(pwd)" runuser -w WORKDIR,CARGO_HOME -l testuser -c 'env && cd "$WORKDIR" && just ignored=true test-with-coverage'
+    - WORKDIR="$(pwd)" runuser -w WORKDIR,CARGO_HOME -l testuser -c 'env && cd "$WORKDIR" && just containerized-integration-tests-with-coverage'
+    - WORKDIR="$(pwd)" runuser -w WORKDIR,CARGO_HOME -l testuser -c 'env && cd "$WORKDIR" && just build-coverage'
   stage: test
   tags:
     - vm

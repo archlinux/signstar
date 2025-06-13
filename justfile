@@ -317,7 +317,7 @@ test-with-coverage:
         cargo llvm-cov --no-report nextest --locked --all --run-ignored ignored-only
     else
         cargo llvm-cov --no-report nextest --locked --all
-        just test-docs
+        just test-docs-with-coverage
         just docs
     fi
 
