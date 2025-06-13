@@ -11,11 +11,12 @@ stages:
   - report
   - pages
 
-cache:
-  paths:
-    - target
-    - .cargo-home
-  policy: pull-push
+default:
+  cache:
+    paths:
+      - target
+      - .cargo-home
+    policy: pull-push
 
 # default setup running on default branch and in MRs
 .default:
