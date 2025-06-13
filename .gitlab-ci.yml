@@ -102,11 +102,24 @@ test:
   extends: .default-rust
   script:
     - just test-with-coverage
+    - just build-coverage doc
   stage: test
+  # This is a regex that looks at the output from the `just test-coverage` command
+  # and extracts the coverage percent from it.
+  coverage: "/Test-coverage: ([0-9.]*)%/"
   artifacts:
-    expire_in: 1 hour
     paths:
-      - target/llvm-cov-target
+      - target/llvm-cov/html
+    reports:
+      coverage_report:
+        coverage_format: cobertura
+        path: target/llvm-cov/cobertura-coverage.xml
+      # Expose the code coverage as a GitLab metric.
+      # This allows us to easily spot changes in the overall coverage.
+      metrics: target/llvm-cov/coverage-metrics.txt
+      # Unit test reports
+      # See: https://gitlab.archlinux.org/help/ci/testing/unit_test_reports#how-to-set-it-up
+      junit: target/nextest/default/junit.xml
 
 integration-test:
   extends: .default
@@ -115,28 +128,27 @@ integration-test:
     - chown -R testuser:testuser .
     - WORKDIR="$(pwd)" runuser -w WORKDIR -l testuser -c 'env && cd "$WORKDIR" && just install-rust-dev-tools'
     - WORKDIR="$(pwd)" runuser -w WORKDIR -l testuser -c 'env && cd "$WORKDIR" && just ignored=true test-with-coverage'
-  stage: test
-  tags:
-    - vm
-  artifacts:
-    expire_in: 1 hour
-    paths:
-      - target/llvm-cov-target
-
-containerized-test:
-  extends: .default
-  script:
-    - useradd -m testuser
-    - chown -R testuser:testuser .
-    - WORKDIR="$(pwd)" runuser -w WORKDIR -l testuser -c 'env && cd "$WORKDIR" && just install-rust-dev-tools'
     - WORKDIR="$(pwd)" runuser -w WORKDIR -l testuser -c 'env && cd "$WORKDIR" && just containerized-integration-tests-with-coverage'
+    - WORKDIR="$(pwd)" runuser -w WORKDIR -l testuser -c 'env && cd "$WORKDIR" && just build-coverage'
   stage: test
   tags:
     - vm
+  # This is a regex that looks at the output from the `just test-coverage` command
+  # and extracts the coverage percent from it.
+  coverage: "/Test-coverage: ([0-9.]*)%/"
   artifacts:
-    expire_in: 1 hour
     paths:
-      - target/llvm-cov-target
+      - target/llvm-cov/html
+    reports:
+      coverage_report:
+        coverage_format: cobertura
+        path: target/llvm-cov/cobertura-coverage.xml
+      # Expose the code coverage as a GitLab metric.
+      # This allows us to easily spot changes in the overall coverage.
+      metrics: target/llvm-cov/coverage-metrics.txt
+      # Unit test reports
+      # See: https://gitlab.archlinux.org/help/ci/testing/unit_test_reports#how-to-set-it-up
+      junit: target/nextest/default/junit.xml
 
 test-readmes:
   extends: .default
@@ -164,35 +176,6 @@ build-image:
   stage: signstaros
   tags:
     - vm
-
-build-coverage:
-  extends: .default-rust
-  dependencies:
-    - test
-    - integration-test
-    - test-readmes
-  script:
-    - just build-coverage doc
-  # FIXME: stage needs to be after "test" this is a temporary value
-  stage: signstaros
-  tags:
-    - vm
-  # This is a regex that looks at the output from the `just test-coverage` command
-  # and extracts the coverage percent from it.
-  coverage: "/Test-coverage: ([0-9.]*)%/"
-  artifacts:
-    paths:
-      - target/llvm-cov/html
-    reports:
-      coverage_report:
-        coverage_format: cobertura
-        path: target/llvm-cov/cobertura-coverage.xml
-      # Expose the code coverage as a GitLab metric.
-      # This allows us to easily spot changes in the overall coverage.
-      metrics: target/llvm-cov/coverage-metrics.txt
-      # Unit test reports
-      # See: https://gitlab.archlinux.org/help/ci/testing/unit_test_reports#how-to-set-it-up
-      junit: target/nextest/default/junit.xml
 
 build-test-image:
   extends: .default

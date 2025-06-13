@@ -783,7 +783,7 @@ build-coverage mode="nodoc":
     printf "Creating report %s\n" "$reporting_style"
 
     # Create HTML coverage report
-    #cargo "${cargo_options[@]}" llvm-cov report "${cargo_llvm_cov_html_options[@]}"
+    cargo "${cargo_options[@]}" llvm-cov report "${cargo_llvm_cov_html_options[@]}"
 
     # Create cobertura coverage report
     cargo "${cargo_options[@]}" llvm-cov report "${cargo_llvm_cov_cobertura_options[@]}"
@@ -796,5 +796,5 @@ build-coverage mode="nodoc":
 
     # Writes to target/coverage-metrics.txt for Gitlab CI metric consumption.
     # https://docs.gitlab.com/ci/testing/metrics_reports/
-    printf "Test-coverage ${percentage}\n" > "$target_dir/llvm-cov/coverage-metrics.txt"
+    printf "Test-coverage-{{ mode }} ${percentage}\n" > "$target_dir/llvm-cov/coverage-metrics.txt"
     printf "Test-coverage: ${percentage}%%\n"
