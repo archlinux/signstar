@@ -434,6 +434,20 @@ add-hooks:
     echo just run-pre-push-hook > .git/hooks/pre-push
     chmod +x .git/hooks/pre-push
 
+    cat > .git/hooks/prepare-commit-msg <<'EOL'
+    #!/bin/sh
+
+    COMMIT_MSG_FILE=$1
+    COMMIT_SOURCE=$2
+
+    SOB=$(git var GIT_COMMITTER_IDENT | sed -n 's/^\(.*>\).*$/Signed-off-by: \1/p')
+    git interpret-trailers --in-place --trailer "$SOB" "$COMMIT_MSG_FILE"
+    if test -z "$COMMIT_SOURCE"; then
+        /usr/bin/perl -i.bak -pe 'print "\n" if !$first_line++' "$COMMIT_MSG_FILE"
+    fi
+    EOL
+    chmod +x .git/hooks/prepare-commit-msg
+
 # Check for stale links in documentation
 [group('check')]
 check-links:
