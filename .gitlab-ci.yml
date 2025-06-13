@@ -68,6 +68,9 @@ rust-code:
     - just check-rust-code
   stage: check
   cache:
+    key:
+      files:
+        - Cargo.lock
     paths:
       - target
       - .cargo-home
@@ -104,6 +107,9 @@ test:
     - just build-coverage doc
   stage: test
   cache:
+    key:
+      files:
+        - Cargo.lock
     paths:
       - target
       - .cargo-home
@@ -136,6 +142,9 @@ integration-test:
     - WORKDIR="$(pwd)" runuser -w WORKDIR,CARGO_HOME -l testuser -c 'env && cd "$WORKDIR" && just build-coverage'
   stage: test
   cache:
+    key:
+      files:
+        - Cargo.lock
     paths:
       - target
       - .cargo-home
