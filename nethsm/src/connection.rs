@@ -57,6 +57,12 @@ impl Connection {
     }
 }
 
+impl Display for Connection {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{} (TLS security: {})", self.url, self.tls_security)
+    }
+}
+
 /// The URL used for connecting to a NetHSM instance.
 ///
 /// Wraps [`url::Url`] but offers stricter constraints.
@@ -161,5 +167,30 @@ impl FromStr for Url {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         Self::new(s)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use rstest::rstest;
+    use testresult::TestResult;
+
+    use super::*;
+
+    #[rstest]
+    #[case(ConnectionSecurity::Unsafe, "unsafe")]
+    #[case(ConnectionSecurity::Native, "native")]
+    fn connection_display(
+        #[case] connection_security: ConnectionSecurity,
+        #[case] expected_str: &str,
+    ) -> TestResult {
+        let url = "https://example.org/";
+        let connection = Connection::new(url.parse()?, connection_security);
+        assert_eq!(
+            format!("{connection}"),
+            format!("{url} (TLS security: {expected_str})")
+        );
+
+        Ok(())
     }
 }
