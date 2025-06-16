@@ -198,6 +198,7 @@ impl From<SignatureType> for SignMode {
 /// of state [`crate::SystemState::Operational`].
 #[derive(
     Clone,
+    Copy,
     Debug,
     strum::Display,
     strum::EnumString,
