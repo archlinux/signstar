@@ -59,6 +59,24 @@ pub struct HostCertificateFingerprints {
     sha256: Option<Vec<CertFingerprint>>,
 }
 
+impl Display for HostCertificateFingerprints {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "fingerprints:\n{}",
+            if let Some(fingerprints) = self.sha256.as_ref() {
+                fingerprints
+                    .iter()
+                    .map(|fingerprint| fingerprint.to_string())
+                    .collect::<Vec<String>>()
+                    .join(", ")
+            } else {
+                "n/a".to_string()
+            }
+        )
+    }
+}
+
 /// The security model chosen for a [`crate::NetHsm`]'s TLS connection
 #[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 pub enum ConnectionSecurity {
