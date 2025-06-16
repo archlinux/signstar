@@ -88,6 +88,16 @@ pub enum ConnectionSecurity {
     Fingerprints(HostCertificateFingerprints),
 }
 
+impl Display for ConnectionSecurity {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Unsafe => write!(f, "unsafe"),
+            Self::Native => write!(f, "native"),
+            Self::Fingerprints(fingerprints) => write!(f, "{fingerprints}"),
+        }
+    }
+}
+
 impl FromStr for ConnectionSecurity {
     type Err = Error;
 
