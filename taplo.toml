@@ -4,6 +4,7 @@ reorder_arrays = true
 reorder_keys = true
 
 [[rule]]
+exclude = [".cargo-home"]
 include = ["**/Cargo.toml"]
 keys = ["package"]
 

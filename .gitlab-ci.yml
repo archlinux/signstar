@@ -1,5 +1,6 @@
 variables:
   RUST_BACKTRACE: full
+  CARGO_HOME: $CI_PROJECT_DIR/.cargo-home
 
 stages:
   - check
@@ -65,6 +66,14 @@ rust-code:
   script:
     - just check-rust-code
   stage: check
+  cache:
+    key:
+      files:
+        - Cargo.lock
+    paths:
+      - target
+      - .cargo-home
+    policy: pull-push
 
 unused-deps:
   extends: .default-rust
@@ -101,6 +110,14 @@ test-coverage:
   script:
     - just test-coverage doc
   stage: test
+  cache:
+    key:
+      files:
+        - Cargo.lock
+    paths:
+      - target
+      - .cargo-home
+    policy: pull-push
   tags:
     - vm
   # This is a regex that looks at the output from the `just test-coverage` command
@@ -126,8 +143,8 @@ integration-test:
     - useradd -m testuser
     - chown -R testuser:testuser .
     - WORKDIR="$(pwd)" runuser -w WORKDIR -l testuser -c 'env && cd "$WORKDIR" && just install-rust-dev-tools'
-    - WORKDIR="$(pwd)" runuser -w WORKDIR -l testuser -c 'env && cd "$WORKDIR" && just ignored=true test'
-    - WORKDIR="$(pwd)" runuser -w WORKDIR -l testuser -c 'env && cd "$WORKDIR" && just containerized-integration-tests'
+    - WORKDIR="$(pwd)" runuser -w WORKDIR -l testuser -c 'env && cd "$WORKDIR" && just ignored=true test-with-coverage'
+    - WORKDIR="$(pwd)" runuser -w WORKDIR -l testuser -c 'env && cd "$WORKDIR" && just containerized-integration-tests-with-coverage'
   stage: test
   tags:
     - vm

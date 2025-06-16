@@ -7,3 +7,4 @@ resources/mkosi/signstar/mkosi.profiles/local-testing/mkosi.extra/usr/local/bin/
 resources/mkosi/signstar/mkosi.profiles/local-testing/mkosi.extra/usr/local/share/
 target/
 .lycheecache
+.cargo-home
