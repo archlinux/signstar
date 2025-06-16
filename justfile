@@ -3,6 +3,10 @@
 
 set dotenv-load := true
 
+# Whether coverage reports should be generated when running tests.
+
+coverage := env("SIGNSTAR_COVERAGE", "false")
+
 # Whether to run ignored tests (set to "true" to run ignored tests)
 
 ignored := "false"
@@ -294,12 +298,24 @@ test:
     set -euxo pipefail
 
     readonly ignored="{{ ignored }}"
-    just ensure-command cargo cargo-nextest mold
+    readonly coverage="{{ coverage }}"
 
     if [[ "$ignored" == "true" ]]; then
-        cargo nextest run --locked --all --run-ignored ignored-only
+        if [[ "$coverage" == "true" ]]; then
+            just ensure-command cargo cargo-llvm-cov cargo-nextest mold
+            cargo llvm-cov --no-report nextest --locked --all --run-ignored ignored-only
+        else
+            just ensure-command cargo cargo-nextest mold
+            cargo nextest run --locked --all --run-ignored ignored-only
+        fi
     else
-        cargo nextest run --locked --all
+        if [[ "$coverage" == "true" ]]; then
+            just ensure-command cargo cargo-llvm-cov cargo-nextest mold
+            cargo llvm-cov --no-report nextest --locked --all
+        else
+            just ensure-command cargo cargo-nextest mold
+            cargo nextest run --locked --all
+        fi
         just test-docs
         just docs
     fi
@@ -307,8 +323,18 @@ test:
 # Runs all doc tests
 [group('test')]
 test-docs:
-    just ensure-command cargo
-    cargo test --locked --doc
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    readonly coverage="{{ coverage }}"
+
+    if [[ "$coverage" == "true" ]]; then
+        just ensure-command cargo cargo-llvm-cov
+        cargo +nightly llvm-cov --no-report --doc --locked
+    else
+        just ensure-command cargo
+        cargo test --locked --doc
+    fi
 
 # Runs per project end-to-end tests found in a project README.md
 [group('test')]
@@ -716,16 +742,30 @@ get-cargo-target-dir:
 # Runs the tests that are made available with the "_containerized-integration-test" feature of all configured projects in a separate container
 [group('test')]
 containerized-integration-tests:
-    just ensure-command bash cargo cargo-nextest jq podman
-    cargo nextest run --features _containerized-integration-test --filterset 'kind(test)'
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    readonly coverage="{{ coverage }}"
+
+    if [[ "$coverage" == "yes" ]]; then
+        just ensure-command bash cargo cargo-llvm-cov cargo-nextest jq podman
+        # Containerized integration tests require examples and bins to be built
+        cargo build --examples --bins
+        cargo llvm-cov --no-report nextest --features _containerized-integration-test --filterset 'kind(test)'
+    else
+        just ensure-command bash cargo cargo-nextest jq podman
+        cargo nextest run --features _containerized-integration-test --filterset 'kind(test)'
+    fi
 
 # Creates code coverage for all projects.
 [group('test')]
-test-coverage mode="nodoc":
+build-coverage mode="nodoc":
     #!/usr/bin/env bash
     set -euo pipefail
 
     target_dir="$(just get-cargo-target-dir)"
+
+    mkdir --parents "$target_dir/llvm-cov/"
 
     just ensure-command cargo-llvm-cov cargo-nextest
 
@@ -741,43 +781,21 @@ test-coverage mode="nodoc":
         --output-path "$target_dir/llvm-cov/cobertura-coverage.xml"
     )
 
-    # Options for creating HTML coverage report with cargo-llvm-cov
-    cargo_llvm_cov_html_options=(
-        --html
-    )
-
     # Options for creating coverage report summary with cargo-llvm-cov
     cargo_llvm_cov_summary_options=(
         --json
         --summary-only
     )
 
-    # Clean any previous code coverage run.
-    cargo "${cargo_options[@]}" llvm-cov clean --workspace
-
-    # Containerized integration tests require examples and bins to be built
-    cargo "${cargo_options[@]}" build --examples --bins
-
-    # Run nextest coverage
-    cargo "${cargo_options[@]}" llvm-cov --no-report nextest --run-ignored=all --features _containerized-integration-test
-
     if [[ "{{ mode }}" == "doc" ]]; then
         reporting_style="with doctest coverage"
         # The support for doctest coverage is a nightly feature
         cargo_options=(+nightly)
         cargo_llvm_cov_cobertura_options+=(--doctests)
-        cargo_llvm_cov_html_options+=(--doctests)
         cargo_llvm_cov_summary_options+=(--doctests)
-
-        # nextest coverage needs to be manually merged with doctest coverage:
-        # https://nexte.st/docs/integrations/test-coverage/?h=doc#collecting-coverage-data-from-doctests
-        cargo "${cargo_options[@]}" llvm-cov --no-report --doc
     fi
 
     printf "Creating report %s\n" "$reporting_style"
-
-    # Create HTML coverage report
-    cargo "${cargo_options[@]}" llvm-cov report "${cargo_llvm_cov_html_options[@]}"
 
     # Create cobertura coverage report
     cargo "${cargo_options[@]}" llvm-cov report "${cargo_llvm_cov_cobertura_options[@]}"

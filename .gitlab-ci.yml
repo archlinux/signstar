@@ -5,6 +5,7 @@ variables:
   CARGO_HOME: $CI_PROJECT_DIR/.cargo-home
   # enable timestamps in logs: https://docs.gitlab.com/ci/jobs/job_logs/#job-log-timestamps
   FF_TIMESTAMPS: true
+  SIGNSTAR_COVERAGE: true
 
 stages:
   - check
@@ -108,12 +109,6 @@ test:
   script:
     - just test
   stage: test
-
-test-coverage:
-  extends: .default-rust
-  script:
-    - just test-coverage doc
-  stage: test
   cache:
     key:
       files:
@@ -122,21 +117,11 @@ test-coverage:
       - target
       - .cargo-home
     policy: pull-push
-  tags:
-    - vm
-  # This is a regex that looks at the output from the `just test-coverage` command
-  # and extracts the coverage percent from it.
-  coverage: '/Test-coverage: ([0-9.]*)%/'
   artifacts:
+    expire_in: 1h
     paths:
-      - target/llvm-cov/html
+      - target/llvm-cov-target/
     reports:
-      coverage_report:
-        coverage_format: cobertura
-        path: target/llvm-cov/cobertura-coverage.xml
-      # Expose the code coverage as a GitLab metric.
-      # This allows us to easily spot changes in the overall coverage.
-      metrics: target/llvm-cov/coverage-metrics.txt
       # Unit test reports
       # See: https://gitlab.archlinux.org/help/ci/testing/unit_test_reports#how-to-set-it-up
       junit: target/nextest/default/junit.xml
@@ -146,12 +131,41 @@ integration-test:
   script:
     - useradd -m testuser
     - chown -R testuser:testuser .
-    - WORKDIR="$(pwd)" runuser -w WORKDIR -l testuser -c 'env && cd "$WORKDIR" && just install-rust-dev-tools'
-    - WORKDIR="$(pwd)" runuser -w WORKDIR -l testuser -c 'env && cd "$WORKDIR" && just ignored=true test-with-coverage'
-    - WORKDIR="$(pwd)" runuser -w WORKDIR -l testuser -c 'env && cd "$WORKDIR" && just containerized-integration-tests-with-coverage'
+    - WORKDIR="$(pwd)" runuser -w WORKDIR,SIGNSTAR_COVERAGE -l testuser -c 'env && cd "$WORKDIR" && just install-rust-dev-tools'
+    - WORKDIR="$(pwd)" runuser -w WORKDIR,SIGNSTAR_COVERAGE -l testuser -c 'env && cd "$WORKDIR" && just ignored=true test'
+    - WORKDIR="$(pwd)" runuser -w WORKDIR,SIGNSTAR_COVERAGE -l testuser -c 'env && cd "$WORKDIR" && just containerized-integration-tests'
   stage: test
   tags:
     - vm
+  artifacts:
+    expire_in: 1 hour
+    paths:
+      - target/llvm-cov-target/
+    reports:
+      # Unit test reports
+      # See: https://gitlab.archlinux.org/help/ci/testing/unit_test_reports#how-to-set-it-up
+      junit: target/nextest/default/junit.xml
+
+build-coverage:
+  extends: .default-rust
+  needs:
+    - test
+    - integration-test
+  script:
+    - just install-rust-dev-tools
+    - just build-coverage doc
+  stage: test
+  # This is a regex that looks at the output from the `just test-coverage` command
+  # and extracts the coverage percent from it.
+  coverage: "/Test-coverage: ([0-9.]*)%/"
+  artifacts:
+    reports:
+      coverage_report:
+        coverage_format: cobertura
+        path: target/llvm-cov/cobertura-coverage.xml
+      # Expose the code coverage as a GitLab metric.
+      # This allows us to easily spot changes in the overall coverage.
+      metrics: target/llvm-cov/coverage-metrics.txt
 
 test-readmes:
   extends: .default
@@ -165,6 +179,7 @@ test-readmes:
 
 build-image:
   extends: .default
+  dependencies: []
   script:
     # show the mkosi version
     - mkosi --version
@@ -181,6 +196,7 @@ build-image:
 
 build-test-image:
   extends: .default
+  dependencies: []
   script:
     # show the mkosi version
     - mkosi --version
