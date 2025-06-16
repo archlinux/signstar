@@ -92,6 +92,16 @@ pub enum ConnectionSecurity {
     Fingerprints(HostCertificateFingerprints),
 }
 
+impl Display for ConnectionSecurity {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Unsafe => write!(f, "unsafe"),
+            Self::Native => write!(f, "native"),
+            Self::Fingerprints(fingerprints) => write!(f, "{fingerprints}"),
+        }
+    }
+}
+
 impl FromStr for ConnectionSecurity {
     type Err = Error;
 
@@ -408,6 +418,21 @@ mod tests {
         #[case] expected: &str,
     ) -> TestResult {
         assert_eq!(fingerprints.to_string(), expected);
+        Ok(())
+    }
+
+    #[rstest]
+    #[case(ConnectionSecurity::Native, "native")]
+    #[case(ConnectionSecurity::Unsafe, "unsafe")]
+    #[case(ConnectionSecurity::Fingerprints(HostCertificateFingerprints { sha256: Some(vec![CertFingerprint::from(vec![
+            181, 187, 157, 128, 20, 160, 249, 177, 214, 30, 33, 231, 150, 215, 141, 204, 223, 19,
+            82, 242, 60, 211, 40, 18, 244, 133, 11, 135, 138, 228, 148, 76,
+        ])]) }), "sha256:b5bb9d8014a0f9b1d61e21e796d78dccdf1352f23cd32812f4850b878ae4944c")]
+    fn connectionsecurity_display(
+        #[case] connection_security: ConnectionSecurity,
+        #[case] expected: &str,
+    ) -> TestResult {
+        assert_eq!(connection_security.to_string(), expected);
         Ok(())
     }
 
