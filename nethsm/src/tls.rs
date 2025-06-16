@@ -59,6 +59,28 @@ pub struct HostCertificateFingerprints {
     sha256: Option<Vec<CertFingerprint>>,
 }
 
+impl Display for HostCertificateFingerprints {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            if let Some(fingerprints) = self.sha256.as_ref() {
+                if fingerprints.is_empty() {
+                    "n/a".to_string()
+                } else {
+                    fingerprints
+                        .iter()
+                        .map(|fingerprint| format!("sha256:{fingerprint}"))
+                        .collect::<Vec<String>>()
+                        .join("\n")
+                }
+            } else {
+                "n/a".to_string()
+            }
+        )
+    }
+}
+
 /// The security model chosen for a [`crate::NetHsm`]'s TLS connection
 #[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 pub enum ConnectionSecurity {
@@ -371,6 +393,21 @@ mod tests {
             "b5bb9d8014a0f9b1d61e21e796d78dccdf1352f23cd32812f4850b878ae4944c"
         );
 
+        Ok(())
+    }
+
+    #[rstest]
+    #[case(HostCertificateFingerprints { sha256: Some(vec![CertFingerprint::from(vec![
+            181, 187, 157, 128, 20, 160, 249, 177, 214, 30, 33, 231, 150, 215, 141, 204, 223, 19,
+            82, 242, 60, 211, 40, 18, 244, 133, 11, 135, 138, 228, 148, 76,
+        ])]) }, "sha256:b5bb9d8014a0f9b1d61e21e796d78dccdf1352f23cd32812f4850b878ae4944c")]
+    #[case(HostCertificateFingerprints { sha256: Some(Vec::new()) }, "n/a")]
+    #[case(HostCertificateFingerprints { sha256: None }, "n/a")]
+    fn hostcertfingerprints_display(
+        #[case] fingerprints: HostCertificateFingerprints,
+        #[case] expected: &str,
+    ) -> TestResult {
+        assert_eq!(fingerprints.to_string(), expected);
         Ok(())
     }
 
