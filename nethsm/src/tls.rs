@@ -1,7 +1,7 @@
-use std::str::FromStr;
 use std::sync::Arc;
 use std::thread::available_parallelism;
 use std::time::Duration;
+use std::{fmt::Display, str::FromStr};
 
 use log::{debug, error, info, trace};
 use nethsm_sdk_rs::ureq::{Agent, AgentBuilder};
@@ -28,6 +28,15 @@ pub struct CertFingerprint(
     )]
     Vec<u8>,
 );
+
+impl Display for CertFingerprint {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        for byte in self.0.iter() {
+            write!(f, "{byte:02x?}")?
+        }
+        Ok(())
+    }
+}
 
 impl FromStr for CertFingerprint {
     type Err = Error;
@@ -347,6 +356,23 @@ mod tests {
     use testresult::TestResult;
 
     use super::*;
+
+    #[test]
+    fn certfingerprint_display() -> TestResult {
+        // the hash digest of "foo"
+        let digest = vec![
+            181, 187, 157, 128, 20, 160, 249, 177, 214, 30, 33, 231, 150, 215, 141, 204, 223, 19,
+            82, 242, 60, 211, 40, 18, 244, 133, 11, 135, 138, 228, 148, 76,
+        ];
+        let cert_fingerprint = CertFingerprint::from(digest);
+
+        assert_eq!(
+            cert_fingerprint.to_string(),
+            "b5bb9d8014a0f9b1d61e21e796d78dccdf1352f23cd32812f4850b878ae4944c"
+        );
+
+        Ok(())
+    }
 
     #[rstest]
     #[case("native", Some(ConnectionSecurity::Native))]
