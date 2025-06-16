@@ -2,6 +2,8 @@
 variables:
   RUST_BACKTRACE: full
   CARGO_HOME: $CI_PROJECT_DIR/.cargo-home
+  # enable timestamps in logs: https://docs.gitlab.com/ci/jobs/job_logs/#job-log-timestamps
+  FF_TIMESTAMPS: true
 
 stages:
   - check
