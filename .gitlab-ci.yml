@@ -1,5 +1,6 @@
 # yaml-language-server: $schema=https://gitlab.com/gitlab-org/gitlab/-/raw/master/app/assets/javascripts/editor/schema/ci.json
 variables:
+  CACHE_COMPRESSION_FORMAT: tarzstd
   RUST_BACKTRACE: full
   CARGO_HOME: $CI_PROJECT_DIR/.cargo-home
   # enable timestamps in logs: https://docs.gitlab.com/ci/jobs/job_logs/#job-log-timestamps
