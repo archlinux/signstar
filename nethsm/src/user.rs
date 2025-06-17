@@ -539,6 +539,16 @@ impl Credentials {
     }
 }
 
+impl Display for Credentials {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.user_id)?;
+        if let Some(passphrase) = self.passphrase.as_ref() {
+            write!(f, " ({passphrase})")?;
+        }
+        Ok(())
+    }
+}
+
 impl From<Credentials> for BasicAuth {
     fn from(value: Credentials) -> Self {
         (
