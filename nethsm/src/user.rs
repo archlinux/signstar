@@ -6,6 +6,7 @@ use std::str::FromStr;
 use nethsm_sdk_rs::apis::configuration::BasicAuth;
 use secrecy::{ExposeSecret, SecretString};
 use serde::{Deserialize, Serialize};
+use strum::AsRefStr;
 
 use crate::UserRole;
 
@@ -80,7 +81,8 @@ pub enum Error {
 /// Whether a resource has [namespace] support or not
 ///
 /// [namespace]: https://docs.nitrokey.com/nethsm/administration#namespaces
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(AsRefStr, Clone, Debug, strum::Display, Eq, PartialEq)]
+#[strum(serialize_all = "lowercase")]
 pub enum NamespaceSupport {
     /// The resource supports namespaces
     Supported,
