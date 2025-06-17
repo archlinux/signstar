@@ -40,6 +40,33 @@ The examples and code testing those examples must be kept around for legacy and 
 ## Writing commit messages
 
 To ensure compatibility and automatic creation of [semantic versioning] compatible releases the commit message style follows [conventional commits].
+Additionally, commits must be signed off and should be signed cryptographically.
+
+## Developer Certificate of Origin
+
+All commits for this project must be signed off using [`git commit --signoff`].
+When running `just add-hooks` in this repository, `git` is configured to do this automatically going forward.
+
+The semantics of the sign off line are explained in the [Developer's Certificate of Origin].
+
+To check if your commits are correctly signed off locally:
+
+```shell
+just check-commits
+```
+
+To sign off your last commit, if it is not yet signed off:
+
+```shell
+git commit --amend --signoff
+```
+
+If you want to fix multiple commits on a feature branch:
+
+```shell
+git rebase --signoff main
+```
+
 
 ## Creating releases
 
@@ -71,11 +98,13 @@ Specific license assignments and attribution are handled using [`REUSE.toml`].
 Individual contributors are all summarized as *"Signstar Contributors"*.
 For a full list of individual contributors, refer to `git log --format="%an <%aE>" | sort -u`.
 
+[Developer's Certificate of Origin]: https://developercertificate.org
 [Rust]: https://www.rust-lang.org/
 [`rustfmt`]: https://github.com/rust-lang/rustfmt
 [`clippy`]: https://github.com/rust-lang/rust-clippy
 [`codespell`]: https://github.com/codespell-project/codespell
 [`cargo-deny`]: https://github.com/EmbarkStudios/cargo-deny
+[`git commit --signoff`]: https://git-scm.com/docs/git-commit#git-commit---signoff
 [`reuse`]: https://git.fsfe.org/reuse/tool
 [`just`]: https://github.com/casey/just
 [git pre-commit]: https://man.archlinux.org/man/githooks.5#pre-commit
