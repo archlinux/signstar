@@ -604,6 +604,12 @@ impl Passphrase {
     }
 }
 
+impl Display for Passphrase {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "[REDACTED]")
+    }
+}
+
 impl FromStr for Passphrase {
     type Err = Error;
 
@@ -633,6 +639,13 @@ mod tests {
     use testresult::TestResult;
 
     use super::*;
+
+    #[test]
+    fn passphrase_display() -> TestResult {
+        let passphrase = Passphrase::new("a-secret-passphrase".to_string());
+        assert_eq!(format!("{passphrase}"), "[REDACTED]");
+        Ok(())
+    }
 
     #[rstest]
     #[case("foo", Some(UserId::SystemWide("foo".to_string())))]
