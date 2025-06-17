@@ -19,6 +19,12 @@ use crate::Error;
 #[cfg(doc)]
 use crate::NetHsm;
 
+/// The default maximum idle TLS connections for a [`NetHsm`].
+pub const DEFAULT_MAX_IDLE_CONNECTIONS: usize = 100;
+
+/// The default timeout in seconds for a TLS connections for a [`NetHsm`].
+pub const DEFAULT_TIMEOUT_SECONDS: u64 = 10;
+
 /// The fingerprint of a TLS certificate (as hex)
 #[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 pub struct CertFingerprint(
@@ -301,10 +307,10 @@ impl ServerCertVerifier for FingerprintVerifier {
 ///
 /// Takes a [`ConnectionSecurity`] to define the TLS security model for the connection.
 /// Allows setting the maximum idle connections per host using the optional
-/// `max_idle_connections` (defaults to [`available_parallelism`] and falls back to `100` if
-/// unavailable).
+/// `max_idle_connections` (defaults to [`available_parallelism`] and falls back to
+/// [`DEFAULT_MAX_IDLE_CONNECTIONS`] if unavailable).
 /// Also allows setting the timeout in seconds for a successful socket connection
-/// using the optional `timeout_seconds` (defaults to `10`).
+/// using the optional `timeout_seconds` (defaults to [`DEFAULT_TIMEOUT_SECONDS`]).
 ///
 /// # Errors
 ///
@@ -368,8 +374,8 @@ pub(crate) fn create_agent(
 
     let max_idle_connections = max_idle_connections
         .or_else(|| available_parallelism().ok().map(Into::into))
-        .unwrap_or(100);
-    let timeout_seconds = timeout_seconds.unwrap_or(10);
+        .unwrap_or(DEFAULT_MAX_IDLE_CONNECTIONS);
+    let timeout_seconds = timeout_seconds.unwrap_or(DEFAULT_TIMEOUT_SECONDS);
     info!(
         "NetHSM connection configured with \"max_idle_connection\" {max_idle_connections} and \"timeout_seconds\" {timeout_seconds}."
     );
