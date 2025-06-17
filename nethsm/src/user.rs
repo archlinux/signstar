@@ -539,6 +539,16 @@ impl Credentials {
     }
 }
 
+impl Display for Credentials {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.user_id)?;
+        if let Some(passphrase) = self.passphrase.as_ref() {
+            write!(f, " ({passphrase})")?;
+        }
+        Ok(())
+    }
+}
+
 impl From<Credentials> for BasicAuth {
     fn from(value: Credentials) -> Self {
         (
@@ -644,6 +654,14 @@ mod tests {
     fn passphrase_display() -> TestResult {
         let passphrase = Passphrase::new("a-secret-passphrase".to_string());
         assert_eq!(format!("{passphrase}"), "[REDACTED]");
+        Ok(())
+    }
+
+    #[rstest]
+    #[case(Credentials::new(UserId::new("user".to_string())?, Some(Passphrase::new("a-secret-passphrase".to_string()))), "user ([REDACTED])")]
+    #[case(Credentials::new(UserId::new("user".to_string())?, None), "user")]
+    fn credentials_display(#[case] credentials: Credentials, #[case] expected: &str) -> TestResult {
+        assert_eq!(credentials.to_string(), expected);
         Ok(())
     }
 
