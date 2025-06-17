@@ -101,7 +101,7 @@ use std::thread::available_parallelism;
 
 use base64ct::{Base64, Encoding};
 pub use chrono::{DateTime, Utc};
-use log::error;
+use log::debug;
 use md5::{Digest as _, Md5};
 use nethsm_sdk_rs::apis::configuration::Configuration;
 use nethsm_sdk_rs::apis::default_api::{
@@ -246,7 +246,12 @@ pub mod test;
 
 mod tls;
 use tls::create_agent;
-pub use tls::{ConnectionSecurity, HostCertificateFingerprints};
+pub use tls::{
+    ConnectionSecurity,
+    DEFAULT_MAX_IDLE_CONNECTIONS,
+    DEFAULT_TIMEOUT_SECONDS,
+    HostCertificateFingerprints,
+};
 
 mod user;
 pub use key::KeyId;
@@ -377,6 +382,18 @@ pub fn validate_backup(
     Ok(())
 }
 
+/// Creates a string for when there is a user or there is no user.
+///
+/// Creates the string `the user <user>` if `user` is [`Some`].
+/// Creates the string `no user` if `user` is [`None`].
+fn user_or_no_user_string(user: Option<&UserId>) -> String {
+    if let Some(current_credentials) = user {
+        format!("the user {current_credentials}")
+    } else {
+        "no user".to_string()
+    }
+}
+
 /// A network connection to a NetHSM.
 ///
 /// Defines a network configuration for the connection and a list of user [`Credentials`] that can
@@ -414,20 +431,24 @@ impl NetHsm {
         max_idle_connections: Option<usize>,
         timeout_seconds: Option<u64>,
     ) -> Result<Self, Error> {
-        let agent = RefCell::new(create_agent(
-            connection.tls_security,
-            max_idle_connections,
-            timeout_seconds,
-        )?);
-
         let (current_credentials, credentials) = if let Some(credentials) = credentials {
+            debug!(
+                "Create new NetHSM connection {connection} with initial credentials {credentials}"
+            );
             (
                 RefCell::new(Some(credentials.user_id.clone())),
                 RefCell::new(HashMap::from([(credentials.user_id.clone(), credentials)])),
             )
         } else {
+            debug!("Create new NetHSM connection {connection} with no initial credentials");
             (Default::default(), Default::default())
         };
+
+        let agent = RefCell::new(create_agent(
+            connection.tls_security,
+            max_idle_connections,
+            timeout_seconds,
+        )?);
 
         Ok(Self {
             agent,
@@ -450,6 +471,21 @@ impl NetHsm {
         target: Option<&UserId>,
         role: Option<&UserRole>,
     ) -> Result<(), Error> {
+        debug!(
+            "Validate namespace access (target: {}; namespace: {support}; role: {}) for NetHSM at {}",
+            if let Some(target) = target {
+                target.to_string()
+            } else {
+                "n/a".to_string()
+            },
+            if let Some(role) = role {
+                role.to_string()
+            } else {
+                "n/a".to_string()
+            },
+            self.url.borrow()
+        );
+
         if let Some(current_user_id) = self.current_credentials.borrow().to_owned() {
             current_user_id.validate_namespace_access(support, target, role)?
         }
@@ -461,6 +497,11 @@ impl NetHsm {
     /// Uses the [`Agent`] configured during creation of the [`NetHsm`], the current [`Url`] and
     /// [`Credentials`] to create a [`Configuration`] for a connection to the API of a NetHSM.
     fn create_connection_config(&self) -> Configuration {
+        debug!(
+            "Create connection config for NetHSM at {}",
+            self.url.borrow()
+        );
+
         let current_credentials = self.current_credentials.borrow().to_owned();
         Configuration {
             client: self.agent.borrow().to_owned(),
@@ -527,6 +568,21 @@ impl NetHsm {
         max_idle_connections: Option<usize>,
         timeout_seconds: Option<u64>,
     ) -> Result<(), Error> {
+        debug!(
+            "Set TLS agent (TLS security: {tls_security}; max idle: {}, timeout: {}) for NetHSM at {}",
+            if let Some(max_idle_connections) = max_idle_connections {
+                max_idle_connections.to_string()
+            } else {
+                DEFAULT_MAX_IDLE_CONNECTIONS.to_string()
+            },
+            if let Some(timeout_seconds) = timeout_seconds {
+                format!("{timeout_seconds}s")
+            } else {
+                format!("{DEFAULT_TIMEOUT_SECONDS}s")
+            },
+            self.url.borrow()
+        );
+
         *self.agent.borrow_mut() =
             create_agent(tls_security, max_idle_connections, timeout_seconds)?;
         Ok(())
@@ -557,6 +613,11 @@ impl NetHsm {
     /// # }
     /// ```
     pub fn set_url(&self, url: Url) {
+        debug!(
+            "Set the URL to {url} for the NetHSM at {}",
+            self.url.borrow()
+        );
+
         *self.url.borrow_mut() = url;
     }
 
@@ -592,6 +653,8 @@ impl NetHsm {
     /// # }
     /// ```
     pub fn add_credentials(&self, credentials: Credentials) {
+        debug!("Add NetHSM connection credentials for {credentials}");
+
         // remove any previously existing credentials (User IDs are unique)
         self.remove_credentials(&credentials.user_id);
         self.credentials
@@ -629,6 +692,8 @@ impl NetHsm {
     /// # }
     /// ```
     pub fn remove_credentials(&self, user_id: &UserId) {
+        debug!("Remove NetHSM connection credentials for {user_id}");
+
         self.credentials.borrow_mut().remove(user_id);
         if self
             .current_credentials
@@ -684,6 +749,8 @@ impl NetHsm {
     /// # }
     /// ```
     pub fn use_credentials(&self, user_id: &UserId) -> Result<(), Error> {
+        debug!("Use NetHSM connection credentials of {user_id}");
+
         if self.credentials.borrow().contains_key(user_id) {
             if self.current_credentials.borrow().as_ref().is_none()
                 || self
@@ -755,6 +822,8 @@ impl NetHsm {
         admin_passphrase: Passphrase,
         system_time: DateTime<Utc>,
     ) -> Result<(), Error> {
+        debug!("Provision the NetHSM at {}", self.url.borrow());
+
         self.validate_namespace_access(NamespaceSupport::Supported, None, None)?;
         provision_post(
             &self.create_connection_config(),
@@ -807,6 +876,8 @@ impl NetHsm {
     /// ```
     /// [state]: https://docs.nitrokey.com/nethsm/administration#state
     pub fn alive(&self) -> Result<(), Error> {
+        debug!("Check whether the NetHSM at {} is alive", self.url.borrow());
+
         self.validate_namespace_access(NamespaceSupport::Supported, None, None)?;
         health_alive_get(&self.create_connection_config()).map_err(|error| {
             Error::Api(format!(
@@ -851,6 +922,8 @@ impl NetHsm {
     /// ```
     /// [state]: https://docs.nitrokey.com/nethsm/administration#state
     pub fn ready(&self) -> Result<(), Error> {
+        debug!("Check whether the NetHSM at {} is ready", self.url.borrow());
+
         self.validate_namespace_access(NamespaceSupport::Supported, None, None)?;
         health_ready_get(&self.create_connection_config()).map_err(|error| {
             Error::Api(format!(
@@ -895,6 +968,8 @@ impl NetHsm {
     /// ```
     /// [state]: https://docs.nitrokey.com/nethsm/administration#state
     pub fn state(&self) -> Result<SystemState, Error> {
+        debug!("Get the state of the NetHSM at {}", self.url.borrow());
+
         self.validate_namespace_access(NamespaceSupport::Supported, None, None)?;
         let health_state = health_state_get(&self.create_connection_config()).map_err(|error| {
             Error::Api(format!(
@@ -939,6 +1014,8 @@ impl NetHsm {
     /// ```
     /// [device information]: https://docs.nitrokey.com/nethsm/administration#device-information
     pub fn info(&self) -> Result<InfoData, Error> {
+        debug!("Get info about the NetHSM at {}", self.url.borrow());
+
         self.validate_namespace_access(NamespaceSupport::Supported, None, None)?;
         let info = info_get(&self.create_connection_config()).map_err(|error| {
             Error::Api(format!(
@@ -993,6 +1070,12 @@ impl NetHsm {
     /// [role]: https://docs.nitrokey.com/nethsm/administration#roles
     /// [state]: https://docs.nitrokey.com/nethsm/administration#state
     pub fn metrics(&self) -> Result<Value, Error> {
+        debug!(
+            "Retrieve metrics of the NetHSM at {} using {}",
+            self.url.borrow(),
+            user_or_no_user_string(self.current_credentials.borrow().as_ref()),
+        );
+
         self.validate_namespace_access(NamespaceSupport::Supported, None, None)?;
         let metrics = metrics_get(&self.create_connection_config()).map_err(|error| {
             Error::Api(format!(
@@ -1075,6 +1158,12 @@ impl NetHsm {
         current_passphrase: Passphrase,
         new_passphrase: Passphrase,
     ) -> Result<(), Error> {
+        debug!(
+            "Set unlock passphrase for the NetHSM at {} using {}",
+            self.url.borrow(),
+            user_or_no_user_string(self.current_credentials.borrow().as_ref()),
+        );
+
         self.validate_namespace_access(NamespaceSupport::Unsupported, None, None)?;
         config_unlock_passphrase_put(
             &self.create_connection_config(),
@@ -1149,6 +1238,12 @@ impl NetHsm {
     /// [role]: https://docs.nitrokey.com/nethsm/administration#roles
     /// [state]: https://docs.nitrokey.com/nethsm/administration#state
     pub fn get_boot_mode(&self) -> Result<BootMode, Error> {
+        debug!(
+            "Get the boot mode of the NetHSM at {} using {}",
+            self.url.borrow(),
+            user_or_no_user_string(self.current_credentials.borrow().as_ref()),
+        );
+
         self.validate_namespace_access(NamespaceSupport::Unsupported, None, None)?;
         Ok(BootMode::from(
             config_unattended_boot_get(&self.create_connection_config())
@@ -1230,6 +1325,12 @@ impl NetHsm {
     /// [role]: https://docs.nitrokey.com/nethsm/administration#roles
     /// [state]: https://docs.nitrokey.com/nethsm/administration#state
     pub fn set_boot_mode(&self, boot_mode: BootMode) -> Result<(), Error> {
+        debug!(
+            "Set the boot mode for the NetHSM at {} to {boot_mode} using {}",
+            self.url.borrow(),
+            user_or_no_user_string(self.current_credentials.borrow().as_ref()),
+        );
+
         self.validate_namespace_access(NamespaceSupport::Unsupported, None, None)?;
         config_unattended_boot_put(&self.create_connection_config(), boot_mode.into()).map_err(
             |error| {
@@ -1300,6 +1401,12 @@ impl NetHsm {
     /// [role]: https://docs.nitrokey.com/nethsm/administration#roles
     /// [state]: https://docs.nitrokey.com/nethsm/administration#state
     pub fn get_tls_public_key(&self) -> Result<String, Error> {
+        debug!(
+            "Retrieve the TLS public key for the NetHSM at {} using {}",
+            self.url.borrow(),
+            user_or_no_user_string(self.current_credentials.borrow().as_ref()),
+        );
+
         self.validate_namespace_access(NamespaceSupport::Unsupported, None, None)?;
         Ok(config_tls_public_pem_get(&self.create_connection_config())
             .map_err(|error| {
@@ -1368,6 +1475,12 @@ impl NetHsm {
     /// [role]: https://docs.nitrokey.com/nethsm/administration#roles
     /// [state]: https://docs.nitrokey.com/nethsm/administration#state
     pub fn get_tls_cert(&self) -> Result<String, Error> {
+        debug!(
+            "Retrieve the TLS certificate for the NetHSM at {} using {}",
+            self.url.borrow(),
+            user_or_no_user_string(self.current_credentials.borrow().as_ref()),
+        );
+
         self.validate_namespace_access(NamespaceSupport::Unsupported, None, None)?;
         Ok(config_tls_cert_pem_get(&self.create_connection_config())
             .map_err(|error| {
@@ -1470,6 +1583,13 @@ impl NetHsm {
     /// [role]: https://docs.nitrokey.com/nethsm/administration#roles
     /// [state]: https://docs.nitrokey.com/nethsm/administration#state
     pub fn get_tls_csr(&self, distinguished_name: DistinguishedName) -> Result<String, Error> {
+        debug!(
+            "Retrieve a Certificate Signing Request (for {}) for the TLS certificate of the NetHSM at {} using {}",
+            distinguished_name.common_name,
+            self.url.borrow(),
+            user_or_no_user_string(self.current_credentials.borrow().as_ref()),
+        );
+
         self.validate_namespace_access(NamespaceSupport::Unsupported, None, None)?;
         Ok(
             config_tls_csr_pem_post(&self.create_connection_config(), distinguished_name)
@@ -1558,6 +1678,17 @@ impl NetHsm {
         tls_key_type: TlsKeyType,
         length: Option<u32>,
     ) -> Result<(), Error> {
+        debug!(
+            "Generate a TLS certificate ({tls_key_type}{}) on the NetHSM at {} using {}",
+            if let Some(length) = length {
+                format!(" {length} bit long")
+            } else {
+                "{}".to_string()
+            },
+            self.url.borrow(),
+            user_or_no_user_string(self.current_credentials.borrow().as_ref()),
+        );
+
         self.validate_namespace_access(NamespaceSupport::Unsupported, None, None)?;
         // ensure the tls_key_type - length combination is valid
         tls_key_type_matches_length(tls_key_type, length)?;
@@ -1647,6 +1778,12 @@ impl NetHsm {
     /// [role]: https://docs.nitrokey.com/nethsm/administration#roles
     /// [state]: https://docs.nitrokey.com/nethsm/administration#state
     pub fn set_tls_cert(&self, certificate: &str) -> Result<(), Error> {
+        debug!(
+            "Set a new TLS certificate for the NetHSM at {} using {}",
+            self.url.borrow(),
+            user_or_no_user_string(self.current_credentials.borrow().as_ref()),
+        );
+
         self.validate_namespace_access(NamespaceSupport::Unsupported, None, None)?;
         config_tls_cert_pem_put(&self.create_connection_config(), certificate).map_err(
             |error| {
@@ -1716,6 +1853,12 @@ impl NetHsm {
     /// [role]: https://docs.nitrokey.com/nethsm/administration#roles
     /// [state]: https://docs.nitrokey.com/nethsm/administration#state
     pub fn get_network(&self) -> Result<NetworkConfig, Error> {
+        debug!(
+            "Get network configuration for the NetHSM at {} using {}",
+            self.url.borrow(),
+            user_or_no_user_string(self.current_credentials.borrow().as_ref()),
+        );
+
         self.validate_namespace_access(NamespaceSupport::Unsupported, None, None)?;
         Ok(config_network_get(&self.create_connection_config())
             .map_err(|error| {
@@ -1799,6 +1942,15 @@ impl NetHsm {
     /// [role]: https://docs.nitrokey.com/nethsm/administration#roles
     /// [state]: https://docs.nitrokey.com/nethsm/administration#state
     pub fn set_network(&self, network_config: NetworkConfig) -> Result<(), Error> {
+        debug!(
+            "Set a new network configuration (IP: {}, Netmask: {}, Gateway: {}) for the NetHSM at {} using {}",
+            network_config.ip_address,
+            network_config.netmask,
+            network_config.gateway,
+            self.url.borrow(),
+            user_or_no_user_string(self.current_credentials.borrow().as_ref()),
+        );
+
         self.validate_namespace_access(NamespaceSupport::Unsupported, None, None)?;
         config_network_put(&self.create_connection_config(), network_config).map_err(|error| {
             Error::Api(format!(
@@ -1864,6 +2016,12 @@ impl NetHsm {
     /// [role]: https://docs.nitrokey.com/nethsm/administration#roles
     /// [state]: https://docs.nitrokey.com/nethsm/administration#state
     pub fn get_time(&self) -> Result<String, Error> {
+        debug!(
+            "Retrieve the system time for the NetHSM at {} using {}",
+            self.url.borrow(),
+            user_or_no_user_string(self.current_credentials.borrow().as_ref()),
+        );
+
         self.validate_namespace_access(NamespaceSupport::Unsupported, None, None)?;
         Ok(config_time_get(&self.create_connection_config())
             .map_err(|error| {
@@ -1933,6 +2091,12 @@ impl NetHsm {
     /// [role]: https://docs.nitrokey.com/nethsm/administration#roles
     /// [state]: https://docs.nitrokey.com/nethsm/administration#state
     pub fn set_time(&self, time: DateTime<Utc>) -> Result<(), Error> {
+        debug!(
+            "Set the system time to {time} for the NetHSM at {} using {}",
+            self.url.borrow(),
+            user_or_no_user_string(self.current_credentials.borrow().as_ref()),
+        );
+
         self.validate_namespace_access(NamespaceSupport::Unsupported, None, None)?;
         config_time_put(
             &self.create_connection_config(),
@@ -2002,6 +2166,12 @@ impl NetHsm {
     /// [role]: https://docs.nitrokey.com/nethsm/administration#roles
     /// [state]: https://docs.nitrokey.com/nethsm/administration#state
     pub fn get_logging(&self) -> Result<LoggingConfig, Error> {
+        debug!(
+            "Retrieve the logging information of the NetHSM at {} using {}",
+            self.url.borrow(),
+            user_or_no_user_string(self.current_credentials.borrow().as_ref()),
+        );
+
         self.validate_namespace_access(NamespaceSupport::Unsupported, None, None)?;
         Ok(config_logging_get(&self.create_connection_config())
             .map_err(|error| {
@@ -2091,6 +2261,12 @@ impl NetHsm {
         port: u32,
         log_level: LogLevel,
     ) -> Result<(), Error> {
+        debug!(
+            "Set the logging configuration to {ip_address}:{port} ({log_level}) for the NetHSM at {} using {}",
+            self.url.borrow(),
+            user_or_no_user_string(self.current_credentials.borrow().as_ref()),
+        );
+
         self.validate_namespace_access(NamespaceSupport::Unsupported, None, None)?;
         let ip_address = ip_address.to_string();
         config_logging_put(
@@ -2179,6 +2355,12 @@ impl NetHsm {
         current_passphrase: Passphrase,
         new_passphrase: Passphrase,
     ) -> Result<(), Error> {
+        debug!(
+            "Set the backup passphrase for the NetHSM at {} using {}",
+            self.url.borrow(),
+            user_or_no_user_string(self.current_credentials.borrow().as_ref()),
+        );
+
         self.validate_namespace_access(NamespaceSupport::Unsupported, None, None)?;
         config_backup_passphrase_put(
             &self.create_connection_config(),
@@ -2243,6 +2425,12 @@ impl NetHsm {
     /// [role]: https://docs.nitrokey.com/nethsm/administration#roles
     /// [state]: https://docs.nitrokey.com/nethsm/administration#state
     pub fn backup(&self) -> Result<Vec<u8>, Error> {
+        debug!(
+            "Retrieve a backup of the NetHSM at {} using {}",
+            self.url.borrow(),
+            user_or_no_user_string(self.current_credentials.borrow().as_ref()),
+        );
+
         self.validate_namespace_access(NamespaceSupport::Unsupported, None, None)?;
         Ok(system_backup_post(&self.create_connection_config())
             .map_err(|error| {
@@ -2326,6 +2514,12 @@ impl NetHsm {
     /// [role]: https://docs.nitrokey.com/nethsm/administration#roles
     /// [state]: https://docs.nitrokey.com/nethsm/administration#state
     pub fn factory_reset(&self) -> Result<(), Error> {
+        debug!(
+            "Trigger a factory reset of the NetHSM at {} using {}",
+            self.url.borrow(),
+            user_or_no_user_string(self.current_credentials.borrow().as_ref()),
+        );
+
         self.validate_namespace_access(NamespaceSupport::Unsupported, None, None)?;
         system_factory_reset_post(&self.create_connection_config()).map_err(|error| {
             Error::Api(format!(
@@ -2426,6 +2620,12 @@ impl NetHsm {
         system_time: DateTime<Utc>,
         backup: Vec<u8>,
     ) -> Result<(), Error> {
+        debug!(
+            "Restore the NetHSM at {} from backup with the new system time {system_time} using {}",
+            self.url.borrow(),
+            user_or_no_user_string(self.current_credentials.borrow().as_ref()),
+        );
+
         self.validate_namespace_access(NamespaceSupport::Unsupported, None, None)?;
         system_restore_post(
             &self.create_connection_config(),
@@ -2512,6 +2712,12 @@ impl NetHsm {
     /// [role]: https://docs.nitrokey.com/nethsm/administration#roles
     /// [state]: https://docs.nitrokey.com/nethsm/administration#state
     pub fn lock(&self) -> Result<(), Error> {
+        debug!(
+            "Lock the NetHSM at {} using {}",
+            self.url.borrow(),
+            user_or_no_user_string(self.current_credentials.borrow().as_ref()),
+        );
+
         self.validate_namespace_access(NamespaceSupport::Unsupported, None, None)?;
         lock_post(&self.create_connection_config()).map_err(|error| {
             Error::Api(format!(
@@ -2561,6 +2767,12 @@ impl NetHsm {
     /// [role]: https://docs.nitrokey.com/nethsm/administration#roles
     /// [state]: https://docs.nitrokey.com/nethsm/administration#state
     pub fn unlock(&self, unlock_passphrase: Passphrase) -> Result<(), Error> {
+        debug!(
+            "Unlock the NetHSM at {} using {}",
+            self.url.borrow(),
+            user_or_no_user_string(self.current_credentials.borrow().as_ref()),
+        );
+
         self.validate_namespace_access(NamespaceSupport::Supported, None, None)?;
         unlock_post(
             &self.create_connection_config(),
@@ -2635,6 +2847,12 @@ impl NetHsm {
     /// [role]: https://docs.nitrokey.com/nethsm/administration#roles
     /// [state]: https://docs.nitrokey.com/nethsm/administration#state
     pub fn system_info(&self) -> Result<SystemInfo, Error> {
+        debug!(
+            "Retrieve system information about the NetHSM at {} using {}",
+            self.url.borrow(),
+            user_or_no_user_string(self.current_credentials.borrow().as_ref()),
+        );
+
         self.validate_namespace_access(NamespaceSupport::Unsupported, None, None)?;
         Ok(system_info_get(&self.create_connection_config())
             .map_err(|error| {
@@ -2704,6 +2922,12 @@ impl NetHsm {
     /// [role]: https://docs.nitrokey.com/nethsm/administration#roles
     /// [state]: https://docs.nitrokey.com/nethsm/administration#state
     pub fn reboot(&self) -> Result<(), Error> {
+        debug!(
+            "Reboot the NetHSM at {} using {}",
+            self.url.borrow(),
+            user_or_no_user_string(self.current_credentials.borrow().as_ref()),
+        );
+
         self.validate_namespace_access(NamespaceSupport::Unsupported, None, None)?;
         system_reboot_post(&self.create_connection_config()).map_err(|error| {
             Error::Api(format!(
@@ -2772,6 +2996,12 @@ impl NetHsm {
     /// [role]: https://docs.nitrokey.com/nethsm/administration#roles
     /// [state]: https://docs.nitrokey.com/nethsm/administration#state
     pub fn shutdown(&self) -> Result<(), Error> {
+        debug!(
+            "Shut down the NetHSM at {} using {}",
+            self.url.borrow(),
+            user_or_no_user_string(self.current_credentials.borrow().as_ref()),
+        );
+
         self.validate_namespace_access(NamespaceSupport::Unsupported, None, None)?;
         system_shutdown_post(&self.create_connection_config()).map_err(|error| {
             Error::Api(format!(
@@ -2847,6 +3077,12 @@ impl NetHsm {
     /// [role]: https://docs.nitrokey.com/nethsm/administration#roles
     /// [state]: https://docs.nitrokey.com/nethsm/administration#state
     pub fn upload_update(&self, update: Vec<u8>) -> Result<SystemUpdateData, Error> {
+        debug!(
+            "Upload an update to the NetHSM at {} using {}",
+            self.url.borrow(),
+            user_or_no_user_string(self.current_credentials.borrow().as_ref()),
+        );
+
         self.validate_namespace_access(NamespaceSupport::Unsupported, None, None)?;
         Ok(system_update_post(&self.create_connection_config(), update)
             .map_err(|error| {
@@ -2924,6 +3160,12 @@ impl NetHsm {
     /// [role]: https://docs.nitrokey.com/nethsm/administration#roles
     /// [state]: https://docs.nitrokey.com/nethsm/administration#state
     pub fn commit_update(&self) -> Result<(), Error> {
+        debug!(
+            "Commit an already uploaded update on the NetHSM at {} using {}",
+            self.url.borrow(),
+            user_or_no_user_string(self.current_credentials.borrow().as_ref()),
+        );
+
         self.validate_namespace_access(NamespaceSupport::Unsupported, None, None)?;
         system_commit_update_post(&self.create_connection_config()).map_err(|error| {
             Error::Api(format!(
@@ -3006,6 +3248,12 @@ impl NetHsm {
     /// [role]: https://docs.nitrokey.com/nethsm/administration#roles
     /// [state]: https://docs.nitrokey.com/nethsm/administration#state
     pub fn cancel_update(&self) -> Result<(), Error> {
+        debug!(
+            "Cancel an already uploaded update on the NetHSM at {} using {}",
+            self.url.borrow(),
+            user_or_no_user_string(self.current_credentials.borrow().as_ref()),
+        );
+
         self.validate_namespace_access(NamespaceSupport::Unsupported, None, None)?;
         system_cancel_update_post(&self.create_connection_config()).map_err(|error| {
             Error::Api(format!(
@@ -3076,6 +3324,12 @@ impl NetHsm {
     /// [role]: https://docs.nitrokey.com/nethsm/administration#roles
     /// [state]: https://docs.nitrokey.com/nethsm/administration#state
     pub fn add_namespace(&self, namespace_id: &NamespaceId) -> Result<(), Error> {
+        debug!(
+            "Add the namespace {namespace_id} on the NetHSM at {} using {}",
+            self.url.borrow(),
+            user_or_no_user_string(self.current_credentials.borrow().as_ref()),
+        );
+
         self.validate_namespace_access(NamespaceSupport::Unsupported, None, None)?;
         namespaces_namespace_id_put(&self.create_connection_config(), namespace_id.as_ref())
             .map_err(|error| {
@@ -3144,6 +3398,12 @@ impl NetHsm {
     /// [role]: https://docs.nitrokey.com/nethsm/administration#roles
     /// [state]: https://docs.nitrokey.com/nethsm/administration#state
     pub fn get_namespaces(&self) -> Result<Vec<NamespaceId>, Error> {
+        debug!(
+            "Retrieve all available namespaces from the NetHSM at {} using {}",
+            self.url.borrow(),
+            user_or_no_user_string(self.current_credentials.borrow().as_ref()),
+        );
+
         self.validate_namespace_access(NamespaceSupport::Unsupported, None, None)?;
         let valid_namespaces = {
             let mut invalid_namespaces = Vec::new();
@@ -3240,6 +3500,12 @@ impl NetHsm {
     /// [role]: https://docs.nitrokey.com/nethsm/administration#roles
     /// [state]: https://docs.nitrokey.com/nethsm/administration#state
     pub fn delete_namespace(&self, namespace_id: &NamespaceId) -> Result<(), Error> {
+        debug!(
+            "Delete the namespace {namespace_id} from the NetHSM at {} using {}",
+            self.url.borrow(),
+            user_or_no_user_string(self.current_credentials.borrow().as_ref()),
+        );
+
         self.validate_namespace_access(NamespaceSupport::Unsupported, None, None)?;
         namespaces_namespace_id_delete(&self.create_connection_config(), namespace_id.as_ref())
             .map_err(|error| {
@@ -3357,6 +3623,17 @@ impl NetHsm {
         passphrase: Passphrase,
         user_id: Option<UserId>,
     ) -> Result<UserId, Error> {
+        debug!(
+            "Add the user \"{real_name}\"{} in the role {role} to the NetHSM at {} using {}",
+            if let Some(user_id) = user_id.as_ref() {
+                format!(" (\"{}\")", user_id)
+            } else {
+                "".to_string()
+            },
+            self.url.borrow(),
+            user_or_no_user_string(self.current_credentials.borrow().as_ref()),
+        );
+
         self.validate_namespace_access(NamespaceSupport::Supported, user_id.as_ref(), Some(&role))?;
         let user_id = if let Some(user_id) = user_id {
             users_user_id_put(
@@ -3480,6 +3757,12 @@ impl NetHsm {
     /// [role]: https://docs.nitrokey.com/nethsm/administration#roles
     /// [state]: https://docs.nitrokey.com/nethsm/administration#state
     pub fn delete_user(&self, user_id: &UserId) -> Result<(), Error> {
+        debug!(
+            "Delete the user \"{user_id}\" from the NetHSM at {} using {}",
+            self.url.borrow(),
+            user_or_no_user_string(self.current_credentials.borrow().as_ref()),
+        );
+
         self.validate_namespace_access(NamespaceSupport::Supported, Some(user_id), None)?;
         users_user_id_delete(&self.create_connection_config(), &user_id.to_string()).map_err(
             |error| {
@@ -3561,6 +3844,12 @@ impl NetHsm {
     /// [role]: https://docs.nitrokey.com/nethsm/administration#roles
     /// [state]: https://docs.nitrokey.com/nethsm/administration#state
     pub fn get_users(&self) -> Result<Vec<UserId>, Error> {
+        debug!(
+            "Get the users of the NetHSM at {} using {}",
+            self.url.borrow(),
+            user_or_no_user_string(self.current_credentials.borrow().as_ref()),
+        );
+
         self.validate_namespace_access(NamespaceSupport::Supported, None, None)?;
         let valid_users = {
             let mut invalid_users = Vec::new();
@@ -3669,6 +3958,12 @@ impl NetHsm {
     /// [role]: https://docs.nitrokey.com/nethsm/administration#roles
     /// [state]: https://docs.nitrokey.com/nethsm/administration#state
     pub fn get_user(&self, user_id: &UserId) -> Result<UserData, Error> {
+        debug!(
+            "Get the information of the user \"{user_id}\" on the NetHSM at {} using {}",
+            self.url.borrow(),
+            user_or_no_user_string(self.current_credentials.borrow().as_ref()),
+        );
+
         self.validate_namespace_access(NamespaceSupport::Supported, Some(user_id), None)?;
         Ok(
             users_user_id_get(&self.create_connection_config(), &user_id.to_string())
@@ -3785,6 +4080,12 @@ impl NetHsm {
         user_id: UserId,
         passphrase: Passphrase,
     ) -> Result<(), Error> {
+        debug!(
+            "Set the passphrase of the user \"{user_id}\" on the NetHSM at {} using {}",
+            self.url.borrow(),
+            user_or_no_user_string(self.current_credentials.borrow().as_ref()),
+        );
+
         self.validate_namespace_access(NamespaceSupport::Supported, Some(&user_id), None)?;
         users_user_id_passphrase_post(
             &self.create_connection_config(),
@@ -3924,6 +4225,12 @@ impl NetHsm {
     /// [role]: https://docs.nitrokey.com/nethsm/administration#roles
     /// [state]: https://docs.nitrokey.com/nethsm/administration#state
     pub fn add_user_tag(&self, user_id: &UserId, tag: &str) -> Result<(), Error> {
+        debug!(
+            "Add the tag \"{tag}\" for the user \"{user_id}\" on the NetHSM at {} using {}",
+            self.url.borrow(),
+            user_or_no_user_string(self.current_credentials.borrow().as_ref()),
+        );
+
         self.validate_namespace_access(NamespaceSupport::Supported, Some(user_id), None)?;
         users_user_id_tags_tag_put(&self.create_connection_config(), &user_id.to_string(), tag)
             .map_err(|error| {
@@ -4039,6 +4346,12 @@ impl NetHsm {
     /// [role]: https://docs.nitrokey.com/nethsm/administration#roles
     /// [state]: https://docs.nitrokey.com/nethsm/administration#state
     pub fn delete_user_tag(&self, user_id: &UserId, tag: &str) -> Result<(), Error> {
+        debug!(
+            "Delete the tag \"{tag}\" from the user \"{user_id}\" on the NetHSM at {} using {}",
+            self.url.borrow(),
+            user_or_no_user_string(self.current_credentials.borrow().as_ref()),
+        );
+
         self.validate_namespace_access(NamespaceSupport::Supported, Some(user_id), None)?;
         users_user_id_tags_tag_delete(&self.create_connection_config(), &user_id.to_string(), tag)
             .map_err(|error| {
@@ -4126,6 +4439,12 @@ impl NetHsm {
     /// [role]: https://docs.nitrokey.com/nethsm/administration#roles
     /// [state]: https://docs.nitrokey.com/nethsm/administration#state
     pub fn get_user_tags(&self, user_id: &UserId) -> Result<Vec<String>, Error> {
+        debug!(
+            "Get the tags of the user \"{user_id}\" on the NetHSM at {} using {}",
+            self.url.borrow(),
+            user_or_no_user_string(self.current_credentials.borrow().as_ref()),
+        );
+
         self.validate_namespace_access(NamespaceSupport::Supported, Some(user_id), None)?;
         Ok(
             users_user_id_tags_get(&self.create_connection_config(), &user_id.to_string())
@@ -4256,6 +4575,32 @@ impl NetHsm {
         key_id: Option<KeyId>,
         tags: Option<Vec<String>>,
     ) -> Result<KeyId, Error> {
+        debug!(
+            "Generate a key (key type: {key_type}; mechanisms: {}; length: {}; ID: {}, tags: {}) on the NetHSM at {} using {}",
+            mechanisms
+                .iter()
+                .map(|mechanism| mechanism.to_string())
+                .collect::<Vec<String>>()
+                .join(", "),
+            if let Some(length) = length {
+                length.to_string()
+            } else {
+                "n/a".to_string()
+            },
+            if let Some(key_id) = key_id.as_ref() {
+                key_id.to_string()
+            } else {
+                "n/a".to_string()
+            },
+            if let Some(tags) = tags.as_ref() {
+                tags.join(", ")
+            } else {
+                "n/a".to_string()
+            },
+            self.url.borrow(),
+            user_or_no_user_string(self.current_credentials.borrow().as_ref()),
+        );
+
         self.validate_namespace_access(NamespaceSupport::Supported, None, None)?;
         // ensure the key_type - mechanisms combinations are valid
         key_type_matches_mechanisms(key_type, &mechanisms)?;
@@ -4390,6 +4735,27 @@ impl NetHsm {
         key_id: Option<KeyId>,
         tags: Option<Vec<String>>,
     ) -> Result<KeyId, Error> {
+        debug!(
+            "Import a key (mechanisms: {}; ID: {}, tags: {}) to the NetHSM at {} using {}",
+            mechanisms
+                .iter()
+                .map(|mechanism| mechanism.to_string())
+                .collect::<Vec<String>>()
+                .join(", "),
+            if let Some(key_id) = key_id.as_ref() {
+                key_id.to_string()
+            } else {
+                "n/a".to_string()
+            },
+            if let Some(tags) = tags.as_ref() {
+                tags.join(", ")
+            } else {
+                "n/a".to_string()
+            },
+            self.url.borrow(),
+            user_or_no_user_string(self.current_credentials.borrow().as_ref()),
+        );
+
         self.validate_namespace_access(NamespaceSupport::Supported, None, None)?;
         // ensure the key_type - mechanisms combinations are valid
         let key_type = key_data.key_type();
@@ -4498,6 +4864,12 @@ impl NetHsm {
     /// [role]: https://docs.nitrokey.com/nethsm/administration#roles
     /// [state]: https://docs.nitrokey.com/nethsm/administration#state
     pub fn delete_key(&self, key_id: &KeyId) -> Result<(), Error> {
+        debug!(
+            "Delete the key \"{key_id}\" on the NetHSM at {} using {}",
+            self.url.borrow(),
+            user_or_no_user_string(self.current_credentials.borrow().as_ref()),
+        );
+
         self.validate_namespace_access(NamespaceSupport::Supported, None, None)?;
         keys_key_id_delete(&self.create_connection_config(), key_id.as_ref()).map_err(|error| {
             Error::Api(format!(
@@ -4560,6 +4932,12 @@ impl NetHsm {
     /// [role]: https://docs.nitrokey.com/nethsm/administration#roles
     /// [state]: https://docs.nitrokey.com/nethsm/administration#state
     pub fn get_key(&self, key_id: &KeyId) -> Result<PublicKey, Error> {
+        debug!(
+            "Retrieve details about the key \"{key_id}\" from the NetHSM at {} using {}",
+            self.url.borrow(),
+            user_or_no_user_string(self.current_credentials.borrow().as_ref()),
+        );
+
         self.validate_namespace_access(NamespaceSupport::Supported, None, None)?;
         Ok(
             keys_key_id_get(&self.create_connection_config(), key_id.as_ref())
@@ -4627,6 +5005,17 @@ impl NetHsm {
     /// [role]: https://docs.nitrokey.com/nethsm/administration#roles
     /// [state]: https://docs.nitrokey.com/nethsm/administration#state
     pub fn get_keys(&self, filter: Option<&str>) -> Result<Vec<KeyId>, Error> {
+        debug!(
+            "Get key IDs{} from the NetHSM at {} using {}",
+            if let Some(filter) = filter {
+                format!(" based on filter {filter}")
+            } else {
+                "".to_string()
+            },
+            self.url.borrow(),
+            user_or_no_user_string(self.current_credentials.borrow().as_ref()),
+        );
+
         self.validate_namespace_access(NamespaceSupport::Supported, None, None)?;
         let valid_keys = {
             let mut invalid_keys = Vec::new();
@@ -4735,6 +5124,12 @@ impl NetHsm {
     /// [role]: https://docs.nitrokey.com/nethsm/administration#roles
     /// [state]: https://docs.nitrokey.com/nethsm/administration#state
     pub fn get_public_key(&self, key_id: &KeyId) -> Result<String, Error> {
+        debug!(
+            "Retrieve public key of key \"{key_id}\" from the NetHSM at {} using {}",
+            self.url.borrow(),
+            user_or_no_user_string(self.current_credentials.borrow().as_ref()),
+        );
+
         self.validate_namespace_access(NamespaceSupport::Supported, None, None)?;
         Ok(
             keys_key_id_public_pem_get(&self.create_connection_config(), key_id.as_ref())
@@ -4824,6 +5219,12 @@ impl NetHsm {
     /// [role]: https://docs.nitrokey.com/nethsm/administration#roles
     /// [state]: https://docs.nitrokey.com/nethsm/administration#state
     pub fn add_key_tag(&self, key_id: &KeyId, tag: &str) -> Result<(), Error> {
+        debug!(
+            "Add tag \"{tag}\" to key \"{key_id}\" on the NetHSM at {} using {}",
+            self.url.borrow(),
+            user_or_no_user_string(self.current_credentials.borrow().as_ref()),
+        );
+
         self.validate_namespace_access(NamespaceSupport::Supported, None, None)?;
         keys_key_id_restrictions_tags_tag_put(
             &self.create_connection_config(),
@@ -4914,6 +5315,12 @@ impl NetHsm {
     /// [role]: https://docs.nitrokey.com/nethsm/administration#roles
     /// [state]: https://docs.nitrokey.com/nethsm/administration#state
     pub fn delete_key_tag(&self, key_id: &KeyId, tag: &str) -> Result<(), Error> {
+        debug!(
+            "Delete tag \"{tag}\" from key \"{key_id}\" on the NetHSM at {} using {}",
+            self.url.borrow(),
+            user_or_no_user_string(self.current_credentials.borrow().as_ref()),
+        );
+
         self.validate_namespace_access(NamespaceSupport::Supported, None, None)?;
         keys_key_id_restrictions_tags_tag_delete(
             &self.create_connection_config(),
@@ -5026,6 +5433,12 @@ impl NetHsm {
     /// [role]: https://docs.nitrokey.com/nethsm/administration#roles
     /// [state]: https://docs.nitrokey.com/nethsm/administration#state
     pub fn import_key_certificate(&self, key_id: &KeyId, data: Vec<u8>) -> Result<(), Error> {
+        debug!(
+            "Import certificate for key \"{key_id}\" on the NetHSM at {} using {}",
+            self.url.borrow(),
+            user_or_no_user_string(self.current_credentials.borrow().as_ref()),
+        );
+
         self.validate_namespace_access(NamespaceSupport::Supported, None, None)?;
         keys_key_id_cert_put(&self.create_connection_config(), key_id.as_ref(), data).map_err(
             |error| {
@@ -5133,6 +5546,12 @@ impl NetHsm {
     /// [role]: https://docs.nitrokey.com/nethsm/administration#roles
     /// [state]: https://docs.nitrokey.com/nethsm/administration#state
     pub fn get_key_certificate(&self, key_id: &KeyId) -> Result<Vec<u8>, Error> {
+        debug!(
+            "Retrieve the certificate of the key \"{key_id}\" on the NetHSM at {} using {}",
+            self.url.borrow(),
+            user_or_no_user_string(self.current_credentials.borrow().as_ref()),
+        );
+
         self.validate_namespace_access(NamespaceSupport::Supported, None, None)?;
         Ok(
             keys_key_id_cert_get(&self.create_connection_config(), key_id.as_ref())
@@ -5243,6 +5662,12 @@ impl NetHsm {
     /// [role]: https://docs.nitrokey.com/nethsm/administration#roles
     /// [state]: https://docs.nitrokey.com/nethsm/administration#state
     pub fn delete_key_certificate(&self, key_id: &KeyId) -> Result<(), Error> {
+        debug!(
+            "Delete the certificate for the key \"{key_id}\" on the NetHSM at {} using {}",
+            self.url.borrow(),
+            user_or_no_user_string(self.current_credentials.borrow().as_ref()),
+        );
+
         self.validate_namespace_access(NamespaceSupport::Supported, None, None)?;
         keys_key_id_cert_delete(&self.create_connection_config(), key_id.as_ref()).map_err(
             |error| {
@@ -5344,6 +5769,13 @@ impl NetHsm {
         key_id: &KeyId,
         distinguished_name: DistinguishedName,
     ) -> Result<String, Error> {
+        debug!(
+            "Retrieve a Certificate Signing Request ({}) for the key \"{key_id}\" on the NetHSM at {} using {}",
+            distinguished_name.common_name,
+            self.url.borrow(),
+            user_or_no_user_string(self.current_credentials.borrow().as_ref()),
+        );
+
         self.validate_namespace_access(NamespaceSupport::Supported, None, None)?;
         Ok(keys_key_id_csr_pem_post(
             &self.create_connection_config(),
@@ -5492,6 +5924,12 @@ impl NetHsm {
         signature_type: SignatureType,
         digest: &[u8],
     ) -> Result<Vec<u8>, Error> {
+        debug!(
+            "Sign a digest (signature type: {signature_type}) with the key \"{key_id}\" on the NetHSM at {} using {}",
+            self.url.borrow(),
+            user_or_no_user_string(self.current_credentials.borrow().as_ref()),
+        );
+
         self.validate_namespace_access(NamespaceSupport::Supported, None, None)?;
         // decode base64 encoded data from the API
         Base64::decode_vec(
@@ -5628,6 +6066,12 @@ impl NetHsm {
         signature_type: SignatureType,
         message: &[u8],
     ) -> Result<Vec<u8>, Error> {
+        debug!(
+            "Sign a message (signature type: {signature_type}) with the key \"{key_id}\" on the NetHSM at {} using {}",
+            self.url.borrow(),
+            user_or_no_user_string(self.current_credentials.borrow().as_ref()),
+        );
+
         // Some algorithms require the data to be hashed first
         // The API requires data to be base64 encoded
         let message = match signature_type {
@@ -5771,6 +6215,12 @@ impl NetHsm {
         message: &[u8],
         iv: Option<&[u8]>,
     ) -> Result<Vec<u8>, Error> {
+        debug!(
+            "Encrypt a message (encrypt mode: {mode}) with the key \"{key_id}\" on the NetHSM at {} using {}",
+            self.url.borrow(),
+            user_or_no_user_string(self.current_credentials.borrow().as_ref()),
+        );
+
         self.validate_namespace_access(NamespaceSupport::Supported, None, None)?;
         // the API requires data to be base64 encoded
         let message = Base64::encode_string(message);
@@ -5937,6 +6387,13 @@ impl NetHsm {
         message: &[u8],
         iv: Option<&[u8]>,
     ) -> Result<Vec<u8>, Error> {
+        debug!(
+            "Decrypt a message (decrypt mode: {mode}; IV: {}) with the key \"{key_id}\" on the NetHSM at {} using {}",
+            if iv.is_some() { "yes" } else { "no" },
+            self.url.borrow(),
+            user_or_no_user_string(self.current_credentials.borrow().as_ref()),
+        );
+
         self.validate_namespace_access(NamespaceSupport::Supported, None, None)?;
         // the API requires data to be base64 encoded
         let encrypted = Base64::encode_string(message);
@@ -6019,6 +6476,12 @@ impl NetHsm {
     /// [role]: https://docs.nitrokey.com/nethsm/administration#roles
     /// [state]: https://docs.nitrokey.com/nethsm/administration#state
     pub fn random(&self, length: u32) -> Result<Vec<u8>, Error> {
+        debug!(
+            "Create {length} random bytes on the NetHSM at {} using {}",
+            self.url.borrow(),
+            user_or_no_user_string(self.current_credentials.borrow().as_ref()),
+        );
+
         self.validate_namespace_access(NamespaceSupport::Supported, None, None)?;
         let base64_bytes = random_post(
             &self.create_connection_config(),
@@ -6158,6 +6621,13 @@ impl NetHsm {
         created_at: DateTime<Utc>,
         version: OpenPgpVersion,
     ) -> Result<Vec<u8>, Error> {
+        debug!(
+            "Create an OpenPGP certificate (User ID: {user_id}; flags: {:?}; creation date: {created_at}; version: {version}) for key \"{key_id}\" on the NetHSM at {} using {}",
+            flags.as_ref(),
+            self.url.borrow(),
+            user_or_no_user_string(self.current_credentials.borrow().as_ref()),
+        );
+
         Ok(openpgp::add_certificate(
             self, flags, key_id, user_id, created_at, version,
         )?)
@@ -6268,6 +6738,12 @@ impl NetHsm {
     /// [role]: https://docs.nitrokey.com/nethsm/administration#roles
     /// [state]: https://docs.nitrokey.com/nethsm/administration#state
     pub fn openpgp_sign(&self, key_id: &KeyId, message: &[u8]) -> Result<Vec<u8>, Error> {
+        debug!(
+            "Create an OpenPGP signature for a message with key \"{key_id}\" on the NetHSM at {} using {}",
+            self.url.borrow(),
+            user_or_no_user_string(self.current_credentials.borrow().as_ref()),
+        );
+
         Ok(openpgp::sign(self, key_id, message)?)
     }
 
@@ -6384,6 +6860,12 @@ impl NetHsm {
         key_id: &KeyId,
         state: sha2::Sha512,
     ) -> Result<String, crate::Error> {
+        debug!(
+            "Create an OpenPGP signature for a hasher state with key \"{key_id}\" on the NetHSM at {} using {}",
+            self.url.borrow(),
+            user_or_no_user_string(self.current_credentials.borrow().as_ref()),
+        );
+
         Ok(openpgp::sign_hasher_state(self, key_id, state)?)
     }
 }
