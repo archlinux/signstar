@@ -1231,6 +1231,12 @@ impl KeyUsageFlags {
     }
 }
 
+impl AsRef<KeyFlags> for KeyUsageFlags {
+    fn as_ref(&self) -> &KeyFlags {
+        &self.0
+    }
+}
+
 impl From<KeyUsageFlags> for KeyFlags {
     fn from(value: KeyUsageFlags) -> Self {
         value.0
