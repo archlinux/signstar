@@ -135,6 +135,7 @@ integration-test:
     - WORKDIR="$(pwd)" runuser -w WORKDIR,SIGNSTAR_COVERAGE -l testuser -c 'env && cd "$WORKDIR" && just ignored=true test'
     - WORKDIR="$(pwd)" runuser -w WORKDIR,SIGNSTAR_COVERAGE -l testuser -c 'env && cd "$WORKDIR" && just containerized-integration-tests'
   stage: test
+  timeout: 20m
   tags:
     - vm
   artifacts:
@@ -146,14 +147,14 @@ integration-test:
       # See: https://gitlab.archlinux.org/help/ci/testing/unit_test_reports#how-to-set-it-up
       junit: target/nextest/default/junit.xml
 
-build-coverage:
+create-coverage-report:
   extends: .default-rust
   needs:
     - test
     - integration-test
   script:
     - just install-rust-dev-tools
-    - just build-coverage doc
+    - just create-coverage-report doc
   stage: test
   # This is a regex that looks at the output from the `just test-coverage` command
   # and extracts the coverage percent from it.

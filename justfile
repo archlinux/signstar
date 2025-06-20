@@ -759,7 +759,7 @@ containerized-integration-tests:
 
 # Creates code coverage for all projects.
 [group('test')]
-build-coverage mode="nodoc":
+create-coverage-report mode="nodoc":
     #!/usr/bin/env bash
     set -euo pipefail
 
