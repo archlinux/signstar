@@ -621,6 +621,36 @@ impl NetHsm {
         *self.url.borrow_mut() = url;
     }
 
+    /// Retrieves the current URL for the NetHSM connection.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use nethsm::{Connection, ConnectionSecurity, NetHsm, Url};
+    ///
+    /// # fn main() -> testresult::TestResult {
+    /// // Create a new connection for a NetHSM at "https://example.org"
+    /// let nethsm = NetHsm::new(
+    ///     Connection::new(
+    ///         "https://example.org/api/v1".try_into()?,
+    ///         ConnectionSecurity::Unsafe,
+    ///     ),
+    ///     None,
+    ///     None,
+    ///     None,
+    /// )?;
+    ///
+    /// // retrieve the current URL
+    /// assert_eq!(nethsm.get_url(), "https://example.org/api/v1".try_into()?,);
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn get_url(&self) -> Url {
+        debug!("Get the URL for the NetHSM at {}", self.url.borrow());
+
+        self.url.borrow().clone()
+    }
+
     /// Adds [`Credentials`] to the list of available ones.
     ///
     /// # Examples
