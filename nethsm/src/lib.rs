@@ -799,6 +799,41 @@ impl NetHsm {
         Ok(())
     }
 
+    /// Get the [`UserId`] of the currently used [`Credentials`] for the connection.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use nethsm::{Connection, ConnectionSecurity, Credentials, NetHsm};
+    ///
+    /// # fn main() -> testresult::TestResult {
+    /// let nethsm = NetHsm::new(
+    ///     Connection::new(
+    ///         "https://example.org/api/v1".try_into()?,
+    ///         ConnectionSecurity::Unsafe,
+    ///     ),
+    ///     Some(Credentials::new(
+    ///         "admin".parse()?,
+    ///         Some("passphrase".parse()?),
+    ///     )),
+    ///     None,
+    ///     None,
+    /// )?;
+    ///
+    /// // Get current User ID
+    /// assert_eq!(nethsm.get_current_user(), Some("admin".parse()?));
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn get_current_user(&self) -> Option<UserId> {
+        trace!(
+            "Get current User ID of NetHSM connection at {}",
+            self.url.borrow()
+        );
+
+        self.current_credentials.borrow().clone()
+    }
+
     /// Provisions a NetHSM.
     ///
     /// [Provisioning] is the initial setup step for a NetHSM.
