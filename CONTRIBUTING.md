@@ -2,7 +2,7 @@
 
 These are the contributing guidelines for the signstar project.
 
-Development takes place at https://gitlab.archlinux.org/archlinux/signstar.
+Development takes place in the [signstar] repository.
 
 ## Writing code
 
@@ -84,7 +84,7 @@ Once the changes are merged to the default branch a tag is created and pushed fo
 just release <package>
 ```
 
-The crate is afterwards automatically published on https://crates.io using a pipeline job.
+The crate is afterwards automatically published on [crates.io] using a pipeline job.
 
 ## License
 
@@ -98,22 +98,24 @@ Specific license assignments and attribution are handled using [`REUSE.toml`].
 Individual contributors are all summarized as *"Signstar Contributors"*.
 For a full list of individual contributors, refer to `git log --format="%an <%aE>" | sort -u`.
 
+[Apache-2.0]: ./LICENSES/Apache-2.0.txt
+[CC-BY-SA-4.0]: ./LICENSES/CC-BY-SA-4.0.txt
+[CC0-1.0]: ./LICENSES/CC0-1.0.txt
+[MIT]: ./LICENSES/MIT.txt
 [Developer's Certificate of Origin]: https://developercertificate.org
 [Rust]: https://www.rust-lang.org/
-[`rustfmt`]: https://github.com/rust-lang/rustfmt
+[`REUSE.toml`]: ./REUSE.toml
+[`cargo-deny`]: https://github.com/EmbarkStudios/cargo-deny
 [`clippy`]: https://github.com/rust-lang/rust-clippy
 [`codespell`]: https://github.com/codespell-project/codespell
-[`cargo-deny`]: https://github.com/EmbarkStudios/cargo-deny
+[`just`]: https://github.com/casey/just
 [`git commit --signoff`]: https://git-scm.com/docs/git-commit#git-commit---signoff
 [`reuse`]: https://git.fsfe.org/reuse/tool
-[`just`]: https://github.com/casey/just
+[`release-plz`]: https://github.com/MarcoIeni/release-plz
+[`rustfmt`]: https://github.com/rust-lang/rustfmt
+[crates.io]: https://crates.io
+[conventional commits]: https://www.conventionalcommits.org/en/v1.0.0/
 [git pre-commit]: https://man.archlinux.org/man/githooks.5#pre-commit
 [git pre-push]: https://man.archlinux.org/man/githooks.5#pre-push
 [semantic versioning]: https://semver.org/
-[conventional commits]: https://www.conventionalcommits.org/en/v1.0.0/
-[`release-plz`]: https://github.com/MarcoIeni/release-plz
-[Apache-2.0]: ./LICENSES/Apache-2.0.txt
-[MIT]: ./LICENSES/MIT.txt
-[CC0-1.0]: ./LICENSES/CC0-1.0.txt
-[CC-BY-SA-4.0]: ./LICENSES/CC-BY-SA-4.0.txt
-[`REUSE.toml`]: ./REUSE.toml
+[signstar]: https://gitlab.archlinux.org/archlinux/signstar
