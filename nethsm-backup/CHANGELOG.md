@@ -10,9 +10,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.1.1] - 2025-04-22
 
 ### Added
+
 - Require `Debug` to be implemented in public items
 
 ### Other
+
 - *(Cargo.toml)* Fix formatting
 - *(deps)* make `log` a workspace dependency
 - *(nethsm-backup)* Log inner errors
@@ -22,8 +24,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.1.0] - 2024-12-08
 
 ### Added
+
 - Add `nethsm-backup` library
 
 ### Other
+
 - *(README)* Add links to latest (un)released crate documentation
 - *(cargo)* Consolidate dependencies with workspace dependencies

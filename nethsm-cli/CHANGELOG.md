@@ -1,4 +1,5 @@
 # Changelog
+
 All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
@@ -9,45 +10,55 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.7.0] - 2025-04-22
 
 ### Added
+
 - [**breaking**] make `openpgp_sign_state` always return an armored OpenPGP signature
 - Add `signstar-request-signature send` subcommand for sending signing requests
 
 ### Fixed
+
 - *(README)* Use even more `rpacket` instead of `sq` for OpenPGP packet dumping
 - *(README)* Use `rpacket` instead of `sq` for OpenPGP packet dumping
 
 ### Other
+
 - Switch to rustfmt style edition 2024
 
 ## [0.6.0] - 2024-12-13
 
 ### Added
+
 - Add `nethsm openpgp sign-state` command
 
 ## [0.5.0] - 2024-12-08
 
 ### Added
+
 - Add `nethsm system validate-backup` command
 
 ### Other
+
 - *(README)* Add links to latest (un)released crate documentation
 
 ## [0.4.1] - 2024-11-27
 
 ### Other
+
 - update Cargo.lock dependencies
 
 ## [0.4.0] - 2024-11-26
 
 ### Added
+
 - [**breaking**] Provide version with `OpenPgpVersion` when creating OpenPGP certificate
 - [**breaking**] Use `OpenPgpUserId` for User ID when creating OpenPGP certificate
 
 ### Fixed
+
 - *(deps)* Update dependencies removing yanked crate
 - *(deps)* update rust crate strum to 0.26.0
 
 ### Other
+
 - Consolidate contributing and licensing information
 - *(cargo)* Use workspace dependencies for `clap` and `nethsm-config`
 - *(deps)* Update dependencies and fix license ID
@@ -62,9 +73,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.3.0] - 2024-09-11
 
 ### Fixed
+
 - Allow generating Curve25519 key by default
 
 ### Other
+
 - Upgrade nethsm-config crate to 0.1.1
 - Upgrade nethsm crate to 0.6.0
 - Adapt subcommand documentation for the use of namespaces
@@ -74,20 +87,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.2.2] - 2024-09-06
 
 ### Fixed
+
 - Distinguish restore of provisioned and unprovisioned device
 
 ### Other
+
 - Upgrade nethsm crate to 0.5.0
 - Switch to nethsm-config crate from own modules
 
 ## [0.2.1] - 2024-08-31
 
 ### Fixed
+
 - Name the command explicitly so that clap_allgen can use it
 
 ## [0.2.0] - 2024-08-30
 
 ### Added
+
 - Allow providing global `--passphrase-file` option multiple times
 - Allow providing the global `--user` option multiple times
 - Add subcommands for managing namespaces
@@ -99,6 +116,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add support for PEM-encoded private keys in `key import`
 
 ### Fixed
+
 - Adjust format option documentation for `nethsm key import`
 - When printing user tags, only show return value not Result
 - [**breaking**] Rename function for creating an OpenPGP certificate
@@ -106,6 +124,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Do not require `Administrator` role when executing `unlock`
 
 ### Other
+
 - Create release 0.4.0 for nethsm
 - *(README.md)* Extend examples to cover the use of namespaces
 - *(README.md)* Simplify OpenPGP examples with environment variables
@@ -122,7 +141,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.1.0] - 2024-07-13
 
 ### Added
+
 - Add CLI for the nethsm library
 
 ### Other
+
 - Add documentation for nethsm-cli crate

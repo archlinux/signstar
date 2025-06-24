@@ -1,4 +1,5 @@
 # Changelog
+
 All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
@@ -9,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.8.0] - 2025-04-22
 
 ### Added
+
 - Add `OpenPgpUserIdList::first`
 - Add `From<nethsm_sdk_rs::models::UserRole>` for `UserRole`
 - [**breaking**] Return a list of `KeyId`s, not `String`s from `NetHsm::get_keys`
@@ -29,9 +31,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Rely on `aws-lc-rs` as default crypto provider for `rustls`
 
 ### Fixed
+
 - *(deps)* update rust crate pgp to 0.15
 
 ### Other
+
 - Move `nethsm::key::Error` to top of doc for easier discovery
 - *(tests)* Change equality asserts to use `assert_eq!` for better error messages
 - Wrap inner errors in I/O other errors for error propagation
@@ -46,15 +50,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.7.3] - 2024-12-13
 
 ### Added
+
 - Add `NetHsm::openpgp_sign_state`
 
 ## [0.7.2] - 2024-12-08
 
 ### Added
+
 - Add `validate_backup` to validate NetHSM backups
 - Add `Passphrase::expose_borrowed`
 
 ### Other
+
 - *(README)* Add links to latest (un)released crate documentation
 - *(deps)* Update dependencies to fix security issues
 - *(cargo)* Consolidate dependencies with workspace dependencies
@@ -62,11 +69,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.7.1] - 2024-11-27
 
 ### Other
+
 - Update libc crate as the previously used version was yanked
 
 ## [0.7.0] - 2024-11-26
 
 ### Added
+
 - Introduce `nethsm-tests` for easier integration testing
 - Derive `Copy` for `nethsm::UserRole`
 - Implement `AsRef<str>` for `NamespaceId` to return string slice
@@ -83,6 +92,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Derive `Hash`, `Eq` and `PartialEq` for some types
 
 ### Fixed
+
 - *(deps)* update rust crate picky-asn1-x509 to 0.14.0
 - Properly truncate digests for ECDSA signing schemes
 - Make serde use `TryFrom<String>` for deserialization
@@ -94,6 +104,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Read real value of the RSA modulus instead of using a hardcoded one
 
 ### Other
+
 - Consolidate contributing and licensing information
 - *(deps)* Update dependencies and fix license ID
 - *(cargo)* Move same-crate, feature-incompatible crates to workspace
@@ -109,13 +120,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.6.0] - 2024-09-11
 
 ### Added
+
 - Ensure valid bit length when generating RSA TLS keys
 - Ensure valid bit length for block cipher and RSA keys
 
 ### Fixed
+
 - Adjust broken links in `KeyId` documentation
 
 ### Other
+
 - [**breaking**] Introduce `nethsm::KeyId` type
 - Improve documentation for Error variant `Error::Key`
 - [**breaking**] Remove unused Error variant `Error::KeyData`
@@ -125,11 +139,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.5.0] - 2024-09-06
 
 ### Fixed
+
 - *(deps)* [**breaking**] update rust crate rustls-native-certs to 0.8.0
 - Pad secret keys with zeros before sending them to NetHSM
 - Use correct function for constructing MPIs
 
 ### Other
+
 - Make `SignatureType` a copy type
 - Import keys of all supported types
 - *(Cargo.toml)* Remove duplicate rand development dependency
@@ -138,6 +154,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.4.0] - 2024-08-30
 
 ### Added
+
 - Validate namespace access using `UserId` method
 - Add `UserId` and `NamespaceId` types for handling User IDs
 - Add facilities for namespace administration
@@ -145,6 +162,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add support for PEM-encoded private keys in `key import`
 
 ### Fixed
+
 - *(Cargo.toml)* Have cargo-machete ignore the md-5 dependency
 - Do not require `Administrator` role when executing `unlock`
 - Adjust the test to remove credentials as they are not needed in `unlock`
@@ -153,6 +171,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - *(README.md)* Remove license attribution as it is in reuse config
 
 ### Other
+
 - Remove warning from `NetHsm::restore` method
 - Adapt existing documentation for the use of namespaces
 - Adapt and extend tests for use of namespaces
@@ -169,6 +188,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.3.0] - 2024-07-12
 
 ### Added
+
 - Add functions to return key type specific lists of key mechanisms
 - Extend FromStr for ConnectionSecurity to cover case sensitivity
 - Derive strum::IntoStaticStr for various types
@@ -178,9 +198,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Publicly re-export all required nethsm-sdk-rs models
 
 ### Fixed
+
 - *(nethsm/src/nethsm_sdk.rs)* Fix spelling mistake in error message
 
 ### Other
+
 - Switch rustls's crypto provider to ring
 - Describe output data types for signing functionality
 - *(Cargo.toml)* Remove strum_macros as it is unused
@@ -191,6 +213,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.2.0] - 2024-05-10
 
 ### Added
+
 - [**breaking**] Use PrivateKeyImport for import of private key material
 - Provide own LogLevel
 - Provide own EncryptMode
@@ -207,9 +230,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add handling of /health/alive endpoint
 
 ### Fixed
+
 - Simplify use of strum macros for SignatureType
 
 ### Other
+
 - Rely on global use of serde for Message
 - Extend KeyType to validate a list of KeyMechanisms
 - Add dedicated tests for /health/state endpoint handling
@@ -217,10 +242,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.1.1] - 2024-05-04
 
 ### Added
+
 - Use custom url type to validate the connection to a NetHSM
 - Implement Serialize/Deserialize for ConnectionSecurity
 
 ### Other
+
 - Use re-exported facilities instead of nethsm_sdk_rs directly
 - *(README.md)* Adjust test setup for new podman requirements
 - *(container)* Use rustainers instead of podman-api
@@ -228,4 +255,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.1.0] - 2024-03-22
 
 ### Added
+
 - Add library for controlling a NetHSM
