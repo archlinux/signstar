@@ -58,15 +58,15 @@ The fields are as follows:
 This specification defines two fields in the Required category:
 
 - `input` - the input to the signing process. It is an object with two fields:
-  - `type` - type of the input content. The following values are defined:
-    - `sha2-0.11-SHA512-state`: Represents a hasher state, as expected by the [`sha2` crate][SHA2].
-      The format is [stable across minor versions][SHAST].
-      Note that due to [internal OpenPGP hashing mechanics][OM] this is *not* a digest of the data (e.g. a file) being signed.
-  - `content` - the actual bytes of the input content.
+    - `type` - type of the input content. The following values are defined:
+        - `sha2-0.11-SHA512-state`: Represents a hasher state, as expected by the [`sha2` crate][SHA2].
+          The format is [stable across minor versions][SHAST].
+          Note that due to [internal OpenPGP hashing mechanics][OM] this is *not* a digest of the data (e.g. a file) being signed.
+    - `content` - the actual bytes of the input content.
 
 - `output` - the output of the signing process as expected by the client. This is an object with the following fields:
-  - `type` - the type of the signature expected by the client. The following values are defined:
-    - `OpenPGPv4`: [OpenPGP v4 signatures][SD]
+    - `type` - the type of the signature expected by the client. The following values are defined:
+        - `OpenPGPv4`: [OpenPGP v4 signatures][SD]
 
 [SHA2]: https://crates.io/crates/sha2
 [SHAST]: https://github.com/RustCrypto/traits/pull/1694/files

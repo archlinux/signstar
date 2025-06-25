@@ -108,8 +108,8 @@ Users in a Namespace only have access to users and keys in their own Namespace a
 System-wide users on the other hand are not able to access keys or manipulate users in a Namespace, but can interact with other system-wide facilities, as well as system-wide users and keys.
 
 - "Administrator": for adjusting system configuration, managing users and keys (may exist in a Namespace or system-wide)
-  - *R-Administrator*: a system-wide Administrator which is able to interact with all system-wide facilities, as well as managing system-wide users and keys
-  - *N-Administrator*: a namespace Administrator, which is only able to operate on users and keys in their own namespace
+    - *R-Administrator*: a system-wide Administrator which is able to interact with all system-wide facilities, as well as managing system-wide users and keys
+    - *N-Administrator*: a namespace Administrator, which is only able to operate on users and keys in their own namespace
 - "Operator": for using cryptographic keys and getting random bytes (may exist in a Namespace or system-wide)
 - "Metrics": for retrieving metrics of a device (may only exist system-wide)
 - "Backup": for creating and downloading backups of a device (may only exist system-wide)

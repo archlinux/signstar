@@ -28,8 +28,8 @@ Alternatively, `signstar-configure-build` can be provided with a custom configur
 Based on configured user mappings in the configuration file, `signstar-configure-build`:
 
 - creates unlocked system users
-  - without passphrase
-  - with a home directory below `/var/lib/signstar/home/` (but without creating it)
+    - without passphrase
+    - with a home directory below `/var/lib/signstar/home/` (but without creating it)
 - adds [tmpfiles.d] integration for each user, so that their home directory is created automatically
 - adds a dedicated [authorized_keys] file and [sshd_config] drop-in configuration, which defines a [ForceCommand] option to enforce specific commands for each configured user with SSH access
 
