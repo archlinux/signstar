@@ -72,6 +72,7 @@ Each build provides artifacts, that are used by the automatic update system:
 
 All files need to be uploaded to the remote server location, which is setup in the image, using [sysupdate.d].
 The following files are expected to be renamed:
+
 - `SignstarOS_<mkosi.version>.SHA256SUMS` -> `SHA256SUMS`
 - `SignstarOS_<mkosi.version>.SHA256SUMS.gpg` -> `SHA256SUMS.gpg`
 
