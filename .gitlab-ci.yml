@@ -230,6 +230,7 @@ crates_publish:
     - secure
 
 issue-bot:
+  dependencies: []
   stage: report
   image: registry.gitlab.com/gitlab-org/distribution/issue-bot:latest
   script: /issue-bot
@@ -243,6 +244,7 @@ pages:
     - pacman -Sy --needed --noconfirm archlinux-keyring
     - source .env && pacman -Syu --needed --noconfirm $PACMAN_PACKAGES
     - just install-rust-dev-tools
+  dependencies: []
   stage: pages
   script:
     - just build-book
