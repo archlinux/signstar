@@ -2,7 +2,7 @@
 
 [Introduction](./README.md)
 
-# Components
+## Components
 
 - [nethsm](./nethsm/README.md)
     - [CHANGELOG](./nethsm/CHANGELOG.md)
@@ -22,12 +22,12 @@
     - [Response spec](./signstar-request-signature/response.md)
 - [signstar-sign](./signstar-sign/README.md)
 
-# Architecture
+## Architecture
 
 - [Design](./architecture/design.md)
 - [Evaluated Setups](./architecture/evaluated-setups.md)
 - [Previous Setup](./architecture/previous-setup.md)
 
-# Development
+## Development
 
 - [Contributing Guidelines](./CONTRIBUTING.md)
