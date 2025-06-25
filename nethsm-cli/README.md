@@ -480,7 +480,6 @@ sha512sum "$NETHSM_OPENPGP_SIGNATURE_MESSAGE"
 jq < "${NETHSM_OPENPGP_SIGNATURE_MESSAGE}.json"
 ```
 
-
 #### Encrypting messages
 
 Messages can be encrypted using keys that offer the key mechanisms for this operation.

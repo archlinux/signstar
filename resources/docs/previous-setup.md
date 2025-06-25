@@ -43,7 +43,6 @@ Other artifacts such as installation media and virtual machine images are built 
 
 Signing happens either with a software key in CI (in the case of virtual machine images) and is prone to exfiltration attacks, or manual on a single person's machine.
 
-
 ```mermaid
 ---
 title: Building and signing of virtual machine images

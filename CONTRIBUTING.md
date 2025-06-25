@@ -67,7 +67,6 @@ If you want to fix multiple commits on a feature branch:
 git rebase --signoff main
 ```
 
-
 ## Creating releases
 
 Releases are created by the developers of this project using [`release-plz`] by running (per package in the workspace):
