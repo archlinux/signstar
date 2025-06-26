@@ -107,6 +107,7 @@ test:
   extends: .default-rust
   script:
     - just test
+    - just create-coverage-report doc
   stage: test
   cache:
     key:
@@ -115,14 +116,18 @@ test:
     paths:
       - .cargo-home
     policy: pull-push
+  coverage: "/Test-coverage: ([0-9.]*)%/"
   artifacts:
-    expire_in: 1h
-    paths:
-      - target/llvm-cov-target/
     reports:
       # Unit test reports
       # See: https://gitlab.archlinux.org/help/ci/testing/unit_test_reports#how-to-set-it-up
       junit: target/nextest/default/junit.xml
+      coverage_report:
+        coverage_format: cobertura
+        path: target/llvm-cov/cobertura-coverage.xml
+      # Expose the code coverage as a GitLab metric.
+      # This allows us to easily spot changes in the overall coverage.
+      metrics: target/llvm-cov/coverage-metrics.txt
 
 integration-test:
   extends: .default
@@ -132,33 +137,17 @@ integration-test:
     - WORKDIR="$(pwd)" runuser -w WORKDIR,SIGNSTAR_COVERAGE -l testuser -c 'env && cd "$WORKDIR" && just install-rust-dev-tools'
     - WORKDIR="$(pwd)" runuser -w WORKDIR,SIGNSTAR_COVERAGE -l testuser -c 'env && cd "$WORKDIR" && just nethsm-integration-tests'
     - WORKDIR="$(pwd)" runuser -w WORKDIR,SIGNSTAR_COVERAGE -l testuser -c 'env && cd "$WORKDIR" && just containerized-integration-tests'
+    - WORKDIR="$(pwd)" runuser -w WORKDIR,SIGNSTAR_COVERAGE -l testuser -c 'env && cd "$WORKDIR" && just create-coverage-report doc'
   stage: test
   timeout: 20m
   tags:
     - vm
+  coverage: "/Test-coverage: ([0-9.]*)%/"
   artifacts:
-    expire_in: 1 hour
-    paths:
-      - target/llvm-cov-target/
     reports:
       # Unit test reports
       # See: https://gitlab.archlinux.org/help/ci/testing/unit_test_reports#how-to-set-it-up
       junit: target/nextest/default/junit.xml
-
-create-coverage-report:
-  extends: .default-rust
-  needs:
-    - test
-    - integration-test
-  script:
-    - just install-rust-dev-tools
-    - just create-coverage-report doc
-  stage: test
-  # This is a regex that looks at the output from the `just test-coverage` command
-  # and extracts the coverage percent from it.
-  coverage: "/Test-coverage: ([0-9.]*)%/"
-  artifacts:
-    reports:
       coverage_report:
         coverage_format: cobertura
         path: target/llvm-cov/cobertura-coverage.xml
