@@ -76,7 +76,6 @@ rust-code:
       files:
         - Cargo.lock
     paths:
-      - target
       - .cargo-home
     policy: pull-push
 
@@ -114,7 +113,6 @@ test:
       files:
         - Cargo.lock
     paths:
-      - target
       - .cargo-home
     policy: pull-push
   artifacts:
