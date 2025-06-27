@@ -3626,7 +3626,7 @@ impl NetHsm {
         debug!(
             "Add the user \"{real_name}\"{} in the role {role} to the NetHSM at {} using {}",
             if let Some(user_id) = user_id.as_ref() {
-                format!(" (\"{}\")", user_id)
+                format!(" (\"{user_id}\")")
             } else {
                 "".to_string()
             },
