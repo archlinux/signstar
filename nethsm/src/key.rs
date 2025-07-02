@@ -388,6 +388,27 @@ impl CryptographicKeyContext {
     }
 }
 
+impl Display for CryptographicKeyContext {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::OpenPgp { user_ids, version } => {
+                write!(
+                    f,
+                    "OpenPGP (Version: {version}; User IDs: {})",
+                    user_ids
+                        .iter()
+                        .map(|user_id| format!("\"{user_id}\""))
+                        .collect::<Vec<String>>()
+                        .join(", ")
+                )
+            }
+            Self::Raw => {
+                write!(f, "Raw")
+            }
+        }
+    }
+}
+
 impl TryFrom<SignedPublicKey> for CryptographicKeyContext {
     type Error = Error;
 
