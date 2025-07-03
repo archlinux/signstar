@@ -799,5 +799,17 @@ create-coverage-report mode="nodoc" metric="Test-coverage":
 # Runs the tests that are made available with the `_nethsm-integration-test` feature and for which the binary_id matches `::nethsm`
 [group('test')]
 nethsm-integration-tests *options:
-    just ensure-command bash cargo cargo-nextest jq podman
-    cargo nextest run --features _nethsm-integration-test --filterset 'kind(test) and binary_id(/::nethsm$/)' {{ options }}
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    readonly coverage="{{ coverage }}"
+
+    if [[ "$coverage" == "true" ]]; then
+        just ensure-command bash cargo cargo-llvm-cov cargo-nextest jq podman
+        # Containerized integration tests require examples and bins to be built
+        cargo build --examples --bins
+        cargo llvm-cov --no-report nextest --features _nethsm-integration-test --filterset 'kind(test) and binary_id(/::nethsm$/)' {{ options }}
+    else
+        just ensure-command bash cargo cargo-nextest jq podman
+        cargo nextest run --features _nethsm-integration-test --filterset 'kind(test) and binary_id(/::nethsm$/)' {{ options }}
+    fi
