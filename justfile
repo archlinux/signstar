@@ -744,7 +744,7 @@ containerized-integration-tests:
 
 # Creates code coverage for all projects.
 [group('test')]
-create-coverage-report mode="nodoc":
+create-coverage-report mode="nodoc" metric="Test-coverage":
     #!/usr/bin/env bash
     set -euo pipefail
 
@@ -793,7 +793,7 @@ create-coverage-report mode="nodoc":
 
     # Writes to target/coverage-metrics.txt for Gitlab CI metric consumption.
     # https://docs.gitlab.com/ci/testing/metrics_reports/
-    printf "Test-coverage ${percentage}\n" > "$target_dir/llvm-cov/coverage-metrics.txt"
+    printf "{{ metric }} ${percentage}\n" > "$target_dir/llvm-cov/coverage-metrics.txt"
     printf "Test-coverage: ${percentage}%%\n"
 
 # Runs the tests that are made available with the `_nethsm-integration-test` feature and for which the binary_id matches `::nethsm`
