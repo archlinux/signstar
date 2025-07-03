@@ -36,9 +36,9 @@ install-pacman-dev-packages:
 [group('dev')]
 install-rust-dev-tools:
     rustup default stable
-    rustup component add clippy llvm-tools-preview
+    rustup component add clippy
     rustup toolchain install nightly
-    rustup component add --toolchain nightly rustfmt
+    rustup component add --toolchain nightly rustfmt llvm-tools-preview
 
 # Ensures that one or more required commands are installed
 [private]
