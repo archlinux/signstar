@@ -732,7 +732,7 @@ containerized-integration-tests:
 
     readonly coverage="{{ coverage }}"
 
-    if [[ "$coverage" == "yes" ]]; then
+    if [[ "$coverage" == "true" ]]; then
         just ensure-command bash cargo cargo-llvm-cov cargo-nextest jq podman
         # Containerized integration tests require examples and bins to be built
         cargo build --examples --bins
