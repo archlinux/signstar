@@ -107,7 +107,7 @@ test:
   extends: .default-rust
   script:
     - just test
-    - just create-coverage-report doc
+    - just create-coverage-report doc unit-test-coverage
   stage: test
   cache:
     key:
@@ -137,7 +137,7 @@ integration-test:
     - WORKDIR="$(pwd)" runuser -w WORKDIR,SIGNSTAR_COVERAGE -l testuser -c 'env && cd "$WORKDIR" && just install-rust-dev-tools'
     - WORKDIR="$(pwd)" runuser -w WORKDIR,SIGNSTAR_COVERAGE -l testuser -c 'env && cd "$WORKDIR" && just nethsm-integration-tests'
     - WORKDIR="$(pwd)" runuser -w WORKDIR,SIGNSTAR_COVERAGE -l testuser -c 'env && cd "$WORKDIR" && just containerized-integration-tests'
-    - WORKDIR="$(pwd)" runuser -w WORKDIR,SIGNSTAR_COVERAGE -l testuser -c 'env && cd "$WORKDIR" && just create-coverage-report doc'
+    - WORKDIR="$(pwd)" runuser -w WORKDIR,SIGNSTAR_COVERAGE -l testuser -c 'env && cd "$WORKDIR" && just create-coverage-report doc integration-test-coverage'
   stage: test
   timeout: 20m
   tags:
