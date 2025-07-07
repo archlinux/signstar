@@ -12,7 +12,8 @@ coverage := env("SIGNSTAR_COVERAGE", "false")
 output_dir := "output"
 
 # Lists all available recipes.
-default:
+[private]
+@default:
     just --list
 
 # Runs all check recipes (except those for commit messages).
