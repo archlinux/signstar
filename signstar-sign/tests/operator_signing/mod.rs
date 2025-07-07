@@ -47,13 +47,13 @@ async fn sign_data(_req: HttpRequest) -> impl Responder {
 #[tokio::test]
 async fn load_credentials_for_user(#[case] config_data: &[u8]) -> TestResult {
     env_logger::init_from_env(env_logger::Env::new().default_filter_or("info"));
-    let CertifiedKey { cert, key_pair } = generate_simple_self_signed(vec!["localhost".into()])?;
+    let CertifiedKey { cert, signing_key } = generate_simple_self_signed(vec!["localhost".into()])?;
 
     let dir = tempdir()?.keep();
     let key_file = dir.join("key.pem");
     let cert_file = dir.join("cert.pem");
 
-    File::create_new(&key_file)?.write_all(key_pair.serialize_pem().as_bytes())?;
+    File::create_new(&key_file)?.write_all(signing_key.serialize_pem().as_bytes())?;
     File::create_new(&cert_file)?.write_all(cert.pem().as_bytes())?;
 
     tokio::spawn(async move {
