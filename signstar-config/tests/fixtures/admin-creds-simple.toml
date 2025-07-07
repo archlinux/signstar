@@ -6,6 +6,10 @@ unlock_passphrase = "unlock-passphrase"
 name = "admin"
 passphrase = "admin-passphrase"
 
+[[administrators]]
+name = "admin2"
+passphrase = "other-admin-passphrase"
+
 [[namespace_administrators]]
 name = "ns1~admin"
 passphrase = "ns1-admin-passphrase"

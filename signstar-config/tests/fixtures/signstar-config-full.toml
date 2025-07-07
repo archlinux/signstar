@@ -10,6 +10,9 @@ url = "https://localhost:8443/api/v1/"
 nethsm_only_admin = "admin"
 
 [[users]]
+nethsm_only_admin = "admin2"
+
+[[users]]
 
 [users.system_nethsm_backup]
 nethsm_user = "backup1"
@@ -92,14 +95,11 @@ system_user = "ns1-ssh-operator2"
 tag = "tag2"
 
 [users.system_nethsm_operator_signing.nethsm_key_setup]
+key_context = "raw"
 key_id = "key2"
 key_mechanisms = ["EdDsaSignature"]
 key_type = "Curve25519"
 signature_type = "EdDsa"
-
-[users.system_nethsm_operator_signing.nethsm_key_setup.key_context.openpgp]
-user_ids = ["Foobar McFooface <foobar@mcfooface.org>"]
-version = "4"
 
 [[users]]
 

@@ -56,10 +56,10 @@ fn store_plaintext_toml() -> TestResult {
         1,
         "backup-passphrase".parse()?,
         "unlock-passphrase".parse()?,
-        vec![FullCredentials::new(
-            "admin".parse()?,
-            "admin-passphrase".parse()?,
-        )],
+        vec![
+            FullCredentials::new("admin".parse()?, "admin-passphrase".parse()?),
+            FullCredentials::new("admin2".parse()?, "other-admin-passphrase".parse()?),
+        ],
         vec![FullCredentials::new(
             "ns1~admin".parse()?,
             "ns1-admin-passphrase".parse()?,
