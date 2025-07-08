@@ -497,9 +497,12 @@ fn run_command(cli: Cli) -> Result<(), Error> {
                         )?;
                     let output = FileOrStdout::new(command.output.as_deref(), command.force)?;
 
-                    output
-                        .output()
-                        .write_all(nethsm.get_key_certificate(&command.key_id)?.as_slice())?;
+                    output.output().write_all(
+                        nethsm
+                            .get_key_certificate(&command.key_id)?
+                            .unwrap_or_default()
+                            .as_slice(),
+                    )?;
                 }
                 KeyCertCommand::Import(command) => {
                     let nethsm = config

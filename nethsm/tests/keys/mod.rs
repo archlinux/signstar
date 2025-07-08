@@ -93,7 +93,9 @@ async fn generate_keys(
         nethsm.import_key_certificate(&ns1_key, public_key.clone().into_bytes())?;
         // namespace operator can get the key certificate without tags
         nethsm.use_credentials(&namespace1_operator_user_id)?;
-        let key_cert = nethsm.get_key_certificate(&ns1_key)?;
+        let key_cert = nethsm
+            .get_key_certificate(&ns1_key)?
+            .expect("Certificate to be imported");
         assert_eq!(key_cert, public_key.into_bytes());
     }
 

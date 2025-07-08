@@ -75,6 +75,10 @@ pub enum Error {
     #[error("Decoding Base64 string failed: {0}")]
     Base64Decode(#[from] base64ct::Error),
 
+    /// Certificate for the key has not been initialized
+    #[error("Certificate for the key \"{0}\" has not been initialized")]
+    CertificateMissing(crate::KeyId),
+
     /// Elliptic curve error
     #[error("Elliptic curve error: {0}")]
     EllipticCurve(#[from] p256::elliptic_curve::Error),
@@ -897,7 +901,9 @@ pub fn tsk_to_private_key_import(
 /// [role]: https://docs.nitrokey.com/nethsm/administration#roles
 /// [state]: https://docs.nitrokey.com/nethsm/administration#state
 pub fn sign(nethsm: &NetHsm, key_id: &crate::KeyId, message: &[u8]) -> Result<Vec<u8>, Error> {
-    let public_key = nethsm.get_key_certificate(key_id).map_err(to_rpgp_error)?;
+    let Some(public_key) = nethsm.get_key_certificate(key_id).map_err(to_rpgp_error)? else {
+        return Err(Error::CertificateMissing(key_id.clone()));
+    };
 
     let signer = HsmKey::new(
         nethsm,
@@ -1032,7 +1038,9 @@ pub fn sign_hasher_state(
     key_id: &crate::KeyId,
     state: sha2::Sha512,
 ) -> Result<String, Error> {
-    let public_key = nethsm.get_key_certificate(key_id).map_err(to_rpgp_error)?;
+    let Some(public_key) = nethsm.get_key_certificate(key_id).map_err(to_rpgp_error)? else {
+        return Err(Error::CertificateMissing(key_id.clone()));
+    };
 
     let signer = HsmKey::new(
         nethsm,

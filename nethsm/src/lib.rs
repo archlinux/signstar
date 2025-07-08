@@ -5453,7 +5453,8 @@ impl NetHsm {
 
     /// Gets the [certificate for a key].
     ///
-    /// Gets the [certificate for a key] identified by `key_id`.
+    /// Gets the [certificate for a key] identified by `key_id` and returns it as a byte vector.
+    /// Returns [`None`] if no certificate is associated with a key identified by `key_id`.
     ///
     /// This call requires using [`Credentials`] of a user in the [`Operator`][`UserRole::Operator`]
     /// or [`Administrator`][`UserRole::Administrator`] [role].
@@ -5470,7 +5471,6 @@ impl NetHsm {
     /// Returns an [`Error::Api`] if getting the [certificate for a key] fails:
     /// * the NetHSM is not in [`Operational`][`SystemState::Operational`] [state]
     /// * no key identified by `key_id` exists
-    /// * no certificate is associated with the key
     /// * the used [`Credentials`] are not correct
     /// * the used [`Credentials`] are not those of a user in the [`Operator`][`UserRole::Operator`]
     ///   or [`Administrator`][`UserRole::Administrator`] [role]
@@ -5541,11 +5541,11 @@ impl NetHsm {
     /// # Ok(())
     /// # }
     /// ```
-    /// [key certificate]: https://docs.nitrokey.com/nethsm/operation#key-certificates
+    /// [certificate for a key]: https://docs.nitrokey.com/nethsm/operation#key-certificates
     /// [namespace]: https://docs.nitrokey.com/nethsm/administration#namespaces
     /// [role]: https://docs.nitrokey.com/nethsm/administration#roles
     /// [state]: https://docs.nitrokey.com/nethsm/administration#state
-    pub fn get_key_certificate(&self, key_id: &KeyId) -> Result<Vec<u8>, Error> {
+    pub fn get_key_certificate(&self, key_id: &KeyId) -> Result<Option<Vec<u8>>, Error> {
         debug!(
             "Retrieve the certificate of the key \"{key_id}\" on the NetHSM at {} using {}",
             self.url.borrow(),
@@ -5553,16 +5553,16 @@ impl NetHsm {
         );
 
         self.validate_namespace_access(NamespaceSupport::Supported, None, None)?;
-        Ok(
-            keys_key_id_cert_get(&self.create_connection_config(), key_id.as_ref())
-                .map_err(|error| {
-                    Error::Api(format!(
-                        "Getting certificate for key failed: {}",
-                        NetHsmApiError::from(error)
-                    ))
-                })?
-                .entity,
-        )
+        match keys_key_id_cert_get(&self.create_connection_config(), key_id.as_ref()) {
+            Ok(response) => Ok(Some(response.entity)),
+            Err(nethsm_sdk_rs::apis::Error::ResponseError(error)) if error.status == 404 => {
+                Ok(None)
+            }
+            Err(error) => Err(Error::Api(format!(
+                "Getting certificate for key failed: {}",
+                NetHsmApiError::from(error)
+            ))),
+        }
     }
 
     /// Deletes the [certificate for a key].

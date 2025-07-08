@@ -92,14 +92,28 @@ async fn import_key(nethsm: &NetHsm) -> TestResult {
     let other_public_key = nethsm.get_public_key(&OTHER_KEY_ID.parse()?)?;
     println!("The public key of an imported key on the NetHSM: {other_public_key}");
 
+    let cert = nethsm.get_key_certificate(&OTHER_KEY_ID.parse()?)?;
+    println!("No default key certificate on the NetHSM: {cert:?}",);
+    assert!(
+        cert.is_none(),
+        "Certificate should not be there before import."
+    );
+
     // import a certificate for a key, show it and delete it
     nethsm.import_key_certificate(&OTHER_KEY_ID.parse()?, other_public_key.into_bytes())?;
+    let cert = nethsm
+        .get_key_certificate(&OTHER_KEY_ID.parse()?)?
+        .expect("Certificate to be imported");
     println!(
         "An imported key certificate on the NetHSM: {}",
-        String::from_utf8(nethsm.get_key_certificate(&OTHER_KEY_ID.parse()?)?)?
+        String::from_utf8(cert)?
     );
     nethsm.delete_key_certificate(&OTHER_KEY_ID.parse()?)?;
-    assert!(nethsm.get_key_certificate(&OTHER_KEY_ID.parse()?).is_err());
+    assert!(
+        nethsm
+            .get_key_certificate(&OTHER_KEY_ID.parse()?)?
+            .is_none()
+    );
 
     Ok(())
 }
