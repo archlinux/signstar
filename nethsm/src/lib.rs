@@ -685,8 +685,6 @@ impl NetHsm {
     pub fn add_credentials(&self, credentials: Credentials) {
         debug!("Add NetHSM connection credentials for {credentials}");
 
-        // remove any previously existing credentials (User IDs are unique)
-        self.remove_credentials(&credentials.user_id);
         self.credentials
             .borrow_mut()
             .insert(credentials.user_id.clone(), credentials);
