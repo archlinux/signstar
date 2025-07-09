@@ -4,6 +4,8 @@
 #![deny(clippy::unwrap_used)]
 #![deny(clippy::expect_used)]
 
+use std::fs::File;
+use std::io::Read;
 use std::path::Path;
 use std::time::SystemTime;
 use std::{collections::HashMap, path::PathBuf};
@@ -234,12 +236,11 @@ impl Request {
             source,
         };
         let hasher = {
+            let mut data = Vec::new();
+            let mut file = File::open(input).map_err(pack_err)?;
+            file.read_to_end(&mut data).map_err(pack_err)?;
             let mut hasher = sha2::Sha512::new();
-            std::io::copy(
-                &mut std::fs::File::open(input).map_err(pack_err)?,
-                &mut hasher,
-            )
-            .map_err(pack_err)?;
+            hasher.update(data);
             hasher
         };
         let required = Required {
@@ -407,7 +408,7 @@ mod tests {
 
     #[test]
     fn sample_request_is_ok() -> TestResult {
-        let reader = std::fs::File::open("tests/sample-request.json")?;
+        let reader = File::open("tests/sample-request.json")?;
         let reader = Request::from_reader(reader)?;
         let hasher: sha2::Sha512 = reader.required.input.try_into()?;
         assert_eq!(
@@ -424,7 +425,7 @@ mod tests {
 
     #[rstest]
     fn sample_request_is_bad(#[files("tests/bad-*.json")] request_file: PathBuf) -> TestResult {
-        let reader = std::fs::File::open(request_file)?;
+        let reader = File::open(request_file)?;
         assert!(
             Request::from_reader(reader).is_err(),
             "parsing of the request file should fail"
