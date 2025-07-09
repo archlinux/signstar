@@ -7,6 +7,46 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.0] - 2025-07-09
+
+### Added
+
+- Add `Display` impl for `CryptographicKeyContext`
+- Add `NetHsm::get_current_user` to retrieve current auth user
+- Add `NetHsm::get_url` to retrieve the current URL
+- [**breaking**] Allow detecting when the certificate has not been uploaded
+- Use new integration test feature for all crates instead of `#[ignore]`
+- Add debug logs to all `NetHsm` methods
+- Expose default max idle connections and timeout as consts
+- Derive strums `AsRefStr` and `Display` for `NamespaceSupport`
+- Implement `AsRef<KeyFlags>` for `KeyUsageFlags`
+- Implement `Display` for `Credentials`
+- Implement `Display` for `Passphrase`
+- Implement `Display` for `Connection`
+- Implement `Display` for `ConnectionSecurity`
+- Implement `Display` for `HostCertificateFingerprints`
+- Implement `Display` for `CertFingerprint`
+- Derive `Copy` for `BootMode`
+- Allow creating `CryptographicKeyContext` from `SignedPublicKey`
+- Create `KeyMechanism` from `nethsm_sdk_rs::models::KeyMechanism`
+- Automatically remove containers started by the test
+- [**breaking**] Fold `nethsm-tests` into `nethsm` as a `test` submodule
+
+### Fixed
+
+- Do not remove creds before adding them in `NetHsm::add_credentials`
+- Inline the variable to avoid the `clippy::uninlined_format_args` lint warning
+- *(deps)* [**breaking**] upgrade rpgp to 0.16.0
+
+### Other
+
+- Fix violations of MD022 and MD032 in changelogs
+- *(deps)* Move `pgp` to workspace dependencies
+- Reformat all TOML files with `taplo`
+- Sort derives using `cargo sort-derives`
+- Fix clippy lints regarding variables in `format!`
+- Stop adding Certification flag to generated primary keys
+
 ## [0.8.0] - 2025-04-22
 
 ### Added
