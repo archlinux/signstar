@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2025-07-10
+
+### Added
+
+- Use Display for printing errors
+- Rely on `signstar-common` crate for default locations
+
+### Fixed
+
+- *(deps)* update rust crate nix to 0.30.0
+- *(deps)* update rust crate sysinfo to 0.35.0
+- *(deps)* update rust crate sysinfo to v0.34.0
+
+### Other
+
+- Fix violations of MD007
+- Fix violations of MD022 and MD032 in changelogs
+- Reformat all TOML files with `taplo`
+- Sort derives using `cargo sort-derives`
+- Switch to rustfmt style edition 2024
+- Add `non_admin_secret_handling` to example configuration
+- Add `admin_secret_handling` to example configuration
+
 ## [0.1.2] - 2024-12-08
 
 ### Fixed
