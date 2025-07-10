@@ -4,8 +4,6 @@
 #![deny(clippy::unwrap_used)]
 #![deny(clippy::expect_used)]
 
-use std::fs::File;
-use std::io::Read;
 use std::path::Path;
 use std::time::SystemTime;
 use std::{collections::HashMap, path::PathBuf};
@@ -165,6 +163,30 @@ pub struct Required {
     pub output: SignatureRequestOutput,
 }
 
+/// Provides I/O adapter to [`sha2::Sha512`] object.
+struct IoWrapper(sha2::Sha512);
+
+impl std::io::Write for IoWrapper {
+    /// Updates the inner hasher and returns the number of bytes written.
+    ///
+    /// # Errors
+    ///
+    /// This function never fails.
+    fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
+        self.0.update(buf);
+        Ok(buf.len())
+    }
+
+    /// Does nothing.
+    ///
+    /// # Errors
+    ///
+    /// This function never fails.
+    fn flush(&mut self) -> std::io::Result<()> {
+        Ok(())
+    }
+}
+
 /// Signing request.
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Request {
@@ -236,12 +258,13 @@ impl Request {
             source,
         };
         let hasher = {
-            let mut data = Vec::new();
-            let mut file = File::open(input).map_err(pack_err)?;
-            file.read_to_end(&mut data).map_err(pack_err)?;
-            let mut hasher = sha2::Sha512::new();
-            hasher.update(data);
-            hasher
+            let mut hasher = IoWrapper(sha2::Sha512::new());
+            std::io::copy(
+                &mut std::fs::File::open(input).map_err(pack_err)?,
+                &mut hasher,
+            )
+            .map_err(pack_err)?;
+            hasher.0
         };
         let required = Required {
             input: hasher.into(),
@@ -359,7 +382,7 @@ impl Response {
 
 #[cfg(test)]
 mod tests {
-    use std::path::PathBuf;
+    use std::{fs::File, path::PathBuf};
 
     use rstest::rstest;
     use sha2::Digest;
@@ -369,10 +392,10 @@ mod tests {
 
     #[test]
     fn hash_values_are_predictable() -> testresult::TestResult {
-        let mut hasher = sha2::Sha512::new();
+        let mut hasher = IoWrapper(sha2::Sha512::new());
         let mut bytes = std::io::Cursor::new(b"this is sample text");
         std::io::copy(&mut bytes, &mut hasher)?;
-        let result: &[u8] = &hasher.serialize();
+        let result: &[u8] = &hasher.0.serialize();
 
         let expected_state = [
             8, 201, 188, 243, 103, 230, 9, 106, 59, 167, 202, 132, 133, 174, 103, 187, 43, 248,
