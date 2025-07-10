@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.0] - 2025-07-10
+
+### Added
+
+- [**breaking**] Allow detecting when the certificate has not been uploaded
+- Use Display for printing errors
+- Verify signatures with `sqop` in addition to `gpg` and `rsop`
+
+### Fixed
+
+- *(deps)* [**breaking**] upgrade rpgp to 0.16.0
+
+### Other
+
+- Fix violations of MD012
+- Fix violations of MD007
+- Fix violations of MD004
+- Fix violations of MD022 and MD032 in changelogs
+- Reformat all TOML files with `taplo`
+- Fix clippy lints regarding variables in `format!`
+
 ## [0.7.0] - 2025-04-22
 
 ### Added
