@@ -1,6 +1,6 @@
 [package]
 name = "nethsm-backup"
-version = "0.1.1"
+version = "0.2.0"
 description = "A library and binary for working with encrypted NetHSM backups"
 keywords = ["backup", "encryption", "hsm", "nethsm"]
 authors.workspace = true

@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2025-07-10
+
+### Added
+
+- Use new integration test feature for all crates instead of `#[ignore]`
+- [**breaking**] Fold `nethsm-tests` into `nethsm` as a `test` submodule
+
+### Fixed
+
+- Add explicit lifetime to silence clippy lint
+
+### Other
+
+- Fix violations of MD022 and MD032 in changelogs
+- Reformat all TOML files with `taplo`
+
 ## [0.1.1] - 2025-04-22
 
 ### Added
