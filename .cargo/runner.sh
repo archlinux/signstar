@@ -16,6 +16,12 @@ set -euo pipefail
 
 readonly test_executable_path="${1:-}"
 readonly first_test_argument="${2:-}"
+# Use Arch Linux's container registry when running in CI (indicated by the presence of the ARCH_CI environment variable).
+if [[ -z "${ARCH_CI+x}" ]]; then
+  arch_container="archlinux:latest"
+else
+  arch_container="registry.archlinux.org/archlinux/archlinux-docker:base-master"
+fi
 
 # If the test file name contains "integration" and the invocation is not for listing the test, run the test in a container.
 # Otherwise run on the host.
@@ -36,7 +42,7 @@ if [[ "$test_executable_path" == *integration* ]] && [[ "$first_test_argument" !
     --volume "$test_executable_path:$test_executable_path"
     # Mount the target dir so that coverage data is written to correct location
     --volume "$target_dir:$target_dir"
-    registry.archlinux.org/archlinux/archlinux-docker:base-master
+    "$arch_container"
   )
 
   podman run "${podman_run_options[@]}" "$@"
