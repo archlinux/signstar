@@ -1,7 +1,9 @@
 [package]
 authors.workspace = true
+description = "Configuration file handling for Signstar hosts"
 edition.workspace = true
 homepage.workspace = true
+keywords = ["host", "hsm", "signstar"]
 license.workspace = true
 name = "signstar-config"
 repository.workspace = true
