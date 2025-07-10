@@ -36,7 +36,7 @@ if [[ "$test_executable_path" == *integration* ]] && [[ "$first_test_argument" !
     --volume "$test_executable_path:$test_executable_path"
     # Mount the target dir so that coverage data is written to correct location
     --volume "$target_dir:$target_dir"
-    archlinux:latest
+    registry.archlinux.org/archlinux/archlinux-docker:base-master
   )
 
   podman run "${podman_run_options[@]}" "$@"
