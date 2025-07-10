@@ -28,12 +28,14 @@ rsa = "0.9.7"
 rstest = "0.25.0"
 rustainers = "0.15"
 serde = { version = "1.0.215", features = ["derive"] }
-# Updating this dependency directly here is breaking change in signstar-request-signature.
-# To do it in a non-breaking way the library needs to support the old version too.
-# Cargo.toml allows using two incompatible versions of the library:
-# old_sha2 = { package = "sha2", version = "=0.11.0-pre.1" }
-# Then adjust the tests in signstar-request-signature/src/lib.rs to additionally test
-# inputs that reference the "old_sha2".
+# WARNING: Updating the `sha2` dependency to a new, backwards-incompatible version (e.g. `1.0.0` -> `2.0.0`, `0.11.0` -> `0.12.0`) poses a breaking change in the `signstar-request-signature` and `signstar-sign` crates!
+#
+# To preserve compatibility with an older `sha2` major version, a new dependency needs to be introduced, that tracks this older version.
+# E.g. when updating `sha2` from `0.11.0` to `0.12.0`, add an `old_sha2` dependency, which tracks `0.11.0`:
+# old_sha2 = { package = "sha2", version = "=0.11.0" }
+# Afterwards, the tests in `signstar-request-signature/src/lib.rs` have to be adjusted to additionally test inputs that reference the "old_sha2".
+#
+# NOTE: After updating the `sha2` crate to a new, backwards-incompatible version, make sure to release all crates that depend on it!
 sha2 = "=0.11.0-rc.0"
 signstar-common = { path = "signstar-common", version = "0.1.1" }
 signstar-config = { path = "signstar-config", version = "0.1.0" }
