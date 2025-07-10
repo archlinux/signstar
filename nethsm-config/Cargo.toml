@@ -7,7 +7,7 @@ keywords = ["encryption", "hsm", "nethsm", "signing"]
 license.workspace = true
 name = "nethsm-config"
 repository.workspace = true
-version = "0.3.0"
+version = "0.4.0"
 
 [dependencies]
 confy.workspace = true

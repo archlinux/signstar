@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2025-07-10
+
+### Fixed
+
+- [**breaking**] Rearchitecture `UserMapping::get_nethsm_user_role_and_tag`
+
+### Other
+
+- Fix violations of MD022 and MD032 in changelogs
+- Reformat all TOML files with `taplo`
+- Sort derives using `cargo sort-derives`
+- Fix clippy lints regarding variables in `format!`
+
 ## [0.3.0] - 2025-04-22
 
 ### Added
