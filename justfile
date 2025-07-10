@@ -333,6 +333,12 @@ test-readme project:
     readonly project="{{ project }}"
     readonly cargo_home="${CARGO_HOME:-$HOME/.cargo}"
     container_id=""
+    # Use Arch Linux's container registry when running in CI (indicated by the presence of the ARCH_CI environment variable).
+    if [[ -z "${ARCH_CI+x}" ]]; then
+      arch_container="archlinux:latest"
+    else
+      arch_container="registry.archlinux.org/archlinux/archlinux-docker:base-master"
+    fi
     podman_create_options=(
         --rm
         '--network=pasta:-t,auto,-u,auto,-T,auto,-U,auto'
@@ -347,7 +353,7 @@ test-readme project:
                 "--mount=type=bind,source=$cargo_home/bin,destination=/usr/local/bin,ro=true"
                 "--mount=type=bind,source=$project,destination=/mnt,ro=true"
                 --workdir=/mnt
-                docker.io/archlinux
+                "$arch_container"
                 sh -c 'pacman-key --init && pacman -Sy --needed --noconfirm archlinux-keyring && pacman -Syu --needed --noconfirm tangler && tangler bash < /mnt/README.md | bash -euxo pipefail -'
             )
             podman_start_options+=(
@@ -360,7 +366,7 @@ test-readme project:
                 "--mount=type=bind,source=$project/tests/sshd/10-signstar-sign.conf,destination=/etc/ssh/sshd_config.d/10-signstar-sign.conf,ro=true"
                 "--mount=type=bind,source=$project/tests/sshd,destination=/home/signstar-sign/.ssh,ro=true"
                 "--mount=type=bind,source=$project/tests/sshd/signstar-sign,destination=/usr/local/bin/signstar-sign,ro=true"
-                docker.io/archlinux
+                "$arch_container"
                 sh -c "pacman-key --init && pacman -Sy --needed --noconfirm archlinux-keyring && pacman -Syu --needed --noconfirm openssh && useradd signstar-sign && ssh-keygen -A && /usr/bin/sshd -p 2222 -e -D"
                 )
         ;;
