@@ -18,7 +18,7 @@ clap = { version = "4.5.23", features = ["derive", "env"] }
 confy = "1.0.0"
 ed25519-dalek = "2.1.1"
 log = "0.4.27"
-nethsm = { path = "nethsm", version = "0.9.1" }
+nethsm = { path = "nethsm", version = "0.9.2" }
 nethsm-backup = { path = "nethsm-backup", version = "0.2.0" }
 nethsm-config = { path = "nethsm-config", version = "0.4.0" }
 pgp = { version = "0.16", default-features = false }
