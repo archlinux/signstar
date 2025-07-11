@@ -11,8 +11,12 @@ rust-version.workspace = true
 version = "0.1.0"
 
 [dependencies]
+clap = { workspace = true, features = ["derive"] }
+clap-verbosity-flag = "3.0.3"
+log.workspace = true
 nethsm.workspace = true
 nethsm-config.workspace = true
+signstar-common = { features = ["logging"], workspace = true }
 signstar-config.workspace = true
 signstar-request-signature.workspace = true
 thiserror.workspace = true
@@ -24,7 +28,6 @@ default = []
 [dev-dependencies]
 actix-web = { version = "4.10.2", features = ["openssl"] }
 base64 = "0.22.1"
-env_logger = "0.11.7"
 httpmock = "0.8.0-alpha.1"
 log.workspace = true
 openssl = "0.10.71"

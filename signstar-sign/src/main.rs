@@ -2,6 +2,8 @@
 
 use std::process::ExitCode;
 
+use clap::Parser;
+use clap_verbosity_flag::Verbosity;
 use nethsm::{KeyId, NetHsm};
 use nethsm_config::UserMapping;
 use signstar_config::{CredentialsLoading, Error as ConfigError};
@@ -35,8 +37,12 @@ enum Error {
     NetHsm(#[from] nethsm::Error),
 
     /// Signing request processing error.
-    #[error("Signing request error")]
+    #[error("Signing request error: {0}")]
     SigningRequest(#[from] signstar_request_signature::Error),
+
+    /// A signstar-common logging error.
+    #[error(transparent)]
+    SignstarCommonLogging(#[from] signstar_common::logging::Error),
 }
 
 /// Creates a new [`NetHsm`] object with correct connection and user settings and returns it
@@ -97,7 +103,8 @@ fn load_nethsm_keyid() -> Result<(NetHsm, KeyId), Error> {
 ///
 /// Returns an error if:
 ///
-/// - a [`Request`] can be created from `reader`,
+/// - logging cannot be set up,
+/// - a [`Request`] cannot be created from `reader`,
 /// - the [`Request`] does not use OpenPGP v4,
 /// - the [`Request`] is not version 1,
 /// - a [`Sha512`] hasher state can not be created from the [`Request`],
@@ -126,12 +133,25 @@ fn sign_request(reader: impl std::io::Read, writer: impl std::io::Write) -> Resu
     Ok(())
 }
 
+#[derive(Debug, Parser)]
+struct Cli {
+    #[command(flatten)]
+    verbosity: Verbosity,
+}
+
 /// Signs the signing request on standard input and returns a signing response on standard output.
 fn main() -> ExitCode {
+    let args = Cli::parse();
+
+    if let Err(error) = signstar_common::logging::setup_logging(args.verbosity) {
+        eprintln!("{error}");
+        return ExitCode::FAILURE;
+    }
+
     let result = sign_request(std::io::stdin(), std::io::stdout());
 
     if let Err(error) = result {
-        eprintln!("{error}");
+        log::error!(error:err; "Processing signing request failed: {error:#?}");
         ExitCode::FAILURE
     } else {
         ExitCode::SUCCESS
