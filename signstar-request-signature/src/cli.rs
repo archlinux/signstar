@@ -3,10 +3,23 @@
 use std::path::PathBuf;
 
 use clap::Parser;
+use clap_verbosity_flag::Verbosity;
 
 /// Command line arguments for signing.
 #[derive(Debug, Parser)]
-pub enum Cli {
+pub struct Cli {
+    /// Global processing log verbosity.
+    #[command(flatten)]
+    pub verbosity: Verbosity,
+
+    /// Command to be executed.
+    #[command(subcommand)]
+    pub command: Command,
+}
+
+/// Command line arguments for signing.
+#[derive(Debug, Parser)]
+pub enum Command {
     /// Prepare signing request for a file.
     Prepare(PrepareCommand),
 
