@@ -36,7 +36,7 @@ serde = { version = "1.0.215", features = ["derive"] }
 # Afterwards, the tests in `signstar-request-signature/src/lib.rs` have to be adjusted to additionally test inputs that reference the "old_sha2".
 #
 # NOTE: After updating the `sha2` crate to a new, backwards-incompatible version, make sure to release all crates that depend on it!
-sha2 = "=0.11.0-rc.0"
+sha2 = "0.11.0-rc.0"
 signstar-common = { path = "signstar-common", version = "0.1.1" }
 signstar-config = { path = "signstar-config", version = "0.1.0" }
 signstar-request-signature = { path = "signstar-request-signature", version = "0.1.2" }
