@@ -1,12 +1,10 @@
 //! Error handling specific to interacting with [`NetHsmBackend`] and [`State`].
 
 use nethsm::{KeyId, NamespaceId, Url, UserId};
-#[cfg(doc)]
-use nethsm_config::HermeticParallelConfig;
 
 use super::state::StateComparisonErrors;
 #[cfg(doc)]
-use crate::{AdminCredentials, NetHsmBackend, State};
+use crate::{AdminCredentials, NetHsmBackend, SignstarConfig, State};
 
 /// An error that may occur when handling a NetHSM backend.
 #[derive(Debug, thiserror::Error)]
@@ -15,14 +13,14 @@ pub enum Error {
     #[error("Errors occurred when comparing states:\n{0}")]
     CompareStates(StateComparisonErrors),
 
-    /// The iteration of the [`AdminCredentials`] and [`HermeticParallelConfig`] are not matching.
+    /// The iteration of the [`AdminCredentials`] and [`SignstarConfig`] are not matching.
     #[error(
         "Iteration mismatch: Administrative credentials ({admin_creds}) vs. Signstar config ({signstar_config})"
     )]
     IterationMismatch {
         /// The iteration of the [`AdminCredentials`].
         admin_creds: u32,
-        /// The iteration of the [`HermeticParallelConfig`].
+        /// The iteration of the [`SignstarConfig`].
         signstar_config: u32,
     },
 

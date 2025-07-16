@@ -11,19 +11,13 @@ use std::{
 
 use log::debug;
 use nethsm::{FullCredentials, Passphrase, UserId};
-use nethsm_config::{
-    ConfigInteractivity,
-    ConfigSettings,
-    ExtendedUserMapping,
-    HermeticParallelConfig,
-};
 use rand::{Rng, distributions::Alphanumeric, thread_rng};
 use signstar_common::{config::get_default_config_file_path, system_user::get_home_base_dir_path};
 use tempfile::NamedTempFile;
 use testresult::TestResult;
 use which::which;
 
-use crate::AdminCredentials;
+use crate::{AdminCredentials, AdministrativeSecretHandling, ExtendedUserMapping, SignstarConfig};
 
 /// An error that may occur when using test utils.
 #[derive(Debug, thiserror::Error)]
@@ -481,8 +475,8 @@ pub fn create_users(users: &[String]) -> TestResult {
 /// Returns an error if
 ///
 /// - [`write_machine_id`] fails,
-/// - a new [`HermeticParallelConfig`] can not be created from `config_data`,
-/// - a [`HermeticParallelConfig`] can not be saved to a system-wide location,
+/// - a new [`SignstarConfig`] can not be created from `config_data`,
+/// - a [`SignstarConfig`] can not be saved to a system-wide location,
 /// - or [`start_credentials_socket`] fails.
 pub fn prepare_system_with_config(
     config_data: &[u8],
@@ -490,28 +484,10 @@ pub fn prepare_system_with_config(
     write_machine_id()?;
 
     // Read Signstar config from `config_data`
-    let config = HermeticParallelConfig::new_from_file(
-        ConfigSettings::new(
-            "my_app".to_string(),
-            ConfigInteractivity::NonInteractive,
-            None,
-        ),
-        Some(get_tmp_config(config_data)?.path()),
-    )
-    .map_err(|source| {
-        Error::SignstarConfig(crate::Error::Config(crate::config::Error::NetHsmConfig(
-            source,
-        )))
-    })?;
+    let config = SignstarConfig::new_from_file(Some(get_tmp_config(config_data)?.path()))?;
 
     // Store Signstar config in default location
-    config
-        .store(Some(&get_default_config_file_path()))
-        .map_err(|source| {
-            Error::SignstarConfig(crate::Error::Config(crate::config::Error::NetHsmConfig(
-                source,
-            )))
-        })?;
+    config.store(Some(&get_default_config_file_path()))?;
 
     // Get extended user mappings for all users.
     let creds_mapping: Vec<ExtendedUserMapping> = config.into();
@@ -533,14 +509,11 @@ pub fn prepare_system_with_config(
 /// - an [`AdminCredentials`] can not be created from the temporary config file.
 pub fn admin_credentials(config_data: &[u8]) -> Result<AdminCredentials, Error> {
     let config_file = get_tmp_config(config_data)?;
-    AdminCredentials::load_from_file(
-        config_file.path(),
-        nethsm_config::AdministrativeSecretHandling::Plaintext,
-    )
-    .map_err(Error::SignstarConfig)
+    AdminCredentials::load_from_file(config_file.path(), AdministrativeSecretHandling::Plaintext)
+        .map_err(Error::SignstarConfig)
 }
 
-/// Creates a [`HermeticParallelConfig`] from config data.
+/// Creates a [`SignstarConfig`] from config data.
 ///
 /// Accepts a byte slice containing configuration data.
 ///
@@ -549,21 +522,10 @@ pub fn admin_credentials(config_data: &[u8]) -> Result<AdminCredentials, Error> 
 /// Returns an error if
 ///
 /// - a temporary config file can not be created from `config_data`,
-/// - a [`HermeticParallelConfig`] can not be created from the temporary config file.
-pub fn signstar_config(config_data: &[u8]) -> Result<HermeticParallelConfig, Error> {
-    HermeticParallelConfig::new_from_file(
-        ConfigSettings::new(
-            "my_app".to_string(),
-            ConfigInteractivity::NonInteractive,
-            None,
-        ),
-        Some(get_tmp_config(config_data)?.path()),
-    )
-    .map_err(|source| {
-        Error::SignstarConfig(crate::Error::Config(crate::config::Error::NetHsmConfig(
-            source,
-        )))
-    })
+/// - a [`SignstarConfig`] can not be created from the temporary config file.
+pub fn signstar_config(config_data: &[u8]) -> Result<SignstarConfig, Error> {
+    SignstarConfig::new_from_file(Some(get_tmp_config(config_data)?.path()))
+        .map_err(Error::SignstarConfig)
 }
 
 /// Creates a list of [`FullCredentials`] for a list of [`UserId`]s.

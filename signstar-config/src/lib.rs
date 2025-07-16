@@ -10,7 +10,13 @@ pub mod test;
 pub mod utils;
 
 pub use admin_credentials::AdminCredentials;
-pub use config::load_config;
+pub use config::{
+    base::{AdministrativeSecretHandling, NonAdministrativeSecretHandling, SignstarConfig},
+    credentials::{AuthorizedKeyEntry, AuthorizedKeyEntryList, SystemUserId, SystemWideUserId},
+    error::Error as ConfigError,
+    mapping::{ExtendedUserMapping, FilterUserKeys, NetHsmMetricsUsers, UserMapping},
+    utils::load_config,
+};
 pub use error::{Error, ErrorExitCode};
 pub use nethsm::{
     backend::NetHsmBackend,

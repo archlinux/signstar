@@ -85,7 +85,7 @@ pub enum Error {
 
     /// Configuration errors.
     #[error("Signstar config error:\n{0}")]
-    Config(#[from] crate::config::Error),
+    Config(#[from] crate::ConfigError),
 
     /// A NetHSM error.
     #[error("NetHSM error:\n{0}")]
@@ -201,11 +201,76 @@ pub enum ErrorExitCode {
     /// Mapping for [`Error::CommandWriteToStdin`].
     CommandWriteToStdin = 16,
 
-    /// Mapping for [`crate::config::Error::ConfigMissing`] wrapped in [`Error::Config`].
-    ConfigConfigMissing = 120,
+    /// Mapping for [`crate::ConfigError::ConfigFailedToLoad`] wrapped in [`Error::Config`].
+    ConfigConfigFailedToLoad = 120,
 
-    /// Mapping for [`crate::config::Error::NetHsmConfig`] wrapped in [`Error::Config`].
-    ConfigNetHsmConfig = 121,
+    /// Mapping for [`crate::ConfigError::ConfigFailedToStore`] wrapped in [`Error::Config`].
+    ConfigConfigFailedToStore = 121,
+
+    /// Mapping for [`crate::ConfigError::ConfigIsMissing`] wrapped in [`Error::Config`].
+    ConfigConfigMissing = 122,
+
+    /// Mapping for [`crate::ConfigError::DuplicateNetHsmUserId`] wrapped in
+    /// [`Error::Config`].
+    ConfigDuplicateNetHsmUserId = 123,
+
+    /// Mapping for [`crate::ConfigError::DuplicateSshPublicKey`] wrapped in
+    /// [`Error::Config`].
+    ConfigDuplicateSshPublicKey = 124,
+
+    /// Mapping for [`crate::ConfigError::DuplicateKeyId`] wrapped in [`Error::Config`].
+    ConfigDuplicateKeyId = 125,
+
+    /// Mapping for [`crate::ConfigError::DuplicateSystemUserId`] wrapped in
+    /// [`Error::Config`].
+    ConfigDuplicateSystemUserId = 126,
+
+    /// Mapping for [`crate::ConfigError::DuplicateTag`] wrapped in [`Error::Config`].
+    ConfigDuplicateTag = 127,
+
+    /// Mapping for [`crate::ConfigError::InvalidSystemUserName`] wrapped in
+    /// [`Error::Config`].
+    ConfigInvalidSystemUserName = 128,
+
+    /// Mapping for [`crate::ConfigError::InvalidAuthorizedKeyEntry`] wrapped in
+    /// [`Error::Config`].
+    ConfigInvalidAuthorizedKeyEntry = 129,
+
+    /// Mapping for [`crate::ConfigError::MetricsAlsoOperator`] wrapped in
+    /// [`Error::Config`].
+    ConfigMetricsAlsoOperator = 130,
+
+    /// Mapping for [`crate::ConfigError::MissingAdministrator`] wrapped in
+    /// [`Error::Config`].
+    ConfigMissingAdministrator = 131,
+
+    /// Mapping for [`crate::ConfigError::MissingShareDownloadSystemUser`] wrapped in
+    /// [`Error::Config`].
+    ConfigMissingShareDownloadSystemUser = 132,
+
+    /// Mapping for [`crate::ConfigError::MissingShareUploadSystemUser`] wrapped in
+    /// [`Error::Config`].
+    ConfigMissingShareUploadSystemUser = 133,
+
+    /// Mapping for [`crate::ConfigError::NoAuthorizedKeys`] wrapped in [`Error::Config`].
+    ConfigNoAuthorizedKeys = 134,
+
+    /// Mapping for [`crate::ConfigError::NoMatchingMappingForSystemUser`] wrapped in
+    /// [`Error::Config`].
+    ConfigNoMatchingMappingForSystemUser = 135,
+
+    /// Mapping for [`crate::ConfigError::NoSssButShareUsers`] wrapped in [`Error::Config`].
+    ConfigNoSssButShareUsers = 136,
+
+    /// Mapping for [`crate::ConfigError::SshKey`] wrapped in [`Error::Config`].
+    ConfigSshKey = 137,
+
+    /// Mapping for [`crate::ConfigError::User`] wrapped in [`Error::Config`].
+    ConfigUser = 138,
+
+    /// Mapping for [`crate::ConfigError::SystemWideUserIdWithNamespace`] wrapped in
+    /// [`Error::Config`].
+    ConfigSystemWideUserIdWithNamespace = 139,
 
     /// Mapping for [`crate::Error::NetHsm`].
     NetHsm = 17,
@@ -342,8 +407,44 @@ impl From<Error> for ErrorExitCode {
             },
             // config related errors
             Error::Config(error) => match error {
-                crate::config::Error::ConfigMissing => Self::ConfigConfigMissing,
-                crate::config::Error::NetHsmConfig(_) => Self::ConfigNetHsmConfig,
+                crate::ConfigError::ConfigIsMissing => Self::ConfigConfigMissing,
+                crate::ConfigError::ConfigFailedToLoad { .. } => Self::ConfigConfigFailedToLoad,
+                crate::ConfigError::ConfigFailedToStore(_) => Self::ConfigConfigFailedToStore,
+                crate::ConfigError::DuplicateNetHsmUserId { .. } => {
+                    Self::ConfigDuplicateNetHsmUserId
+                }
+                crate::ConfigError::DuplicateSshPublicKey { .. } => {
+                    Self::ConfigDuplicateSshPublicKey
+                }
+                crate::ConfigError::DuplicateKeyId { .. } => Self::ConfigDuplicateKeyId,
+                crate::ConfigError::DuplicateSystemUserId { .. } => {
+                    Self::ConfigDuplicateSystemUserId
+                }
+                crate::ConfigError::DuplicateTag { .. } => Self::ConfigDuplicateTag,
+                crate::ConfigError::InvalidSystemUserName { .. } => {
+                    Self::ConfigInvalidSystemUserName
+                }
+                crate::ConfigError::InvalidAuthorizedKeyEntry { .. } => {
+                    Self::ConfigInvalidAuthorizedKeyEntry
+                }
+                crate::ConfigError::MetricsAlsoOperator { .. } => Self::ConfigMetricsAlsoOperator,
+                crate::ConfigError::MissingAdministrator { .. } => Self::ConfigMissingAdministrator,
+                crate::ConfigError::MissingShareDownloadSystemUser => {
+                    Self::ConfigMissingShareDownloadSystemUser
+                }
+                crate::ConfigError::MissingShareUploadSystemUser => {
+                    Self::ConfigMissingShareUploadSystemUser
+                }
+                crate::ConfigError::NoAuthorizedKeys => Self::ConfigNoAuthorizedKeys,
+                crate::ConfigError::NoMatchingMappingForSystemUser { .. } => {
+                    Self::ConfigNoMatchingMappingForSystemUser
+                }
+                crate::ConfigError::NoSssButShareUsers { .. } => Self::ConfigNoSssButShareUsers,
+                crate::ConfigError::SshKey(_) => Self::ConfigSshKey,
+                crate::ConfigError::User(_) => Self::ConfigUser,
+                crate::ConfigError::SystemWideUserIdWithNamespace(_) => {
+                    Self::ConfigSystemWideUserIdWithNamespace
+                }
             },
             // NetHSM related errors
             Error::NetHsm(_) => Self::NetHsm,

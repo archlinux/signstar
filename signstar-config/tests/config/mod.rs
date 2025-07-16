@@ -16,8 +16,7 @@ use signstar_common::config::{
     get_usr_local_override_config_file_path,
     get_usr_local_override_dir_path,
 };
-use signstar_config::config::load_config;
-use signstar_config::test::get_tmp_config;
+use signstar_config::{load_config, test::get_tmp_config};
 use testresult::TestResult;
 
 /// Full configuration

@@ -1,12 +1,12 @@
 //! Backend handling for [`NetHsm`].
 //!
-//! Based on a [`NetHsm`], [`AdminCredentials`] and a [`HermeticParallelConfig`] this module offers
+//! Based on a [`NetHsm`], [`AdminCredentials`] and a [`SignstarConfig`] this module offers
 //! the ability to populate a [`NetHsm`] backend with the help of the [`NetHsmBackend`] struct.
 //!
-//! Using [`NetHsmBackend::sync`] all users and keys configured in [`HermeticParallelConfig`]
+//! Using [`NetHsmBackend::sync`] all users and keys configured in [`SignstarConfig`]
 //! are created and adapted to changes upon re-run.
 //! With the help of [`NetHsmBackend::state`] the current [`State`] of a [`NetHsm`] backend can
-//! be created and compared with e.g. the [`State`] representation of a [`HermeticParallelConfig`].
+//! be created and compared with e.g. the [`State`] representation of a [`SignstarConfig`].
 //!
 //! # Note
 //!
@@ -31,11 +31,19 @@ use nethsm::{
     UserRole,
     Utc,
 };
-use nethsm_config::{FilterUserKeys, HermeticParallelConfig, UserMapping};
 use pgp::composed::{Deserializable, SignedPublicKey};
 
 use super::{Error, state::StateType};
-use crate::{AdminCredentials, KeyState, State, UserState, nethsm::state::KeyCertificateState};
+use crate::{
+    AdminCredentials,
+    FilterUserKeys,
+    KeyState,
+    SignstarConfig,
+    State,
+    UserMapping,
+    UserState,
+    nethsm::state::KeyCertificateState,
+};
 
 /// Creates all _R-Administrators_ on a [`NetHsm`].
 ///
@@ -1244,12 +1252,12 @@ fn get_key_states(
 /// A NetHSM backend that provides full control over its data.
 ///
 /// This backend allows full control over the data in a [`NetHsm`], to the extend that is configured
-/// by the tracked [`AdminCredentials`] and [`HermeticParallelConfig`].
+/// by the tracked [`AdminCredentials`] and [`SignstarConfig`].
 #[derive(Debug)]
 pub struct NetHsmBackend<'a, 'b> {
     nethsm: NetHsm,
     admin_credentials: &'a AdminCredentials,
-    signstar_config: &'b HermeticParallelConfig,
+    signstar_config: &'b SignstarConfig,
 }
 
 impl<'a, 'b> NetHsmBackend<'a, 'b> {
@@ -1268,16 +1276,7 @@ impl<'a, 'b> NetHsmBackend<'a, 'b> {
     /// use std::collections::HashSet;
     ///
     /// use nethsm::{FullCredentials, Connection, ConnectionSecurity, NetHsm};
-    /// use nethsm_config::{
-    ///     AdministrativeSecretHandling,
-    ///     AuthorizedKeyEntryList,
-    ///     ConfigInteractivity,
-    ///     ConfigSettings,
-    ///     HermeticParallelConfig,
-    ///     NonAdministrativeSecretHandling,
-    ///     UserMapping,
-    /// };
-    /// use signstar_config::{AdminCredentials, NetHsmBackend};
+    /// use signstar_config::{AdministrativeSecretHandling,AuthorizedKeyEntryList,UserMapping,NonAdministrativeSecretHandling,SignstarConfig,AdminCredentials, NetHsmBackend};
     ///
     /// # fn main() -> testresult::TestResult {
     /// // The NetHSM connection.
@@ -1305,12 +1304,7 @@ impl<'a, 'b> NetHsmBackend<'a, 'b> {
     ///     )],
     /// )?;
     /// // The Signstar config.
-    /// let signstar_config = HermeticParallelConfig::new(
-    ///     ConfigSettings::new(
-    ///         "my_app".to_string(),
-    ///         ConfigInteractivity::NonInteractive,
-    ///         None,
-    ///     ),
+    /// let signstar_config = SignstarConfig::new(
     ///     1,
     ///     AdministrativeSecretHandling::ShamirsSecretSharing,
     ///     NonAdministrativeSecretHandling::SystemdCreds,
@@ -1337,7 +1331,7 @@ impl<'a, 'b> NetHsmBackend<'a, 'b> {
     pub fn new(
         nethsm: NetHsm,
         admin_credentials: &'a AdminCredentials,
-        signstar_config: &'b HermeticParallelConfig,
+        signstar_config: &'b SignstarConfig,
     ) -> Result<Self, crate::Error> {
         debug!(
             "Create a new NetHSM backend for Signstar config at {}",
@@ -1568,19 +1562,15 @@ mod tests {
 
     use log::{LevelFilter, debug};
     use nethsm::{Connection, ConnectionSecurity, FullCredentials, NetHsm};
-    use nethsm_config::{
-        AdministrativeSecretHandling,
-        AuthorizedKeyEntryList,
-        ConfigInteractivity,
-        ConfigSettings,
-        HermeticParallelConfig,
-        NonAdministrativeSecretHandling,
-        UserMapping,
-    };
     use simplelog::{ColorChoice, Config, TermLogger, TerminalMode};
     use testresult::TestResult;
 
     use super::*;
+    use crate::{
+        AdministrativeSecretHandling,
+        AuthorizedKeyEntryList,
+        NonAdministrativeSecretHandling,
+    };
 
     /// Initializes a global [`TermLogger`].
     fn init_logger() {
@@ -1597,7 +1587,7 @@ mod tests {
     }
 
     /// Ensures that the [`NetHsmBackend::new`] fails on mismatching iterations in
-    /// [`AdminCredentials`] and [`HermeticParallelConfig`].
+    /// [`AdminCredentials`] and [`SignstarConfig`].
     #[test]
     fn nethsm_backend_new_fails_on_iteration_mismatch() -> TestResult {
         init_logger();
@@ -1627,12 +1617,7 @@ mod tests {
             )],
         )?;
         // The Signstar config.
-        let signstar_config = HermeticParallelConfig::new(
-         ConfigSettings::new(
-             "my_app".to_string(),
-             ConfigInteractivity::NonInteractive,
-             None,
-         ),
+        let signstar_config = SignstarConfig::new(
          1,
          AdministrativeSecretHandling::ShamirsSecretSharing,
          NonAdministrativeSecretHandling::SystemdCreds,

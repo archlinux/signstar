@@ -11,9 +11,6 @@ use std::{
 #[cfg(doc)]
 use nethsm::NetHsm;
 use nethsm::{FullCredentials, Passphrase, UserId};
-#[cfg(doc)]
-use nethsm_config::HermeticParallelConfig;
-use nethsm_config::{ExtendedUserMapping, NonAdministrativeSecretHandling, SystemUserId};
 use rand::{Rng, distributions::Alphanumeric, thread_rng};
 use signstar_common::{
     common::SECRET_FILE_MODE,
@@ -25,8 +22,14 @@ use signstar_common::{
     },
 };
 
+#[cfg(doc)]
+use crate::SignstarConfig;
 use crate::{
-    config::load_config,
+    ExtendedUserMapping,
+    NonAdministrativeSecretHandling,
+    SystemUserId,
+    UserMapping,
+    load_config,
     utils::{
         fail_if_not_root,
         fail_if_root,
@@ -232,7 +235,7 @@ impl CredentialsLoading {
     /// Creates a [`CredentialsLoading`] for the calling system user.
     ///
     /// Uses the data of the calling system user to derive the specific mapping for it from the
-    /// Signstar configuration (a [`HermeticParallelConfig`]).
+    /// Signstar configuration (a [`SignstarConfig`]).
     /// Then continues to retrieve the credentials for all associated [`NetHsm`] users of the
     /// mapping.
     ///
@@ -250,9 +253,7 @@ impl CredentialsLoading {
 
         let system_config = load_config()?;
 
-        let mapping = system_config
-            .get_extended_mapping_for_user(&user.name)
-            .map_err(|source| crate::Error::Config(crate::config::Error::NetHsmConfig(source)))?;
+        let mapping = system_config.get_extended_mapping_for_user(&user.name)?;
 
         // get all credentials for the mapping
         let credentials_loading = mapping.load_credentials()?;
@@ -298,7 +299,7 @@ impl CredentialsLoading {
     pub fn has_signing_user(&self) -> bool {
         matches!(
             self.mapping.get_user_mapping(),
-            nethsm_config::UserMapping::SystemNetHsmOperatorSigning {
+            UserMapping::SystemNetHsmOperatorSigning {
                 nethsm_user: _,
                 nethsm_key_setup: _,
                 ssh_authorized_key: _,
