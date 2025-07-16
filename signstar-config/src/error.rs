@@ -85,7 +85,20 @@ pub enum Error {
 
     /// Configuration errors.
     #[error("Signstar config error:\n{0}")]
-    Config(#[from] crate::config::Error),
+    Config(#[from] crate::ConfigError),
+
+    /// An I/O error occurred for a file.
+    #[error("I/O error for file {path} while {context}: {source}")]
+    IoPath {
+        /// The path to the file for which the error occurred.
+        path: PathBuf,
+        /// The context in which the error occurs.
+        ///
+        /// This is meant to complete the sentence "I/O error for file {path} while ".
+        context: &'static str,
+        /// The error source.
+        source: std::io::Error,
+    },
 
     /// A NetHSM error.
     #[error("NetHSM error:\n{0}")]
@@ -112,6 +125,32 @@ pub enum Error {
         ///
         /// Should complete the sentence "Thread error while ".
         context: String,
+    },
+
+    /// TOML error while reading a file.
+    #[error("TOML read error for file {path} while {context}: {source}")]
+    TomlRead {
+        /// The path to a file that fails to read.
+        path: PathBuf,
+        /// The context in which the error occurs.
+        ///
+        /// This is meant to complete the sentence " error for file {path} while ".
+        context: &'static str,
+        /// The error source.
+        source: Box<toml::de::Error>,
+    },
+
+    /// TOML error while writing a file.
+    #[error("TOML write error for file {path} while {context}: {source}")]
+    TomlWrite {
+        /// The path to a file that fails to read.
+        path: PathBuf,
+        /// The context in which the error occurs.
+        ///
+        /// This is meant to complete the sentence " error for file {path} while ".
+        context: &'static str,
+        /// The error source.
+        source: toml::ser::Error,
     },
 
     /// A UTF-8 error occurred when trying to convert a byte vector to a string.
@@ -201,17 +240,79 @@ pub enum ErrorExitCode {
     /// Mapping for [`Error::CommandWriteToStdin`].
     CommandWriteToStdin = 16,
 
-    /// Mapping for [`crate::config::Error::ConfigMissing`] wrapped in [`Error::Config`].
+    /// Mapping for [`crate::ConfigError::ConfigIsMissing`] wrapped in [`Error::Config`].
     ConfigConfigMissing = 120,
 
-    /// Mapping for [`crate::config::Error::NetHsmConfig`] wrapped in [`Error::Config`].
-    ConfigNetHsmConfig = 121,
+    /// Mapping for [`crate::ConfigError::DuplicateNetHsmUserId`] wrapped in
+    /// [`Error::Config`].
+    ConfigDuplicateNetHsmUserId = 121,
+
+    /// Mapping for [`crate::ConfigError::DuplicateSshPublicKey`] wrapped in
+    /// [`Error::Config`].
+    ConfigDuplicateSshPublicKey = 122,
+
+    /// Mapping for [`crate::ConfigError::DuplicateKeyId`] wrapped in [`Error::Config`].
+    ConfigDuplicateKeyId = 123,
+
+    /// Mapping for [`crate::ConfigError::DuplicateSystemUserId`] wrapped in
+    /// [`Error::Config`].
+    ConfigDuplicateSystemUserId = 124,
+
+    /// Mapping for [`crate::ConfigError::DuplicateTag`] wrapped in [`Error::Config`].
+    ConfigDuplicateTag = 125,
+
+    /// Mapping for [`crate::ConfigError::InvalidSystemUserName`] wrapped in
+    /// [`Error::Config`].
+    ConfigInvalidSystemUserName = 126,
+
+    /// Mapping for [`crate::ConfigError::InvalidAuthorizedKeyEntry`] wrapped in
+    /// [`Error::Config`].
+    ConfigInvalidAuthorizedKeyEntry = 127,
+
+    /// Mapping for [`crate::ConfigError::MetricsAlsoOperator`] wrapped in
+    /// [`Error::Config`].
+    ConfigMetricsAlsoOperator = 128,
+
+    /// Mapping for [`crate::ConfigError::MissingAdministrator`] wrapped in
+    /// [`Error::Config`].
+    ConfigMissingAdministrator = 129,
+
+    /// Mapping for [`crate::ConfigError::MissingShareDownloadSystemUser`] wrapped in
+    /// [`Error::Config`].
+    ConfigMissingShareDownloadSystemUser = 130,
+
+    /// Mapping for [`crate::ConfigError::MissingShareUploadSystemUser`] wrapped in
+    /// [`Error::Config`].
+    ConfigMissingShareUploadSystemUser = 131,
+
+    /// Mapping for [`crate::ConfigError::NoAuthorizedKeys`] wrapped in [`Error::Config`].
+    ConfigNoAuthorizedKeys = 132,
+
+    /// Mapping for [`crate::ConfigError::NoMatchingMappingForSystemUser`] wrapped in
+    /// [`Error::Config`].
+    ConfigNoMatchingMappingForSystemUser = 133,
+
+    /// Mapping for [`crate::ConfigError::NoSssButShareUsers`] wrapped in [`Error::Config`].
+    ConfigNoSssButShareUsers = 134,
+
+    /// Mapping for [`crate::ConfigError::SshKey`] wrapped in [`Error::Config`].
+    ConfigSshKey = 135,
+
+    /// Mapping for [`crate::ConfigError::User`] wrapped in [`Error::Config`].
+    ConfigUser = 136,
+
+    /// Mapping for [`crate::ConfigError::SystemWideUserIdWithNamespace`] wrapped in
+    /// [`Error::Config`].
+    ConfigSystemWideUserIdWithNamespace = 137,
 
     /// Mapping for [`crate::Error::NetHsm`].
-    NetHsm = 17,
+    IoPath = 17,
+
+    /// Mapping for [`crate::Error::NetHsm`].
+    NetHsm = 18,
 
     /// Mapping for [`crate::Error::NetHsmBackend`].
-    NetHsmBackend = 18,
+    NetHsmBackend = 19,
 
     /// Mapping for [`crate::non_admin_credentials::Error::CredentialsLoading`] wrapped in
     /// [`Error::NonAdminSecretHandling`].
@@ -274,10 +375,16 @@ pub enum ErrorExitCode {
     SignstarCommonAdminCredsDirChangeOwner = 172,
 
     /// Mapping for [`Error::Thread`].
-    Thread = 19,
+    Thread = 20,
+
+    /// Mapping for [`Error::TomlRead`].
+    TomlRead = 21,
+
+    /// Mapping for [`Error::TomlWrite`].
+    TomlWrite = 22,
 
     /// Mapping for [`Error::Utf8String`].
-    Utf8String = 20,
+    Utf8String = 23,
 
     /// Mapping for [`crate::utils::Error::ExecutableNotFound`] wrapped in [`Error::Utils`].
     UtilsExecutableNotFound = 190,
@@ -342,8 +449,42 @@ impl From<Error> for ErrorExitCode {
             },
             // config related errors
             Error::Config(error) => match error {
-                crate::config::Error::ConfigMissing => Self::ConfigConfigMissing,
-                crate::config::Error::NetHsmConfig(_) => Self::ConfigNetHsmConfig,
+                crate::ConfigError::ConfigIsMissing => Self::ConfigConfigMissing,
+                crate::ConfigError::DuplicateNetHsmUserId { .. } => {
+                    Self::ConfigDuplicateNetHsmUserId
+                }
+                crate::ConfigError::DuplicateSshPublicKey { .. } => {
+                    Self::ConfigDuplicateSshPublicKey
+                }
+                crate::ConfigError::DuplicateKeyId { .. } => Self::ConfigDuplicateKeyId,
+                crate::ConfigError::DuplicateSystemUserId { .. } => {
+                    Self::ConfigDuplicateSystemUserId
+                }
+                crate::ConfigError::DuplicateTag { .. } => Self::ConfigDuplicateTag,
+                crate::ConfigError::InvalidSystemUserName { .. } => {
+                    Self::ConfigInvalidSystemUserName
+                }
+                crate::ConfigError::InvalidAuthorizedKeyEntry { .. } => {
+                    Self::ConfigInvalidAuthorizedKeyEntry
+                }
+                crate::ConfigError::MetricsAlsoOperator { .. } => Self::ConfigMetricsAlsoOperator,
+                crate::ConfigError::MissingAdministrator { .. } => Self::ConfigMissingAdministrator,
+                crate::ConfigError::MissingShareDownloadSystemUser => {
+                    Self::ConfigMissingShareDownloadSystemUser
+                }
+                crate::ConfigError::MissingShareUploadSystemUser => {
+                    Self::ConfigMissingShareUploadSystemUser
+                }
+                crate::ConfigError::NoAuthorizedKeys => Self::ConfigNoAuthorizedKeys,
+                crate::ConfigError::NoMatchingMappingForSystemUser { .. } => {
+                    Self::ConfigNoMatchingMappingForSystemUser
+                }
+                crate::ConfigError::NoSssButShareUsers { .. } => Self::ConfigNoSssButShareUsers,
+                crate::ConfigError::SshKey(_) => Self::ConfigSshKey,
+                crate::ConfigError::User(_) => Self::ConfigUser,
+                crate::ConfigError::SystemWideUserIdWithNamespace(_) => {
+                    Self::ConfigSystemWideUserIdWithNamespace
+                }
             },
             // NetHSM related errors
             Error::NetHsm(_) => Self::NetHsm,
@@ -417,9 +558,12 @@ impl From<Error> for ErrorExitCode {
             Error::CommandBackground { .. } => Self::CommandBackground,
             Error::CommandExec { .. } => Self::CommandExec,
             Error::CommandNonZero { .. } => Self::CommandNonZero,
-            Error::Thread { .. } => Self::Thread,
-            Error::Utf8String { .. } => Self::Utf8String,
             Error::CommandWriteToStdin { .. } => Self::CommandWriteToStdin,
+            Error::IoPath { .. } => Self::IoPath,
+            Error::Thread { .. } => Self::Thread,
+            Error::TomlRead { .. } => Self::TomlRead,
+            Error::TomlWrite { .. } => Self::TomlWrite,
+            Error::Utf8String { .. } => Self::Utf8String,
         }
     }
 }
