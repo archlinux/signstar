@@ -5,8 +5,7 @@ use std::process::ExitCode;
 use clap::Parser;
 use clap_verbosity_flag::Verbosity;
 use nethsm::{KeyId, NetHsm};
-use nethsm_config::UserMapping;
-use signstar_config::{CredentialsLoading, Error as ConfigError};
+use signstar_config::{CredentialsLoading, Error as ConfigError, UserMapping};
 use signstar_request_signature::{Request, Response, Sha512};
 
 /// Signstar signing error.
