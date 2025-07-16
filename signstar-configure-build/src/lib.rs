@@ -6,13 +6,13 @@ use std::{
     str::FromStr,
 };
 
-use nethsm_config::{HermeticParallelConfig, SystemUserId, UserMapping};
 use nix::unistd::User;
 use signstar_common::{
     config::get_config_file_or_default,
     ssh::{get_ssh_authorized_key_base_dir, get_sshd_config_dropin_dir},
     system_user::get_home_base_dir_path,
 };
+use signstar_config::{SignstarConfig, SystemUserId, UserMapping};
 use sysinfo::{Pid, System};
 
 pub mod cli;
@@ -21,7 +21,7 @@ pub mod cli;
 pub enum Error {
     /// A config error
     #[error("Configuration issue: {0}")]
-    Config(#[from] nethsm_config::Error),
+    Config(#[from] signstar_config::Error),
 
     /// A [`Command`] exited unsuccessfully
     #[error(
@@ -322,7 +322,7 @@ pub fn ensure_root() -> Result<(), Error> {
 /// [authorized_keys]: https://man.archlinux.org/man/sshd.8#AUTHORIZED_KEYS_FILE_FORMAT
 /// [sshd_config]: https://man.archlinux.org/man/sshd_config.5
 /// [ForceCommand]: https://man.archlinux.org/man/sshd_config.5#ForceCommand
-pub fn create_system_users(config: &HermeticParallelConfig) -> Result<(), Error> {
+pub fn create_system_users(config: &SignstarConfig) -> Result<(), Error> {
     for mapping in config.iter_user_mappings() {
         // if there is no system user, there is nothing to do
         let Some(user) = mapping.get_system_user() else {
