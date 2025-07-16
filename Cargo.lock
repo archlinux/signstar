@@ -4495,7 +4495,6 @@ dependencies = [
  "httpmock",
  "log",
  "nethsm",
- "nethsm-config",
  "openssl",
  "rcgen",
  "rstest",

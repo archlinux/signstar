@@ -4,8 +4,7 @@ use std::process::ExitCode;
 
 use clap::Parser;
 use nethsm::{KeyId, NetHsm};
-use nethsm_config::UserMapping;
-use signstar_config::{CredentialsLoading, Error as ConfigError};
+use signstar_config::{CredentialsLoading, Error as ConfigError, UserMapping};
 use signstar_request_signature::{Request, Response, Sha512};
 use signstar_sign::cli::Cli;
 
