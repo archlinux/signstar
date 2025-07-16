@@ -11,14 +11,16 @@ use signstar_common::{
     config::get_default_config_file_path,
     system_user::{get_systemd_creds_secret_file, get_user_secrets_dir},
 };
-use signstar_config::test::{
-    CommandOutput,
-    create_users,
-    list_files_in_dir,
-    prepare_system_with_config,
-    run_command_as_user,
+use signstar_config::{
+    error::ErrorExitCode,
+    test::{
+        CommandOutput,
+        create_users,
+        list_files_in_dir,
+        prepare_system_with_config,
+        run_command_as_user,
+    },
 };
-use signstar_config::{error::ErrorExitCode, non_admin_credentials::SecretsWriter};
 use testresult::TestResult;
 
 /// Plaintext configuration

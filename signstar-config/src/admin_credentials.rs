@@ -11,7 +11,6 @@ use std::{
 #[cfg(doc)]
 use nethsm::UserId;
 use nethsm::{FullCredentials, Passphrase};
-use nethsm_config::AdministrativeSecretHandling;
 use serde::{Deserialize, Serialize};
 use signstar_common::{
     admin_credentials::{
@@ -22,7 +21,10 @@ use signstar_common::{
     common::SECRET_FILE_MODE,
 };
 
-use crate::utils::{fail_if_not_root, get_command, get_current_system_user};
+use crate::{
+    AdministrativeSecretHandling,
+    utils::{fail_if_not_root, get_command, get_current_system_user},
+};
 
 /// An error that may occur when handling administrative credentials for a NetHSM backend.
 #[derive(Debug, thiserror::Error)]
@@ -268,8 +270,7 @@ impl AdminCredentials {
     /// # Examples
     ///
     /// ```no_run
-    /// use nethsm_config::AdministrativeSecretHandling;
-    /// use signstar_config::admin_credentials::AdminCredentials;
+    /// use signstar_config::{AdminCredentials, AdministrativeSecretHandling};
     ///
     /// # fn main() -> testresult::TestResult {
     /// // load plaintext credentials from default location
@@ -323,8 +324,7 @@ impl AdminCredentials {
     /// ```no_run
     /// use std::io::Write;
     ///
-    /// use nethsm_config::AdministrativeSecretHandling;
-    /// use signstar_config::admin_credentials::AdminCredentials;
+    /// use signstar_config::{AdminCredentials, AdministrativeSecretHandling};
     ///
     /// # fn main() -> testresult::TestResult {
     /// let admin_creds = r#"iteration = 1
@@ -455,8 +455,7 @@ impl AdminCredentials {
     ///
     /// ```no_run
     /// use nethsm::FullCredentials;
-    /// use nethsm_config::AdministrativeSecretHandling;
-    /// use signstar_config::admin_credentials::AdminCredentials;
+    /// use signstar_config::{AdminCredentials, AdministrativeSecretHandling};
     ///
     /// # fn main() -> testresult::TestResult {
     /// let creds = AdminCredentials::new(

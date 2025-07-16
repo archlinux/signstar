@@ -1,9 +1,10 @@
 //! Utilities for signstar-config.
 use std::path::PathBuf;
 
-use nethsm_config::{ExtendedUserMapping, SystemUserId};
 use nix::unistd::{User, geteuid};
 use which::which;
+
+use crate::{ExtendedUserMapping, SystemUserId};
 
 /// An error that may occur when using signstar-config utils.
 #[derive(Debug, thiserror::Error)]
