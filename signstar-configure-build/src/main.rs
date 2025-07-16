@@ -1,7 +1,7 @@
 use std::process::ExitCode;
 
 use clap::{Parser, crate_version};
-use nethsm_config::{ConfigInteractivity, ConfigSettings, HermeticParallelConfig};
+use signstar_config::SignstarConfig;
 use signstar_configure_build::{
     Error,
     cli::{BIN_NAME, Cli},
@@ -17,14 +17,7 @@ fn run_command(cli: Cli) -> Result<(), Error> {
 
     ensure_root()?;
 
-    let config = HermeticParallelConfig::new_from_file(
-        ConfigSettings::new(
-            BIN_NAME.to_string(),
-            ConfigInteractivity::NonInteractive,
-            None,
-        ),
-        Some(cli.config.unwrap_or_default().as_ref()),
-    )?;
+    let config = SignstarConfig::new_from_file(Some(cli.config.unwrap_or_default().as_ref()))?;
 
     create_system_users(&config)?;
 
