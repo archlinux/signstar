@@ -15,7 +15,6 @@ clap = { workspace = true, features = ["derive"] }
 clap-verbosity-flag = "3.0.3"
 log.workspace = true
 nethsm.workspace = true
-nethsm-config.workspace = true
 signstar-common = { features = ["logging"], workspace = true }
 signstar-config.workspace = true
 signstar-request-signature.workspace = true

@@ -1,40 +1,20 @@
 //! Non-administrative credentials handling for a NetHSM backend.
 use std::{
     fmt::{Debug, Display},
-    fs::{File, Permissions, create_dir_all, read_to_string, set_permissions},
-    io::Write,
-    os::unix::fs::{PermissionsExt, chown},
-    path::{Path, PathBuf},
-    process::{Command, Stdio},
+    path::PathBuf,
 };
 
 #[cfg(doc)]
 use nethsm::NetHsm;
-use nethsm::{FullCredentials, Passphrase, UserId};
-#[cfg(doc)]
-use nethsm_config::HermeticParallelConfig;
-use nethsm_config::{ExtendedUserMapping, NonAdministrativeSecretHandling, SystemUserId};
-use rand::{Rng, distributions::Alphanumeric, thread_rng};
-use signstar_common::{
-    common::SECRET_FILE_MODE,
-    system_user::{
-        get_home_base_dir_path,
-        get_plaintext_secret_file,
-        get_systemd_creds_secret_file,
-        get_user_secrets_dir,
-    },
-};
+use nethsm::{FullCredentials, UserId};
+use signstar_common::common::SECRET_FILE_MODE;
 
 use crate::{
-    config::load_config,
-    utils::{
-        fail_if_not_root,
-        fail_if_root,
-        get_command,
-        get_current_system_user,
-        get_system_user_pair,
-        match_current_system_user,
-    },
+    ExtendedUserMapping,
+    SignstarConfig,
+    SystemUserId,
+    UserMapping,
+    utils::get_current_system_user,
 };
 
 /// An error that may occur when handling non-administrative credentials for a NetHSM backend.
@@ -232,7 +212,7 @@ impl CredentialsLoading {
     /// Creates a [`CredentialsLoading`] for the calling system user.
     ///
     /// Uses the data of the calling system user to derive the specific mapping for it from the
-    /// Signstar configuration (a [`HermeticParallelConfig`]).
+    /// Signstar configuration (a [`SignstarConfig`]).
     /// Then continues to retrieve the credentials for all associated [`NetHsm`] users of the
     /// mapping.
     ///
@@ -248,11 +228,13 @@ impl CredentialsLoading {
     pub fn from_system_user() -> Result<Self, crate::Error> {
         let user = get_current_system_user()?;
 
-        let system_config = load_config()?;
+        let system_config = SignstarConfig::new_from_file(None)?;
 
-        let mapping = system_config
-            .get_extended_mapping_for_user(&user.name)
-            .map_err(|source| crate::Error::Config(crate::config::Error::NetHsmConfig(source)))?;
+        let Some(mapping) = system_config.get_extended_mapping_for_user(&user.name) else {
+            return Err(
+                crate::ConfigError::NoMatchingMappingForSystemUser { name: user.name }.into(),
+            );
+        };
 
         // get all credentials for the mapping
         let credentials_loading = mapping.load_credentials()?;
@@ -298,7 +280,7 @@ impl CredentialsLoading {
     pub fn has_signing_user(&self) -> bool {
         matches!(
             self.mapping.get_user_mapping(),
-            nethsm_config::UserMapping::SystemNetHsmOperatorSigning {
+            UserMapping::SystemNetHsmOperatorSigning {
                 nethsm_user: _,
                 nethsm_key_setup: _,
                 ssh_authorized_key: _,
@@ -339,426 +321,5 @@ impl CredentialsLoading {
                 },
             ));
         }
-    }
-}
-
-/// A trait to implement loading of credentials, which includes reading of secrets.
-pub trait SecretsReader {
-    /// Loads credentials.
-    fn load_credentials(self) -> Result<CredentialsLoading, crate::Error>;
-}
-
-/// Checks the accessibility of a secrets file.
-///
-/// Checks whether file at `path`
-/// - exists,
-/// - is a file,
-/// - has accessible metadata,
-/// - and has the file mode [`SECRET_FILE_MODE`].
-///
-/// # Errors
-///
-/// Returns an error, if the file at `path`
-/// - does not exist,
-/// - is not a file,
-/// - does not have accessible metadata,
-/// - or has a file mode other than [`SECRET_FILE_MODE`].
-fn check_secrets_file(path: &Path) -> Result<(), crate::Error> {
-    // check if a path exists
-    if !path.exists() {
-        return Err(crate::Error::NonAdminSecretHandling(
-            Error::SecretsFileMissing {
-                path: path.to_path_buf(),
-            },
-        ));
-    }
-
-    // check if this is a file
-    if !path.is_file() {
-        return Err(crate::Error::NonAdminSecretHandling(
-            Error::SecretsFileNotAFile {
-                path: path.to_path_buf(),
-            },
-        ));
-    }
-
-    // check for correct permissions
-    match path.metadata() {
-        Ok(metadata) => {
-            let mode = metadata.permissions().mode();
-            if mode != SECRET_FILE_MODE {
-                return Err(crate::Error::NonAdminSecretHandling(
-                    Error::SecretsFilePermissions {
-                        path: path.to_path_buf(),
-                        mode,
-                    },
-                ));
-            }
-        }
-        Err(source) => {
-            return Err(crate::Error::NonAdminSecretHandling(
-                Error::SecretsFileMetadata {
-                    path: path.to_path_buf(),
-                    source,
-                },
-            ));
-        }
-    }
-
-    Ok(())
-}
-
-impl SecretsReader for ExtendedUserMapping {
-    /// Loads credentials for each [`UserId`] associated with a [`SystemUserId`].
-    ///
-    /// The [`SystemUserId`] of the mapping must be equal to the current system user calling this
-    /// function.
-    /// Relies on [`get_plaintext_secret_file`] and [`get_systemd_creds_secret_file`] to retrieve
-    /// the specific path to a secret file for each [`UserId`] mapped to a [`SystemUserId`].
-    ///
-    /// Returns a [`CredentialsLoading`], which may contain critical errors related to loading a
-    /// passphrase for each available [`UserId`].
-    /// The caller is expected to handle any errors tracked in the returned object based on context.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if
-    /// - the [`ExtendedUserMapping`] provides no [`SystemUserId`],
-    /// - no system user equal to the [`SystemUserId`] exists,
-    /// - the [`SystemUserId`] is not equal to the currently calling system user,
-    /// - or the [systemd-creds] command is not available when trying to decrypt secrets.
-    ///
-    /// [systemd-creds]: https://man.archlinux.org/man/systemd-creds.1
-    fn load_credentials(self) -> Result<CredentialsLoading, crate::Error> {
-        // Retrieve required SystemUserId and User and compare with current User.
-        let (system_user, user) = get_system_user_pair(&self)?;
-        let current_system_user = get_current_system_user()?;
-
-        // fail if running as root
-        fail_if_root(&current_system_user)?;
-        match_current_system_user(&current_system_user, &user)?;
-
-        let secret_handling = self.get_non_admin_secret_handling();
-        let mut credentials = Vec::new();
-        let mut errors = Vec::new();
-
-        for user_id in self.get_user_mapping().get_nethsm_users() {
-            let secrets_file = match secret_handling {
-                NonAdministrativeSecretHandling::Plaintext => {
-                    get_plaintext_secret_file(system_user.as_ref(), &user_id.to_string())
-                }
-                NonAdministrativeSecretHandling::SystemdCreds => {
-                    get_systemd_creds_secret_file(system_user.as_ref(), &user_id.to_string())
-                }
-            };
-            // Ensure the secrets file has correct ownership and permissions.
-            if let Err(error) = check_secrets_file(secrets_file.as_path()) {
-                errors.push(CredentialsLoadingError::new(user_id, error));
-                continue;
-            };
-
-            match secret_handling {
-                // Read from plaintext secrets file.
-                NonAdministrativeSecretHandling::Plaintext => {
-                    // get passphrase or error
-                    match read_to_string(&secrets_file)
-                        .map_err(|source| Error::SecretsFileRead {
-                            path: secrets_file,
-                            source,
-                        })
-                        .map_err(crate::Error::NonAdminSecretHandling)
-                    {
-                        Ok(passphrase) => credentials
-                            .push(FullCredentials::new(user_id, Passphrase::new(passphrase))),
-                        Err(error) => {
-                            errors.push(CredentialsLoadingError::new(user_id, error));
-                            continue;
-                        }
-                    }
-                }
-                // Read from systemd-creds encrypted secrets file.
-                NonAdministrativeSecretHandling::SystemdCreds => {
-                    // Decrypt secret using systemd-creds.
-                    let creds_command = get_command("systemd-creds")?;
-                    let mut command = Command::new(creds_command);
-                    let command = command
-                        .arg("--user")
-                        .arg("decrypt")
-                        .arg(&secrets_file)
-                        .arg("-");
-                    match command
-                        .output()
-                        .map_err(|source| crate::Error::CommandExec {
-                            command: format!("{command:?}"),
-                            source,
-                        }) {
-                        Ok(command_output) => {
-                            // fail if decryption did not result in a successful status code
-                            if !command_output.status.success() {
-                                errors.push(CredentialsLoadingError::new(
-                                    user_id,
-                                    crate::Error::CommandNonZero {
-                                        command: format!("{command:?}"),
-                                        exit_status: command_output.status,
-                                        stderr: String::from_utf8_lossy(&command_output.stderr)
-                                            .into_owned(),
-                                    },
-                                ));
-                                continue;
-                            }
-
-                            let creds = match String::from_utf8(command_output.stdout) {
-                                Ok(creds) => creds,
-                                Err(source) => {
-                                    errors.push(CredentialsLoadingError::new(
-                                        user_id.clone(),
-                                        crate::Error::Utf8String {
-                                            path: secrets_file,
-                                            context: format!(
-                                                "converting stdout of {command:?} to string"
-                                            ),
-                                            source,
-                                        },
-                                    ));
-                                    continue;
-                                }
-                            };
-
-                            credentials.push(FullCredentials::new(user_id, Passphrase::new(creds)));
-                        }
-                        Err(error) => {
-                            errors.push(CredentialsLoadingError::new(user_id, error));
-                            continue;
-                        }
-                    }
-                }
-            }
-        }
-
-        Ok(CredentialsLoading::new(
-            self,
-            credentials,
-            CredentialsLoadingErrors { errors },
-        ))
-    }
-}
-
-/// A trait to create non-administrative secrets and accompanying directories.
-pub trait SecretsWriter {
-    /// Creates secrets directories for all non-administrative mappings.
-    fn create_secrets_dir(&self) -> Result<(), crate::Error>;
-
-    /// Creates non-administrative secrets for all mappings of system users to backend users.
-    fn create_non_administrative_secrets(&self) -> Result<(), crate::Error>;
-}
-
-impl SecretsWriter for ExtendedUserMapping {
-    /// Creates secrets directories for all non-administrative mappings.
-    ///
-    /// Matches the [`SystemUserId`] in a mapping with an actual user on the system.
-    /// Creates the passphrase directory for the user and ensures correct ownership of it and all
-    /// parent directories up until the user's home directory.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if
-    /// - no system user is available in the mapping,
-    /// - the system user of the mapping is not available on the system,
-    /// - the directory could not be created,
-    /// - the ownership of any directory between the user's home and the passphrase directory can
-    ///   not be changed.
-    fn create_secrets_dir(&self) -> Result<(), crate::Error> {
-        // Retrieve required SystemUserId and User and compare with current User.
-        let (system_user, user) = get_system_user_pair(self)?;
-
-        // fail if not running as root
-        fail_if_not_root(&get_current_system_user()?)?;
-
-        // get and create the user's passphrase directory
-        let secrets_dir = get_user_secrets_dir(system_user.as_ref());
-        create_dir_all(&secrets_dir).map_err(|source| Error::SecretsDirCreate {
-            path: secrets_dir.clone(),
-            system_user: system_user.clone(),
-            source,
-        })?;
-
-        // Recursively chown all directories to the user and group, until `HOME_BASE_DIR` is
-        // reached.
-        let home_dir = get_home_base_dir_path().join(PathBuf::from(system_user.as_ref()));
-        let mut chown_dir = secrets_dir.clone();
-        while chown_dir != home_dir {
-            chown(&chown_dir, Some(user.uid.as_raw()), Some(user.gid.as_raw())).map_err(
-                |source| crate::Error::Chown {
-                    path: chown_dir.to_path_buf(),
-                    user: system_user.to_string(),
-                    source,
-                },
-            )?;
-            if let Some(parent) = &chown_dir.parent() {
-                chown_dir = parent.to_path_buf()
-            } else {
-                break;
-            }
-        }
-
-        Ok(())
-    }
-
-    /// Creates passphrases for all non-administrative mappings.
-    ///
-    /// Creates a random alphanumeric, 30-char long passphrase for each backend user of each
-    /// non-administrative user mapping.
-    ///
-    /// - If `self` is configured to use [`NonAdministrativeSecretHandling::Plaintext`], the
-    ///   passphrase is stored in a secrets file, defined by [`get_plaintext_secret_file`].
-    /// - If `self` is configured to use [`NonAdministrativeSecretHandling::SystemdCreds`], the
-    ///   passphrase is encrypted using [systemd-creds] and stored in a secrets file, defined by
-    ///   [`get_systemd_creds_secret_file`].
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if
-    /// - the targeted system user does not exist in the mapping or on the system,
-    /// - the function is called using a non-root user,
-    /// - the [systemd-creds] command is not available when trying to encrypt the passphrase,
-    /// - the encryption of the passphrase using [systemd-creds] fails,
-    /// - the secrets file can not be created,
-    /// - the secrets file can not be written to,
-    /// - or the ownership and permissions of the secrets file can not be changed.
-    ///
-    /// [systemd-creds]: https://man.archlinux.org/man/systemd-creds.1
-    fn create_non_administrative_secrets(&self) -> Result<(), crate::Error> {
-        // Retrieve required SystemUserId and User.
-        let (system_user, user) = get_system_user_pair(self)?;
-
-        // fail if not running as root
-        fail_if_not_root(&get_current_system_user()?)?;
-
-        let secret_handling = self.get_non_admin_secret_handling();
-
-        // add a secret for each NetHSM user
-        for user_id in self.get_user_mapping().get_nethsm_users() {
-            let secrets_file = match secret_handling {
-                NonAdministrativeSecretHandling::Plaintext => {
-                    get_plaintext_secret_file(system_user.as_ref(), &user_id.to_string())
-                }
-                NonAdministrativeSecretHandling::SystemdCreds => {
-                    get_systemd_creds_secret_file(system_user.as_ref(), &user_id.to_string())
-                }
-            };
-            println!(
-                "Create secret for system user {system_user} and backend user {user_id} in file: {secrets_file:?}"
-            );
-            let secret = {
-                // create initial (unencrypted) secret
-                let initial_secret: String = thread_rng()
-                    .sample_iter(&Alphanumeric)
-                    .take(30)
-                    .map(char::from)
-                    .collect();
-                // Create credentials files depending on secret handling
-                match secret_handling {
-                    NonAdministrativeSecretHandling::Plaintext => {
-                        initial_secret.as_bytes().to_vec()
-                    }
-                    NonAdministrativeSecretHandling::SystemdCreds => {
-                        // Create systemd-creds encrypted secret.
-                        let creds_command = get_command("systemd-creds")?;
-                        let mut command = Command::new(creds_command);
-                        let command = command
-                            .arg("--user")
-                            .arg("--name=")
-                            .arg("--uid")
-                            .arg(system_user.as_ref())
-                            .arg("encrypt")
-                            .arg("-")
-                            .arg("-");
-                        let mut command_child = command
-                            .stdin(Stdio::piped())
-                            .stdout(Stdio::piped())
-                            .spawn()
-                            .map_err(|source| crate::Error::CommandBackground {
-                                command: format!("{command:?}"),
-                                source,
-                            })?;
-                        let Some(mut stdin) = command_child.stdin.take() else {
-                            return Err(crate::Error::CommandAttachToStdin {
-                                command: format!("{command:?}"),
-                            })?;
-                        };
-
-                        let system_user_thread = system_user.clone();
-                        let handle = std::thread::spawn(move || {
-                            stdin
-                                .write_all(initial_secret.as_bytes())
-                                .map_err(|source| crate::Error::CommandWriteToStdin {
-                                    command:
-                                        format!("systemd-creds --user --name= --uid {system_user_thread} encrypt - -"),
-                                    source,
-                                })
-                        });
-
-                        let _handle_result = handle.join().map_err(|source| crate::Error::Thread {
-                            context: format!(
-                                "storing systemd-creds encrypted non-administrative secrets: {source:?}"
-                            ),
-                        })?;
-
-                        let command_output =
-                            command_child.wait_with_output().map_err(|source| {
-                                crate::Error::CommandExec {
-                                    command: format!("{command:?}"),
-                                    source,
-                                }
-                            })?;
-
-                        if !command_output.status.success() {
-                            return Err(crate::Error::CommandNonZero {
-                                command: format!("{command:?}"),
-                                exit_status: command_output.status,
-                                stderr: String::from_utf8_lossy(&command_output.stderr)
-                                    .into_owned(),
-                            });
-                        }
-                        command_output.stdout
-                    }
-                }
-            };
-
-            // Write secret to file and adjust permission and ownership of file.
-            let mut file = File::create(secrets_file.as_path()).map_err(|source| {
-                Error::SecretsFileCreate {
-                    path: secrets_file.clone(),
-                    system_user: system_user.clone(),
-                    source,
-                }
-            })?;
-            file.write_all(&secret)
-                .map_err(|source| Error::SecretsFileWrite {
-                    path: secrets_file.clone(),
-                    system_user: system_user.clone(),
-                    source,
-                })?;
-            chown(
-                &secrets_file,
-                Some(user.uid.as_raw()),
-                Some(user.gid.as_raw()),
-            )
-            .map_err(|source| crate::Error::Chown {
-                path: secrets_file.clone(),
-                user: system_user.to_string(),
-                source,
-            })?;
-            set_permissions(
-                secrets_file.as_path(),
-                Permissions::from_mode(SECRET_FILE_MODE),
-            )
-            .map_err(|source| crate::Error::ApplyPermissions {
-                path: secrets_file.clone(),
-                mode: SECRET_FILE_MODE,
-                source,
-            })?;
-        }
-        Ok(())
     }
 }

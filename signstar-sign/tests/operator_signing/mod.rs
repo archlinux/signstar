@@ -6,7 +6,6 @@ use log::LevelFilter;
 use rstest::rstest;
 use signstar_common::common::get_data_home;
 use signstar_common::logging::setup_logging;
-use signstar_config::non_admin_credentials::SecretsWriter;
 use signstar_config::test::{
     CommandOutput,
     create_users,

@@ -16,8 +16,7 @@ They can be used from plaintext and [`systemd-creds`] encrypted files.
 Functions for interacting with configurations in default locations must be called by root.
 
 ```rust no_run
-use nethsm_config::AdministrativeSecretHandling;
-use signstar_config::AdminCredentials;
+use signstar_config::{AdministrativeSecretHandling, AdminCredentials};
 
 # fn main() -> testresult::TestResult {
 // Load from plaintext file in default location
@@ -44,24 +43,17 @@ Assuming, that a Signstar configuration is present on the host, it is possible t
 Functions for the creation of secrets must be called by root.
 
 ```rust no_run
-use nethsm_config::{
-    AdministrativeSecretHandling,
-    ConfigInteractivity,
-    ConfigSettings,
-    ExtendedUserMapping,
-    HermeticParallelConfig,
-};
 use signstar_common::config::get_default_config_file_path;
-use signstar_config::{AdminCredentials, SecretsWriter};
+use signstar_config::{
+    AdministrativeSecretHandling,
+    AdminCredentials,
+    ExtendedUserMapping,
+    SignstarConfig,
+};
 
 # fn main() -> testresult::TestResult {
 // Load Signstar config from default location
-let config = HermeticParallelConfig::new_from_file(
-    ConfigSettings::new(
-        "my_app".to_string(),
-        ConfigInteractivity::NonInteractive,
-        None,
-    ),
+let config = SignstarConfig::new_from_file(
     Some(&get_default_config_file_path()),
 )?;
 

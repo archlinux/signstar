@@ -20,12 +20,12 @@ use nethsm::{
     UserId,
     UserRole,
 };
-use nethsm_config::{FilterUserKeys, HermeticParallelConfig};
 #[cfg(doc)]
 use pgp::composed::SignedPublicKey;
 use strum::IntoStaticStr;
 
 use crate::NetHsmBackendError;
+use crate::{FilterUserKeys, SignstarConfig};
 
 /// An error that may occur when comparing two [`State`] structs.
 #[derive(Debug, thiserror::Error)]
@@ -479,9 +479,9 @@ impl State {
     }
 }
 
-impl From<&HermeticParallelConfig> for State {
-    /// Creates a [`State`] from [`HermeticParallelConfig`] reference.
-    fn from(value: &HermeticParallelConfig) -> Self {
+impl From<&SignstarConfig> for State {
+    /// Creates a [`State`] from [`SignstarConfig`] reference.
+    fn from(value: &SignstarConfig) -> Self {
         let users: Vec<UserState> = value
             .iter_user_mappings()
             .flat_map(|mapping| {

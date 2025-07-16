@@ -2,7 +2,6 @@
 use std::fs::{copy, create_dir_all, read_to_string};
 
 use nethsm::FullCredentials;
-use nethsm_config::AdministrativeSecretHandling;
 use rstest::rstest;
 use signstar_common::admin_credentials::{
     create_credentials_dir,
@@ -10,8 +9,11 @@ use signstar_common::admin_credentials::{
     get_plaintext_credentials_file,
     get_systemd_creds_credentials_file,
 };
-use signstar_config::admin_credentials::AdminCredentials;
-use signstar_config::test::{get_tmp_config, write_machine_id};
+use signstar_config::{
+    AdminCredentials,
+    AdministrativeSecretHandling,
+    test::{get_tmp_config, write_machine_id},
+};
 use testresult::TestResult;
 
 /// Simple configuration

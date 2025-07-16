@@ -1,14 +1,13 @@
 //! Integration tests for [`signstar_config::nethsm::backend`] (against a NetHSM container).
 
 use log::{LevelFilter, debug};
-use nethsm::test::create_container;
-use nethsm::{Connection, NetHsm, UserId};
-use nethsm_config::UserMapping;
+use nethsm::{Connection, NetHsm, UserId, test::create_container};
 use rstest::rstest;
 use signstar_common::logging::setup_logging;
 use signstar_config::{
     NetHsmBackend,
     State,
+    UserMapping,
     test::{admin_credentials, create_full_credentials, signstar_config},
 };
 use testresult::TestResult;

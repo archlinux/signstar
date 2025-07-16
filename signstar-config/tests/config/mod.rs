@@ -16,8 +16,7 @@ use signstar_common::config::{
     get_usr_local_override_config_file_path,
     get_usr_local_override_dir_path,
 };
-use signstar_config::config::load_config;
-use signstar_config::test::get_tmp_config;
+use signstar_config::{SignstarConfig, test::get_tmp_config};
 use testresult::TestResult;
 
 /// Full configuration
@@ -60,7 +59,37 @@ fn load_config_from_default_location(#[case] config_dir: PathBuf) -> TestResult 
     println!("Copying {config_file_fixture:?} to {config_file_path:?}");
     copy(config_file_fixture, &config_file_path)?;
 
-    load_config()?;
+    SignstarConfig::new_from_file(None)?;
+
+    Ok(())
+}
+
+/// Ensures that when not providing a path to [`SignstarConfig::store`], the default runtime
+/// directory is written to.
+#[rstest]
+fn signstar_config_store_to_runtime_dir() -> TestResult {
+    let config_file_fixture = get_tmp_config(SIGNSTAR_CONFIG_FULL)?;
+    let config = SignstarConfig::new_from_file(Some(config_file_fixture.path()))?;
+
+    assert!(!get_run_override_config_file_path().exists());
+    config.store(None)?;
+
+    assert!(get_run_override_config_file_path().exists());
+
+    Ok(())
+}
+
+/// Ensures that when providing an invalid path to [`SignstarConfig::store`], the parent dir
+/// creation fails.
+#[rstest]
+fn signstar_config_store_fails_on_parent() -> TestResult {
+    let config_file_fixture = get_tmp_config(SIGNSTAR_CONFIG_FULL)?;
+    let config = SignstarConfig::new_from_file(Some(config_file_fixture.path()))?;
+
+    let config_path = "..";
+    if config.store(Some(&PathBuf::from(config_path))).is_ok() {
+        panic!("Creating parent of {config_path} should not be possible");
+    }
 
     Ok(())
 }
