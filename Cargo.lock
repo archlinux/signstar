@@ -4442,9 +4442,9 @@ name = "signstar-configure-build"
 version = "0.2.0"
 dependencies = [
  "clap",
- "nethsm-config",
  "nix 0.30.1",
  "signstar-common",
+ "signstar-config",
  "strum",
  "sysinfo 0.37.0",
  "thiserror 2.0.12",

@@ -6,13 +6,13 @@ use std::{
     str::FromStr,
 };
 
-use nethsm_config::{HermeticParallelConfig, SystemUserId, UserMapping};
 use nix::unistd::User;
 use signstar_common::{
     config::get_config_file_or_default,
     ssh::{get_ssh_authorized_key_base_dir, get_sshd_config_dropin_dir},
     system_user::get_home_base_dir_path,
 };
+use signstar_config::{SignstarConfig, SystemUserId, UserMapping};
 use sysinfo::{Pid, System};
 
 pub mod cli;
@@ -21,7 +21,7 @@ pub mod cli;
 pub enum Error {
     /// A config error
     #[error("Configuration issue: {0}")]
-    Config(#[from] nethsm_config::Error),
+    Config(#[from] signstar_config::Error),
 
     /// A [`Command`] exited unsuccessfully
     #[error(
@@ -225,15 +225,15 @@ impl TryFrom<&UserMapping> for SshForceCommand {
             } => Ok(Self::Sign),
             UserMapping::SystemOnlyShareDownload {
                 system_user: _,
-                ssh_authorized_keys: _,
+                ssh_authorized_key: _,
             } => Ok(SshForceCommand::DownloadSecretShare),
             UserMapping::SystemOnlyShareUpload {
                 system_user: _,
-                ssh_authorized_keys: _,
+                ssh_authorized_key: _,
             } => Ok(SshForceCommand::UploadSecretShare),
             UserMapping::SystemOnlyWireGuardDownload {
                 system_user: _,
-                ssh_authorized_keys: _,
+                ssh_authorized_key: _,
             } => Ok(SshForceCommand::DownloadWireGuard),
             UserMapping::NetHsmOnlyAdmin(_)
             | UserMapping::HermeticSystemNetHsmMetrics {
@@ -322,7 +322,7 @@ pub fn ensure_root() -> Result<(), Error> {
 /// [authorized_keys]: https://man.archlinux.org/man/sshd.8#AUTHORIZED_KEYS_FILE_FORMAT
 /// [sshd_config]: https://man.archlinux.org/man/sshd_config.5
 /// [ForceCommand]: https://man.archlinux.org/man/sshd_config.5#ForceCommand
-pub fn create_system_users(config: &HermeticParallelConfig) -> Result<(), Error> {
+pub fn create_system_users(config: &SignstarConfig) -> Result<(), Error> {
     for mapping in config.iter_user_mappings() {
         // if there is no system user, there is nothing to do
         let Some(user) = mapping.get_system_user() else {
@@ -420,64 +420,55 @@ pub fn create_system_users(config: &HermeticParallelConfig) -> Result<(), Error>
         }
         println!(" Done.");
 
-        if let Ok(force_command) = SshForceCommand::try_from(mapping) {
-            let authorized_keys = mapping.get_ssh_authorized_keys();
-            if !authorized_keys.is_empty() {
-                // add SSH authorized keys file user in system-wide location
-                print!("Adding SSH authorized_keys file for user \"{user}\"...");
-                {
-                    let mut buffer = File::create(
-                        get_ssh_authorized_key_base_dir()
-                            .join(format!("signstar-user-{user}.authorized_keys")),
-                    )
+        if let Ok(force_command) = SshForceCommand::try_from(mapping)
+            && let Some(authorized_key) = mapping.get_ssh_authorized_key()
+        {
+            // add SSH authorized keys file user in system-wide location
+            print!("Adding SSH authorized_keys file for user \"{user}\"...");
+            {
+                let mut buffer = File::create(
+                    get_ssh_authorized_key_base_dir()
+                        .join(format!("signstar-user-{user}.authorized_keys")),
+                )
+                .map_err(|source| Error::WriteAuthorizedKeys {
+                    user: user.clone(),
+                    source,
+                })?;
+                buffer
+                    .write_all(authorized_key.as_ref().as_bytes())
                     .map_err(|source| Error::WriteAuthorizedKeys {
                         user: user.clone(),
                         source,
                     })?;
-                    buffer
-                        .write_all(
-                            (authorized_keys
-                                .iter()
-                                .map(|authorized_key| authorized_key.as_ref())
-                                .collect::<Vec<&str>>()
-                                .join("\n")
-                                + "\n")
-                                .as_bytes(),
-                        )
-                        .map_err(|source| Error::WriteAuthorizedKeys {
-                            user: user.clone(),
-                            source,
-                        })?;
-                }
-                println!(" Done.");
+            }
+            println!(" Done.");
 
-                // add sshd_config drop-in configuration for user
-                print!("Adding sshd_config drop-in configuration for user \"{user}\"...");
-                {
-                    let mut buffer = File::create(
-                        get_sshd_config_dropin_dir().join(format!("10-signstar-user-{user}.conf")),
+            // add sshd_config drop-in configuration for user
+            print!("Adding sshd_config drop-in configuration for user \"{user}\"...");
+            {
+                let mut buffer = File::create(
+                    get_sshd_config_dropin_dir().join(format!("10-signstar-user-{user}.conf")),
+                )
+                .map_err(|source| Error::WriteSshdConfig {
+                    user: user.clone(),
+                    source,
+                })?;
+                buffer
+                    .write_all(
+                        format!(
+                            r#"Match user {user}
+    AuthorizedKeysFile /etc/ssh/signstar-user-{user}.authorized_keys
+    ForceCommand /usr/bin/{force_command}
+"#
+                        )
+                        .as_bytes(),
                     )
                     .map_err(|source| Error::WriteSshdConfig {
                         user: user.clone(),
                         source,
                     })?;
-                    buffer
-                        .write_all(
-                            format!(
-                                r#"Match user {user}
-    AuthorizedKeysFile /etc/ssh/signstar-user-{user}.authorized_keys
-    ForceCommand /usr/bin/{force_command}
-"#
-                            )
-                            .as_bytes(),
-                        )
-                        .map_err(|source| Error::WriteSshdConfig {
-                            user: user.clone(),
-                            source,
-                        })?;
-                }
-                println!(" Done.");
             }
+            println!(" Done.");
         };
     }
 
