@@ -1,6 +1,5 @@
 # yaml-language-server: $schema=https://gitlab.com/gitlab-org/gitlab/-/raw/master/app/assets/javascripts/editor/schema/ci.json
 variables:
-  ARCH_CI: true
   CACHE_COMPRESSION_FORMAT: tarzstd
   RUST_BACKTRACE: full
   CARGO_HOME: $CI_PROJECT_DIR/.cargo-home
@@ -135,10 +134,10 @@ integration-test:
   script:
     - useradd -m testuser
     - chown -R testuser:testuser .
-    - WORKDIR="$(pwd)" runuser -w ARCH_CI,WORKDIR,SIGNSTAR_COVERAGE -l testuser -c 'env && cd "$WORKDIR" && just install-rust-dev-tools'
-    - WORKDIR="$(pwd)" runuser -w ARCH_CI,WORKDIR,SIGNSTAR_COVERAGE -l testuser -c 'env && cd "$WORKDIR" && just nethsm-integration-tests'
-    - WORKDIR="$(pwd)" runuser -w ARCH_CI,WORKDIR,SIGNSTAR_COVERAGE -l testuser -c 'env && cd "$WORKDIR" && just containerized-integration-tests'
-    - WORKDIR="$(pwd)" runuser -w ARCH_CI,WORKDIR,SIGNSTAR_COVERAGE -l testuser -c 'env && cd "$WORKDIR" && just create-coverage-report doc integration-test-coverage'
+    - WORKDIR="$(pwd)" runuser -w CI,WORKDIR,SIGNSTAR_COVERAGE -l testuser -c 'env && cd "$WORKDIR" && just install-rust-dev-tools'
+    - WORKDIR="$(pwd)" runuser -w CI,WORKDIR,SIGNSTAR_COVERAGE -l testuser -c 'env && cd "$WORKDIR" && just nethsm-integration-tests'
+    - WORKDIR="$(pwd)" runuser -w CI,WORKDIR,SIGNSTAR_COVERAGE -l testuser -c 'env && cd "$WORKDIR" && just containerized-integration-tests'
+    - WORKDIR="$(pwd)" runuser -w CI,WORKDIR,SIGNSTAR_COVERAGE -l testuser -c 'env && cd "$WORKDIR" && just create-coverage-report doc integration-test-coverage'
   stage: test
   timeout: 20m
   tags:
@@ -161,7 +160,7 @@ test-readmes:
   script:
     - useradd -m testuser
     - chown -R testuser:testuser .
-    - WORKDIR="$(pwd)" runuser -w ARCH_CI,WORKDIR -l testuser -c 'env && cd "$WORKDIR" && just install-rust-dev-tools && just test-readmes'
+    - WORKDIR="$(pwd)" runuser -w CI,WORKDIR -l testuser -c 'env && cd "$WORKDIR" && just install-rust-dev-tools && just test-readmes'
   stage: test
   tags:
     - vm
