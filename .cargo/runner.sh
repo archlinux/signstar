@@ -16,8 +16,8 @@ set -euo pipefail
 
 readonly test_executable_path="${1:-}"
 readonly first_test_argument="${2:-}"
-# Use Arch Linux's container registry when running in CI (indicated by the presence of the ARCH_CI environment variable).
-if [[ -z "${ARCH_CI+x}" ]]; then
+# Use Arch Linux's container registry when running in CI (indicated by the presence of the `CI` environment variable).
+if [[ -z "${CI+x}" ]]; then
   arch_container="archlinux:latest"
 else
   arch_container="registry.archlinux.org/archlinux/archlinux-docker:base-master"
