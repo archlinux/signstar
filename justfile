@@ -372,7 +372,7 @@ test-readme project:
         ;;
         *)
             podman_create_options+=(
-                docker.io/nitrokey/nethsm:testing
+                docker.io/nitrokey/nethsm:c16fe4ed
             )
         ;;
     esac
