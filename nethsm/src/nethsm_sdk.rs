@@ -132,10 +132,6 @@ impl<T> Display for NetHsmApiError<T> {
 #[strum(ascii_case_insensitive)]
 pub enum SignatureType {
     /// Elliptic Curve Digital Signature Algorithm (ECDSA) signing using a key over a prime field
-    /// for a prime of size 224 bit
-    EcdsaP224,
-
-    /// Elliptic Curve Digital Signature Algorithm (ECDSA) signing using a key over a prime field
     /// for a prime of size 256 bit
     EcdsaP256,
 
@@ -183,10 +179,9 @@ impl From<SignatureType> for SignMode {
             SignatureType::PssSha384 => SignMode::PssSha384,
             SignatureType::PssSha512 => SignMode::PssSha512,
             SignatureType::EdDsa => SignMode::EdDsa,
-            SignatureType::EcdsaP224
-            | SignatureType::EcdsaP256
-            | SignatureType::EcdsaP384
-            | SignatureType::EcdsaP521 => SignMode::Ecdsa,
+            SignatureType::EcdsaP256 | SignatureType::EcdsaP384 | SignatureType::EcdsaP521 => {
+                SignMode::Ecdsa
+            }
         }
     }
 }
@@ -549,9 +544,6 @@ pub enum KeyType {
     #[default]
     Curve25519,
 
-    /// An elliptic-curve key over a prime field for a prime of size 224 bit
-    EcP224,
-
     /// An elliptic-curve key over a prime field for a prime of size 256 bit
     EcP256,
 
@@ -572,7 +564,6 @@ impl From<KeyType> for nethsm_sdk_rs::models::KeyType {
     fn from(value: KeyType) -> Self {
         match value {
             KeyType::Curve25519 => Self::Curve25519,
-            KeyType::EcP224 => Self::EcP224,
             KeyType::EcP256 => Self::EcP256,
             KeyType::EcP384 => Self::EcP384,
             KeyType::EcP521 => Self::EcP521,
@@ -587,12 +578,12 @@ impl From<nethsm_sdk_rs::models::KeyType> for KeyType {
         use nethsm_sdk_rs::models::KeyType;
         match value {
             KeyType::Curve25519 => Self::Curve25519,
-            KeyType::EcP224 => Self::EcP224,
             KeyType::EcP256 => Self::EcP256,
             KeyType::EcP384 => Self::EcP384,
             KeyType::EcP521 => Self::EcP521,
             KeyType::Generic => Self::Generic,
             KeyType::Rsa => Self::Rsa,
+            KeyType::EcP224 => unreachable!("P224 has been removed"),
         }
     }
 }
@@ -860,7 +851,6 @@ mod tests {
     #[rstest]
     #[case("rsa", Some(KeyType::Rsa))]
     #[case("curve25519", Some(KeyType::Curve25519))]
-    #[case("ecp224", Some(KeyType::EcP224))]
     #[case("ecp256", Some(KeyType::EcP256))]
     #[case("ecp384", Some(KeyType::EcP384))]
     #[case("ecp521", Some(KeyType::EcP521))]
@@ -876,7 +866,6 @@ mod tests {
     }
 
     #[rstest]
-    #[case("ecdsap224", Some(SignatureType::EcdsaP224))]
     #[case("ecdsap256", Some(SignatureType::EcdsaP256))]
     #[case("ecdsap384", Some(SignatureType::EcdsaP384))]
     #[case("ecdsap521", Some(SignatureType::EcdsaP521))]
@@ -904,7 +893,6 @@ mod tests {
     #[rstest]
     #[case("rsa", Some(TlsKeyType::Rsa))]
     #[case("curve25519", Some(TlsKeyType::Curve25519))]
-    #[case("ecp224", Some(TlsKeyType::EcP224))]
     #[case("ecp256", Some(TlsKeyType::EcP256))]
     #[case("ecp384", Some(TlsKeyType::EcP384))]
     #[case("ecp521", Some(TlsKeyType::EcP521))]

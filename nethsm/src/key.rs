@@ -302,22 +302,6 @@ impl CryptographicKeyContext {
     ///     &[KeyMechanism::EdDsaSignature],
     ///     SignatureType::EdDsa,
     /// )?;
-    ///
-    /// // OpenPGP does not support ECDSA P224
-    /// assert!(
-    ///     CryptographicKeyContext::OpenPgp {
-    ///         user_ids: OpenPgpUserIdList::new(vec![
-    ///             "Foobar McFooface <foobar@mcfooface.org>".parse()?
-    ///         ])?,
-    ///         version: OpenPgpVersion::V4,
-    ///     }
-    ///     .validate_signing_key_setup(
-    ///         KeyType::EcP224,
-    ///         &[KeyMechanism::EcdsaSignature],
-    ///         SignatureType::EcdsaP224,
-    ///     )
-    ///     .is_err()
-    /// );
     /// # Ok(())
     /// # }
     /// ```
@@ -331,8 +315,6 @@ impl CryptographicKeyContext {
             Self::Raw => match (key_type, signature_type) {
                 (KeyType::Curve25519, SignatureType::EdDsa)
                     if key_mechanisms.contains(&KeyMechanism::EdDsaSignature) => {}
-                (KeyType::EcP224, SignatureType::EcdsaP224)
-                    if key_mechanisms.contains(&KeyMechanism::EcdsaSignature) => {}
                 (KeyType::EcP256, SignatureType::EcdsaP256)
                     if key_mechanisms.contains(&KeyMechanism::EcdsaSignature) => {}
                 (KeyType::EcP384, SignatureType::EcdsaP384)
@@ -519,24 +501,6 @@ impl SigningKeySetup {
     ///     )
     ///     .is_err()
     /// );
-    ///
-    /// // this fails because OpenPGP does not support the ECDSA P224 key type
-    /// assert!(
-    ///     SigningKeySetup::new(
-    ///         "key1".parse()?,
-    ///         KeyType::EcP224,
-    ///         vec![KeyMechanism::EcdsaSignature],
-    ///         None,
-    ///         SignatureType::EcdsaP224,
-    ///         CryptographicKeyContext::OpenPgp {
-    ///             user_ids: OpenPgpUserIdList::new(vec![
-    ///                 "Foobar McFooface <foobar@mcfooface.org>".parse()?
-    ///             ])?,
-    ///             version: "v4".parse()?,
-    ///         },
-    ///     )
-    ///     .is_err()
-    /// );
     /// # Ok(())
     /// # }
     /// ```
@@ -602,8 +566,6 @@ impl SigningKeySetup {
 enum PrivateKeyData {
     /// Data for [`KeyType::Curve25519`]
     Curve25519(Vec<u8>),
-    /// Data for [`KeyType::EcP224`]
-    EcP224(Vec<u8>),
     /// Data for [`KeyType::EcP256`]
     EcP256(Vec<u8>),
     /// Data for [`KeyType::EcP384`]
@@ -623,7 +585,6 @@ impl std::fmt::Debug for PrivateKeyData {
         const REDACTED: &&str = &"[REDACTED]";
         match self {
             Self::Curve25519(_) => f.debug_tuple("Curve25519").field(REDACTED).finish(),
-            Self::EcP224(_) => f.debug_tuple("EcP224").field(REDACTED).finish(),
             Self::EcP256(_) => f.debug_tuple("EcP256").field(REDACTED).finish(),
             Self::EcP384(_) => f.debug_tuple("EcP384").field(REDACTED).finish(),
             Self::EcP521(_) => f.debug_tuple("EcP521").field(REDACTED).finish(),
@@ -713,12 +674,6 @@ impl PrivateKeyImport {
                     key_data: PrivateKeyData::Curve25519(key_pair.secret_key.to_vec()),
                 }
             }
-            KeyType::EcP224 => {
-                let private_key = p224::SecretKey::from_pkcs8_der(key_data)?;
-                Self {
-                    key_data: PrivateKeyData::EcP224(private_key.to_bytes().as_slice().to_owned()),
-                }
-            }
             KeyType::EcP256 => {
                 let private_key = p256::SecretKey::from_pkcs8_der(key_data)?;
                 Self {
@@ -801,12 +756,6 @@ impl PrivateKeyImport {
                 let key_pair = ed25519_dalek::pkcs8::KeypairBytes::from_pkcs8_pem(key_data)?;
                 Self {
                     key_data: PrivateKeyData::Curve25519(key_pair.secret_key.to_vec()),
-                }
-            }
-            KeyType::EcP224 => {
-                let private_key = p224::SecretKey::from_pkcs8_pem(key_data)?;
-                Self {
-                    key_data: PrivateKeyData::EcP224(private_key.to_bytes().as_slice().to_owned()),
                 }
             }
             KeyType::EcP256 => {
@@ -903,7 +852,6 @@ impl PrivateKeyImport {
         let bytes = bytes.as_ref();
         Ok(Self {
             key_data: match ec {
-                KeyType::EcP224 => PrivateKeyData::EcP224(pad(bytes, 28)?),
                 KeyType::EcP256 => PrivateKeyData::EcP256(pad(bytes, 32)?),
                 KeyType::EcP384 => PrivateKeyData::EcP384(pad(bytes, 48)?),
                 KeyType::EcP521 => PrivateKeyData::EcP521(pad(bytes, 66)?),
@@ -917,7 +865,6 @@ impl PrivateKeyImport {
     pub fn key_type(&self) -> KeyType {
         match &self.key_data {
             PrivateKeyData::Curve25519(_) => KeyType::Curve25519,
-            PrivateKeyData::EcP224(_) => KeyType::EcP224,
             PrivateKeyData::EcP256(_) => KeyType::EcP256,
             PrivateKeyData::EcP384(_) => KeyType::EcP384,
             PrivateKeyData::EcP521(_) => KeyType::EcP521,
@@ -943,8 +890,7 @@ impl From<PrivateKeyImport> for KeyPrivateData {
                 public_exponent: Some(Base64::encode_string(&public_exponent)),
                 data: None,
             },
-            PrivateKeyData::EcP224(data)
-            | PrivateKeyData::EcP256(data)
+            PrivateKeyData::EcP256(data)
             | PrivateKeyData::EcP384(data)
             | PrivateKeyData::EcP521(data)
             | PrivateKeyData::Curve25519(data) => KeyPrivateData {
@@ -971,7 +917,6 @@ impl From<PrivateKeyImport> for KeyPrivateData {
 ///
 /// # fn main() -> testresult::TestResult {
 /// key_type_matches_mechanisms(KeyType::Curve25519, &[KeyMechanism::EdDsaSignature])?;
-/// key_type_matches_mechanisms(KeyType::EcP224, &[KeyMechanism::EcdsaSignature])?;
 /// key_type_matches_mechanisms(
 ///     KeyType::Rsa,
 ///     &[
@@ -1022,7 +967,7 @@ pub fn key_type_matches_mechanisms(
 ) -> Result<(), Error> {
     let valid_mechanisms: &[KeyMechanism] = match key_type {
         KeyType::Curve25519 => &KeyMechanism::curve25519_mechanisms(),
-        KeyType::EcP224 | KeyType::EcP256 | KeyType::EcP384 | KeyType::EcP521 => {
+        KeyType::EcP256 | KeyType::EcP384 | KeyType::EcP521 => {
             &KeyMechanism::elliptic_curve_mechanisms()
         }
         KeyType::Generic => &KeyMechanism::generic_mechanisms(),
@@ -1060,7 +1005,7 @@ pub fn key_type_matches_mechanisms(
 ///
 /// # fn main() -> testresult::TestResult {
 /// key_type_and_mechanisms_match_signature_type(KeyType::Curve25519, &[KeyMechanism::EdDsaSignature], SignatureType::EdDsa)?;
-/// key_type_and_mechanisms_match_signature_type(KeyType::EcP224, &[KeyMechanism::EcdsaSignature], SignatureType::EcdsaP224)?;
+/// key_type_and_mechanisms_match_signature_type(KeyType::EcP256, &[KeyMechanism::EcdsaSignature], SignatureType::EcdsaP256)?;
 /// key_type_and_mechanisms_match_signature_type(KeyType::Rsa, &[KeyMechanism::RsaSignaturePkcs1],SignatureType::Pkcs1)?;
 ///
 /// // this fails because Curve25519 is not compatible with the Elliptic Curve Digital Signature Algorithm (ECDSA),
@@ -1077,19 +1022,6 @@ pub fn key_type_and_mechanisms_match_signature_type(
     signature_type: SignatureType,
 ) -> Result<(), Error> {
     match signature_type {
-        SignatureType::EcdsaP224 => {
-            if key_type != KeyType::EcP224 {
-                return Err(Error::InvalidKeyTypeForSignatureType {
-                    key_type,
-                    signature_type,
-                });
-            } else if !mechanisms.contains(&KeyMechanism::EcdsaSignature) {
-                return Err(Error::InvalidKeyMechanismsForSignatureType {
-                    required_key_mechanism: KeyMechanism::EcdsaSignature,
-                    signature_type,
-                });
-            }
-        }
         SignatureType::EcdsaP256 => {
             if key_type != KeyType::EcP256 {
                 return Err(Error::InvalidKeyTypeForSignatureType {
@@ -1242,8 +1174,8 @@ pub fn key_type_and_mechanisms_match_signature_type(
 /// # Errors
 ///
 /// Returns an [`Error::Key`][`crate::Error::Key`] if
-/// * `key_type` is one of [`KeyType::Curve25519`], [`KeyType::EcP224`], [`KeyType::EcP256`],
-///   [`KeyType::EcP384`] or [`KeyType::EcP521`] and `length` is [`Some`].
+/// * `key_type` is one of [`KeyType::Curve25519`], [`KeyType::EcP256`], [`KeyType::EcP384`] or
+///   [`KeyType::EcP521`] and `length` is [`Some`].
 /// * `key_type` is [`KeyType::Generic`] or [`KeyType::Rsa`] and `length` is [`None`].
 /// * `key_type` is [`KeyType::Generic`] and `length` is not [`Some`] value of `128`, `192` or
 ///   `256`.
@@ -1257,7 +1189,7 @@ pub fn key_type_and_mechanisms_match_signature_type(
 ///
 /// # fn main() -> testresult::TestResult {
 /// key_type_matches_length(KeyType::Curve25519, None)?;
-/// key_type_matches_length(KeyType::EcP224, None)?;
+/// key_type_matches_length(KeyType::EcP256, None)?;
 /// key_type_matches_length(KeyType::Rsa, Some(2048))?;
 /// key_type_matches_length(KeyType::Generic, Some(256))?;
 ///
@@ -1272,11 +1204,7 @@ pub fn key_type_and_mechanisms_match_signature_type(
 /// ```
 pub fn key_type_matches_length(key_type: KeyType, length: Option<u32>) -> Result<(), Error> {
     match key_type {
-        KeyType::Curve25519
-        | KeyType::EcP224
-        | KeyType::EcP256
-        | KeyType::EcP384
-        | KeyType::EcP521 => {
+        KeyType::Curve25519 | KeyType::EcP256 | KeyType::EcP384 | KeyType::EcP521 => {
             if length.is_some() {
                 Err(Error::KeyLengthUnsupported { key_type })
             } else {
@@ -1383,13 +1311,6 @@ mod tests {
     }
 
     #[fixture]
-    fn p224_private_key() -> TestResult<Vec<u8>> {
-        use p224::elliptic_curve::rand_core::OsRng;
-        let private_key = p224::SecretKey::random(&mut OsRng);
-        Ok(private_key.to_pkcs8_der()?.as_bytes().to_vec())
-    }
-
-    #[fixture]
     fn p256_private_key() -> TestResult<Vec<u8>> {
         use p256::elliptic_curve::rand_core::OsRng;
         let private_key = p256::SecretKey::random(&mut OsRng);
@@ -1420,63 +1341,48 @@ mod tests {
     #[rstest]
     fn key_data(
         ed25519_private_key: TestResult<Vec<u8>>,
-        p224_private_key: TestResult<Vec<u8>>,
         p256_private_key: TestResult<Vec<u8>>,
         p384_private_key: TestResult<Vec<u8>>,
         p521_private_key: TestResult<Vec<u8>>,
         rsa_private_key: TestResult<Vec<u8>>,
     ) -> TestResult {
         let ed25519_private_key = ed25519_private_key?;
-        let p224_private_key = p224_private_key?;
         let p256_private_key = p256_private_key?;
         let p384_private_key = p384_private_key?;
         let p521_private_key = p521_private_key?;
         let rsa_private_key = rsa_private_key?;
 
         assert!(PrivateKeyImport::new(KeyType::Curve25519, &ed25519_private_key).is_ok());
-        assert!(PrivateKeyImport::new(KeyType::Curve25519, &p224_private_key).is_err());
         assert!(PrivateKeyImport::new(KeyType::Curve25519, &p256_private_key).is_err());
         assert!(PrivateKeyImport::new(KeyType::Curve25519, &p384_private_key).is_err());
         assert!(PrivateKeyImport::new(KeyType::Curve25519, &p521_private_key).is_err());
         assert!(PrivateKeyImport::new(KeyType::Curve25519, &rsa_private_key).is_err());
 
-        assert!(PrivateKeyImport::new(KeyType::EcP224, &ed25519_private_key).is_err());
-        assert!(PrivateKeyImport::new(KeyType::EcP224, &p224_private_key).is_ok());
-        assert!(PrivateKeyImport::new(KeyType::EcP224, &p256_private_key).is_err());
-        assert!(PrivateKeyImport::new(KeyType::EcP224, &p384_private_key).is_err());
-        assert!(PrivateKeyImport::new(KeyType::EcP224, &p521_private_key).is_err());
-        assert!(PrivateKeyImport::new(KeyType::EcP224, &rsa_private_key).is_err());
-
         assert!(PrivateKeyImport::new(KeyType::EcP256, &ed25519_private_key).is_err());
-        assert!(PrivateKeyImport::new(KeyType::EcP256, &p224_private_key).is_err());
         assert!(PrivateKeyImport::new(KeyType::EcP256, &p256_private_key).is_ok());
         assert!(PrivateKeyImport::new(KeyType::EcP256, &p384_private_key).is_err());
         assert!(PrivateKeyImport::new(KeyType::EcP256, &p521_private_key).is_err());
         assert!(PrivateKeyImport::new(KeyType::EcP256, &rsa_private_key).is_err());
 
         assert!(PrivateKeyImport::new(KeyType::EcP384, &ed25519_private_key).is_err());
-        assert!(PrivateKeyImport::new(KeyType::EcP384, &p224_private_key).is_err());
         assert!(PrivateKeyImport::new(KeyType::EcP384, &p256_private_key).is_err());
         assert!(PrivateKeyImport::new(KeyType::EcP384, &p384_private_key).is_ok());
         assert!(PrivateKeyImport::new(KeyType::EcP384, &p521_private_key).is_err());
         assert!(PrivateKeyImport::new(KeyType::EcP384, &rsa_private_key).is_err());
 
         assert!(PrivateKeyImport::new(KeyType::EcP521, &ed25519_private_key).is_err());
-        assert!(PrivateKeyImport::new(KeyType::EcP521, &p224_private_key).is_err());
         assert!(PrivateKeyImport::new(KeyType::EcP521, &p256_private_key).is_err());
         assert!(PrivateKeyImport::new(KeyType::EcP521, &p384_private_key).is_err());
         assert!(PrivateKeyImport::new(KeyType::EcP521, &p521_private_key).is_ok());
         assert!(PrivateKeyImport::new(KeyType::EcP521, &rsa_private_key).is_err());
 
         assert!(PrivateKeyImport::new(KeyType::Rsa, &ed25519_private_key).is_err());
-        assert!(PrivateKeyImport::new(KeyType::Rsa, &p224_private_key).is_err());
         assert!(PrivateKeyImport::new(KeyType::Rsa, &p256_private_key).is_err());
         assert!(PrivateKeyImport::new(KeyType::Rsa, &p384_private_key).is_err());
         assert!(PrivateKeyImport::new(KeyType::Rsa, &p521_private_key).is_err());
         assert!(PrivateKeyImport::new(KeyType::Rsa, &rsa_private_key).is_ok());
 
         assert!(PrivateKeyImport::new(KeyType::Generic, &ed25519_private_key).is_err());
-        assert!(PrivateKeyImport::new(KeyType::Generic, &p224_private_key).is_err());
         assert!(PrivateKeyImport::new(KeyType::Generic, &p256_private_key).is_err());
         assert!(PrivateKeyImport::new(KeyType::Generic, &p384_private_key).is_err());
         assert!(PrivateKeyImport::new(KeyType::Generic, &p521_private_key).is_err());
@@ -1486,7 +1392,6 @@ mod tests {
 
     #[rstest]
     #[case(KeyType::Curve25519, &[KeyMechanism::EdDsaSignature], SignatureType::EdDsa, None)]
-    #[case(KeyType::EcP224, &[KeyMechanism::EcdsaSignature], SignatureType::EcdsaP224, None)]
     #[case(KeyType::EcP256, &[KeyMechanism::EcdsaSignature], SignatureType::EcdsaP256, None)]
     #[case(KeyType::EcP384, &[KeyMechanism::EcdsaSignature], SignatureType::EcdsaP384, None)]
     #[case(KeyType::EcP521, &[KeyMechanism::EcdsaSignature], SignatureType::EcdsaP521, None)]
@@ -1513,24 +1418,6 @@ mod tests {
         Some(Box::new(Error::InvalidKeyMechanismsForSignatureType {
             signature_type: SignatureType::EdDsa,
             required_key_mechanism: KeyMechanism::EdDsaSignature,
-        })
-    ))]
-    #[case(
-        KeyType::EcP224,
-        &[KeyMechanism::EcdsaSignature],
-        SignatureType::EdDsa,
-        Some(Box::new(Error::InvalidKeyTypeForSignatureType {
-            key_type: KeyType::EcP224,
-            signature_type: SignatureType::EdDsa,
-        })
-    ))]
-    #[case(
-        KeyType::EcP224,
-        &[KeyMechanism::EdDsaSignature],
-        SignatureType::EcdsaP224,
-        Some(Box::new(Error::InvalidKeyMechanismsForSignatureType {
-            signature_type: SignatureType::EcdsaP224,
-            required_key_mechanism: KeyMechanism::EcdsaSignature,
         })
     ))]
     #[case(

@@ -650,7 +650,6 @@ fn prepare_digest_data(
 
         // ECDSA may need to truncate the digest if it's too long
         // See: https://www.rfc-editor.org/rfc/rfc9580#section-5.2.3.2
-        crate::SignatureType::EcdsaP224 => digest[..usize::min(28, digest.len())].into(),
         crate::SignatureType::EcdsaP256 => digest[..usize::min(32, digest.len())].into(),
         crate::SignatureType::EcdsaP384 => digest[..usize::min(48, digest.len())].into(),
 
@@ -1634,7 +1633,6 @@ mod tests {
     }
 
     #[rstest]
-    #[case(crate::SignatureType::EcdsaP224, 28)]
     #[case(crate::SignatureType::EcdsaP256, 32)]
     #[case(crate::SignatureType::EcdsaP384, 48)]
     #[case(crate::SignatureType::EcdsaP521, 64)]

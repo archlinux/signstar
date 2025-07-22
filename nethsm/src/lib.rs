@@ -4534,8 +4534,8 @@ impl NetHsm {
     ///   [`KeyMechanism::RsaSignaturePssSha224`], [`KeyMechanism::RsaSignaturePssSha256`],
     ///   [`KeyMechanism::RsaSignaturePssSha384`] or [`KeyMechanism::RsaSignaturePssSha512`]
     /// * [`KeyType::Curve25519`] requires [`KeyMechanism::EdDsaSignature`]
-    /// * [`KeyType::EcP224`], [`KeyType::EcP256`], [`KeyType::EcP384`] and [`KeyType::EcP521`]
-    ///   require [`KeyMechanism::EcdsaSignature`]
+    /// * [`KeyType::EcP256`], [`KeyType::EcP384`] and [`KeyType::EcP521`] require
+    ///   [`KeyMechanism::EcdsaSignature`]
     /// * [`KeyType::Generic`] requires one of [`KeyMechanism::AesDecryptionCbc`] or
     ///   [`KeyMechanism::AesEncryptionCbc`]
     ///
@@ -4708,8 +4708,8 @@ impl NetHsm {
     ///   [`KeyMechanism::RsaSignaturePssSha224`], [`KeyMechanism::RsaSignaturePssSha256`],
     ///   [`KeyMechanism::RsaSignaturePssSha384`] or [`KeyMechanism::RsaSignaturePssSha512`]
     /// * [`KeyType::Curve25519`] must be used with [`KeyMechanism::EdDsaSignature`]
-    /// * [`KeyType::EcP224`], [`KeyType::EcP256`], [`KeyType::EcP384`] and [`KeyType::EcP521`] must
-    ///   be used with [`KeyMechanism::EcdsaSignature`]
+    /// * [`KeyType::EcP256`], [`KeyType::EcP384`] and [`KeyType::EcP521`] must be used with
+    ///   [`KeyMechanism::EcdsaSignature`]
     /// * [`KeyType::Generic`] must be used with [`KeyMechanism::AesDecryptionCbc`] or
     ///   [`KeyMechanism::AesEncryptionCbc`]
     ///
@@ -5866,7 +5866,6 @@ impl NetHsm {
     ///   require a [SHA-256] digest
     /// * [`SignatureType::PssMd5`] requires an [MD5] digest
     /// * [`SignatureType::PssSha1`] requires a [SHA-1] digest
-    /// * [`SignatureType::PssSha224`] and [`SignatureType::EcdsaP224`] require a [SHA-224] digest
     /// * [`SignatureType::PssSha384`] and [`SignatureType::EcdsaP384`] require a [SHA-384] digest
     /// * [`SignatureType::PssSha512`] and [`SignatureType::EcdsaP521`] require a [SHA-521] digest
     /// * [`SignatureType::EdDsa`] requires no digest (`digest` is the message)
@@ -5880,8 +5879,8 @@ impl NetHsm {
     ///   [`SignatureType::PssSha512`] return the [EMSA-PSS] encoded signature.
     /// * [`SignatureType::EdDsa`] returns the encoding as specified in [RFC 8032 (5.1.6)] (`r`
     ///   appended with `s` (each 32 bytes), in total 64 bytes).
-    /// * [`SignatureType::EcdsaP224`], [`SignatureType::EcdsaP256`], [`SignatureType::EcdsaP384`]
-    ///   and [`SignatureType::EcdsaP521`] return the [ASN.1] [DER] encoded signature (a sequence of
+    /// * [`SignatureType::EcdsaP256`], [`SignatureType::EcdsaP384`] and
+    ///   [`SignatureType::EcdsaP521`] return the [ASN.1] [DER] encoded signature (a sequence of
     ///   integer `r` and integer `s`).
     ///
     /// This call requires using [`Credentials`] of a user in the [`Operator`][`UserRole::Operator`]
@@ -6030,8 +6029,8 @@ impl NetHsm {
     ///   [`SignatureType::PssSha512`] return the [EMSA-PSS] encoded signature.
     /// * [`SignatureType::EdDsa`] returns the encoding as specified in [RFC 8032 (5.1.6)] (`r`
     ///   appended with `s` (each 32 bytes), in total 64 bytes).
-    /// * [`SignatureType::EcdsaP224`], [`SignatureType::EcdsaP256`], [`SignatureType::EcdsaP384`]
-    ///   and [`SignatureType::EcdsaP521`] return the [ASN.1] [DER] encoded signature (a sequence of
+    /// * [`SignatureType::EcdsaP256`], [`SignatureType::EcdsaP384`] and
+    ///   [`SignatureType::EcdsaP521`] return the [ASN.1] [DER] encoded signature (a sequence of
     ///   integer `r` and integer `s`).
     ///
     /// This call requires using [`Credentials`] of a user in the [`Operator`][`UserRole::Operator`]
@@ -6153,7 +6152,7 @@ impl NetHsm {
                 hasher.update(message);
                 &hasher.finalize()[..]
             }
-            SignatureType::PssSha224 | SignatureType::EcdsaP224 => {
+            SignatureType::PssSha224 => {
                 let mut hasher = Sha224::new();
                 hasher.update(message);
                 &hasher.finalize()[..]
