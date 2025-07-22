@@ -4413,7 +4413,6 @@ dependencies = [
 name = "signstar-config"
 version = "0.1.0"
 dependencies = [
- "confy",
  "log",
  "nethsm",
  "nix 0.30.1",
