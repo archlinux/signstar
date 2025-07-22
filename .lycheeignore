@@ -13,3 +13,7 @@ https://docs.rs/signstar_sign/latest/signstar_sign/
 # moved URLs that will be available only when merged
 https://signstar.archlinux.page/rustdoc/signstar_test/
 https://signstar.archlinux.page/rustdoc/signstar_sign/
+
+# Nitrokey is behind cloudflare and 403'ing all links
+https://nitrokey.com/
+https://www.nitrokey.com/products/nethsm
