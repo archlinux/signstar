@@ -10,7 +10,6 @@ repository.workspace = true
 version = "0.1.0"
 
 [dependencies]
-confy.workspace = true
 log.workspace = true
 nethsm.workspace = true
 nix = { version = "0.30.0", features = ["user"] }

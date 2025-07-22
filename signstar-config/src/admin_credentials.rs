@@ -1,7 +1,7 @@
 //! Administrative credentials handling for a NetHSM backend.
 
 use std::{
-    fs::{File, Permissions, set_permissions},
+    fs::{File, Permissions, read_to_string, set_permissions},
     io::Write,
     os::unix::fs::{PermissionsExt, chown},
     path::{Path, PathBuf},
@@ -36,37 +36,6 @@ pub enum Error {
     /// There is no top-level administrator with the name "admin".
     #[error("The default top-level administrator \"admin\" is missing")]
     AdministratorNoDefault,
-
-    /// Deserializing administrative secrets from a TOML string failed.
-    #[error("Deserializing administrative secrets in {path} as TOML string failed:\n{source}")]
-    ConfigFromToml {
-        /// The path to a config file that can not be deserialization as TOML string.
-        path: PathBuf,
-        /// The boxed source error.
-        source: Box<toml::de::Error>,
-    },
-
-    /// Administrative secrets can not be loaded.
-    #[error("Unable to load administrative secrets from {path}:\n{source}")]
-    ConfigLoad {
-        /// The path to a config file from which administrative secrets can not be loaded.
-        path: PathBuf,
-        /// The boxed source error.
-        source: Box<confy::ConfyError>,
-    },
-
-    /// Administrative secrets can not be stored to file.
-    #[error("Unable to store administrative secrets in {path}:\n{source}")]
-    ConfigStore {
-        /// The path to a config file in which administrative secrets can not be stored.
-        path: PathBuf,
-        /// The source error.
-        source: Box<confy::ConfyError>,
-    },
-
-    /// Serializing a Signstar config as TOML string failed.
-    #[error("Serializing administrative secrets as TOML string failed:\n{0}")]
-    ConfigToToml(#[source] toml::ser::Error),
 
     /// A credentials file can not be created.
     #[error("The credentials file {path} can not be created:\n{source}")]
@@ -386,14 +355,18 @@ impl AdminCredentials {
         }
 
         let config: Self = match secrets_handling {
-            AdministrativeSecretHandling::Plaintext => {
-                confy::load_path(path).map_err(|source| {
-                    crate::Error::AdminSecretHandling(Error::ConfigLoad {
-                        path: path.to_path_buf(),
-                        source: Box::new(source),
-                    })
-                })?
-            }
+            AdministrativeSecretHandling::Plaintext => toml::from_str(
+                &read_to_string(path).map_err(|source| crate::Error::IoPath {
+                    path: path.to_path_buf(),
+                    context: "reading administrative credentials",
+                    source,
+                })?,
+            )
+            .map_err(|source| crate::Error::TomlRead {
+                path: path.to_path_buf(),
+                context: "deserializing a TOML string as administrative credentials",
+                source: Box::new(source),
+            })?,
             AdministrativeSecretHandling::SystemdCreds => {
                 // Decrypt the credentials using systemd-creds.
                 let creds_command = get_command("systemd-creds")?;
@@ -423,11 +396,10 @@ impl AdminCredentials {
                         source,
                     }
                 })?;
-                toml::from_str(&config_str).map_err(|source| {
-                    crate::Error::AdminSecretHandling(Error::ConfigFromToml {
-                        path: path.to_path_buf(),
-                        source: Box::new(source),
-                    })
+                toml::from_str(&config_str).map_err(|source| crate::Error::TomlRead {
+                    path: path.to_path_buf(),
+                    context: "deserializing a TOML string as administrative credentials",
+                    source: Box::new(source),
                 })?
             }
             AdministrativeSecretHandling::ShamirsSecretSharing => {
@@ -510,8 +482,12 @@ impl AdminCredentials {
 
         let (config_data, path) = {
             // Get the TOML string representation of self.
-            let config_data = toml::to_string_pretty(self)
-                .map_err(|source| crate::Error::AdminSecretHandling(Error::ConfigToToml(source)))?;
+            let config_data =
+                toml::to_string_pretty(self).map_err(|source| crate::Error::TomlWrite {
+                    path: PathBuf::new(),
+                    context: "serializing administrative credentials",
+                    source,
+                })?;
             match secrets_handling {
                 AdministrativeSecretHandling::Plaintext => (
                     config_data.as_bytes().to_vec(),

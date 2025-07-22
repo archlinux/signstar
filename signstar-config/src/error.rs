@@ -183,41 +183,25 @@ pub enum ErrorExitCode {
     /// [`Error::AdminSecretHandling`].
     AdminCredentialsAdministratorNoDefault = 101,
 
-    /// Mapping for [`crate::admin_credentials::Error::ConfigFromToml`] wrapped in
-    /// [`Error::AdminSecretHandling`].
-    AdminCredentialsConfigFromToml = 102,
-
-    /// Mapping for [`crate::admin_credentials::Error::ConfigLoad`] wrapped in
-    /// [`Error::AdminSecretHandling`].
-    AdminCredentialsConfigLoad = 103,
-
-    /// Mapping for [`crate::admin_credentials::Error::ConfigStore`] wrapped in
-    /// [`Error::AdminSecretHandling`].
-    AdminCredentialsConfigStore = 104,
-
-    /// Mapping for [`crate::admin_credentials::Error::ConfigToToml`] wrapped in
-    /// [`Error::AdminSecretHandling`].
-    AdminCredentialsConfigToToml = 105,
-
     /// Mapping for [`crate::admin_credentials::Error::CredsFileCreate`] wrapped in
     /// [`Error::AdminSecretHandling`].
-    AdminCredentialsCredsFileCreate = 106,
+    AdminCredentialsCredsFileCreate = 102,
 
     /// Mapping for [`crate::admin_credentials::Error::CredsFileMissing`] wrapped in
     /// [`Error::AdminSecretHandling`].
-    AdminCredentialsCredsFileMissing = 107,
+    AdminCredentialsCredsFileMissing = 103,
 
     /// Mapping for [`crate::admin_credentials::Error::CredsFileNotAFile`] wrapped in
     /// [`Error::AdminSecretHandling`].
-    AdminCredentialsCredsFileNotAFile = 108,
+    AdminCredentialsCredsFileNotAFile = 104,
 
     /// Mapping for [`crate::admin_credentials::Error::CredsFileWrite`] wrapped in
     /// [`Error::AdminSecretHandling`].
-    AdminCredentialsCredsFileWrite = 109,
+    AdminCredentialsCredsFileWrite = 105,
 
     /// Mapping for [`crate::admin_credentials::Error::PassphraseTooShort`] wrapped in
     /// [`Error::AdminSecretHandling`].
-    AdminCredentialsPassphraseTooShort = 110,
+    AdminCredentialsPassphraseTooShort = 106,
 
     /// Mapping for [`Error::ApplyPermissions`].
     ApplyPermissions = 10,
@@ -418,18 +402,6 @@ impl From<Error> for ErrorExitCode {
                 }
                 crate::admin_credentials::Error::AdministratorNoDefault => {
                     Self::AdminCredentialsAdministratorNoDefault
-                }
-                crate::admin_credentials::Error::ConfigFromToml { .. } => {
-                    Self::AdminCredentialsConfigFromToml
-                }
-                crate::admin_credentials::Error::ConfigLoad { .. } => {
-                    Self::AdminCredentialsConfigLoad
-                }
-                crate::admin_credentials::Error::ConfigStore { .. } => {
-                    Self::AdminCredentialsConfigStore
-                }
-                crate::admin_credentials::Error::ConfigToToml(_) => {
-                    Self::AdminCredentialsConfigToToml
                 }
                 crate::admin_credentials::Error::CredsFileCreate { .. } => {
                     Self::AdminCredentialsCredsFileCreate
