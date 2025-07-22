@@ -373,7 +373,7 @@ test-readme project:
         ;;
         *)
             podman_create_options+=(
-                docker.io/nitrokey/nethsm:testing
+                "docker.io/nitrokey/nethsm:$NETHSM_IMAGE_TAG"
             )
         ;;
     esac

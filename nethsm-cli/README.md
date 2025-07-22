@@ -26,8 +26,11 @@ The following assumes a recent version of `openssl` and `podman`.
 ### Start a test container
 
 ```bash no_run
-podman run --rm -ti --network=pasta:-t,auto,-u,auto,-T,auto,-U,auto docker.io/nitrokey/nethsm:c16fe4ed
+podman run --rm -ti --network=pasta:-t,auto,-u,auto,-T,auto,-U,auto docker.io/nitrokey/nethsm:$NETHSM_IMAGE_TAG
 ```
+
+The current value of `NETHSM_IMAGE_TAG` can be checked in the `.env` file.
+Use `just get-latest-nethsm-release-short-commit` to retrieve the value which represents latest testing release.
 
 ### Configuration file
 

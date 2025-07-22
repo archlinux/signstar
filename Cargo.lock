@@ -2776,6 +2776,7 @@ dependencies = [
  "rand 0.8.5",
  "rsa",
  "rstest",
+ "rust_dotenv",
  "rustainers",
  "rustls",
  "rustls-native-certs",
@@ -3950,6 +3951,12 @@ dependencies = [
  "wasm-bindgen",
  "wasm-bindgen-futures",
 ]
+
+[[package]]
+name = "rust_dotenv"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ee7c41545529f6ee52bddef21e2da33730e828e1e5ea3759436a5b570e8da76b"
 
 [[package]]
 name = "rustainers"

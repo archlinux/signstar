@@ -32,6 +32,7 @@ picky-asn1-x509 = "0.14.1"
 rand.workspace = true
 rsa = { workspace = true, features = ["pem"] }
 rstest = { optional = true, workspace = true }
+rust_dotenv = { optional = true, version = "0.1.2" }
 rustainers = { optional = true, workspace = true }
 rustls = { version = "0.23.19" }
 rustls-native-certs = "0.8.1"
@@ -60,7 +61,13 @@ uuid.workspace = true
 [features]
 _nethsm-integration-test = ["test-helpers"]
 default = []
-test-helpers = ["dep:rstest", "dep:rustainers", "dep:testresult", "dep:uuid"]
+test-helpers = [
+    "dep:rstest",
+    "dep:rust_dotenv",
+    "dep:rustainers",
+    "dep:testresult",
+    "dep:uuid",
+]
 
 [lints]
 workspace = true
