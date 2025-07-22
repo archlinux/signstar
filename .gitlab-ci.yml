@@ -17,6 +17,7 @@ stages:
 
 # default setup running on default branch and in MRs
 .default:
+  image: registry.archlinux.org/archlinux/archlinux-docker:base-master
   before_script:
     - pacman-key --init
     - pacman -Sy --needed --noconfirm archlinux-keyring
