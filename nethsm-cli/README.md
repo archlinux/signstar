@@ -187,7 +187,7 @@ Depending on restrictions (tags), the keys may then be used by users in the "Ope
 
 #### Generating keys
 
-Below, we are generating keys of all available types (Curve25519, EcP224, EcP256, EcP384, EcP521, Generic and Rsa).
+Below, we are generating keys of all available types (Curve25519, EcP256, EcP384, EcP521, Generic and Rsa).
 When generating a key, the unique ID for it may be set manually (else it is auto-generated).
 Tags, which later on allow users access to the keys may also be set during key generation.
 
@@ -196,7 +196,6 @@ Note that some keys require to set the key bit length (i.e. Generic and Rsa).
 ```bash
 # keys created by the R-Administrator are only available to system-wide Operator users!
 nethsm --user admin1 key generate --key-id signing1 --tags tag1 Curve25519 EdDsaSignature
-nethsm --user admin1 key generate --key-id signing2 --tags tag2 EcP224 EcdsaSignature
 nethsm --user admin1 key generate --key-id signing3 --tags tag2 EcP256 EcdsaSignature
 nethsm --user admin1 key generate --key-id signing4 --tags tag2 EcP384 EcdsaSignature
 nethsm --user admin1 key generate --key-id signing5 --tags tag2 EcP521 EcdsaSignature
@@ -207,7 +206,6 @@ nethsm --user admin1 key generate --key-id signing8 --tags tag6 --length 2048 Rs
 
 # keys created by the N-Administrator are only available to Operator users in the same namespace!
 nethsm --user namespace1~admin1 key generate --key-id signing1 --tags tag1 Curve25519 EdDsaSignature
-nethsm --user namespace1~admin1 key generate --key-id signing2 --tags tag2 EcP224 EcdsaSignature
 nethsm --user namespace1~admin1 key generate --key-id signing3 --tags tag2 EcP256 EcdsaSignature
 nethsm --user namespace1~admin1 key generate --key-id signing4 --tags tag2 EcP384 EcdsaSignature
 nethsm --user namespace1~admin1 key generate --key-id signing5 --tags tag2 EcP521 EcdsaSignature
@@ -303,11 +301,6 @@ nethsm --user operator1 key sign --force signing1 EdDsa README.md
 nethsm --user operator1 key public-key --force signing1
 openssl pkeyutl -verify -in README.md -rawin -sigfile "$NETHSM_KEY_SIGNATURE_OUTPUT_FILE" -inkey "$NETHSM_KEY_PUBKEY_OUTPUT_FILE" -pubin
 
-nethsm --user operator1 key sign --force signing2 EcdsaP224 README.md
-nethsm --user operator1 key public-key --force signing2
-openssl dgst -sha224 -binary README.md > "$message_digest"
-openssl pkeyutl -verify -in "$message_digest" -sigfile "$NETHSM_KEY_SIGNATURE_OUTPUT_FILE" -inkey "$NETHSM_KEY_PUBKEY_OUTPUT_FILE" -pubin
-
 nethsm --user operator1 key sign --force signing3 EcdsaP256 README.md
 nethsm --user operator1 key public-key --force signing3
 openssl dgst -sha256 -binary README.md > "$message_digest"
@@ -336,11 +329,6 @@ openssl pkeyutl -verify -in README.md -rawin -sigfile "$NETHSM_KEY_SIGNATURE_OUT
 nethsm --user namespace1~operator1 key sign --force signing1 EdDsa README.md
 nethsm --user namespace1~operator1 key public-key --force signing1
 openssl pkeyutl -verify -in README.md -rawin -sigfile "$NETHSM_KEY_SIGNATURE_OUTPUT_FILE" -inkey "$NETHSM_KEY_PUBKEY_OUTPUT_FILE" -pubin
-
-nethsm --user namespace1~operator1 key sign --force signing2 EcdsaP224 README.md
-nethsm --user namespace1~operator1 key public-key --force signing2
-openssl dgst -sha224 -binary README.md > "$message_digest"
-openssl pkeyutl -verify -in "$message_digest" -sigfile "$NETHSM_KEY_SIGNATURE_OUTPUT_FILE" -inkey "$NETHSM_KEY_PUBKEY_OUTPUT_FILE" -pubin
 
 nethsm --user namespace1~operator1 key sign --force signing3 EcdsaP256 README.md
 nethsm --user namespace1~operator1 key public-key --force signing3
@@ -558,7 +546,7 @@ Administrators and operators can retrieve the public key of any key:
 unset NETHSM_KEY_PUBKEY_OUTPUT_FILE
 
 # keys of type "Generic" don't have a public key, so we do not request them
-for key in signing{1..8} dec1; do
+for key in signing1 signing{3..8} dec1; do
   nethsm --user operator1 key public-key --force "$key"
   # in our namespace1 we have keys of the same name, that we can get public keys for
   nethsm --user namespace1~operator1 key public-key --force "$key"

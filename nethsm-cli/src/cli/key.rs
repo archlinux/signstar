@@ -378,7 +378,7 @@ The IV can only be used when choosing symmetric encryption (i.e. with \"{Encrypt
 The provided key type and list of key mechanisms have to match:
 * \"{KeyType::Rsa}\" requires one of {:?KeyMechanism::rsa_mechanisms()}
 * \"{KeyType::Curve25519}\" requires one of {:?KeyMechanism::curve25519_mechanisms()}
-* \"{KeyType::EcP224}\", \"{KeyType::EcP256}\", \"{KeyType::EcP384}\" and \"{KeyType::EcP521}\" require one of {:?KeyMechanism::elliptic_curve_mechanisms()}
+* \"{KeyType::EcP256}\", \"{KeyType::EcP384}\" and \"{KeyType::EcP521}\" require one of {:?KeyMechanism::elliptic_curve_mechanisms()}
 * \"{KeyType::Generic}\" requires at least one of {:?KeyMechanism::generic_mechanisms()}
 
 System-wide users in the \"{Administrator}\" role generate system-wide keys.
@@ -482,7 +482,7 @@ The key data must match the provided key type.
 The provided key type and list of key mechanisms have to match:
 * \"{KeyType::Rsa}\" requires one of {:?KeyMechanism::rsa_mechanisms()}
 * \"{KeyType::Curve25519}\" requires one of {:?KeyMechanism::curve25519_mechanisms()}
-* \"{KeyType::EcP224}\", \"{KeyType::EcP256}\", \"{KeyType::EcP384}\" and \"{KeyType::EcP521}\" require one of {:?KeyMechanism::elliptic_curve_mechanisms()}
+* \"{KeyType::EcP256}\", \"{KeyType::EcP384}\" and \"{KeyType::EcP521}\" require one of {:?KeyMechanism::elliptic_curve_mechanisms()}
 * \"{KeyType::Generic}\" requires at least one of {:?KeyMechanism::generic_mechanisms()}
 
 System-wide users in the \"{Administrator}\" role import system-wide keys.

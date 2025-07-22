@@ -22,7 +22,6 @@ use testresult::TestResult;
 
 #[rstest]
 #[case(KeyType::Curve25519, vec![KeyMechanism::EdDsaSignature], None)]
-#[case(KeyType::EcP224, vec![KeyMechanism::EcdsaSignature], None)]
 #[case(KeyType::EcP256, vec![KeyMechanism::EcdsaSignature], None)]
 #[case(KeyType::EcP384, vec![KeyMechanism::EcdsaSignature], None)]
 #[case(KeyType::EcP521, vec![KeyMechanism::EcdsaSignature], None)]
@@ -211,16 +210,6 @@ fn ed25519_key() -> TestResult<PrivateKeyImport> {
 }
 
 #[fixture]
-fn ecp224_key() -> TestResult<PrivateKeyImport> {
-    let private_key = p224::SecretKey::random(&mut rand::rngs::OsRng);
-
-    Ok(PrivateKeyImport::new(
-        KeyType::EcP224,
-        private_key.to_pkcs8_der()?.as_bytes(),
-    )?)
-}
-
-#[fixture]
 fn ecp256_key() -> TestResult<PrivateKeyImport> {
     let private_key = p256::SecretKey::random(&mut rand::rngs::OsRng);
 
@@ -266,7 +255,6 @@ fn rsa_key() -> TestResult<PrivateKeyImport> {
 async fn import_keys(
     #[future] nethsm_with_users: TestResult<(NetHsm, Container<NetHsmImage>)>,
     ed25519_key: TestResult<PrivateKeyImport>,
-    ecp224_key: TestResult<PrivateKeyImport>,
     ecp256_key: TestResult<PrivateKeyImport>,
     ecp384_key: TestResult<PrivateKeyImport>,
     ecp521_key: TestResult<PrivateKeyImport>,
@@ -274,7 +262,6 @@ async fn import_keys(
 ) -> TestResult {
     let (nethsm, _container) = nethsm_with_users.await?;
     let ed25519_key = ed25519_key?;
-    let ecp224_key = ecp224_key?;
     let ecp256_key = ecp256_key?;
     let ecp384_key = ecp384_key?;
     let ecp521_key = ecp521_key?;
@@ -291,7 +278,7 @@ async fn import_keys(
 
     nethsm.import_key(
         KeyMechanism::elliptic_curve_mechanisms(),
-        ecp224_key,
+        ecp256_key,
         None,
         None,
     )?;
@@ -299,7 +286,7 @@ async fn import_keys(
 
     nethsm.import_key(
         KeyMechanism::elliptic_curve_mechanisms(),
-        ecp256_key,
+        ecp384_key,
         None,
         None,
     )?;
@@ -307,22 +294,14 @@ async fn import_keys(
 
     nethsm.import_key(
         KeyMechanism::elliptic_curve_mechanisms(),
-        ecp384_key,
+        ecp521_key,
         None,
         None,
     )?;
     assert_eq!(nethsm.get_keys(None)?.len(), 4);
 
-    nethsm.import_key(
-        KeyMechanism::elliptic_curve_mechanisms(),
-        ecp521_key,
-        None,
-        None,
-    )?;
-    assert_eq!(nethsm.get_keys(None)?.len(), 5);
-
     nethsm.import_key(KeyMechanism::rsa_mechanisms(), rsa_key, None, None)?;
-    assert_eq!(nethsm.get_keys(None)?.len(), 6);
+    assert_eq!(nethsm.get_keys(None)?.len(), 5);
 
     Ok(())
 }
