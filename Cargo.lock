@@ -2841,8 +2841,6 @@ dependencies = [
  "rprompt",
  "rstest",
  "serde",
- "ssh-key",
- "strum",
  "testdir",
  "testresult",
  "thiserror 2.0.12",
