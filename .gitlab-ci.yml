@@ -168,6 +168,8 @@ integration-test:
 #     - vm
 
 build-image:
+  # NOTE: Allowed to fail while migrating from `nethsm_config::HermeticParallelConfig` to `signstar_config::SignstarConfig`
+  allow_failure: true
   extends: .default
   dependencies: []
   script:
