@@ -51,26 +51,8 @@
 //! [Nitrokey NetHSM]: https://docs.nitrokey.com/nethsm/
 mod config;
 mod credentials;
-mod mapping;
 mod prompt;
 
-pub use config::{
-    AdministrativeSecretHandling,
-    Config,
-    ConfigInteractivity,
-    ConfigName,
-    ConfigSettings,
-    DeviceConfig,
-    Error,
-    HermeticParallelConfig,
-    NonAdministrativeSecretHandling,
-};
-pub use credentials::{
-    AuthorizedKeyEntry,
-    AuthorizedKeyEntryList,
-    ConfigCredentials,
-    SystemUserId,
-    SystemWideUserId,
-};
-pub use mapping::{ExtendedUserMapping, FilterUserKeys, NetHsmMetricsUsers, UserMapping};
+pub use config::{Config, ConfigInteractivity, ConfigName, ConfigSettings, DeviceConfig, Error};
+pub use credentials::ConfigCredentials;
 pub use prompt::{PassphrasePrompt, UserPrompt};
