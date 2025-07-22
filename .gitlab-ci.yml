@@ -166,22 +166,23 @@ test-readmes:
   tags:
     - vm
 
-build-image:
-  extends: .default
-  dependencies: []
-  script:
-    # show the mkosi version
-    - mkosi --version
-    - useradd -m testuser
-    - chown -R testuser:testuser .
-    # prepare an ephemeral OpenPGP signing key
-    - export KEY="$(mktemp)"
-    - rsop generate-key --signing-only test > "$KEY"
-    - chown testuser:testuser "$KEY"
-    - WORKDIR="$(pwd)" runuser -w WORKDIR,KEY -l testuser -c 'cd "$WORKDIR" && just build-image "$KEY"'
-  stage: signstaros
-  tags:
-    - vm
+# NOTE: Disabled while migrating from `nethsm_config::HermeticParallelConfig` to `signstar_config::SignstarConfig`
+# build-image:
+#   extends: .default
+#   dependencies: []
+#   script:
+#     # show the mkosi version
+#     - mkosi --version
+#     - useradd -m testuser
+#     - chown -R testuser:testuser .
+#     # prepare an ephemeral OpenPGP signing key
+#     - export KEY="$(mktemp)"
+#     - rsop generate-key --signing-only test > "$KEY"
+#     - chown testuser:testuser "$KEY"
+#     - WORKDIR="$(pwd)" runuser -w WORKDIR,KEY -l testuser -c 'cd "$WORKDIR" && just build-image "$KEY"'
+#   stage: signstaros
+#   tags:
+#     - vm
 
 build-test-image:
   extends: .default
