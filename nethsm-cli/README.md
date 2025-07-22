@@ -26,7 +26,7 @@ The following assumes a recent version of `openssl` and `podman`.
 ### Start a test container
 
 ```bash no_run
-podman run --rm -ti --network=pasta:-t,auto,-u,auto,-T,auto,-U,auto docker.io/nitrokey/nethsm:c16fe4ed
+podman run --rm -ti --network=pasta:-t,auto,-u,auto,-T,auto,-U,auto docker.io/nitrokey/nethsm:testing
 ```
 
 ### Configuration file
