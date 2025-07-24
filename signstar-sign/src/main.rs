@@ -3,11 +3,11 @@
 use std::process::ExitCode;
 
 use clap::Parser;
-use clap_verbosity_flag::Verbosity;
 use nethsm::{KeyId, NetHsm};
 use nethsm_config::UserMapping;
 use signstar_config::{CredentialsLoading, Error as ConfigError};
 use signstar_request_signature::{Request, Response, Sha512};
+use signstar_sign::cli::Cli;
 
 /// Signstar signing error.
 #[derive(Debug, thiserror::Error)]
@@ -131,12 +131,6 @@ fn sign_request(reader: impl std::io::Read, writer: impl std::io::Write) -> Resu
     Response::v1(signature).to_writer(writer)?;
 
     Ok(())
-}
-
-#[derive(Debug, Parser)]
-struct Cli {
-    #[command(flatten)]
-    verbosity: Verbosity,
 }
 
 /// Signs the signing request on standard input and returns a signing response on standard output.
