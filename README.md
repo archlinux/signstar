@@ -89,7 +89,7 @@ Changes to this project - unless stated otherwise - automatically fall under the
 [OpenPGP data signatures]: https://openpgp.dev/book/signing_data.html
 [OpenPGP fingerprints]: https://openpgp.dev/book/certificates.html#fingerprint
 [OpenPGP keyservers]: https://wiki.archlinux.org/title/OpenPGP#Keyserver
-[SignstarOS]: resources/mkosi/signstar/README.md
+[SignstarOS]: resources/mkosi/signstar/
 [TPM-2.0]: https://en.wikipedia.org/wiki/Trusted_Platform_Module
 [Wiktor Kwapisiewicz]: https://archlinux.org/people/support-staff/#wiktor
 [`653909A2F0E37C106F5FAF546C8857E0D8E8F074`]: https://pgpkeys.eu/pks/lookup?search=653909A2F0E37C106F5FAF546C8857E0D8E8F074&fingerprint=on&op=index

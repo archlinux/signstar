@@ -21,6 +21,7 @@
     - [Request spec](./signstar-request-signature/request.md)
     - [Response spec](./signstar-request-signature/response.md)
 - [signstar-sign](./signstar-sign/README.md)
+- [Signstar OS](./resources/mkosi/signstar/README.md)
 
 ## Architecture
 
