@@ -218,6 +218,7 @@ check-shell-code:
     just check-shell-recipe flaky
     just check-shell-recipe test
     just check-shell-recipe 'ensure-command test'
+    just check-shell-recipe 'get-latest-nethsm-release-short-commit'
 
     just check-shell-script .cargo/runner.sh
 
@@ -822,3 +823,14 @@ nethsm-integration-tests *options:
         just ensure-command bash cargo cargo-nextest jq podman
         cargo nextest run --features _nethsm-integration-test --filterset 'kind(test) and binary_id(/::nethsm$/)' {{ options }}
     fi
+
+# Returns the short commit representing the latest GitHub release of the NetHSM image.
+get-latest-nethsm-release-short-commit:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    just ensure-command curl jq
+
+    latest_release="$(curl -s 'https://api.github.com/repos/nitrokey/nethsm/releases/latest' | jq -r '.tag_name')"
+    short_commit="$(curl -s 'https://api.github.com/repos/nitrokey/nethsm/tags' | jq -r ".[] | select(.name == \"$latest_release\") | .commit.sha[:8]")"
+    printf "%s\n" "$short_commit"
