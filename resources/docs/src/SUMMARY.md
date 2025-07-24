@@ -31,3 +31,4 @@
 ## Development
 
 - [Contributing Guidelines](./CONTRIBUTING.md)
+- [Testing](./testing.md)
