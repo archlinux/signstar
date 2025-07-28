@@ -1,7 +1,4 @@
 #![doc = include_str!("../README.md")]
-// FIXME: lint suppression is required until a new version of rstest (>0.25.0)
-// is released containing this fix: https://github.com/la10736/rstest/pull/309
-#![allow(missing_docs)]
 
 use std::fs::File;
 use std::path::PathBuf;
