@@ -31,6 +31,11 @@ if [[ "$test_executable_path" == *integration* ]] && [[ "$first_test_argument" !
   readonly podman_run_options=(
     # set cargo-llvm-cov profile file to capture coverage data
     --env LLVM_PROFILE_FILE="${LLVM_PROFILE_FILE:-}"
+    --env CARGO_LLVM_COV="${CARGO_LLVM_COV:-}"
+    --env CARGO_LLVM_COV_SHOW_ENV="${CARGO_LLVM_COV_SHOW_ENV:-}"
+    --env CARGO_LLVM_COV_TARGET_DIR="${CARGO_LLVM_COV_TARGET_DIR:-}"
+    --env RUSTFLAGS="${RUSTFLAGS:-}"
+    --env RUSTDOCFLAGS="${RUSTDOCFLAGS:-}"
     --env RUST_LOG=info
     --env RUST_BACKTRACE=1
     --rm
