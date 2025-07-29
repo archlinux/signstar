@@ -740,10 +740,14 @@ containerized-integration-tests:
     set -euo pipefail
 
     readonly coverage="{{ coverage }}"
+    readonly cargo_target_dir="$(just get-cargo-target-dir)"
 
     if [[ "$coverage" == "true" ]]; then
         just ensure-command bash cargo cargo-llvm-cov cargo-nextest jq podman
         # Containerized integration tests require examples and bins to be built
+        source <(cargo llvm-cov show-env --export-prefix)
+        # Override, because `cargo llvm-cov show-env` sets it to `$CARGO_TARGET_DIR/` but `cargo llvm-cov report` expects it to be at `$CARGO_TARGET_DIR/llvm-cov-target/`
+        export CARGO_LLVM_COV_TARGET_DIR="$cargo_target_dir/llvm-cov-target"
         cargo build --examples --bins
         cargo llvm-cov --no-report nextest --features _containerized-integration-test --filterset 'kind(test)'
     else
@@ -812,10 +816,14 @@ nethsm-integration-tests *options:
     set -euo pipefail
 
     readonly coverage="{{ coverage }}"
+    readonly cargo_target_dir="$(just get-cargo-target-dir)"
 
     if [[ "$coverage" == "true" ]]; then
         just ensure-command bash cargo cargo-llvm-cov cargo-nextest jq podman
         # Containerized integration tests require examples and bins to be built
+        source <(cargo llvm-cov show-env --export-prefix)
+        # Override, because `cargo llvm-cov show-env` sets it to `$CARGO_TARGET_DIR/` but `cargo llvm-cov report` expects it to be at `$CARGO_TARGET_DIR/llvm-cov-target/`
+        export CARGO_LLVM_COV_TARGET_DIR="$cargo_target_dir/llvm-cov-target"
         cargo build --examples --bins
         cargo llvm-cov --no-report nextest --features _nethsm-integration-test --filterset 'kind(test) and binary_id(/::nethsm$/)' {{ options }}
     else
