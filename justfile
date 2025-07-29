@@ -293,37 +293,48 @@ docs:
 
 # Runs all unit tests
 [group('test')]
-test:
+test *options:
     #!/usr/bin/env bash
-    set -euxo pipefail
+    set -euo pipefail
 
     readonly coverage="{{ coverage }}"
+    read -r -a options <<< "{{ options }}"
 
     if [[ "$coverage" == "true" ]]; then
         just ensure-command cargo cargo-llvm-cov cargo-nextest mold
-        cargo llvm-cov --no-report nextest --locked --all
+        # Use the environment prepared by `cargo llvm-cov show-env`
+        # shellcheck source=/dev/null
+        source <(cargo llvm-cov show-env --export-prefix)
     else
         just ensure-command cargo cargo-nextest mold
-        cargo nextest run --locked --all
     fi
+
+    cargo nextest run --locked --all "${options[@]}"
+
     just test-docs
     just docs
 
 # Runs all doc tests
 [group('test')]
-test-docs:
+test-docs *options:
     #!/usr/bin/env bash
     set -euo pipefail
 
     readonly coverage="{{ coverage }}"
+    toolchain="+stable"
+    read -r -a options <<< "{{ options }}"
 
     if [[ "$coverage" == "true" ]]; then
+        toolchain="+nightly"
         just ensure-command cargo cargo-llvm-cov
-        cargo +nightly llvm-cov --no-report --doc --locked
+        # Use the environment prepared by `cargo llvm-cov show-env`
+        # shellcheck source=/dev/null
+        source <(cargo "$toolchain" llvm-cov show-env --export-prefix)
     else
         just ensure-command cargo
-        cargo test --locked --doc
     fi
+
+    cargo "$toolchain" test --locked --doc "${options[@]}"
 
 # Runs per project end-to-end tests found in a project README.md
 [group('test')]
@@ -736,21 +747,26 @@ get-cargo-target-dir:
 
 # Runs the tests that are made available with the "_containerized-integration-test" feature of all configured projects in a separate container
 [group('test')]
-containerized-integration-tests:
+containerized-integration-tests *options:
     #!/usr/bin/env bash
     set -euo pipefail
 
     readonly coverage="{{ coverage }}"
+    readonly cargo_target_dir="$(just get-cargo-target-dir)"
+    read -r -a options <<< "{{ options }}"
 
     if [[ "$coverage" == "true" ]]; then
         just ensure-command bash cargo cargo-llvm-cov cargo-nextest jq podman
-        # Containerized integration tests require examples and bins to be built
+        # Use the environment prepared by `cargo llvm-cov show-env`
+        # shellcheck source=/dev/null
+        source <(cargo llvm-cov show-env --export-prefix)
+
         cargo build --examples --bins
-        cargo llvm-cov --no-report nextest --features _containerized-integration-test --filterset 'kind(test)'
     else
         just ensure-command bash cargo cargo-nextest jq podman
-        cargo nextest run --features _containerized-integration-test --filterset 'kind(test)'
     fi
+
+    cargo nextest run --features _containerized-integration-test "${options[@]}" --filterset 'kind(test)'
 
 # Creates code coverage for all projects.
 [group('test')]
@@ -792,6 +808,10 @@ create-coverage-report mode="nodoc" metric="Test-coverage":
 
     printf "Creating report %s\n" "$reporting_style"
 
+    # Use the environment prepared by `cargo llvm-cov show-env`
+    # shellcheck source=/dev/null
+    source <(cargo llvm-cov show-env --export-prefix)
+
     # Create cobertura coverage report
     cargo "${cargo_options[@]}" llvm-cov report "${cargo_llvm_cov_cobertura_options[@]}"
 
@@ -813,16 +833,20 @@ nethsm-integration-tests *options:
     set -euo pipefail
 
     readonly coverage="{{ coverage }}"
+    readonly cargo_target_dir="$(just get-cargo-target-dir)"
+    read -r -a options <<< "{{ options }}"
 
     if [[ "$coverage" == "true" ]]; then
         just ensure-command bash cargo cargo-llvm-cov cargo-nextest jq podman
         # Containerized integration tests require examples and bins to be built
+        # shellcheck source=/dev/null
+        source <(cargo llvm-cov show-env --export-prefix)
         cargo build --examples --bins
-        cargo llvm-cov --no-report nextest --features _nethsm-integration-test --filterset 'kind(test) and binary_id(/::nethsm$/)' {{ options }}
     else
         just ensure-command bash cargo cargo-nextest jq podman
-        cargo nextest run --features _nethsm-integration-test --filterset 'kind(test) and binary_id(/::nethsm$/)' {{ options }}
     fi
+
+    cargo nextest run --features _nethsm-integration-test --filterset 'kind(test) and binary_id(/::nethsm$/)' "${options[@]}"
 
 # Returns the short commit representing the latest GitHub release of the NetHSM image.
 get-latest-nethsm-release-short-commit:
