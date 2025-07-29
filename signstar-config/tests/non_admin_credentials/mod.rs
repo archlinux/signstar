@@ -1,12 +1,15 @@
 //! Integration tests for [`signstar_config::non_admin_credentials`].
 use std::{
-    fs::{File, Permissions, remove_file, set_permissions},
+    collections::HashMap,
+    env::var,
+    fs::{File, Permissions, copy, remove_file, set_permissions},
     io::Write,
     os::unix::fs::{PermissionsExt, chown},
+    path::{Path, PathBuf},
 };
 
 use change_user_run::{CommandOutput, create_users, run_command_as_user};
-use log::LevelFilter;
+use log::{LevelFilter, debug};
 use rstest::rstest;
 use signstar_common::{
     common::{SECRET_FILE_MODE, get_data_home},
@@ -29,13 +32,68 @@ const SIGNSTAR_CONFIG_FULL: &[u8] = include_bytes!("../fixtures/signstar-config-
 
 const GET_CREDENTIALS_PAYLOAD: &str = "/usr/local/bin/examples/get-nethsm-credentials";
 
+/// Environment variables that are passed in to a command call as a different user.
+const ENV_LIST: &[&str] = &[
+    "LLVM_PROFILE_FILE",
+    "CARGO_LLVM_COV",
+    "CARGO_LLVM_COV_SHOW_ENV",
+    "CARGO_LLVM_COV_TARGET_DIR",
+    "RUSTFLAGS",
+    "RUSTDOCFLAGS",
+];
+/// The location of cargo-llvm-cov `.profraw` files when running a command as a different user.
+const LLVM_PROFILE_FILE: &str = "/tmp/signstar-%p-%16m.profraw";
+
+/// Collects all `.profraw` files from `path` and copies them to `CARGO_LLVM_COV_TARGET_DIR`.
+///
+/// Only copies files from `path` if the `CARGO_LLVM_COV_TARGET_DIR` environment variable is set.
+/// Changes the ownership of files copied to `CARGO_LLVM_COV_TARGET_DIR` to root.
+///
+/// # Errors
+///
+/// Returns an error if
+///
+/// - `path` cannot be read,
+/// - an entry in `path` cannot be read,
+/// - copying a file from `path` to `CARGO_LLVM_COV_TARGET_DIR` fails,
+/// - or changing the ownership permissions of a copied file in `CARGO_LLVM_COV_TARGET_DIR` to root
+///   fails.
+fn collect_coverage_files(path: impl AsRef<Path>) -> TestResult {
+    let path = path.as_ref();
+    list_files_in_dir(path)?;
+
+    let Ok(cov_target_dir) = var("CARGO_LLVM_COV_TARGET_DIR") else {
+        return Ok(());
+    };
+    debug!("Found CARGO_LLVM_COV_TARGET_DIR={cov_target_dir}");
+    let cov_target_dir = PathBuf::from(cov_target_dir);
+
+    for dir_entry in path.read_dir()? {
+        let dir_entry = dir_entry?;
+        let from = dir_entry.path();
+        let Some(file_name) = &from.file_name() else {
+            continue;
+        };
+        if let Some(extension) = from.extension()
+            && extension == "profraw"
+        {
+            let target_file = cov_target_dir.join(file_name);
+            debug!("Copying {from:?} to {target_file:?}");
+            copy(&from, &target_file)?;
+            chown(&target_file, Some(0), Some(0))?;
+        }
+    }
+
+    Ok(())
+}
+
 /// Loading credentials for unprivileged system users succeeds.
 ///
 /// Tests integration with `systemd-creds` encrypted secrets and plaintext secrets.
 #[rstest]
-#[case(SIGNSTAR_CONFIG_FULL)]
-#[case(SIGNSTAR_CONFIG_PLAINTEXT)]
-fn load_credentials_for_user(#[case] config_data: &[u8]) -> TestResult {
+#[case::full_config(SIGNSTAR_CONFIG_FULL)]
+#[case::plaintext_config(SIGNSTAR_CONFIG_PLAINTEXT)]
+fn load_credentials_for_user_succeeds(#[case] config_data: &[u8]) -> TestResult {
     setup_logging(LevelFilter::Debug)?;
     let (creds_mapping, _credentials_socket) = prepare_system_with_config(config_data)?;
     // Get all system users
@@ -77,8 +135,11 @@ fn load_credentials_for_user(#[case] config_data: &[u8]) -> TestResult {
                 GET_CREDENTIALS_PAYLOAD,
                 &[],
                 None,
-                &[],
-                None,
+                ENV_LIST,
+                Some(HashMap::from([(
+                    "LLVM_PROFILE_FILE".to_string(),
+                    LLVM_PROFILE_FILE.to_string(),
+                )])),
                 system_user_id.as_ref(),
             )?;
 
@@ -92,6 +153,8 @@ fn load_credentials_for_user(#[case] config_data: &[u8]) -> TestResult {
             }
         }
     }
+
+    collect_coverage_files("/tmp")?;
 
     Ok(())
 }
@@ -140,8 +203,11 @@ fn load_credentials_for_user_fails_on_missing_signstar_config() -> TestResult {
                 GET_CREDENTIALS_PAYLOAD,
                 &[],
                 None,
-                &[],
-                None,
+                ENV_LIST,
+                Some(HashMap::from([(
+                    "LLVM_PROFILE_FILE".to_string(),
+                    LLVM_PROFILE_FILE.to_string(),
+                )])),
                 system_user_id.as_ref(),
             )?;
             if !status.success() {
@@ -157,6 +223,8 @@ fn load_credentials_for_user_fails_on_missing_signstar_config() -> TestResult {
             }
         }
     }
+
+    collect_coverage_files("/tmp")?;
 
     Ok(())
 }
@@ -207,8 +275,11 @@ fn load_credentials_for_user_fails_on_credentials_socket() -> TestResult {
                 GET_CREDENTIALS_PAYLOAD,
                 &[],
                 None,
-                &[],
-                None,
+                ENV_LIST,
+                Some(HashMap::from([(
+                    "LLVM_PROFILE_FILE".to_string(),
+                    LLVM_PROFILE_FILE.to_string(),
+                )])),
                 system_user_id.as_ref(),
             )?;
 
@@ -227,6 +298,8 @@ fn load_credentials_for_user_fails_on_credentials_socket() -> TestResult {
             }
         }
     }
+
+    collect_coverage_files("/tmp")?;
 
     Ok(())
 }
@@ -267,8 +340,11 @@ fn load_credentials_for_user_fails_on_missing_secrets_dir() -> TestResult {
                 GET_CREDENTIALS_PAYLOAD,
                 &[],
                 None,
-                &[],
-                None,
+                ENV_LIST,
+                Some(HashMap::from([(
+                    "LLVM_PROFILE_FILE".to_string(),
+                    LLVM_PROFILE_FILE.to_string(),
+                )])),
                 system_user_id.as_ref(),
             )?;
 
@@ -287,6 +363,8 @@ fn load_credentials_for_user_fails_on_missing_secrets_dir() -> TestResult {
             }
         }
     }
+
+    collect_coverage_files("/tmp")?;
 
     Ok(())
 }
@@ -331,8 +409,11 @@ fn load_credentials_for_user_fails_on_missing_secrets_file() -> TestResult {
                 GET_CREDENTIALS_PAYLOAD,
                 &[],
                 None,
-                &[],
-                None,
+                ENV_LIST,
+                Some(HashMap::from([(
+                    "LLVM_PROFILE_FILE".to_string(),
+                    LLVM_PROFILE_FILE.to_string(),
+                )])),
                 system_user_id.as_ref(),
             )?;
 
@@ -351,6 +432,8 @@ fn load_credentials_for_user_fails_on_missing_secrets_file() -> TestResult {
             }
         }
     }
+
+    collect_coverage_files("/tmp")?;
 
     Ok(())
 }
@@ -404,8 +487,11 @@ fn load_credentials_for_user_fails_on_inaccessible_secrets_file() -> TestResult 
                 GET_CREDENTIALS_PAYLOAD,
                 &[],
                 None,
-                &[],
-                None,
+                ENV_LIST,
+                Some(HashMap::from([(
+                    "LLVM_PROFILE_FILE".to_string(),
+                    LLVM_PROFILE_FILE.to_string(),
+                )])),
                 system_user_id.as_ref(),
             )?;
 
@@ -424,6 +510,8 @@ fn load_credentials_for_user_fails_on_inaccessible_secrets_file() -> TestResult 
             }
         }
     }
+
+    collect_coverage_files("/tmp")?;
 
     Ok(())
 }
@@ -477,8 +565,11 @@ fn load_credentials_for_user_fails_on_garbage_secrets_file() -> TestResult {
                 GET_CREDENTIALS_PAYLOAD,
                 &[],
                 None,
-                &[],
-                None,
+                ENV_LIST,
+                Some(HashMap::from([(
+                    "LLVM_PROFILE_FILE".to_string(),
+                    LLVM_PROFILE_FILE.to_string(),
+                )])),
                 system_user_id.as_ref(),
             )?;
 
@@ -497,6 +588,8 @@ fn load_credentials_for_user_fails_on_garbage_secrets_file() -> TestResult {
             }
         }
     }
+
+    collect_coverage_files("/tmp")?;
 
     Ok(())
 }
