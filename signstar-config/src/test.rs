@@ -1,5 +1,7 @@
 //! Utilities used for test setups.
 use std::{
+    collections::HashMap,
+    env,
     fs::{Permissions, create_dir_all, read_dir, read_to_string, set_permissions, write},
     io::{BufReader, Read as _, Write as _},
     os::{linux::fs::MetadataExt, unix::fs::PermissionsExt},
@@ -346,14 +348,29 @@ pub fn run_command_as_user(
         }
     );
 
+    // Get relevant environment variables from the current environment to pass into the next
+    // environment.
+    let env_list = [
+        "LLVM_PROFILE_FILE",
+        "CARGO_LLVM_COV",
+        "CARGO_LLVM_COV_SHOW_ENV",
+        "CARGO_LLVM_COV_TARGET_DIR",
+        "RUSTFLAGS",
+        "RUSTDOCFLAGS",
+    ];
+    let filtered_envs: HashMap<String, String> = env::vars()
+        .filter(|(key, _)| env_list.contains(&key.as_str()))
+        .collect();
+
     // Run command as user
     let mut command = Command::new(priv_command);
     let command = command
         .arg(command_arg)
-        .arg("--group")
-        .arg(user)
         .arg("--login")
         .arg(user)
+        .arg(format!("--whitelist-environment={}", env_list.join(",")))
+        .envs(&filtered_envs)
+        .env("LLVM_PROFILE_FILE", "/tmp/signstar-%p-%16m.profraw")
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .stdin(if command_input.is_none() {

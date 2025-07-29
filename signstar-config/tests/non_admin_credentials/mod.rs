@@ -1,10 +1,13 @@
 //! Integration tests for [`signstar_config::non_admin_credentials`].
 use std::{
-    fs::{File, Permissions, remove_file, set_permissions},
+    env::vars,
+    fs::{File, Permissions, copy, remove_file, set_permissions},
     io::Write,
     os::unix::fs::{PermissionsExt, chown},
+    path::PathBuf,
 };
 
+use log::debug;
 use rstest::rstest;
 use signstar_common::{
     common::{SECRET_FILE_MODE, get_data_home},
@@ -36,9 +39,9 @@ const GET_CREDENTIALS_PAYLOAD: &str = "/usr/local/bin/examples/get-nethsm-creden
 ///
 /// Tests integration with `systemd-creds` encrypted secrets and plaintext secrets.
 #[rstest]
-#[case(SIGNSTAR_CONFIG_FULL)]
-#[case(SIGNSTAR_CONFIG_PLAINTEXT)]
-fn load_credentials_for_user(#[case] config_data: &[u8]) -> TestResult {
+#[case::full_config(SIGNSTAR_CONFIG_FULL)]
+#[case::plaintext_config(SIGNSTAR_CONFIG_PLAINTEXT)]
+fn load_credentials_for_user_succeeds(#[case] config_data: &[u8]) -> TestResult {
     let (creds_mapping, _credentials_socket) = prepare_system_with_config(config_data)?;
     // Get all system users
     let system_users = creds_mapping
@@ -77,6 +80,32 @@ fn load_credentials_for_user(#[case] config_data: &[u8]) -> TestResult {
                     stderr,
                 }
                 .into());
+            }
+        }
+    }
+
+    list_files_in_dir("/tmp")?;
+    if let Some(cov_target_dir) = vars().find_map(|(key, value)| {
+        if key == "CARGO_LLVM_COV_TARGET_DIR" {
+            Some(PathBuf::from(value))
+        } else {
+            None
+        }
+    }) {
+        debug!("Found CARGO_LLVM_COV_TARGET_DIR={cov_target_dir:?}");
+        for dir_entry in PathBuf::from("/tmp").read_dir()? {
+            let dir_entry = dir_entry?;
+            let from = dir_entry.path();
+            let Some(file_name) = &from.file_name() else {
+                continue;
+            };
+            if let Some(extension) = from.extension()
+                && extension == "profraw"
+            {
+                let target_file = cov_target_dir.join(file_name);
+                debug!("Copying {from:?} to {target_file:?}");
+                copy(&from, &target_file)?;
+                chown(&target_file, Some(0), Some(0))?;
             }
         }
     }
