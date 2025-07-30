@@ -7,7 +7,7 @@ use std::{
     path::PathBuf,
 };
 
-use log::debug;
+use log::{LevelFilter, debug};
 use rstest::rstest;
 use signstar_common::{
     common::{SECRET_FILE_MODE, get_data_home},
@@ -24,6 +24,7 @@ use signstar_config::{
         run_command_as_user,
     },
 };
+use simplelog::{ColorChoice, Config, TermLogger, TerminalMode};
 use testresult::TestResult;
 
 /// Plaintext configuration
@@ -35,6 +36,20 @@ const SIGNSTAR_CONFIG_FULL: &[u8] = include_bytes!("../fixtures/signstar-config-
 
 const GET_CREDENTIALS_PAYLOAD: &str = "/usr/local/bin/examples/get-nethsm-credentials";
 
+/// Initializes a global [`TermLogger`].
+fn init_logger() {
+    if TermLogger::init(
+        LevelFilter::Trace,
+        Config::default(),
+        TerminalMode::Stderr,
+        ColorChoice::Auto,
+    )
+    .is_err()
+    {
+        debug!("Not initializing another logger, as one is initialized already.");
+    }
+}
+
 /// Loading credentials for unprivileged system users succeeds.
 ///
 /// Tests integration with `systemd-creds` encrypted secrets and plaintext secrets.
@@ -42,6 +57,7 @@ const GET_CREDENTIALS_PAYLOAD: &str = "/usr/local/bin/examples/get-nethsm-creden
 #[case::full_config(SIGNSTAR_CONFIG_FULL)]
 #[case::plaintext_config(SIGNSTAR_CONFIG_PLAINTEXT)]
 fn load_credentials_for_user_succeeds(#[case] config_data: &[u8]) -> TestResult {
+    init_logger();
     let (creds_mapping, _credentials_socket) = prepare_system_with_config(config_data)?;
     // Get all system users
     let system_users = creds_mapping
