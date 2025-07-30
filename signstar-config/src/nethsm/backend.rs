@@ -1566,7 +1566,7 @@ impl<'a, 'b> NetHsmBackend<'a, 'b> {
 mod tests {
     use std::collections::HashSet;
 
-    use log::{LevelFilter, debug};
+    use log::LevelFilter;
     use nethsm::{Connection, ConnectionSecurity, FullCredentials, NetHsm};
     use nethsm_config::{
         AdministrativeSecretHandling,
@@ -1577,30 +1577,16 @@ mod tests {
         NonAdministrativeSecretHandling,
         UserMapping,
     };
-    use simplelog::{ColorChoice, Config, TermLogger, TerminalMode};
+    use signstar_common::logging::setup_logging;
     use testresult::TestResult;
 
     use super::*;
-
-    /// Initializes a global [`TermLogger`].
-    fn init_logger() {
-        if TermLogger::init(
-            LevelFilter::Trace,
-            Config::default(),
-            TerminalMode::Stderr,
-            ColorChoice::Auto,
-        )
-        .is_err()
-        {
-            debug!("Not initializing another logger, as one is initialized already.");
-        }
-    }
 
     /// Ensures that the [`NetHsmBackend::new`] fails on mismatching iterations in
     /// [`AdminCredentials`] and [`HermeticParallelConfig`].
     #[test]
     fn nethsm_backend_new_fails_on_iteration_mismatch() -> TestResult {
-        init_logger();
+        setup_logging(LevelFilter::Debug)?;
 
         let nethsm = NetHsm::new(
             Connection::new(

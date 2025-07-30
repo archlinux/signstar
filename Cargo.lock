@@ -4426,7 +4426,6 @@ dependencies = [
  "rstest",
  "serde",
  "signstar-common",
- "simplelog",
  "strum",
  "tempfile",
  "testresult",

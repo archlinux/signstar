@@ -30,7 +30,7 @@ which = "8.0.0"
 [dev-dependencies]
 nethsm = { features = ["test-helpers"], workspace = true }
 rstest.workspace = true
-simplelog = "0.12.2"
+signstar-common = { workspace = true, features = ["logging"] }
 tempfile = "3.16.0"
 testresult.workspace = true
 tokio.workspace = true

@@ -526,27 +526,13 @@ impl From<&HermeticParallelConfig> for State {
 
 #[cfg(test)]
 mod tests {
-    use log::{LevelFilter, debug};
+    use log::LevelFilter;
     use nethsm::OpenPgpUserIdList;
     use rstest::rstest;
-    use simplelog::{ColorChoice, Config, TermLogger, TerminalMode};
+    use signstar_common::logging::setup_logging;
     use testresult::TestResult;
 
     use super::*;
-
-    /// Initializes a global [`TermLogger`].
-    fn init_logger() {
-        if TermLogger::init(
-            LevelFilter::Trace,
-            Config::default(),
-            TerminalMode::Stderr,
-            ColorChoice::Auto,
-        )
-        .is_err()
-        {
-            debug!("Not initializing another logger, as one is initialized already.");
-        }
-    }
 
     /// Ensures that [`UserState::to_string`] shows correctly.
     #[rstest]
@@ -591,7 +577,7 @@ mod tests {
         "testuser (role: Administrator)",
     )]
     fn user_state_to_string(#[case] user_state: UserState, #[case] expected: &str) -> TestResult {
-        init_logger();
+        setup_logging(LevelFilter::Debug)?;
 
         assert_eq!(user_state.to_string(), expected);
         Ok(())
@@ -681,7 +667,7 @@ mod tests {
         "key1 (type: Curve25519; mechanisms: EdDsaSignature; context: Raw)",
     )]
     fn key_state_to_string(#[case] key_state: KeyState, #[case] expected: &str) -> TestResult {
-        init_logger();
+        setup_logging(LevelFilter::Debug)?;
 
         assert_eq!(key_state.to_string(), expected);
         Ok(())
@@ -692,7 +678,7 @@ mod tests {
     #[case(StateType::NetHsm, "NetHSM")]
     #[case(StateType::SignstarConfig, "Signstar configuration")]
     fn state_type_display(#[case] state_type: StateType, #[case] expected: &str) -> TestResult {
-        init_logger();
+        setup_logging(LevelFilter::Debug)?;
 
         assert_eq!(state_type.to_string(), expected);
         Ok(())
@@ -732,7 +718,7 @@ mod tests {
         #[case] state_type: KeyStateType,
         #[case] expected: &str,
     ) -> TestResult {
-        init_logger();
+        setup_logging(LevelFilter::Debug)?;
 
         assert_eq!(state_type.to_string(), expected);
         Ok(())
@@ -766,7 +752,7 @@ mod tests {
         #[case] state_type: UserStateType,
         #[case] expected: &str,
     ) -> TestResult {
-        init_logger();
+        setup_logging(LevelFilter::Debug)?;
 
         assert_eq!(state_type.to_string(), expected);
         Ok(())
@@ -849,7 +835,7 @@ mod tests {
         },
     )]
     fn state_compare_succeeds(#[case] state_a: State, #[case] state_b: State) -> TestResult {
-        init_logger();
+        setup_logging(LevelFilter::Debug)?;
 
         let compare_result = state_a.compare(&state_b);
 
@@ -1060,7 +1046,7 @@ NetHSM (B) => key1 (tags: tag1; type: Curve25519; mechanisms: EdDsaSignature; co
         #[case] state_b: State,
         #[case] expected: &str,
     ) -> TestResult {
-        init_logger();
+        setup_logging(LevelFilter::Debug)?;
 
         let compare_result = state_a.compare(&state_b);
 

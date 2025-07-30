@@ -5,10 +5,12 @@ use std::{
     os::unix::fs::{PermissionsExt, chown},
 };
 
+use log::LevelFilter;
 use rstest::rstest;
 use signstar_common::{
     common::{SECRET_FILE_MODE, get_data_home},
     config::get_default_config_file_path,
+    logging::setup_logging,
     system_user::{get_systemd_creds_secret_file, get_user_secrets_dir},
 };
 use signstar_config::test::{
@@ -37,6 +39,7 @@ const GET_CREDENTIALS_PAYLOAD: &str = "/usr/local/bin/examples/get-nethsm-creden
 #[case(SIGNSTAR_CONFIG_FULL)]
 #[case(SIGNSTAR_CONFIG_PLAINTEXT)]
 fn load_credentials_for_user(#[case] config_data: &[u8]) -> TestResult {
+    setup_logging(LevelFilter::Debug)?;
     let (creds_mapping, _credentials_socket) = prepare_system_with_config(config_data)?;
     // Get all system users
     let system_users = creds_mapping
@@ -85,6 +88,7 @@ fn load_credentials_for_user(#[case] config_data: &[u8]) -> TestResult {
 /// Loading credentials for unprivileged system users fails on missing Signstar configuration.
 #[rstest]
 fn load_credentials_for_user_fails_on_missing_signstar_config() -> TestResult {
+    setup_logging(LevelFilter::Debug)?;
     let (creds_mapping, _credentials_socket) = prepare_system_with_config(SIGNSTAR_CONFIG_FULL)?;
     // Get all system users
     let system_users = creds_mapping
@@ -136,6 +140,7 @@ fn load_credentials_for_user_fails_on_missing_signstar_config() -> TestResult {
 /// socket not being available.
 #[rstest]
 fn load_credentials_for_user_fails_on_credentials_socket() -> TestResult {
+    setup_logging(LevelFilter::Debug)?;
     let (creds_mapping, mut credentials_socket) = prepare_system_with_config(SIGNSTAR_CONFIG_FULL)?;
     // Get all system users
     let system_users = creds_mapping
@@ -190,6 +195,7 @@ fn load_credentials_for_user_fails_on_credentials_socket() -> TestResult {
 /// Loading credentials for unprivileged system users fails on missing secrets dir.
 #[rstest]
 fn load_credentials_for_user_fails_on_missing_secrets_dir() -> TestResult {
+    setup_logging(LevelFilter::Debug)?;
     let (creds_mapping, _credentials_socket) = prepare_system_with_config(SIGNSTAR_CONFIG_FULL)?;
     // Get all system users
     let system_users = creds_mapping
@@ -235,6 +241,7 @@ fn load_credentials_for_user_fails_on_missing_secrets_dir() -> TestResult {
 /// Loading credentials for unprivileged system users fails on missing secrets file.
 #[rstest]
 fn load_credentials_for_user_fails_on_missing_secrets_file() -> TestResult {
+    setup_logging(LevelFilter::Debug)?;
     let (creds_mapping, _credentials_socket) = prepare_system_with_config(SIGNSTAR_CONFIG_FULL)?;
     // Get all system users
     let system_users = creds_mapping
@@ -284,6 +291,7 @@ fn load_credentials_for_user_fails_on_missing_secrets_file() -> TestResult {
 /// Loading credentials for unprivileged system users fails on inaccessible secrets file.
 #[rstest]
 fn load_credentials_for_user_fails_on_inaccessible_secrets_file() -> TestResult {
+    setup_logging(LevelFilter::Debug)?;
     let (creds_mapping, _credentials_socket) = prepare_system_with_config(SIGNSTAR_CONFIG_FULL)?;
     // Get all system users
     let system_users = creds_mapping
@@ -342,6 +350,7 @@ fn load_credentials_for_user_fails_on_inaccessible_secrets_file() -> TestResult 
 /// Loading credentials for unprivileged system users fails on garbage "encrypted" secrets file.
 #[rstest]
 fn load_credentials_for_user_fails_on_garbage_secrets_file() -> TestResult {
+    setup_logging(LevelFilter::Debug)?;
     let (creds_mapping, _credentials_socket) = prepare_system_with_config(SIGNSTAR_CONFIG_FULL)?;
     // Get all system users
     let system_users = creds_mapping

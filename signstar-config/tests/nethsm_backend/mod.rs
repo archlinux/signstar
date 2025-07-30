@@ -5,9 +5,12 @@ use nethsm::test::create_container;
 use nethsm::{Connection, NetHsm, UserId};
 use nethsm_config::UserMapping;
 use rstest::rstest;
-use signstar_config::test::{admin_credentials, create_full_credentials, signstar_config};
-use signstar_config::{NetHsmBackend, State};
-use simplelog::{ColorChoice, Config, TermLogger, TerminalMode};
+use signstar_common::logging::setup_logging;
+use signstar_config::{
+    NetHsmBackend,
+    State,
+    test::{admin_credentials, create_full_credentials, signstar_config},
+};
 use testresult::TestResult;
 
 /// Full configuration
@@ -15,20 +18,6 @@ const SIGNSTAR_CONFIG_FULL: &[u8] = include_bytes!("../fixtures/signstar-config-
 
 /// Simple configuration
 const SIGNSTAR_ADMIN_CREDS_SIMPLE: &[u8] = include_bytes!("../fixtures/admin-creds-simple.toml");
-
-/// Initializes a global [`TermLogger`].
-fn init_logger() {
-    if TermLogger::init(
-        LevelFilter::Trace,
-        Config::default(),
-        TerminalMode::Stderr,
-        ColorChoice::Auto,
-    )
-    .is_err()
-    {
-        debug!("Not initializing another logger, as one is initialized already.");
-    }
-}
 
 /// Tests that an unprovisioned backend can be provisioned using a valid Signstar config.
 #[rstest]
@@ -38,7 +27,7 @@ async fn sync_unprovisioned_backend(
     #[case] config_data: &[u8],
     #[case] creds_data: &[u8],
 ) -> TestResult {
-    init_logger();
+    setup_logging(LevelFilter::Debug)?;
 
     let container = create_container().await?;
     let url = container.url().await?;
