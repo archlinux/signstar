@@ -735,11 +735,12 @@ get-cargo-target-dir:
 
 # Runs the tests that are made available with the "_containerized-integration-test" feature of all configured projects in a separate container
 [group('test')]
-containerized-integration-tests:
+containerized-integration-tests *options:
     #!/usr/bin/env bash
     set -euo pipefail
 
     readonly coverage="{{ coverage }}"
+    read -r -a options <<< "{{ options }}"
     readonly cargo_target_dir="$(just get-cargo-target-dir)"
 
     if [[ "$coverage" == "true" ]]; then
@@ -749,7 +750,7 @@ containerized-integration-tests:
         # Override, because `cargo llvm-cov show-env` sets it to `$CARGO_TARGET_DIR/` but `cargo llvm-cov report` expects it to be at `$CARGO_TARGET_DIR/llvm-cov-target/`
         export CARGO_LLVM_COV_TARGET_DIR="$cargo_target_dir/llvm-cov-target"
         cargo build --examples --bins
-        cargo llvm-cov --no-report nextest --features _containerized-integration-test --filterset 'kind(test)'
+        cargo llvm-cov --no-report nextest --features _containerized-integration-test "${options[@]}" --filterset 'kind(test)'
     else
         just ensure-command bash cargo cargo-nextest jq podman
         cargo nextest run --features _containerized-integration-test --filterset 'kind(test)'
