@@ -26,6 +26,7 @@
 ## Architecture
 
 - [Design](./architecture/design.md)
+- [Threat Model](./architecture/threat-model.md)
 - [Evaluated Setups](./architecture/evaluated-setups.md)
 - [Previous Setup](./architecture/previous-setup.md)
 
