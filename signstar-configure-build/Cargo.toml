@@ -15,5 +15,5 @@ nethsm-config.workspace = true
 nix = { version = "0.30.0", features = ["user"] }
 signstar-common.workspace = true
 strum.workspace = true
-sysinfo = "0.36.0"
+sysinfo = "0.37.0"
 thiserror.workspace = true
