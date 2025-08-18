@@ -17,3 +17,6 @@ https://signstar.archlinux.page/rustdoc/signstar_sign/
 # Nitrokey is behind cloudflare and 403'ing all links
 https://nitrokey.com/
 https://www.nitrokey.com/products/nethsm
+
+# Arch Linux is being DDoS'ed
+https://archlinux.org
