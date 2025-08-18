@@ -9,54 +9,6 @@ See [previous setup] for details on the setup upon which Signstar improves.
 In [evaluated setups] all high-level setups which have been evaluated are listed.
 Only one of them ([option C]) is considered for implementation.
 
-## Threat model
-
-The following assumptions are made with regard to the setup.
-
-- HSM
-    - The given HSM is a tamper-proof device, which fully prevents private key exfiltration.
-    - Credentials required for administrative actions towards the HSM can be stored securely offline until they are needed for the (re)configuration of the HSM (e.g. initial setup, or creation of new keys and users).
-    - Backups of the HSM are stored securely offline and allow restoring a device in case of disaster.
-    - A collection of administrative credentials required for the (re)configuration of the HSM are distributed as shares of a shared secret, divided using [Shamir's Secret Sharing] ([SSS]) to dedicated individuals.
-- Service host
-    - A dedicated physical host managing all access to the HSM is used for its configuration and for granting access to signing operations.
-    - A custom image-based operating system with a read-only root filesystem and an encrypted `/var` partition (with key enrolled to local [TPM2] chip) is used on the host.
-      Relevant secrets such as SSH host keys and current Operator user credentials are kept in the encrypted partition, preventing offline exfiltration on harddrive theft or copy.
-      The cryptographic key material used for secure boot and [verity signing] of the OS image, as well as that used for signing OS image artifacts are kept in offline backups and are only used with dedicated hardware tokens when building images of the OS image.
-      A compromise of the holder of either or both secure boot/[verity signing] or artifact signing key may lead to the creation of a compromised OS image.
-      It is therefore advised to ensure proper deployment of update artifacts using quality gates.
-    - The host is not directly accessible by system users of the image-based OS (i.e. via login shell over SSH) during runtime, but only via rescue environment.
-    - Dedicated host credentials are used to collect the public key for a [WireGuard] connection, which is setup during first boot and is used exclusively for securely diverting system logs and metrics to a hardcoded host.
-    - Administrative credentials for the configuration of the HSM are provided to the host OS as shares of a shared secret, divided using [SSS].
-      They are held in tmpfs and removed once the administrative action is finished or a predefined timeout is reached.
-    - Passphrases for unprivileged user actions on the [NetHSM] are rotated on each (re)configuration of the system and are never persisted outside of the host.
-    - A backup is created after each successful (re)configuration of the [NetHSM].
-    - If a shareholder of the shared secret to the administrative credentials of the HSM is compromised, loses access to the share or leaves the organization, a reconfiguration of the administrative credentials takes place, rotating all credentials and making new shares for a shared secret available for download to current shareholders.
-      If `n` out of `m` shareholders are compromised, an attacker needs physical access to the [NetHSM] or the backups to be able to either remove keys or use them for cryptographic operations.
-    - During runtime the OS grants access to unprivileged user credentials (e.g. *Operator*, *Metrics* and *Backup*) of the HSM to pre-configured system users.
-      If credentials for a pre-configured system user account are compromised, an attacker may use the account solely in the context of its role (e.g. to sign artifacts, to retrieve metrics or encrypted backups).
-      Credentials for the host's system users can be changed transparently, reproducibly and in a fast manner by upgrading the host's OS.
-    - Logs and metrics of the host are aggregated securely and are accessible for continuous monitoring of the OS and its critical facilities.
-    - A public transparency log is appended to by the signing facilities for each requested signature, which provides insights into all signing operations done by the system.
-    - Transparency log monitoring is done by a system outside of the scope of the Signstar project.
-    - The *service host* has access to *Operator* credentials which allows using available signing keys on the [NetHSM].
-      If the *service host* is fully compromised, it can issue signatures using those signing keys while sidestepping additions to a transparency log.
-      The operating system must only provide tooling for signing in the narrow scope described by the Signstar project to prevent the use of signing keys for other use-cases.
-- Client
-    - Clients to the signing service can each be provided with credentials to the service in a dedicated scope (e.g. hardware backed and service specific) and have no access to the actual *Operator* (or any other) credentials of the HSM.
-    - Some or all signstar clients may run in untrusted environments or may run untrusted or unsafe code (e.g. build servers during build time), which may lead to them being compromised.
-    - Known compromised clients can either be shutdown and/ or be disconnected from the signing service by re-configuring the service with altered or removed credentials for the respective clients.
-    - Clients don't have direct access to signing keys nor can they directly influence the structure of signatures.
-- Digital Signatures
-    - Digital signatures are requested by designated clients to the service host.
-      If the client host or its credentials for the service host are compromised, either the client host is deactivated and/ or its credentials for the service host are removed or changed.
-      All identified malicious signatures are gathered and affected artifacts are rebuilt or resigned.
-      Depending on severity of the breach, all artifacts in direct circulation still signed by the the affected key material can be rebuilt and signed by a different key.
-      Afterwards the affected key material in its entirety or simply its trust level can be revoked, ensuring that end-users no longer trust signatures made by this key.
-      Finally, a public report lists all known affected artifacts and signatures and outlines the chosen mitigation steps.
-    - Digital signatures contain metadata about the environment in which they were created.
-      This helps in identifying signature requester, signed payloads and information about the involved hosts.
-
 ## Setup
 
 Signstar as a signing service is meant to be run as a set of middleware applications on a physical host, fronting a Nitrokey [NetHSM].
