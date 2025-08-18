@@ -1,4 +1,6 @@
+admin_secret_handling = "shamirs-secret-sharing"
 iteration = 1
+non_admin_secret_handling = "systemd-creds"
 
 [[connections]]
 tls_security = "Unsafe"
