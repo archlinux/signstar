@@ -180,13 +180,13 @@ pub enum SshForceCommand {
     #[strum(serialize = "signstar-download-secret-share")]
     DownloadSecretShare,
 
-    /// Enforce calling signstar-download-signature
-    #[strum(serialize = "signstar-download-signature")]
-    DownloadSignature,
-
     /// Enforce calling signstar-download-wireguard
     #[strum(serialize = "signstar-download-wireguard")]
     DownloadWireGuard,
+
+    /// Enforce calling `signstar-sign`.
+    #[strum(serialize = "signstar-sign")]
+    Sign,
 
     /// Enforce calling signstar-upload-backup
     #[strum(serialize = "signstar-upload-backup")]
@@ -222,7 +222,7 @@ impl TryFrom<&UserMapping> for SshForceCommand {
                 ssh_authorized_key: _,
                 system_user: _,
                 tag: _,
-            } => Ok(Self::DownloadSignature),
+            } => Ok(Self::Sign),
             UserMapping::SystemOnlyShareDownload {
                 system_user: _,
                 ssh_authorized_keys: _,
