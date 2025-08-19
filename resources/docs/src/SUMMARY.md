@@ -25,10 +25,10 @@
     - [Response spec](./signstar-request-signature/response.md)
 - [signstar-sign](./signstar-sign/README.md)
     - [CHANGELOG](./signstar-sign/CHANGELOG.md)
+
+# OS
+
 - [Signstar OS](./resources/mkosi/signstar/README.md)
-
-# Architecture
-
 - [Design](./architecture/design.md)
 - [Evaluated Setups](./architecture/evaluated-setups.md)
 - [Previous Setup](./architecture/previous-setup.md)
