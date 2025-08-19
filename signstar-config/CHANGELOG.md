@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2025-08-19
+
+### Added
+
+- Use `change-user-run` crate instead of `signstar_config::test`
+- Add `SignstarConfig` for the configuration on Signstar hosts
+
+### Fixed
+
+- *(deps)* Update Rust crate toml to 0.9.0
+
+### Other
+
+- Collect coverage produced by tests run (partially) as other user
+- Remove the use of `confy`
+- Initialize logger using `signstar_common::logging::setup_logging`
+
 ## [0.1.0] - 2025-07-10
 
 ### Added
