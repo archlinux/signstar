@@ -2,17 +2,12 @@
 
 use std::{fs::File, io::Write};
 
+use change_user_run::{CommandOutput, create_users, run_command_as_user};
 use log::LevelFilter;
 use rstest::rstest;
-use signstar_common::common::get_data_home;
 use signstar_common::logging::setup_logging;
-use signstar_config::test::{
-    CommandOutput,
-    create_users,
-    list_files_in_dir,
-    prepare_system_with_config,
-    run_command_as_user,
-};
+use signstar_common::{common::get_data_home, system_user::get_home_base_dir_path};
+use signstar_config::test::{list_files_in_dir, prepare_system_with_config};
 use tempfile::tempdir;
 use testresult::TestResult;
 
@@ -92,7 +87,14 @@ async fn load_credentials_for_user(#[case] config_data: &[u8]) -> TestResult {
         })
         .collect::<Vec<String>>();
     // Create all system users and their homes
-    create_users(system_users.as_slice())?;
+    create_users(
+        &system_users
+            .iter()
+            .map(|user| user.as_str())
+            .collect::<Vec<_>>(),
+        Some(&get_home_base_dir_path()),
+        None,
+    )?;
     // Create secrets for each system user and their backend users
     for mapping in &creds_mapping {
         mapping.create_secrets_dir()?;
@@ -112,7 +114,6 @@ async fn load_credentials_for_user(#[case] config_data: &[u8]) -> TestResult {
             } = run_command_as_user(
                 SIGNSTAR_SIGN_PAYLOAD,
                 &[],
-                system_user_id.as_ref(),
                 Some(
                     br#"{
   "version": "1.0.0",
@@ -144,6 +145,9 @@ async fn load_credentials_for_user(#[case] config_data: &[u8]) -> TestResult {
 }
 "#,
                 ),
+                &[],
+                None,
+                system_user_id.as_ref(),
             )?;
             if !status.success() {
                 log::error!("Standard error: {stderr}");

@@ -13,6 +13,7 @@ members = [
 resolver = "3"
 
 [workspace.dependencies]
+change-user-run = "0.1.1"
 chrono = "0.4.38"
 clap = { version = "4.5.23", features = ["derive", "env"] }
 confy = "1.0.0"

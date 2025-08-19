@@ -1,10 +1,9 @@
 //! Utilities used for test setups.
 use std::{
-    fs::{Permissions, create_dir_all, read_dir, read_to_string, set_permissions, write},
-    io::{BufReader, Read as _, Write as _},
+    fs::{Permissions, create_dir_all, read_dir, set_permissions, write},
     os::{linux::fs::MetadataExt, unix::fs::PermissionsExt},
     path::{Path, PathBuf},
-    process::{Child, Command, ExitStatus, Stdio},
+    process::{Child, Command},
     thread,
     time,
 };
@@ -12,9 +11,8 @@ use std::{
 use log::debug;
 use nethsm::{FullCredentials, Passphrase, UserId};
 use rand::{Rng, distributions::Alphanumeric, thread_rng};
-use signstar_common::{config::get_default_config_file_path, system_user::get_home_base_dir_path};
+use signstar_common::config::get_default_config_file_path;
 use tempfile::NamedTempFile;
-use testresult::TestResult;
 use which::which;
 
 use crate::{AdminCredentials, AdministrativeSecretHandling, ExtendedUserMapping, SignstarConfig};
@@ -285,177 +283,6 @@ pub fn start_credentials_socket() -> Result<BackgroundProcess, Error> {
         child,
         command: format!("{command:?}"),
     })
-}
-
-/// Data on a command that has been executed.
-///
-/// Tracks the command that has been executed, its stdout, stderr and status code.
-#[derive(Debug)]
-pub struct CommandOutput {
-    /// The command that has been executed.
-    pub command: String,
-
-    /// Status code of `command`.
-    pub status: ExitStatus,
-
-    /// Standard output of `command`.
-    pub stdout: String,
-
-    /// Standard error of `command`.
-    pub stderr: String,
-}
-
-/// Runs a `command` with `command_args` as a specific `user` and returns [`CommandOutput`], which
-/// captures the `command`'s completion status.
-///
-/// Uses [`runuser`] to run the the command as a specific user.
-///
-/// [`runuser`]: https://man.archlinux.org/man/runuser.1
-pub fn run_command_as_user(
-    command: &str,
-    command_args: &[&str],
-    user: &str,
-    command_input: Option<&[u8]>,
-) -> Result<CommandOutput, Error> {
-    /// Returns the path to a `command`.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if `command` can not be found in PATH.
-    fn get_command(command: &str) -> Result<PathBuf, Error> {
-        which(command).map_err(|source| {
-            Error::SignstarConfig(crate::Error::Utils(
-                crate::utils::Error::ExecutableNotFound {
-                    command: command.to_string(),
-                    source,
-                },
-            ))
-        })
-    }
-
-    let priv_command = get_command("runuser")?;
-    log::debug!("Checking availability of command {command}");
-    get_command(command)?;
-
-    let command_arg = format!(
-        "--command='{command}{}'",
-        if !command_args.is_empty() {
-            format!(" {}", command_args.join(" "))
-        } else {
-            "".to_string()
-        }
-    );
-
-    // Run command as user
-    let mut command = Command::new(priv_command);
-    let command = command
-        .arg(command_arg)
-        .arg("--group")
-        .arg(user)
-        .arg("--login")
-        .arg(user)
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .stdin(if command_input.is_none() {
-            Stdio::null()
-        } else {
-            Stdio::piped()
-        });
-
-    let command_string = format!("{command:?}");
-    log::debug!("Running command {command_string}");
-    let mut command_output = command.spawn().map_err(|source| {
-        Error::SignstarConfig(crate::Error::CommandExec {
-            command: command_string.clone(),
-            source,
-        })
-    })?;
-
-    if let Some(input) = command_input {
-        command_output
-            .stdin
-            .take()
-            .expect("stdin to be set")
-            .write_all(input)
-            .map_err(|source| crate::Error::CommandExec {
-                command: command_string.clone(),
-                source,
-            })?;
-    }
-
-    let exit = command_output.wait().unwrap();
-    let mut stdout = String::new();
-    BufReader::new(command_output.stdout.take().expect("stdout to be set"))
-        .read_to_string(&mut stdout)
-        .map_err(|source| crate::Error::CommandExec {
-            command: command_string.clone(),
-            source,
-        })?;
-    log::debug!("stdout:\n{stdout}");
-
-    let mut stderr = String::new();
-    BufReader::new(command_output.stderr.take().expect("stderr to be set"))
-        .read_to_string(&mut stderr)
-        .map_err(|source| crate::Error::CommandExec {
-            command: command_string.clone(),
-            source,
-        })?;
-
-    log::debug!("stderr:\n{stderr}");
-
-    Ok(CommandOutput {
-        status: exit,
-        stdout,
-        stderr,
-        command: command_string,
-    })
-}
-
-/// Creates a set of users.
-pub fn create_users(users: &[String]) -> TestResult {
-    debug!("Creating users: {users:?}");
-    for user in users {
-        debug!("Creating user: {user}");
-
-        // create the user and its home
-        let mut command = Command::new("useradd");
-        let command = command
-            .arg("--base-dir")
-            .arg(get_home_base_dir_path())
-            .arg("--create-home")
-            .arg("--user-group")
-            .arg("--shell")
-            .arg("/usr/bin/bash")
-            .arg(user);
-
-        let command_output = command.output()?;
-        if !command_output.status.success() {
-            return Err(crate::Error::CommandNonZero {
-                command: format!("{command:?}"),
-                exit_status: command_output.status,
-                stderr: String::from_utf8_lossy(&command_output.stderr).into_owned(),
-            }
-            .into());
-        }
-
-        // unlock the user
-        let mut command = Command::new("usermod");
-        command.arg("--unlock");
-        command.arg(user);
-        let command_output = command.output()?;
-        if !command_output.status.success() {
-            return Err(crate::Error::CommandNonZero {
-                command: format!("{command:?}"),
-                exit_status: command_output.status,
-                stderr: String::from_utf8_lossy(&command_output.stderr).into_owned(),
-            }
-            .into());
-        }
-    }
-
-    debug!("/etc/passwd:\n{}", read_to_string("/etc/passwd")?);
-
-    Ok(())
 }
 
 /// Prepares a system for use with Signstar.

@@ -5,23 +5,18 @@ use std::{
     os::unix::fs::{PermissionsExt, chown},
 };
 
+use change_user_run::{CommandOutput, create_users, run_command_as_user};
 use log::LevelFilter;
 use rstest::rstest;
 use signstar_common::{
     common::{SECRET_FILE_MODE, get_data_home},
     config::get_default_config_file_path,
     logging::setup_logging,
-    system_user::{get_systemd_creds_secret_file, get_user_secrets_dir},
+    system_user::{get_home_base_dir_path, get_systemd_creds_secret_file, get_user_secrets_dir},
 };
 use signstar_config::{
     error::ErrorExitCode,
-    test::{
-        CommandOutput,
-        create_users,
-        list_files_in_dir,
-        prepare_system_with_config,
-        run_command_as_user,
-    },
+    test::{list_files_in_dir, prepare_system_with_config},
 };
 use testresult::TestResult;
 
@@ -54,7 +49,14 @@ fn load_credentials_for_user(#[case] config_data: &[u8]) -> TestResult {
         })
         .collect::<Vec<String>>();
     // Create all system users and their homes
-    create_users(system_users.as_slice())?;
+    create_users(
+        &system_users
+            .iter()
+            .map(|user| user.as_str())
+            .collect::<Vec<_>>(),
+        Some(&get_home_base_dir_path()),
+        None,
+    )?;
     // Create secrets for each system user and their backend users
     for mapping in &creds_mapping {
         mapping.create_secrets_dir()?;
@@ -71,7 +73,14 @@ fn load_credentials_for_user(#[case] config_data: &[u8]) -> TestResult {
                 command,
                 stderr,
                 ..
-            } = run_command_as_user(GET_CREDENTIALS_PAYLOAD, &[], system_user_id.as_ref(), None)?;
+            } = run_command_as_user(
+                GET_CREDENTIALS_PAYLOAD,
+                &[],
+                None,
+                &[],
+                None,
+                system_user_id.as_ref(),
+            )?;
 
             if !status.success() {
                 return Err(signstar_config::Error::CommandNonZero {
@@ -103,7 +112,14 @@ fn load_credentials_for_user_fails_on_missing_signstar_config() -> TestResult {
         })
         .collect::<Vec<String>>();
     // Create all system users and their homes
-    create_users(system_users.as_slice())?;
+    create_users(
+        &system_users
+            .iter()
+            .map(|user| user.as_str())
+            .collect::<Vec<_>>(),
+        Some(&get_home_base_dir_path()),
+        None,
+    )?;
     // Create secrets for each system user and their backend users
     for mapping in &creds_mapping {
         mapping.create_secrets_dir()?;
@@ -120,7 +136,14 @@ fn load_credentials_for_user_fails_on_missing_signstar_config() -> TestResult {
         if let Some(system_user_id) = mapping.get_user_mapping().get_system_user() {
             let CommandOutput {
                 status, command, ..
-            } = run_command_as_user(GET_CREDENTIALS_PAYLOAD, &[], system_user_id.as_ref(), None)?;
+            } = run_command_as_user(
+                GET_CREDENTIALS_PAYLOAD,
+                &[],
+                None,
+                &[],
+                None,
+                system_user_id.as_ref(),
+            )?;
             if !status.success() {
                 let Some(exit_code) = status.code() else {
                     panic!("There should be an exit code for {command}!")
@@ -155,7 +178,14 @@ fn load_credentials_for_user_fails_on_credentials_socket() -> TestResult {
         })
         .collect::<Vec<String>>();
     // Create all system users and their homes
-    create_users(system_users.as_slice())?;
+    create_users(
+        &system_users
+            .iter()
+            .map(|user| user.as_str())
+            .collect::<Vec<_>>(),
+        Some(&get_home_base_dir_path()),
+        None,
+    )?;
     // Create secrets for each system user and their backend users
     for mapping in &creds_mapping {
         mapping.create_secrets_dir()?;
@@ -173,7 +203,14 @@ fn load_credentials_for_user_fails_on_credentials_socket() -> TestResult {
         if let Some(system_user_id) = mapping.get_user_mapping().get_system_user() {
             let CommandOutput {
                 status, command, ..
-            } = run_command_as_user(GET_CREDENTIALS_PAYLOAD, &[], system_user_id.as_ref(), None)?;
+            } = run_command_as_user(
+                GET_CREDENTIALS_PAYLOAD,
+                &[],
+                None,
+                &[],
+                None,
+                system_user_id.as_ref(),
+            )?;
 
             if !status.success() {
                 let Some(exit_code) = status.code() else {
@@ -210,7 +247,14 @@ fn load_credentials_for_user_fails_on_missing_secrets_dir() -> TestResult {
         })
         .collect::<Vec<String>>();
     // Create all system users and their homes
-    create_users(system_users.as_slice())?;
+    create_users(
+        &system_users
+            .iter()
+            .map(|user| user.as_str())
+            .collect::<Vec<_>>(),
+        Some(&get_home_base_dir_path()),
+        None,
+    )?;
     // List all files and directories in the data home.
     list_files_in_dir(get_data_home())?;
 
@@ -219,7 +263,14 @@ fn load_credentials_for_user_fails_on_missing_secrets_dir() -> TestResult {
         if let Some(system_user_id) = mapping.get_user_mapping().get_system_user() {
             let CommandOutput {
                 status, command, ..
-            } = run_command_as_user(GET_CREDENTIALS_PAYLOAD, &[], system_user_id.as_ref(), None)?;
+            } = run_command_as_user(
+                GET_CREDENTIALS_PAYLOAD,
+                &[],
+                None,
+                &[],
+                None,
+                system_user_id.as_ref(),
+            )?;
 
             if !status.success() {
                 let Some(exit_code) = status.code() else {
@@ -256,7 +307,14 @@ fn load_credentials_for_user_fails_on_missing_secrets_file() -> TestResult {
         })
         .collect::<Vec<String>>();
     // Create all system users and their homes
-    create_users(system_users.as_slice())?;
+    create_users(
+        &system_users
+            .iter()
+            .map(|user| user.as_str())
+            .collect::<Vec<_>>(),
+        Some(&get_home_base_dir_path()),
+        None,
+    )?;
     // Only create secret dir for each system user.
     for mapping in &creds_mapping {
         mapping.create_secrets_dir()?;
@@ -269,7 +327,14 @@ fn load_credentials_for_user_fails_on_missing_secrets_file() -> TestResult {
         if let Some(system_user_id) = mapping.get_user_mapping().get_system_user() {
             let CommandOutput {
                 status, command, ..
-            } = run_command_as_user(GET_CREDENTIALS_PAYLOAD, &[], system_user_id.as_ref(), None)?;
+            } = run_command_as_user(
+                GET_CREDENTIALS_PAYLOAD,
+                &[],
+                None,
+                &[],
+                None,
+                system_user_id.as_ref(),
+            )?;
 
             if !status.success() {
                 let Some(exit_code) = status.code() else {
@@ -306,7 +371,14 @@ fn load_credentials_for_user_fails_on_inaccessible_secrets_file() -> TestResult 
         })
         .collect::<Vec<String>>();
     // Create all system users and their homes
-    create_users(system_users.as_slice())?;
+    create_users(
+        &system_users
+            .iter()
+            .map(|user| user.as_str())
+            .collect::<Vec<_>>(),
+        Some(&get_home_base_dir_path()),
+        None,
+    )?;
     // Create secrets file for each system user (and then render it inaccessible).
     for mapping in &creds_mapping {
         mapping.create_secrets_dir()?;
@@ -328,7 +400,14 @@ fn load_credentials_for_user_fails_on_inaccessible_secrets_file() -> TestResult 
         if let Some(system_user_id) = mapping.get_user_mapping().get_system_user() {
             let CommandOutput {
                 status, command, ..
-            } = run_command_as_user(GET_CREDENTIALS_PAYLOAD, &[], system_user_id.as_ref(), None)?;
+            } = run_command_as_user(
+                GET_CREDENTIALS_PAYLOAD,
+                &[],
+                None,
+                &[],
+                None,
+                system_user_id.as_ref(),
+            )?;
 
             if !status.success() {
                 let Some(exit_code) = status.code() else {
@@ -365,7 +444,14 @@ fn load_credentials_for_user_fails_on_garbage_secrets_file() -> TestResult {
         })
         .collect::<Vec<String>>();
     // Create all system users and their homes
-    create_users(system_users.as_slice())?;
+    create_users(
+        &system_users
+            .iter()
+            .map(|user| user.as_str())
+            .collect::<Vec<_>>(),
+        Some(&get_home_base_dir_path()),
+        None,
+    )?;
     // Create secrets file for each system user (and then write garbage to them).
     for mapping in &creds_mapping {
         mapping.create_secrets_dir()?;
@@ -387,7 +473,14 @@ fn load_credentials_for_user_fails_on_garbage_secrets_file() -> TestResult {
         if let Some(system_user_id) = mapping.get_user_mapping().get_system_user() {
             let CommandOutput {
                 status, command, ..
-            } = run_command_as_user(GET_CREDENTIALS_PAYLOAD, &[], system_user_id.as_ref(), None)?;
+            } = run_command_as_user(
+                GET_CREDENTIALS_PAYLOAD,
+                &[],
+                None,
+                &[],
+                None,
+                system_user_id.as_ref(),
+            )?;
 
             if !status.success() {
                 let Some(exit_code) = status.code() else {

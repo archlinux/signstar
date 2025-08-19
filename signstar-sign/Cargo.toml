@@ -27,6 +27,7 @@ default = []
 [dev-dependencies]
 actix-web = { version = "4.10.2", features = ["openssl"] }
 base64 = "0.22.1"
+change-user-run.workspace = true
 httpmock = "0.8.0-alpha.1"
 log.workspace = true
 openssl = "0.10.71"

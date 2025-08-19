@@ -28,6 +28,7 @@ which = "8.0.0"
 zeroize.workspace = true
 
 [dev-dependencies]
+change-user-run.workspace = true
 nethsm = { features = ["test-helpers"], workspace = true }
 rstest.workspace = true
 signstar-common = { workspace = true, features = ["logging"] }
