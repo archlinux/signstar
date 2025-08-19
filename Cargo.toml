@@ -36,7 +36,7 @@ serde = { version = "1.0.215", features = ["derive"] }
 # Then adjust the tests in signstar-request-signature/src/lib.rs to additionally test
 # inputs that reference the "old_sha2".
 sha2 = "=0.11.0-rc.0"
-signstar-common = { path = "signstar-common", version = "0.1.1" }
+signstar-common = { path = "signstar-common", version = "0.1.2" }
 signstar-config = { path = "signstar-config", version = "0.1.0" }
 signstar-request-signature = { path = "signstar-request-signature", version = "0.1.2" }
 strum = { version = "0.27.0", features = ["derive"] }
