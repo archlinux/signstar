@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.1] - 2025-08-19
+
+### Added
+
+- Use `change-user-run` crate instead of `signstar_config::test`
+- Add `SignstarConfig` for the configuration on Signstar hosts
+- Enable generation of shell completions and man pages for `signstar-sign`
+- Add logging with verbosity to `signstar-sign`
+
+### Other
+
+- Collect coverage produced by tests run (partially) as other user
+
 ## [0.1.0] - 2025-07-10
 
 ### Added
