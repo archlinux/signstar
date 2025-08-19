@@ -708,12 +708,15 @@ build-book: docs
     #!/usr/bin/env bash
     set -euo pipefail
 
-    just ensure-command mdbook mdbook-mermaid
+    just ensure-command cargo-depgraph dot mdbook mdbook-mermaid
 
     readonly target_dir="${CARGO_TARGET_DIR:-$PWD/target}"
     readonly output_dir="{{ output_dir }}"
     readonly rustdoc_dir="$output_dir/docs/rustdoc/"
     mapfile -t workspace_members < <(just get-workspace-members 2>/dev/null)
+
+    # Build the local dependency graph.
+    cargo depgraph --dev-deps --workspace-only | dot -Tpng > resources/docs/src/api-docs/dependency_graph.png
 
     mdbook-mermaid install resources/docs/
     mdbook build resources/docs/

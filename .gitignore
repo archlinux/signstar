@@ -1,6 +1,7 @@
 # GnuPG only supports binary keyrings, because reasons, but we don't want to add binary keyrings to the repo
 output/
 resources/docs/*.js
+resources/docs/src/api-docs/dependency_graph.png
 resources/mkosi/signstar/mkosi.extra/usr/lib/systemd/import-pubring.gpg
 resources/mkosi/signstar/mkosi.output
 resources/mkosi/signstar/mkosi.profiles/local-testing/mkosi.extra/usr/local/bin/

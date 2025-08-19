@@ -29,6 +29,7 @@ path = [
     "justfile",
     "lychee.toml",
     "nethsm/tests/fixtures/*.asc",
+    "resources/docs/src/api-docs/dependency_graph.png",
     "resources/mkosi/signstar/**.conf",
     "resources/mkosi/signstar/*.chroot",
     "resources/mkosi/signstar/*.env",

@@ -35,5 +35,6 @@
 
 # Development
 
+- [API Documentation](./api-docs/README.md)
 - [Contributing Guidelines](./CONTRIBUTING.md)
 - [Testing](./testing.md)
