@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.10.0] - 2025-08-19
+
+### Added
+
+- Use one location for NetHSM image tag to make it consistent everywhere
+- [**breaking**] Remove NIST P-224 as it has been removed upstream
+
+### Fixed
+
+- Remove suppression for `missing_docs` as `rstest` now does not trigger this lint
+
 ## [0.9.2] - 2025-07-10
 
 ### Other
