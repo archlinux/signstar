@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2025-08-19
+
+### Added
+
+- Replace `HermeticParallelConfig` with `SignstarConfig`
+
+### Fixed
+
+- *(deps)* Update Rust crate sysinfo to v0.37.0
+- *(deps)* Update Rust crate sysinfo to 0.36.0
+
+### Other
+
+- Use `signstar-sign` when configuring accounts for signing
+
 ## [0.2.0] - 2025-07-10
 
 ### Added

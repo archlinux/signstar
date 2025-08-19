@@ -4448,7 +4448,7 @@ dependencies = [
 
 [[package]]
 name = "signstar-configure-build"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "clap",
  "nix 0.30.1",
