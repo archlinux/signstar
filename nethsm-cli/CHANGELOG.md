@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.0] - 2025-08-19
+
+### Added
+
+- Use one location for NetHSM image tag to make it consistent everywhere
+- [**breaking**] Remove NIST P-224 as it has been removed upstream
+
+### Fixed
+
+- Use exactly the same version of the `nethsm` container for all types of tests
+
 ## [0.8.0] - 2025-07-10
 
 ### Added
