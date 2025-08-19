@@ -1,0 +1,1 @@
+../../../../signstar-request-signature/CHANGELOG.md

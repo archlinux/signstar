@@ -13,14 +13,18 @@
 - [nethsm-config](./nethsm-config/README.md)
     - [CHANGELOG](./nethsm-config/CHANGELOG.md)
 - [signstar-common](./signstar-common/README.md)
+    - [CHANGELOG](./signstar-common/CHANGELOG.md)
 - [signstar-config](./signstar-config/README.md)
+    - [CHANGELOG](./signstar-config/CHANGELOG.md)
 - [signstar-configure-build](./signstar-configure-build/README.md)
     - [CHANGELOG](./signstar-configure-build/CHANGELOG.md)
 - [signstar-request-signature](./signstar-request-signature/README.md)
+    - [CHANGELOG](./signstar-request-signature/CHANGELOG.md)
     - [Design](./signstar-request-signature/design.md)
     - [Request spec](./signstar-request-signature/request.md)
     - [Response spec](./signstar-request-signature/response.md)
 - [signstar-sign](./signstar-sign/README.md)
+    - [CHANGELOG](./signstar-sign/CHANGELOG.md)
 - [Signstar OS](./resources/mkosi/signstar/README.md)
 
 # Architecture

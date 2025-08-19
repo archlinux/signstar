@@ -1,0 +1,1 @@
+../../../../signstar-common/CHANGELOG.md
