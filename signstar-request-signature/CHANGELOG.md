@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.3] - 2025-08-19
+
+### Added
+
+- Add logging with verbosity to `signstar-request-signature`
+
+### Fixed
+
+- *(deps)* Update Rust crate russh to 0.54.0
+
 ## [0.1.2] - 2025-07-10
 
 ### Added
