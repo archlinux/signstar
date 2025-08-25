@@ -156,16 +156,15 @@ integration-test:
       # This allows us to easily spot changes in the overall coverage.
       metrics: target/llvm-cov/coverage-metrics.txt
 
-# NOTE: Disabled due to issues with pasta on linux>=6.16: https://gitlab.archlinux.org/archlinux/packaging/packages/linux/-/issues/151
-# test-readmes:
-#   extends: .default
-#   script:
-#     - useradd -m testuser
-#     - chown -R testuser:testuser .
-#     - WORKDIR="$(pwd)" runuser -w CI,WORKDIR -l testuser -c 'env && cd "$WORKDIR" && just install-rust-dev-tools && just test-readmes'
-#   stage: test
-#   tags:
-#     - vm
+test-readmes:
+  extends: .default
+  script:
+    - useradd -m testuser
+    - chown -R testuser:testuser .
+    - WORKDIR="$(pwd)" runuser -w CI,WORKDIR -l testuser -c 'env && cd "$WORKDIR" && just install-rust-dev-tools && just test-readmes'
+  stage: test
+  tags:
+    - vm
 
 build-image:
   extends: .default
