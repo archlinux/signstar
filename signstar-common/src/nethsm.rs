@@ -2,7 +2,7 @@
 
 use std::net::Ipv4Addr;
 
-use nethsm::LogLevel;
+use log::Level;
 
 /// The default admin user name of newly provisioned NetHSM.
 pub const USER_DEFAULT_ADMIN: &str = "admin";
@@ -23,4 +23,4 @@ pub const LOGGING_DEFAULT_IP_ADDRESS: Ipv4Addr = Ipv4Addr::new(0, 0, 0, 0);
 pub const LOGGING_DEFAULT_PORT: u32 = 514;
 
 /// The default logging level of an unprovisioned NetHSM.
-pub const LOGGING_DEFAULT_LOG_LEVEL: LogLevel = LogLevel::Info;
+pub const LOGGING_DEFAULT_LOG_LEVEL: Level = Level::Info;

@@ -4414,7 +4414,6 @@ name = "signstar-common"
 version = "0.1.2"
 dependencies = [
  "log",
- "nethsm",
  "simplelog",
  "systemd-journal-logger",
  "thiserror 2.0.15",
