@@ -167,6 +167,8 @@ test-readmes:
     - vm
 
 build-image:
+  # NOTE: This fails until a new version of `signstar-configure-build` with support for `signstar_config::BackendConnection` is released and used.
+  allow_failure: true
   extends: .default
   dependencies: []
   script:
