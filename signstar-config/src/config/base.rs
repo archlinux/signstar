@@ -7,6 +7,8 @@ use std::{
     path::Path,
 };
 
+#[cfg(doc)]
+use nethsm::NetHsm;
 use nethsm::{Connection, NamespaceId};
 use serde::{Deserialize, Serialize};
 use signstar_common::config::{get_config_file, get_run_override_config_file_path};
@@ -110,6 +112,14 @@ pub enum NonAdministrativeSecretHandling {
     SystemdCreds,
 }
 
+/// A connection to an HSM backend.
+#[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
+pub enum BackendConnection {
+    /// The [`Connection`] for a [`NetHsm`] backend.
+    #[serde(rename = "nethsm")]
+    NetHsm(Connection),
+}
+
 /// A configuration for parallel use of connections with a set of system and NetHSM users.
 ///
 /// This configuration type is meant to be used in a read-only fashion and does not support tracking
@@ -165,8 +175,7 @@ pub enum NonAdministrativeSecretHandling {
 /// non_admin_secret_handling = "systemd-creds"
 ///
 /// [[connections]]
-/// url = "https://localhost:8443/api/v1/"
-/// tls_security = "Unsafe"
+/// nethsm = { url = "https://localhost:8443/api/v1/", tls_security = "Unsafe" }
 ///
 /// ## The NetHSM user "admin" is a system-wide Administrator
 /// [[users]]
@@ -339,7 +348,7 @@ pub struct SignstarConfig {
     iteration: u32,
     admin_secret_handling: AdministrativeSecretHandling,
     non_admin_secret_handling: NonAdministrativeSecretHandling,
-    connections: HashSet<Connection>,
+    connections: HashSet<BackendConnection>,
     users: HashSet<UserMapping>,
 }
 
@@ -374,8 +383,7 @@ impl SignstarConfig {
     /// admin_secret_handling = "shamirs-secret-sharing"
     /// non_admin_secret_handling = "systemd-creds"
     /// [[connections]]
-    /// url = "https://localhost:8443/api/v1/"
-    /// tls_security = "Unsafe"
+    /// nethsm = { url = "https://localhost:8443/api/v1/", tls_security = "Unsafe" }
     ///
     /// [[users]]
     /// nethsm_only_admin = "admin"
@@ -503,6 +511,7 @@ impl SignstarConfig {
     /// use nethsm::{Connection, UserRole};
     /// use signstar_config::{
     ///     AdministrativeSecretHandling,
+    ///     BackendConnection,
     ///     SignstarConfig,
     ///     NonAdministrativeSecretHandling,
     ///     UserMapping,
@@ -513,10 +522,10 @@ impl SignstarConfig {
     ///     1,
     ///     AdministrativeSecretHandling::ShamirsSecretSharing,
     ///     NonAdministrativeSecretHandling::SystemdCreds,
-    ///     HashSet::from([Connection::new(
+    ///     HashSet::from([BackendConnection::NetHsm(Connection::new(
     ///         "https://localhost:8443/api/v1/".parse()?,
     ///         "Unsafe".parse()?,
-    ///     )]),
+    ///     ))]),
     ///     HashSet::from([
     ///         UserMapping::NetHsmOnlyAdmin("admin".parse()?),
     ///         UserMapping::SystemOnlyShareDownload {
@@ -535,7 +544,7 @@ impl SignstarConfig {
         iteration: u32,
         admin_secret_handling: AdministrativeSecretHandling,
         non_admin_secret_handling: NonAdministrativeSecretHandling,
-        connections: HashSet<Connection>,
+        connections: HashSet<BackendConnection>,
         users: HashSet<UserMapping>,
     ) -> Result<Self, crate::Error> {
         let config = Self {
@@ -568,9 +577,10 @@ impl SignstarConfig {
     /// use nethsm::{Connection,CryptographicKeyContext, OpenPgpUserIdList, SigningKeySetup, UserRole};
     /// use signstar_config::{
     ///     AdministrativeSecretHandling,
-    ///     SignstarConfig,
+    ///     BackendConnection,
     ///     NetHsmMetricsUsers,
     ///     NonAdministrativeSecretHandling,
+    ///     SignstarConfig,
     ///     UserMapping,
     /// };
     ///
@@ -579,10 +589,10 @@ impl SignstarConfig {
     ///     1,
     ///     AdministrativeSecretHandling::ShamirsSecretSharing,
     ///     NonAdministrativeSecretHandling::SystemdCreds,
-    ///     HashSet::from([Connection::new(
+    ///     HashSet::from([BackendConnection::NetHsm(Connection::new(
     ///         "https://localhost:8443/api/v1/".parse()?,
     ///         "Unsafe".parse()?,
-    ///     )]),
+    ///     ))]),
     ///     HashSet::from([UserMapping::NetHsmOnlyAdmin("admin".parse()?),
     ///         UserMapping::SystemNetHsmBackup {
     ///             nethsm_user: "backup1".parse()?,
@@ -671,8 +681,8 @@ impl SignstarConfig {
         })
     }
 
-    /// Returns an Iterator over the available [`Connection`]s.
-    pub fn iter_connections(&self) -> impl Iterator<Item = &Connection> {
+    /// Returns an Iterator over the available [`BackendConnection`]s.
+    pub fn iter_connections(&self) -> impl Iterator<Item = &BackendConnection> {
         self.connections.iter()
     }
 

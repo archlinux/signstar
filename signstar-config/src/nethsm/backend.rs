@@ -1279,6 +1279,7 @@ impl<'a, 'b> NetHsmBackend<'a, 'b> {
     /// use signstar_config::{
     ///     AdminCredentials,
     ///     AdministrativeSecretHandling,
+    ///     BackendConnection,
     ///     NetHsmBackend,
     ///     NonAdministrativeSecretHandling,
     ///     SignstarConfig,
@@ -1315,10 +1316,10 @@ impl<'a, 'b> NetHsmBackend<'a, 'b> {
     ///     1,
     ///     AdministrativeSecretHandling::ShamirsSecretSharing,
     ///     NonAdministrativeSecretHandling::SystemdCreds,
-    ///     HashSet::from([Connection::new(
+    ///     HashSet::from([BackendConnection::NetHsm(Connection::new(
     ///         "https://localhost:8443/api/v1/".parse()?,
     ///         "Unsafe".parse()?,
-    ///     )]),
+    ///     ))]),
     ///     HashSet::from([
     ///         UserMapping::NetHsmOnlyAdmin("admin".parse()?),
     ///         UserMapping::SystemOnlyShareDownload {
@@ -1573,7 +1574,11 @@ mod tests {
     use testresult::TestResult;
 
     use super::*;
-    use crate::{AdministrativeSecretHandling, NonAdministrativeSecretHandling};
+    use crate::{
+        AdministrativeSecretHandling,
+        NonAdministrativeSecretHandling,
+        config::base::BackendConnection,
+    };
 
     /// Ensures that the [`NetHsmBackend::new`] fails on mismatching iterations in
     /// [`AdminCredentials`] and [`SignstarConfig`].
@@ -1610,10 +1615,10 @@ mod tests {
          1,
          AdministrativeSecretHandling::ShamirsSecretSharing,
          NonAdministrativeSecretHandling::SystemdCreds,
-         HashSet::from([Connection::new(
+         HashSet::from([BackendConnection::NetHsm(Connection::new(
              "https://localhost:8443/api/v1/".parse()?,
              "Unsafe".parse()?,
-         )]),
+         ))]),
          HashSet::from([
              UserMapping::NetHsmOnlyAdmin("admin".parse()?),
              UserMapping::SystemOnlyShareDownload {

@@ -4,7 +4,12 @@ use std::process::ExitCode;
 
 use clap::Parser;
 use nethsm::{KeyId, NetHsm};
-use signstar_config::{CredentialsLoading, Error as ConfigError, UserMapping};
+use signstar_config::{
+    CredentialsLoading,
+    Error as ConfigError,
+    UserMapping,
+    config::base::BackendConnection,
+};
 use signstar_request_signature::{Request, Response, Sha512};
 use signstar_sign::cli::Cli;
 
@@ -83,7 +88,9 @@ fn load_nethsm_keyid() -> Result<(NetHsm, KeyId), Error> {
         .iter()
         .next()
     {
-        connection.clone()
+        match connection {
+            BackendConnection::NetHsm(connection) => connection.clone(),
+        }
     } else {
         return Err(Error::NoCredentials);
     };

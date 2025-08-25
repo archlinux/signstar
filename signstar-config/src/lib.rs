@@ -11,7 +11,12 @@ pub mod utils;
 
 pub use admin_credentials::AdminCredentials;
 pub use config::{
-    base::{AdministrativeSecretHandling, NonAdministrativeSecretHandling, SignstarConfig},
+    base::{
+        AdministrativeSecretHandling,
+        BackendConnection,
+        NonAdministrativeSecretHandling,
+        SignstarConfig,
+    },
     credentials::{AuthorizedKeyEntry, SystemUserId, SystemWideUserId},
     error::Error as ConfigError,
     mapping::{ExtendedUserMapping, FilterUserKeys, NetHsmMetricsUsers, UserMapping},

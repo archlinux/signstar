@@ -2,8 +2,7 @@ admin_secret_handling = "systemd-creds"
 iteration = 1
 non_admin_secret_handling = "systemd-creds"
 [[connections]]
-tls_security = "Unsafe"
-url = "https://localhost:8443/api/v1/"
+nethsm = { tls_security = "Unsafe", url = "https://localhost:8443/api/v1/" }
 
 # NOTE: The system-wide Administrator is missing, which triggers an error
 

@@ -11,16 +11,7 @@ use std::{
 
 #[cfg(doc)]
 use nethsm::NetHsm;
-use nethsm::{
-    Connection,
-    FullCredentials,
-    KeyId,
-    NamespaceId,
-    Passphrase,
-    SigningKeySetup,
-    UserId,
-    UserRole,
-};
+use nethsm::{FullCredentials, KeyId, NamespaceId, Passphrase, SigningKeySetup, UserId, UserRole};
 use rand::{Rng, distributions::Alphanumeric, thread_rng};
 use serde::{Deserialize, Serialize};
 use signstar_common::{
@@ -44,6 +35,7 @@ use crate::{
     SignstarConfig,
     SystemUserId,
     SystemWideUserId,
+    config::base::BackendConnection,
     utils::{
         fail_if_not_root,
         fail_if_root,
@@ -1119,12 +1111,12 @@ pub(crate) fn check_secrets_file(path: impl AsRef<Path>) -> Result<(), Error> {
 /// A [`UserMapping`] centric view of a [`SignstarConfig`].
 ///
 /// Wraps a single [`UserMapping`], as well as the system-wide [`AdministrativeSecretHandling`],
-/// [`NonAdministrativeSecretHandling`] and [`Connection`]s.
+/// [`NonAdministrativeSecretHandling`] and [`BackendConnection`]s.
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct ExtendedUserMapping {
     admin_secret_handling: AdministrativeSecretHandling,
     non_admin_secret_handling: NonAdministrativeSecretHandling,
-    connections: HashSet<Connection>,
+    connections: HashSet<BackendConnection>,
     user_mapping: UserMapping,
 }
 
@@ -1133,7 +1125,7 @@ impl ExtendedUserMapping {
     pub fn new(
         admin_secret_handling: AdministrativeSecretHandling,
         non_admin_secret_handling: NonAdministrativeSecretHandling,
-        connections: HashSet<Connection>,
+        connections: HashSet<BackendConnection>,
         user_mapping: UserMapping,
     ) -> Self {
         Self {
@@ -1149,8 +1141,8 @@ impl ExtendedUserMapping {
         self.admin_secret_handling
     }
 
-    /// Returns the [`Connection`]s.
-    pub fn get_connections(&self) -> HashSet<Connection> {
+    /// Returns the [`BackendConnection`]s.
+    pub fn get_connections(&self) -> HashSet<BackendConnection> {
         self.connections.clone()
     }
 

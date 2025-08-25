@@ -3,8 +3,7 @@ iteration = 1
 non_admin_secret_handling = "systemd-creds"
 
 [[connections]]
-tls_security = "Unsafe"
-url = "https://127.0.0.1:8080"
+nethsm = { tls_security = "Unsafe", url = "https://localhost:8080" }
 
 [[users]]
 nethsm_only_admin = "admin"
