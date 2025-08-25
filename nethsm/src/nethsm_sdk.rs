@@ -1,5 +1,6 @@
 use std::fmt::Display;
 
+use log::Level;
 use nethsm_sdk_rs::models::{SignMode, Switch, UnattendedBootConfig};
 use serde::{Deserialize, Serialize};
 use ureq::Response;
@@ -657,6 +658,23 @@ impl From<LogLevel> for nethsm_sdk_rs::models::LogLevel {
             LogLevel::Error => Self::Error,
             LogLevel::Info => Self::Info,
             LogLevel::Warning => Self::Warning,
+        }
+    }
+}
+
+impl From<Level> for LogLevel {
+    /// Creates a new [`LogLevel`] from a [`Level`].
+    ///
+    /// # Note
+    ///
+    /// Creates a [`LogLevel::Debug`] from a [`Level::Trace`], as there is no equivalent level.
+    fn from(value: Level) -> Self {
+        match value {
+            Level::Trace => Self::Debug,
+            Level::Debug => Self::Debug,
+            Level::Error => Self::Error,
+            Level::Info => Self::Info,
+            Level::Warn => Self::Warning,
         }
     }
 }
