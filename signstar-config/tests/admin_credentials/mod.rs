@@ -10,8 +10,8 @@ use signstar_common::admin_credentials::{
     get_systemd_creds_credentials_file,
 };
 use signstar_config::{
-    AdminCredentials,
     AdministrativeSecretHandling,
+    NetHsmAdminCredentials,
     test::{get_tmp_config, write_machine_id},
 };
 use testresult::TestResult;
@@ -23,7 +23,7 @@ const SIGNSTAR_ADMIN_CREDS_SIMPLE: &[u8] = include_bytes!("../fixtures/admin-cre
 fn fail_to_load_on_path_not_a_file() -> TestResult {
     let credentials_file = get_plaintext_credentials_file();
     create_dir_all(&credentials_file)?;
-    let error = AdminCredentials::load(AdministrativeSecretHandling::Plaintext)
+    let error = NetHsmAdminCredentials::load(AdministrativeSecretHandling::Plaintext)
         .expect_err("Did not return an error!");
     if let signstar_config::Error::AdminSecretHandling(
         signstar_config::admin_credentials::Error::CredsFileNotAFile { path },
@@ -45,7 +45,7 @@ fn load_plaintext_toml() -> TestResult {
 
     copy(config_file, get_plaintext_credentials_file())?;
 
-    let creds = AdminCredentials::load(AdministrativeSecretHandling::Plaintext)?;
+    let creds = NetHsmAdminCredentials::load(AdministrativeSecretHandling::Plaintext)?;
     println!("{creds:?}");
     Ok(())
 }
@@ -54,7 +54,7 @@ fn load_plaintext_toml() -> TestResult {
 #[rstest]
 fn store_plaintext_toml() -> TestResult {
     let config_file = get_tmp_config(SIGNSTAR_ADMIN_CREDS_SIMPLE)?;
-    let creds = AdminCredentials::new(
+    let creds = NetHsmAdminCredentials::new(
         1,
         "backup-passphrase".parse()?,
         "unlock-passphrase".parse()?,
@@ -83,14 +83,16 @@ fn store_and_load_systemd_creds() -> TestResult {
     let config_file = get_tmp_config(SIGNSTAR_ADMIN_CREDS_SIMPLE)?;
 
     // load AdminCredentials from plaintext fixture
-    let creds =
-        AdminCredentials::load_from_file(&config_file, AdministrativeSecretHandling::Plaintext)?;
+    let creds = NetHsmAdminCredentials::load_from_file(
+        &config_file,
+        AdministrativeSecretHandling::Plaintext,
+    )?;
 
     println!("Store systemd-creds encrypted");
     creds.store(AdministrativeSecretHandling::SystemdCreds)?;
 
     println!("Load systemd-creds encrypted");
-    let read_creds = AdminCredentials::load(AdministrativeSecretHandling::SystemdCreds)?;
+    let read_creds = NetHsmAdminCredentials::load(AdministrativeSecretHandling::SystemdCreds)?;
 
     println!("Write systemd-creds encrypted to plaintext");
     read_creds.store(AdministrativeSecretHandling::Plaintext)?;
@@ -119,7 +121,7 @@ fn load_admin_creds_from_default_location(
         }
         AdministrativeSecretHandling::SystemdCreds => {
             // load AdminCredentials from plaintext fixture and store it systemd-creds encrypted
-            let creds = AdminCredentials::load_from_file(
+            let creds = NetHsmAdminCredentials::load_from_file(
                 &config_file,
                 AdministrativeSecretHandling::Plaintext,
             )?;
@@ -129,7 +131,7 @@ fn load_admin_creds_from_default_location(
             unimplemented!("Shamir's Secret Sharing is not yet implemented!");
         }
     }
-    AdminCredentials::load(handling)?;
+    NetHsmAdminCredentials::load(handling)?;
 
     Ok(())
 }
@@ -145,8 +147,10 @@ fn store_admin_creds_to_default_location(
     let config_file = get_tmp_config(SIGNSTAR_ADMIN_CREDS_SIMPLE)?;
 
     // load credentials from plaintext fixture
-    let admin_creds =
-        AdminCredentials::load_from_file(&config_file, AdministrativeSecretHandling::Plaintext)?;
+    let admin_creds = NetHsmAdminCredentials::load_from_file(
+        &config_file,
+        AdministrativeSecretHandling::Plaintext,
+    )?;
 
     // force remove any files that may be present in the persistent location
     let _remove = std::fs::remove_dir_all(get_credentials_dir());
@@ -170,7 +174,7 @@ fn store_admin_creds_to_default_location(
 #[rstest]
 fn fail_to_load_on_missing_file() -> TestResult {
     let credentials_file = get_plaintext_credentials_file();
-    let error = AdminCredentials::load(AdministrativeSecretHandling::Plaintext)
+    let error = NetHsmAdminCredentials::load(AdministrativeSecretHandling::Plaintext)
         .expect_err("Did not return an error!");
     if let signstar_config::Error::AdminSecretHandling(
         signstar_config::admin_credentials::Error::CredsFileMissing { path },

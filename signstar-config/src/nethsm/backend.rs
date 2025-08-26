@@ -1,6 +1,6 @@
 //! Backend handling for [`NetHsm`].
 //!
-//! Based on a [`NetHsm`], [`AdminCredentials`] and a [`SignstarConfig`] this module offers
+//! Based on a [`NetHsm`], [`NetHsmAdminCredentials`] and a [`SignstarConfig`] this module offers
 //! the ability to populate a [`NetHsm`] backend with the help of the [`NetHsmBackend`] struct.
 //!
 //! Using [`NetHsmBackend::sync`] all users and keys configured in [`SignstarConfig`]
@@ -11,7 +11,7 @@
 //! # Note
 //!
 //! This module only works with data for the same iteration (i.e. the iteration of the
-//! [`AdminCredentials`] and those of the [`NetHsm`] backend must match).
+//! [`NetHsmAdminCredentials`] and those of the [`NetHsm`] backend must match).
 
 use std::{collections::HashSet, str::FromStr};
 
@@ -35,9 +35,9 @@ use pgp::composed::{Deserializable, SignedPublicKey};
 
 use super::{Error, state::StateType};
 use crate::{
-    AdminCredentials,
     FilterUserKeys,
     KeyState,
+    NetHsmAdminCredentials,
     SignstarConfig,
     State,
     UserMapping,
@@ -52,7 +52,7 @@ use crate::{
 /// # Note
 ///
 /// Uses the `nethsm` with the [default
-/// _R-Administrator_][`AdminCredentials::get_default_administrator`].
+/// _R-Administrator_][`NetHsmAdminCredentials::get_default_administrator`].
 ///
 /// # Errors
 ///
@@ -66,7 +66,7 @@ use crate::{
 /// - or one of the admin credentials cannot be added, or updated.
 fn add_system_wide_admins(
     nethsm: &NetHsm,
-    admin_credentials: &AdminCredentials,
+    admin_credentials: &NetHsmAdminCredentials,
 ) -> Result<(), crate::Error> {
     debug!(
         "Setup system-wide administrators (R-Administrators) on NetHSM backend at {}",
@@ -115,7 +115,7 @@ fn add_system_wide_admins(
 /// - or no *N-Administrator* is available in the `namespace`.
 fn get_first_available_namespace_admin(
     nethsm: &NetHsm,
-    admin_credentials: &AdminCredentials,
+    admin_credentials: &NetHsmAdminCredentials,
     available_users: &[UserId],
     namespace: &NamespaceId,
 ) -> Result<UserId, crate::Error> {
@@ -178,10 +178,10 @@ fn get_first_available_namespace_admin(
 /// # Note
 ///
 /// This function uses the `nethsm` with the [default
-/// _R-Administrator_][`AdminCredentials::get_default_administrator`], but may switch to a
+/// _R-Administrator_][`NetHsmAdminCredentials::get_default_administrator`], but may switch to a
 /// namespace-specific _N-Administrator_ for individual operations.
 /// If this function succeeds, the `nethsm` is guaranteed to use the [default
-/// _R-Administrator_][`AdminCredentials::get_default_administrator`] again.
+/// _R-Administrator_][`NetHsmAdminCredentials::get_default_administrator`] again.
 /// If this function fails, the `nethsm` may still use a namespace-specific _N-Administrator_.
 ///
 /// # Errors
@@ -198,7 +198,7 @@ fn get_first_available_namespace_admin(
 /// - or switching back to the default R-Administrator credentials fails.
 fn add_namespace_admins(
     nethsm: &NetHsm,
-    admin_credentials: &AdminCredentials,
+    admin_credentials: &NetHsmAdminCredentials,
 ) -> Result<(), crate::Error> {
     debug!(
         "Setup namespace administrators (N-Administrators) on NetHSM backend at {}",
@@ -284,13 +284,13 @@ fn add_namespace_admins(
 /// # Note
 ///
 /// It is assumed that the [default
-/// _R-Administrator_][`AdminCredentials::get_default_administrator`] and system-wide keys are
+/// _R-Administrator_][`NetHsmAdminCredentials::get_default_administrator`] and system-wide keys are
 /// already set up, before calling this function (see `add_system_wide_admins` and
 /// `add_system_wide_keys`, respectively).
 ///
 /// This function uses the `nethsm` with the [default
-/// _R-Administrator_][`AdminCredentials::get_default_administrator`] and is guaranteed to do so
-/// when it finishes.
+/// _R-Administrator_][`NetHsmAdminCredentials::get_default_administrator`] and is guaranteed to do
+/// so when it finishes.
 ///
 /// # Errors
 ///
@@ -304,7 +304,7 @@ fn add_namespace_admins(
 /// - or adding a tag to a user fails.
 fn add_non_administrative_users(
     nethsm: &NetHsm,
-    admin_credentials: &AdminCredentials,
+    admin_credentials: &NetHsmAdminCredentials,
     users: &[UserMapping],
     user_credentials: &[FullCredentials],
 ) -> Result<(), crate::Error> {
@@ -362,10 +362,10 @@ fn add_non_administrative_users(
 /// this function (see `add_namespace_admins` and `add_namespaced_keys`, respectively).
 ///
 /// This function uses the `nethsm` with the [default
-/// _R-Administrator_][`AdminCredentials::get_default_administrator`], but may switch to a
+/// _R-Administrator_][`NetHsmAdminCredentials::get_default_administrator`], but may switch to a
 /// namespace-specific _N-Administrator_ for individual operations.
 /// If this function succeeds, the `nethsm` is guaranteed to use the [default
-/// _R-Administrator_][`AdminCredentials::get_default_administrator`] again.
+/// _R-Administrator_][`NetHsmAdminCredentials::get_default_administrator`] again.
 /// If this function fails, the `nethsm` may still use a namespace-specific _N-Administrator_.
 ///
 /// # Errors
@@ -382,7 +382,7 @@ fn add_non_administrative_users(
 /// - or a tag cannot be added to a user.
 fn add_namespaced_non_administrative_users(
     nethsm: &NetHsm,
-    admin_credentials: &AdminCredentials,
+    admin_credentials: &NetHsmAdminCredentials,
     users: &[UserMapping],
     user_credentials: &[FullCredentials],
 ) -> Result<(), crate::Error> {
@@ -536,7 +536,7 @@ fn compare_key_setups(
 /// `add_system_wide_admins`) before calling this function.
 ///
 /// This function uses the `nethsm` with the [default
-/// _R-Administrator_][`AdminCredentials::get_default_administrator`].
+/// _R-Administrator_][`NetHsmAdminCredentials::get_default_administrator`].
 ///
 /// This function does not fail on mismatching keys, as it is assumed that keys are added
 /// intentionally and should not be deleted or altered.
@@ -555,7 +555,7 @@ fn compare_key_setups(
 /// - or if a missing key cannot be created.
 fn add_system_wide_keys(
     nethsm: &NetHsm,
-    admin_credentials: &AdminCredentials,
+    admin_credentials: &NetHsmAdminCredentials,
     users: &[UserMapping],
 ) -> Result<(), crate::Error> {
     debug!(
@@ -629,10 +629,10 @@ fn add_system_wide_keys(
 /// this function (see `add_namespace_admins`).
 ///
 /// This function uses the `nethsm` with the [default
-/// _R-Administrator_][`AdminCredentials::get_default_administrator`], but may switch to a
+/// _R-Administrator_][`NetHsmAdminCredentials::get_default_administrator`], but may switch to a
 /// namespace-specific _N-Administrator_ for individual operations.
 /// If this function succeeds, the `nethsm` is guaranteed to use the [default
-/// _R-Administrator_][`AdminCredentials::get_default_administrator`] again.
+/// _R-Administrator_][`NetHsmAdminCredentials::get_default_administrator`] again.
 /// If this function fails, the `nethsm` may still use a namespace-specific _N-Administrator_.
 ///
 /// This function does not fail on mismatching keys, as it is assumed that keys are added
@@ -662,7 +662,7 @@ fn add_system_wide_keys(
 /// [a bug in the NetHSM firmware]: https://github.com/Nitrokey/nethsm/issues/13
 fn add_namespaced_keys(
     nethsm: &NetHsm,
-    admin_credentials: &AdminCredentials,
+    admin_credentials: &NetHsmAdminCredentials,
     users: &[UserMapping],
 ) -> Result<(), crate::Error> {
     debug!(
@@ -762,16 +762,16 @@ fn add_namespaced_keys(
 /// # Note
 ///
 /// It is assumed that the [default
-/// _R-Administrator_][`AdminCredentials::get_default_administrator`], all system-wide keys and all
-/// system-wide non-administrative users are already set up, before calling this function
+/// _R-Administrator_][`NetHsmAdminCredentials::get_default_administrator`], all system-wide keys
+/// and all system-wide non-administrative users are already set up, before calling this function
 /// (see `add_system_wide_admins`, `add_system_wide_keys` and `add_non_administrative_users`,
 /// respectively).
 ///
 /// This function uses the `nethsm` with the [default
-/// _R-Administrator_][`AdminCredentials::get_default_administrator`], but may switch to a
+/// _R-Administrator_][`NetHsmAdminCredentials::get_default_administrator`], but may switch to a
 /// system-wide, non-administrative user for individual operations.
 /// If this function succeeds, the `nethsm` is guaranteed to use the [default
-/// _R-Administrator_][`AdminCredentials::get_default_administrator`] again.
+/// _R-Administrator_][`NetHsmAdminCredentials::get_default_administrator`] again.
 /// If this function fails, the `nethsm` may still use a system-wide, non-administrative user.
 ///
 /// This function does not overwrite or alter existing OpenPGP certificates, as this would introduce
@@ -798,7 +798,7 @@ fn add_namespaced_keys(
 ///   for the key.
 fn add_system_wide_openpgp_certificates(
     nethsm: &NetHsm,
-    admin_credentials: &AdminCredentials,
+    admin_credentials: &NetHsmAdminCredentials,
     users: &[UserMapping],
 ) -> Result<(), crate::Error> {
     debug!(
@@ -895,16 +895,16 @@ fn add_system_wide_openpgp_certificates(
 /// # Note
 ///
 /// It is assumed that the [default
-/// _R-Administrator_][`AdminCredentials::get_default_administrator`], all namespaced keys, all
-/// _N-Administrators_ and all namespaced non-administrative users are already set up, before
+/// _R-Administrator_][`NetHsmAdminCredentials::get_default_administrator`], all namespaced keys,
+/// all _N-Administrators_ and all namespaced non-administrative users are already set up, before
 /// calling this function (see `add_system_wide_admins`, `add_namespaced_keys`,
 /// `add_namespace_admins` and `add_namespaced_non_administrative_users`, respectively).
 ///
 /// This function uses the `nethsm` with the [default
-/// _R-Administrator_][`AdminCredentials::get_default_administrator`], but may switch to a
+/// _R-Administrator_][`NetHsmAdminCredentials::get_default_administrator`], but may switch to a
 /// namespace-specific _N-Administrator_ or non-administrative user for individual operations.
 /// If this function succeeds, the `nethsm` is guaranteed to use the [default
-/// _R-Administrator_][`AdminCredentials::get_default_administrator`] again.
+/// _R-Administrator_][`NetHsmAdminCredentials::get_default_administrator`] again.
 /// If this function fails, the `nethsm` may still use a namespace-specific _N-Administrator_ or
 /// non-administrative user.
 ///
@@ -934,7 +934,7 @@ fn add_system_wide_openpgp_certificates(
 ///   key.
 fn add_namespaced_openpgp_certificates(
     nethsm: &NetHsm,
-    admin_credentials: &AdminCredentials,
+    admin_credentials: &NetHsmAdminCredentials,
     users: &[UserMapping],
 ) -> Result<(), crate::Error> {
     debug!(
@@ -1066,7 +1066,7 @@ fn add_namespaced_openpgp_certificates(
 /// # Note
 ///
 /// Uses the `nethsm` with the [default
-/// _R-Administrator_][`AdminCredentials::get_default_administrator`].
+/// _R-Administrator_][`NetHsmAdminCredentials::get_default_administrator`].
 ///
 /// # Errors
 ///
@@ -1078,7 +1078,7 @@ fn add_namespaced_openpgp_certificates(
 /// - or retrieving the tags of an *Operator* user fails.
 pub(crate) fn get_user_states(
     nethsm: &NetHsm,
-    admin_credentials: &AdminCredentials,
+    admin_credentials: &NetHsmAdminCredentials,
 ) -> Result<Vec<UserState>, crate::Error> {
     // Use the default R-Administrator.
     nethsm.use_credentials(&admin_credentials.get_default_administrator()?.name)?;
@@ -1164,10 +1164,10 @@ fn get_key_certificate_state(
 /// # Note
 ///
 /// This function uses the `nethsm` with the [default
-/// _R-Administrator_][`AdminCredentials::get_default_administrator`], but may switch to a
+/// _R-Administrator_][`NetHsmAdminCredentials::get_default_administrator`], but may switch to a
 /// namespace-specific _N-Administrator_ for individual operations.
 /// If this function succeeds, the `nethsm` is guaranteed to use the [default
-/// _R-Administrator_][`AdminCredentials::get_default_administrator`] again.
+/// _R-Administrator_][`NetHsmAdminCredentials::get_default_administrator`] again.
 /// If this function fails, the `nethsm` may still use a namespace-specific _N-Administrator_.
 ///
 ///
@@ -1184,7 +1184,7 @@ fn get_key_certificate_state(
 /// - or retrieving information on a specific namespaced key on the backend fails.
 fn get_key_states(
     nethsm: &NetHsm,
-    admin_credentials: &AdminCredentials,
+    admin_credentials: &NetHsmAdminCredentials,
 ) -> Result<Vec<KeyState>, crate::Error> {
     // Use the default administrator
     let default_admin = &admin_credentials.get_default_administrator()?.name;
@@ -1252,11 +1252,11 @@ fn get_key_states(
 /// A NetHSM backend that provides full control over its data.
 ///
 /// This backend allows full control over the data in a [`NetHsm`], to the extend that is configured
-/// by the tracked [`AdminCredentials`] and [`SignstarConfig`].
+/// by the tracked [`NetHsmAdminCredentials`] and [`SignstarConfig`].
 #[derive(Debug)]
 pub struct NetHsmBackend<'a, 'b> {
     nethsm: NetHsm,
-    admin_credentials: &'a AdminCredentials,
+    admin_credentials: &'a NetHsmAdminCredentials,
     signstar_config: &'b SignstarConfig,
 }
 
@@ -1277,7 +1277,7 @@ impl<'a, 'b> NetHsmBackend<'a, 'b> {
     ///
     /// use nethsm::{Connection, ConnectionSecurity, FullCredentials, NetHsm};
     /// use signstar_config::{
-    ///     AdminCredentials,
+    ///     NetHsmAdminCredentials,
     ///     AdministrativeSecretHandling,
     ///     BackendConnection,
     ///     NetHsmBackend,
@@ -1298,7 +1298,7 @@ impl<'a, 'b> NetHsmBackend<'a, 'b> {
     ///     None,
     /// )?;
     /// // The administrative credentials.
-    /// let admin_credentials = AdminCredentials::new(
+    /// let admin_credentials = NetHsmAdminCredentials::new(
     ///     1,
     ///     "backup-passphrase".parse()?,
     ///     "unlock-passphrase".parse()?,
@@ -1338,7 +1338,7 @@ impl<'a, 'b> NetHsmBackend<'a, 'b> {
     /// ```
     pub fn new(
         nethsm: NetHsm,
-        admin_credentials: &'a AdminCredentials,
+        admin_credentials: &'a NetHsmAdminCredentials,
         signstar_config: &'b SignstarConfig,
     ) -> Result<Self, crate::Error> {
         debug!(
@@ -1378,10 +1378,10 @@ impl<'a, 'b> NetHsmBackend<'a, 'b> {
     /// # Note
     ///
     /// This function uses the `nethsm` with the [default
-    /// _R-Administrator_][`AdminCredentials::get_default_administrator`], but may switch to a
+    /// _R-Administrator_][`NetHsmAdminCredentials::get_default_administrator`], but may switch to a
     /// namespace-specific _N-Administrator_ for individual operations.
     /// If this function succeeds, the `nethsm` is guaranteed to use the [default
-    /// _R-Administrator_][`AdminCredentials::get_default_administrator`] again.
+    /// _R-Administrator_][`NetHsmAdminCredentials::get_default_administrator`] again.
     /// If this function fails, the `nethsm` may still use a namespace-specific _N-Administrator_.
     ///
     /// # Errors
@@ -1468,10 +1468,10 @@ impl<'a, 'b> NetHsmBackend<'a, 'b> {
     /// # Note
     ///
     /// This function uses the `nethsm` with the [default
-    /// _R-Administrator_][`AdminCredentials::get_default_administrator`], but may switch to a
+    /// _R-Administrator_][`NetHsmAdminCredentials::get_default_administrator`], but may switch to a
     /// namespace-specific _N-Administrator_ or non-administrative user for individual operations.
     /// If this function succeeds, the `nethsm` is guaranteed to use the [default
-    /// _R-Administrator_][`AdminCredentials::get_default_administrator`] again.
+    /// _R-Administrator_][`NetHsmAdminCredentials::get_default_administrator`] again.
     /// If this function fails, the `nethsm` may still use a namespace-specific _N-Administrator_ or
     /// non-administrative user.
     ///
@@ -1581,7 +1581,7 @@ mod tests {
     };
 
     /// Ensures that the [`NetHsmBackend::new`] fails on mismatching iterations in
-    /// [`AdminCredentials`] and [`SignstarConfig`].
+    /// [`NetHsmAdminCredentials`] and [`SignstarConfig`].
     #[test]
     fn nethsm_backend_new_fails_on_iteration_mismatch() -> TestResult {
         setup_logging(LevelFilter::Debug)?;
@@ -1596,7 +1596,7 @@ mod tests {
             None,
         )?;
         // The administrative credentials.
-        let admin_credentials = AdminCredentials::new(
+        let admin_credentials = NetHsmAdminCredentials::new(
             // this is different from the one in the Signstar config.
             2,
             "backup-passphrase".parse()?,

@@ -9,7 +9,7 @@ pub mod non_admin_credentials;
 pub mod test;
 pub mod utils;
 
-pub use admin_credentials::AdminCredentials;
+pub use admin_credentials::NetHsmAdminCredentials;
 pub use config::{
     base::{
         AdministrativeSecretHandling,

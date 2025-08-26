@@ -4,7 +4,7 @@ use nethsm::{KeyId, NamespaceId, Url, UserId};
 
 use super::state::StateComparisonErrors;
 #[cfg(doc)]
-use crate::{AdminCredentials, NetHsmBackend, SignstarConfig, State};
+use crate::{NetHsmAdminCredentials, NetHsmBackend, SignstarConfig, State};
 
 /// An error that may occur when handling a NetHSM backend.
 #[derive(Debug, thiserror::Error)]
@@ -13,12 +13,12 @@ pub enum Error {
     #[error("Errors occurred when comparing states:\n{0}")]
     CompareStates(StateComparisonErrors),
 
-    /// The iteration of the [`AdminCredentials`] and [`SignstarConfig`] are not matching.
+    /// The iteration of the [`NetHsmAdminCredentials`] and [`SignstarConfig`] are not matching.
     #[error(
         "Iteration mismatch: Administrative credentials ({admin_creds}) vs. Signstar config ({signstar_config})"
     )]
     IterationMismatch {
-        /// The iteration of the [`AdminCredentials`].
+        /// The iteration of the [`NetHsmAdminCredentials`].
         admin_creds: u32,
         /// The iteration of the [`SignstarConfig`].
         signstar_config: u32,

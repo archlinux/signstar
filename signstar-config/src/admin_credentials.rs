@@ -84,7 +84,7 @@ pub enum Error {
     },
 }
 
-/// Administrative credentials.
+/// Administrative credentials for a [`NetHsm`] backend.
 ///
 /// Tracks the following credentials and passphrases:
 /// - the backup passphrase of the backend,
@@ -100,7 +100,7 @@ pub enum Error {
 /// The list of top-level administrator credentials must include an account with the username
 /// "admin".
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
-pub struct AdminCredentials {
+pub struct NetHsmAdminCredentials {
     iteration: u32,
     backup_passphrase: Passphrase,
     unlock_passphrase: Passphrase,
@@ -108,17 +108,17 @@ pub struct AdminCredentials {
     namespace_administrators: Vec<FullCredentials>,
 }
 
-impl AdminCredentials {
-    /// Creates a new [`AdminCredentials`] instance.
+impl NetHsmAdminCredentials {
+    /// Creates a new [`NetHsmAdminCredentials`] instance.
     ///
     /// # Examples
     ///
     /// ```
     /// use nethsm::FullCredentials;
-    /// use signstar_config::admin_credentials::AdminCredentials;
+    /// use signstar_config::admin_credentials::NetHsmAdminCredentials;
     ///
     /// # fn main() -> testresult::TestResult {
-    /// let creds = AdminCredentials::new(
+    /// let creds = NetHsmAdminCredentials::new(
     ///     1,
     ///     "backup-passphrase".parse()?,
     ///     "unlock-passphrase".parse()?,
@@ -132,7 +132,7 @@ impl AdminCredentials {
     ///     )],
     /// )?;
     /// # // the backup passphrase is too short
-    /// # assert!(AdminCredentials::new(
+    /// # assert!(NetHsmAdminCredentials::new(
     /// #     1,
     /// #     "short".parse()?,
     /// #     "unlock-passphrase".parse()?,
@@ -144,7 +144,7 @@ impl AdminCredentials {
     /// # ).is_err());
     /// #
     /// # // the unlock passphrase is too short
-    /// # assert!(AdminCredentials::new(
+    /// # assert!(NetHsmAdminCredentials::new(
     /// #     1,
     /// #     "backup-passphrase".parse()?,
     /// #     "short".parse()?,
@@ -156,7 +156,7 @@ impl AdminCredentials {
     /// # ).is_err());
     /// #
     /// # // there is no top-level administrator
-    /// # assert!(AdminCredentials::new(
+    /// # assert!(NetHsmAdminCredentials::new(
     /// #     1,
     /// #     "backup-passphrase".parse()?,
     /// #     "unlock-passphrase".parse()?,
@@ -168,7 +168,7 @@ impl AdminCredentials {
     /// # ).is_err());
     /// #
     /// # // there is no default top-level administrator
-    /// # assert!(AdminCredentials::new(
+    /// # assert!(NetHsmAdminCredentials::new(
     /// #     1,
     /// #     "backup-passphrase".parse()?,
     /// #     "unlock-passphrase".parse()?,
@@ -180,7 +180,7 @@ impl AdminCredentials {
     /// # ).is_err());
     /// #
     /// # // a top-level administrator passphrase is too short
-    /// # assert!(AdminCredentials::new(
+    /// # assert!(NetHsmAdminCredentials::new(
     /// #     1,
     /// #     "backup-passphrase".parse()?,
     /// #     "unlock-passphrase".parse()?,
@@ -192,7 +192,7 @@ impl AdminCredentials {
     /// # ).is_err());
     /// #
     /// # // a namespace administrator passphrase is too short
-    /// # assert!(AdminCredentials::new(
+    /// # assert!(NetHsmAdminCredentials::new(
     /// #     1,
     /// #     "backup-passphrase".parse()?,
     /// #     "unlock-passphrase".parse()?,
@@ -224,7 +224,7 @@ impl AdminCredentials {
         Ok(admin_credentials)
     }
 
-    /// Loads an [`AdminCredentials`] from the default file location.
+    /// Loads a [`NetHsmAdminCredentials`] from the default file location.
     ///
     /// Depending on `secrets_handling`, the file path and contents differ:
     ///
@@ -233,21 +233,22 @@ impl AdminCredentials {
     /// - [`AdministrativeSecretHandling::SystemdCreds`]: the file path is defined by
     ///   [`get_systemd_creds_credentials_file`] and the contents are [systemd-creds] encrypted.
     ///
-    /// Delegates to [`AdminCredentials::load_from_file`], providing the specific file path and the
-    /// selected `secrets_handling`.
+    /// Delegates to [`NetHsmAdminCredentials::load_from_file`], providing the specific file path
+    /// and the selected `secrets_handling`.
     ///
     /// # Examples
     ///
     /// ```no_run
-    /// use signstar_config::{AdminCredentials, AdministrativeSecretHandling};
+    /// use signstar_config::{AdministrativeSecretHandling, NetHsmAdminCredentials};
     ///
     /// # fn main() -> testresult::TestResult {
     /// // load plaintext credentials from default location
-    /// let plaintext_admin_creds = AdminCredentials::load(AdministrativeSecretHandling::Plaintext)?;
+    /// let plaintext_admin_creds =
+    ///     NetHsmAdminCredentials::load(AdministrativeSecretHandling::Plaintext)?;
     ///
     /// // load systemd-creds encrypted credentials from default location
     /// let systemd_creds_admin_creds =
-    ///     AdminCredentials::load(AdministrativeSecretHandling::SystemdCreds)?;
+    ///     NetHsmAdminCredentials::load(AdministrativeSecretHandling::SystemdCreds)?;
     ///
     /// # Ok(())
     /// # }
@@ -255,7 +256,7 @@ impl AdminCredentials {
     ///
     /// # Errors
     ///
-    /// Returns an error if [`AdminCredentials::load_from_file`] fails.
+    /// Returns an error if [`NetHsmAdminCredentials::load_from_file`] fails.
     ///
     /// # Panics
     ///
@@ -279,7 +280,7 @@ impl AdminCredentials {
         )
     }
 
-    /// Loads an [`AdminCredentials`] instance from file.
+    /// Loads a [`NetHsmAdminCredentials`] instance from file.
     ///
     /// Depending on `path` and `secrets_handling`, the behavior of this function differs:
     ///
@@ -293,7 +294,7 @@ impl AdminCredentials {
     /// ```no_run
     /// use std::io::Write;
     ///
-    /// use signstar_config::{AdminCredentials, AdministrativeSecretHandling};
+    /// use signstar_config::{AdministrativeSecretHandling, NetHsmAdminCredentials};
     ///
     /// # fn main() -> testresult::TestResult {
     /// let admin_creds = r#"iteration = 1
@@ -312,8 +313,11 @@ impl AdminCredentials {
     /// write!(tempfile.as_file_mut(), "{admin_creds}");
     ///
     /// assert!(
-    ///     AdminCredentials::load_from_file(tempfile.path(), AdministrativeSecretHandling::Plaintext)
-    ///         .is_ok()
+    ///     NetHsmAdminCredentials::load_from_file(
+    ///         tempfile.path(),
+    ///         AdministrativeSecretHandling::Plaintext
+    ///     )
+    ///     .is_ok()
     /// );
     /// # Ok(())
     /// # }
@@ -387,8 +391,8 @@ impl AdminCredentials {
                     });
                 }
 
-                // Read the resulting TOML string from stdout and construct an AdminCredentials from
-                // it.
+                // Read the resulting TOML string from stdout and construct a NetHsmAdminCredentials
+                // from it.
                 let config_str = String::from_utf8(command_output.stdout).map_err(|source| {
                     crate::Error::Utf8String {
                         path: path.to_path_buf(),
@@ -410,7 +414,7 @@ impl AdminCredentials {
         Ok(config)
     }
 
-    /// Stores the [`AdminCredentials`] as a file in the default location.
+    /// Stores the [`NetHsmAdminCredentials`] as a file in the default location.
     ///
     /// Depending on `secrets_handling`, the file path and contents differ:
     ///
@@ -420,17 +424,17 @@ impl AdminCredentials {
     ///   [`get_systemd_creds_credentials_file`] and the contents are [systemd-creds] encrypted.
     ///
     /// Automatically creates the directory in which the administrative credentials are created.
-    /// After storing the [`AdminCredentials`] as file, its file permissions and ownership are
+    /// After storing the [`NetHsmAdminCredentials`] as file, its file permissions and ownership are
     /// adjusted so that it is only accessible by root.
     ///
     /// # Examples
     ///
     /// ```no_run
     /// use nethsm::FullCredentials;
-    /// use signstar_config::{AdminCredentials, AdministrativeSecretHandling};
+    /// use signstar_config::{AdministrativeSecretHandling, NetHsmAdminCredentials};
     ///
     /// # fn main() -> testresult::TestResult {
-    /// let creds = AdminCredentials::new(
+    /// let creds = NetHsmAdminCredentials::new(
     ///     1,
     ///     "backup-passphrase".parse()?,
     ///     "unlock-passphrase".parse()?,
@@ -623,7 +627,7 @@ impl AdminCredentials {
         &self.namespace_administrators
     }
 
-    /// Validates the [`AdminCredentials`].
+    /// Validates the [`NetHsmAdminCredentials`].
     ///
     /// # Errors
     ///

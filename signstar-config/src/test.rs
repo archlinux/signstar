@@ -15,7 +15,7 @@ use signstar_common::config::get_default_config_file_path;
 use tempfile::NamedTempFile;
 use which::which;
 
-use crate::{AdminCredentials, AdministrativeSecretHandling, ExtendedUserMapping, SignstarConfig};
+use crate::{NetHsmAdminCredentials, AdministrativeSecretHandling, ExtendedUserMapping, SignstarConfig};
 
 /// An error that may occur when using test utils.
 #[derive(Debug, thiserror::Error)]
@@ -334,9 +334,9 @@ pub fn prepare_system_with_config(
 ///
 /// - a temporary config file can not be created from `config_data`,
 /// - an [`AdminCredentials`] can not be created from the temporary config file.
-pub fn admin_credentials(config_data: &[u8]) -> Result<AdminCredentials, Error> {
+pub fn admin_credentials(config_data: &[u8]) -> Result<NetHsmAdminCredentials, Error> {
     let config_file = get_tmp_config(config_data)?;
-    AdminCredentials::load_from_file(config_file.path(), AdministrativeSecretHandling::Plaintext)
+    NetHsmAdminCredentials::load_from_file(config_file.path(), AdministrativeSecretHandling::Plaintext)
         .map_err(Error::SignstarConfig)
 }
 
