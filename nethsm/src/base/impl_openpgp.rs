@@ -14,6 +14,7 @@ use crate::{
     OpenPgpVersion,
     Utc,
     base::utils::user_or_no_user_string,
+    signer::NetHsmKey,
 };
 
 impl NetHsm {
@@ -147,8 +148,14 @@ impl NetHsm {
             user_or_no_user_string(self.current_credentials.borrow().as_ref()),
         );
 
-        Ok(crate::openpgp::add_certificate(
-            self, flags, key_id, user_id, created_at, version,
+        let raw_signer = NetHsmKey::new(self, key_id)?;
+
+        Ok(signstar_crypto::signer::add_certificate(
+            &raw_signer,
+            flags,
+            user_id,
+            created_at,
+            version,
         )?)
     }
 
@@ -262,8 +269,9 @@ impl NetHsm {
             self.url.borrow(),
             user_or_no_user_string(self.current_credentials.borrow().as_ref()),
         );
+        let raw_signer = NetHsmKey::new(self, key_id)?;
 
-        Ok(crate::openpgp::sign(self, key_id, message)?)
+        Ok(signstar_crypto::signer::sign(&raw_signer, message)?)
     }
 
     /// Generates an armored OpenPGP signature based on provided hasher state.
@@ -384,7 +392,11 @@ impl NetHsm {
             self.url.borrow(),
             user_or_no_user_string(self.current_credentials.borrow().as_ref()),
         );
+        let raw_signer = NetHsmKey::new(self, key_id)?;
 
-        Ok(crate::openpgp::sign_hasher_state(self, key_id, state)?)
+        Ok(signstar_crypto::signer::sign_hasher_state(
+            &raw_signer,
+            state,
+        )?)
     }
 }
