@@ -3,15 +3,23 @@
 use std::process::ExitCode;
 
 use clap::Parser;
+use log::error;
 use nethsm::{KeyId, NetHsm};
+use pgp::{
+    composed::Deserializable,
+    crypto::public_key::PublicKeyAlgorithm,
+    packet::{PubKeyInner, PublicKey},
+    types::{KeyDetails, KeyVersion, Mpi, PublicParams, SecretKeyTrait},
+};
 use signstar_config::{
     CredentialsLoading,
     Error as ConfigError,
     UserMapping,
-    config::base::BackendConnection,
+    config::base::{BackendConnection, YubiHsmConnection},
 };
 use signstar_request_signature::{Request, Response, Sha512};
 use signstar_sign::cli::Cli;
+use yubihsm::HttpConfig;
 
 /// Signstar signing error.
 #[derive(Debug, thiserror::Error)]
@@ -47,19 +55,106 @@ enum Error {
     /// A signstar-common logging error.
     #[error(transparent)]
     SignstarCommonLogging(#[from] signstar_common::logging::Error),
+
+    /// YubiHSM client error.
+    #[error(transparent)]
+    YubiHsmClient(#[from] yubihsm::client::Error),
+
+    /// YubiHSM connector error.
+    #[error(transparent)]
+    YubiHsmConnector(#[from] yubihsm::connector::Error),
+
+    /// YubiHSM domain error.
+    #[error(transparent)]
+    YubiHsmDomain(#[from] yubihsm::domain::Error),
 }
 
-/// Creates a new [`NetHsm`] object with correct connection and user settings and returns it
-/// alongside with the [`KeyId`] that should be used for signing.
+trait StateSigner {
+    fn sign(&self, state: Sha512) -> Result<String, Error>;
+}
+
+struct NetHsmStateSigner {
+    nethsm: NetHsm,
+    key_id: KeyId,
+}
+
+impl StateSigner for NetHsmStateSigner {
+    fn sign(&self, state: Sha512) -> Result<String, Error> {
+        Ok(self.nethsm.openpgp_sign_state(&self.key_id, state)?)
+    }
+}
+
+struct YubiHsmSigner {
+    public_key: PublicKey,
+    yubihsm: yubihsm::client::Client,
+    key_id: yubihsm::object::Id,
+}
+
+impl StateSigner for YubiHsmSigner {
+    fn sign(&self, state: Sha512) -> Result<String, Error> {
+        Ok(nethsm::openpgp::sign_hasher_state_with_signer(state, self)
+            .map_err(nethsm::Error::OpenPgp)?)
+    }
+}
+
+impl std::fmt::Debug for YubiHsmSigner {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("YubiHsmSigner")
+            .field("key_id", &self.key_id)
+            .finish()
+    }
+}
+
+impl KeyDetails for YubiHsmSigner {
+    fn version(&self) -> pgp::types::KeyVersion {
+        self.public_key.version()
+    }
+
+    fn fingerprint(&self) -> pgp::types::Fingerprint {
+        self.public_key.fingerprint()
+    }
+
+    fn key_id(&self) -> pgp::types::KeyId {
+        self.public_key.key_id()
+    }
+
+    fn algorithm(&self) -> pgp::crypto::public_key::PublicKeyAlgorithm {
+        self.public_key.algorithm()
+    }
+}
+
+impl SecretKeyTrait for YubiHsmSigner {
+    fn create_signature(
+        &self,
+        _key_pw: &pgp::types::Password,
+        _hash: pgp::crypto::hash::HashAlgorithm,
+        data: &[u8],
+    ) -> pgp::errors::Result<pgp::types::SignatureBytes> {
+        let sig = self
+            .yubihsm
+            .sign_ed25519(self.key_id, data)
+            .expect("signing to work");
+        Ok(pgp::types::SignatureBytes::Mpis(vec![
+            Mpi::from_slice(sig.r_bytes()),
+            Mpi::from_slice(sig.s_bytes()),
+        ]))
+    }
+
+    fn hash_alg(&self) -> pgp::crypto::hash::HashAlgorithm {
+        pgp::crypto::hash::HashAlgorithm::Sha512
+    }
+}
+
+/// Creates a new [`StateSigner`] object with correct connection and user settings and returns it.
 ///
 /// # Errors
 ///
 /// Returns an error if configuration:
 /// - loading encounters errors
-/// - does not contain any key ID settings
-/// - does not contain NetHSM connections
+/// - does not contain any key settings
+/// - does not contain valid connections
 /// - does not contain credentials with a passphrase
-fn load_nethsm_keyid() -> Result<(NetHsm, KeyId), Error> {
+fn load_signer() -> Result<Box<dyn StateSigner>, Error> {
     let credentials_loading = CredentialsLoading::from_system_user()?;
 
     if credentials_loading.has_userid_errors() {
@@ -70,37 +165,139 @@ fn load_nethsm_keyid() -> Result<(NetHsm, KeyId), Error> {
         return Err(Error::NoCredentials);
     }
 
-    let key_id = if let UserMapping::SystemNetHsmOperatorSigning {
+    let nethsm_key_id = if let UserMapping::SystemNetHsmOperatorSigning {
         nethsm_key_setup, ..
     } = credentials_loading.get_mapping().get_user_mapping()
     {
-        nethsm_key_setup.get_key_id().clone()
+        Ok(nethsm_key_setup.get_key_id().clone())
     } else {
-        return Err(Error::NoKeyId);
+        Err(Error::NoKeyId)
+    };
+
+    let yubihsm_key_config = if let UserMapping::SystemYubiHsmOperatorSigning {
+        yubihsm_key_id,
+        yubihsm_key_domain,
+        ..
+    } = credentials_loading.get_mapping().get_user_mapping()
+    {
+        Ok((*yubihsm_key_id, *yubihsm_key_domain))
+    } else {
+        Err(Error::NoKeyId)
     };
 
     // Currently, this picks the first connection found.
     // The Signstar setup assumes, that multiple backends are used in a round-robin fashion, but
     // this is not yet implemented.
-    let connection = if let Some(connection) = credentials_loading
+    if let Some(connection) = credentials_loading
         .get_mapping()
         .get_connections()
-        .iter()
+        .into_iter()
         .next()
     {
+        let credentials = credentials_loading.credentials_for_signing_user()?;
         match connection {
-            BackendConnection::NetHsm(connection) => connection.clone(),
+            BackendConnection::NetHsm(connection) => Ok(Box::new(NetHsmStateSigner {
+                nethsm: NetHsm::new(connection, Some(credentials.into()), None, None)?,
+                key_id: nethsm_key_id?,
+            })),
+            BackendConnection::YubiHsm(connection) => {
+                let connector = match &connection {
+                    YubiHsmConnection::Mock => yubihsm::Connector::mockhsm(),
+                    YubiHsmConnection::Usb { serial_number } => {
+                        yubihsm::Connector::usb(&yubihsm::UsbConfig {
+                            serial: Some(
+                                serial_number.parse().expect("expected a valid serial no"),
+                            ),
+                            timeout_ms: yubihsm::UsbConfig::DEFAULT_TIMEOUT_MILLIS,
+                        })
+                    }
+                    YubiHsmConnection::Http { address, port } => {
+                        yubihsm::Connector::http(&HttpConfig {
+                            addr: address.to_string(),
+                            port: *port,
+                            timeout_ms: 5000,
+                        })
+                    }
+                };
+                let client = yubihsm::client::Client::open(connector, Default::default(), true)?;
+
+                let (key_id, yubihsm_key_domain) = yubihsm_key_config?;
+
+                if connection == YubiHsmConnection::Mock {
+                    // provision the mock HSM
+                    client.generate_asymmetric_key(
+                        key_id,
+                        Default::default(),
+                        yubihsm::domain::Domain::at(yubihsm_key_domain)?,
+                        yubihsm::Capability::SIGN_EDDSA,
+                        yubihsm::asymmetric::Algorithm::Ed25519,
+                    )?;
+                    let pubkey = &client.get_public_key(key_id)?.bytes;
+
+                    let public_key = PublicKey::from_inner(
+                        PubKeyInner::new(
+                            KeyVersion::V4,
+                            PublicKeyAlgorithm::EdDSALegacy,
+                            chrono::DateTime::UNIX_EPOCH,
+                            None,
+                            PublicParams::EdDSALegacy(
+                                pgp::types::EddsaLegacyPublicParams::Ed25519 {
+                                    key: ed25519_dalek::VerifyingKey::from_bytes(
+                                        &pubkey[..].try_into().unwrap(),
+                                    )
+                                    .unwrap(),
+                                },
+                            ),
+                        )
+                        .unwrap(),
+                    )
+                    .unwrap();
+
+                    let signer = YubiHsmSigner {
+                        public_key: public_key.clone(),
+                        yubihsm: client.clone(),
+                        key_id,
+                    };
+
+                    let mut flags = nethsm::openpgp::KeyUsageFlags::default();
+                    flags.set_sign();
+
+                    let cert = nethsm::openpgp::add_certificate_with_signer(
+                        public_key,
+                        flags,
+                        nethsm::openpgp::OpenPgpUserId::new("Test".to_owned()).unwrap(),
+                        nethsm::OpenPgpVersion::V4,
+                        signer,
+                    )
+                    .unwrap();
+
+                    // put the generated certificate as an opaque value with the same ID as the key
+                    client.put_opaque(
+                        key_id,
+                        Default::default(),
+                        yubihsm::domain::Domain::at(yubihsm_key_domain)?,
+                        yubihsm::capability::Capability::empty(),
+                        yubihsm::opaque::Algorithm::Data,
+                        cert,
+                    )?;
+                }
+
+                let cert = client.get_opaque(key_id)?;
+                let public_key =
+                    pgp::composed::SignedPublicKey::from_bytes(std::io::Cursor::new(cert))
+                        .unwrap()
+                        .primary_key;
+
+                Ok(Box::new(YubiHsmSigner {
+                    public_key,
+                    yubihsm: client,
+                    key_id,
+                }))
+            }
         }
     } else {
-        return Err(Error::NoCredentials);
-    };
-
-    let credentials = credentials_loading.credentials_for_signing_user()?;
-
-    Ok((
-        NetHsm::new(connection, Some(credentials.into()), None, None)?,
-        key_id,
-    ))
+        Err(Error::NoCredentials)
+    }
 }
 
 /// Signs the signing request in `reader` and write the response to the `writer`.
@@ -130,9 +327,9 @@ fn sign_request(reader: impl std::io::Read, writer: impl std::io::Write) -> Resu
 
     let hasher: Sha512 = req.required.input.try_into()?;
 
-    let (nethsm, key_id) = load_nethsm_keyid()?;
+    let signer = load_signer()?;
 
-    let signature = nethsm.openpgp_sign_state(&key_id, hasher)?;
+    let signature = signer.sign(hasher)?;
 
     Response::v1(signature).to_writer(writer)?;
 

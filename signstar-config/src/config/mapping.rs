@@ -97,6 +97,26 @@ pub enum UserMapping {
         tag: String,
     },
 
+    /// A system user, with SSH access, mapped to a YubiHSM user in the
+    /// Operator role with access to a single signing key.
+    ///
+    /// Signing key and YubiHSM user are mapped using a permission.
+    #[serde(rename = "system_yubihsm_operator_signing")]
+    SystemYubiHsmOperatorSigning {
+        /// The name of the [`NetHsm`] user.
+        yubihsm_user: UserId,
+        /// The setup of a [`NetHsm`] key.
+        yubihsm_key_setup: SigningKeySetup,
+        /// The key identifier.
+        yubihsm_key_id: u16,
+        /// The key domain.
+        yubihsm_key_domain: usize,
+        /// The SSH public key used for connecting to the `system_user`.
+        ssh_authorized_key: AuthorizedKeyEntry,
+        /// The name of the system user.
+        system_user: SystemUserId,
+    },
+
     /// A system user, without SSH access, mapped to a system-wide [`NetHsm`]
     /// user in the Metrics role and one or more NetHsm users in the Operator role with
     /// read-only access to zero or more keys
@@ -195,7 +215,8 @@ impl UserMapping {
             | UserMapping::SystemOnlyWireGuardDownload {
                 system_user,
                 ssh_authorized_key: _,
-            } => Some(system_user),
+            }
+            | UserMapping::SystemYubiHsmOperatorSigning { system_user, .. } => Some(system_user),
         }
     }
 
@@ -255,6 +276,9 @@ impl UserMapping {
                 system_user: _,
                 ssh_authorized_key: _,
             } => vec![],
+            UserMapping::SystemYubiHsmOperatorSigning { yubihsm_user, .. } => {
+                vec![yubihsm_user.clone()]
+            }
         }
     }
 
@@ -316,6 +340,9 @@ impl UserMapping {
                 system_user: _,
                 ssh_authorized_key: _,
             } => vec![],
+            UserMapping::SystemYubiHsmOperatorSigning { yubihsm_user, .. } => {
+                vec![(yubihsm_user.clone(), UserRole::Operator)]
+            }
         }
     }
 
@@ -397,7 +424,8 @@ impl UserMapping {
                 .collect(),
             UserMapping::SystemOnlyShareDownload { .. }
             | UserMapping::SystemOnlyShareUpload { .. }
-            | UserMapping::SystemOnlyWireGuardDownload { .. } => Vec::new(),
+            | UserMapping::SystemOnlyWireGuardDownload { .. }
+            | UserMapping::SystemYubiHsmOperatorSigning { .. } => Vec::new(),
         }
     }
 
@@ -459,6 +487,9 @@ impl UserMapping {
                 system_user: _,
                 ssh_authorized_key,
                 tag: _,
+            } => Some(ssh_authorized_key),
+            UserMapping::SystemYubiHsmOperatorSigning {
+                ssh_authorized_key, ..
             } => Some(ssh_authorized_key),
         }
     }
@@ -541,6 +572,7 @@ impl UserMapping {
                 system_user: _,
                 ssh_authorized_key: _,
             } => vec![],
+            UserMapping::SystemYubiHsmOperatorSigning { .. } => vec![],
         }
     }
 
@@ -628,7 +660,8 @@ impl UserMapping {
             | UserMapping::SystemOnlyWireGuardDownload {
                 system_user: _,
                 ssh_authorized_key: _,
-            } => vec![],
+            }
+            | UserMapping::SystemYubiHsmOperatorSigning { .. } => vec![],
         }
     }
 
@@ -767,7 +800,8 @@ impl UserMapping {
             | UserMapping::SystemOnlyWireGuardDownload {
                 system_user: _,
                 ssh_authorized_key: _,
-            } => vec![],
+            }
+            | UserMapping::SystemYubiHsmOperatorSigning { .. } => vec![],
         }
     }
 
@@ -856,7 +890,8 @@ impl UserMapping {
             | UserMapping::SystemOnlyWireGuardDownload {
                 system_user: _,
                 ssh_authorized_key: _,
-            } => vec![],
+            }
+            | UserMapping::SystemYubiHsmOperatorSigning { .. } => vec![],
         }
     }
 
@@ -873,6 +908,7 @@ impl UserMapping {
                 ssh_authorized_key: _,
                 tag: _,
             }
+            | UserMapping::SystemYubiHsmOperatorSigning { .. }
             | UserMapping::HermeticSystemNetHsmMetrics {
                 nethsm_users: _,
                 system_user: _,

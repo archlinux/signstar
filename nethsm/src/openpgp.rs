@@ -326,17 +326,28 @@ pub fn add_certificate(
     created_at: DateTime<Utc>,
     version: OpenPgpVersion,
 ) -> Result<Vec<u8>, Error> {
+    let public_key = nethsm.get_key(key_id).map_err(to_rpgp_error)?;
+    let public_key = hsm_pk_to_pgp_pk(public_key, created_at)?;
+    let signer = HsmKey::new(nethsm, public_key.clone(), key_id);
+    add_certificate_with_signer(public_key, flags, user_id, version, signer)
+}
+
+/// Generates an OpenPGP certificate for the given signer.
+pub fn add_certificate_with_signer(
+    public_key: PublicKey,
+    flags: KeyUsageFlags,
+    user_id: OpenPgpUserId,
+    version: OpenPgpVersion,
+    signer: impl SecretKeyTrait,
+) -> Result<Vec<u8>, Error> {
     if version != OpenPgpVersion::V4 {
         unimplemented!(
             "Support for creating OpenPGP {version} certificates is not yet implemented!"
         );
     }
 
-    let public_key = nethsm.get_key(key_id).map_err(to_rpgp_error)?;
-    let signer = HsmKey::new(nethsm, hsm_pk_to_pgp_pk(public_key, created_at)?, key_id);
-
     let composed_pk = pgp::composed::PublicKey::new(
-        signer.public_key.clone(),
+        public_key.clone(),
         pgp::composed::KeyDetails::new(
             Some(UserId::from_str(Default::default(), user_id.as_ref())?),
             vec![],
@@ -351,12 +362,8 @@ pub fn add_certificate(
         vec![],
     );
 
-    let signed_pk = composed_pk.sign(
-        rand::thread_rng(),
-        &signer,
-        &signer.public_key,
-        &Password::empty(),
-    )?;
+    let signed_pk =
+        composed_pk.sign(rand::thread_rng(), &signer, &public_key, &Password::empty())?;
 
     let mut buffer = vec![];
     signed_pk.to_writer(&mut buffer)?;
@@ -658,6 +665,14 @@ pub fn sign_hasher_state(
         key_id,
     );
 
+    sign_hasher_state_with_signer(state, &signer)
+}
+
+/// XXX
+pub fn sign_hasher_state_with_signer(
+    state: sha2::Sha512,
+    signer: &dyn SecretKeyTrait,
+) -> Result<String, Error> {
     let hasher = state.clone();
 
     let file_hash = Box::new(hasher).finalize().to_vec();
