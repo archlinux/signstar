@@ -9,7 +9,6 @@ pub mod non_admin_credentials;
 pub mod test;
 pub mod utils;
 
-pub use admin_credentials::NetHsmAdminCredentials;
 pub use config::{
     base::{
         AdministrativeSecretHandling,
@@ -23,6 +22,7 @@ pub use config::{
 };
 pub use error::{Error, ErrorExitCode};
 pub use nethsm::{
+    admin_credentials::NetHsmAdminCredentials,
     backend::NetHsmBackend,
     error::Error as NetHsmBackendError,
     state::{KeyState, State, UserState},
