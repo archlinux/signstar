@@ -11,14 +11,17 @@ rust-version.workspace = true
 version = "0.1.1"
 
 [dependencies]
+chrono.workspace = true
 clap = { workspace = true, features = ["derive"] }
 clap-verbosity-flag = "3.0.3"
 log.workspace = true
 nethsm.workspace = true
+
 signstar-common = { features = ["logging"], workspace = true }
 signstar-config.workspace = true
 signstar-request-signature.workspace = true
 thiserror.workspace = true
+yubihsm = { version = "0.42.1", features = ["http", "mockhsm", "usb"] }
 
 [features]
 _containerized-integration-test = []
@@ -31,6 +34,7 @@ change-user-run.workspace = true
 httpmock = "0.8.0-alpha.1"
 log.workspace = true
 openssl = "0.10.71"
+pgp.workspace = true
 rcgen = "0.14.0"
 rstest.workspace = true
 signstar-common.workspace = true

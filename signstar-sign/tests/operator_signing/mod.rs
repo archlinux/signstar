@@ -9,14 +9,15 @@ use std::{fs::File, io::Write};
 
 use change_user_run::{CommandOutput, create_users, run_command_as_user};
 use log::{LevelFilter, debug};
+use pgp::composed::{Deserializable, StandaloneSignature};
 use rstest::rstest;
 use signstar_common::logging::setup_logging;
-use signstar_common::{common::get_data_home, system_user::get_home_base_dir_path};
+use signstar_common::system_user::get_home_base_dir_path;
 use signstar_config::test::{list_files_in_dir, prepare_system_with_config};
 use tempfile::tempdir;
 use testresult::TestResult;
 
-use crate::utils::{SIGNSTAR_CONFIG_FULL, SIGNSTAR_CONFIG_PLAINTEXT};
+use crate::utils::{SIGNSTAR_CONFIG_FULL, SIGNSTAR_CONFIG_PLAINTEXT, SIGNSTAR_CONFIG_YUBI};
 
 const SIGNSTAR_SIGN_PAYLOAD: &str = "signstar-sign";
 use actix_web::{App, HttpRequest, HttpServer, Responder, get, post};
@@ -80,6 +81,11 @@ fn collect_coverage_files(path: impl AsRef<Path>) -> TestResult {
     Ok(())
 }
 
+#[get("//keys/key1")]
+async fn get_key(_req: HttpRequest) -> impl Responder {
+    r#"{"type":"Curve25519","mechanisms":[],"restrictions":{},"operations":1}"#
+}
+
 #[get("//keys/key1/cert")]
 async fn get_cert(_req: HttpRequest) -> impl Responder {
     BASE64_STANDARD
@@ -98,10 +104,13 @@ async fn sign_data(_req: HttpRequest) -> impl Responder {
 ///
 /// Tests integration with `systemd-creds` encrypted secrets and plaintext secrets.
 #[rstest]
-#[case(SIGNSTAR_CONFIG_PLAINTEXT)]
-#[case(SIGNSTAR_CONFIG_FULL)]
+#[case::plain(SIGNSTAR_CONFIG_PLAINTEXT)]
+#[case::full(SIGNSTAR_CONFIG_FULL)]
+#[case::yubi(SIGNSTAR_CONFIG_YUBI)]
 #[tokio::test]
 async fn load_credentials_for_user(#[case] config_data: &[u8]) -> TestResult {
+    use signstar_common::common::get_data_home;
+
     setup_logging(LevelFilter::Info)?;
     let CertifiedKey { cert, signing_key } = generate_simple_self_signed(vec!["localhost".into()])?;
 
@@ -123,6 +132,7 @@ async fn load_credentials_for_user(#[case] config_data: &[u8]) -> TestResult {
             App::new()
                 .wrap(actix_web::middleware::Logger::default())
                 .service(get_cert)
+                .service(get_key)
                 .service(sign_data)
         })
         .bind_openssl("127.0.0.1:8080", builder)
@@ -136,6 +146,10 @@ async fn load_credentials_for_user(#[case] config_data: &[u8]) -> TestResult {
     tokio::task::yield_now().await;
 
     let (creds_mapping, _credentials_socket) = prepare_system_with_config(config_data)?;
+    assert!(
+        !creds_mapping.is_empty(),
+        "must contain at least one mapping"
+    );
     // Get all system users
     let system_users = creds_mapping
         .iter()
@@ -163,9 +177,13 @@ async fn load_credentials_for_user(#[case] config_data: &[u8]) -> TestResult {
     // List all files and directories in the data home.
     list_files_in_dir(get_data_home())?;
 
+    let mut tests_ran = 0;
+
     // Retrieve backend credentials for each system user
     for mapping in &creds_mapping {
         if let Some(system_user_id) = mapping.get_user_mapping().get_system_user() {
+            use pgp::packet::SignatureType;
+
             let CommandOutput {
                 status,
                 stdout,
@@ -217,7 +235,7 @@ async fn load_credentials_for_user(#[case] config_data: &[u8]) -> TestResult {
             }
             assert!(
                 status.success(),
-                "requires the command to exit successfully"
+                "requires the command to exit successfully but got {status}"
             );
             log::info!("Raw signing response: {stdout}");
             let response = signstar_request_signature::Response::from_reader(
@@ -225,8 +243,18 @@ async fn load_credentials_for_user(#[case] config_data: &[u8]) -> TestResult {
             )?;
             log::info!("Parsed signing response: {response:#?}");
             assert_eq!(response.version.major, 1);
+            let mut sig = Vec::new();
+            response.signature_to_writer(&mut sig)?;
+            let sig = std::io::Cursor::new(sig);
+            let sig = StandaloneSignature::from_armor_single(sig)?.0;
+            assert_eq!(Some(SignatureType::Binary), sig.signature.typ());
+            tests_ran += 1;
+        } else {
+            panic!("expected system user to be configured");
         }
     }
+
+    assert_ne!(tests_ran, 0, "expected to run at least one test");
 
     collect_coverage_files("/tmp")?;
 
