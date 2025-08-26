@@ -16,6 +16,7 @@ use tempfile::NamedTempFile;
 use which::which;
 
 use crate::{
+    AdminCredentials,
     AdministrativeSecretHandling,
     ExtendedUserMapping,
     NetHsmAdminCredentials,

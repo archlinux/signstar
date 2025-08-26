@@ -16,7 +16,7 @@ They can be used from plaintext and [`systemd-creds`] encrypted files.
 Functions for interacting with configurations in default locations must be called by root.
 
 ```rust no_run
-use signstar_config::{AdministrativeSecretHandling, NetHsmAdminCredentials};
+use signstar_config::{AdminCredentials, AdministrativeSecretHandling, NetHsmAdminCredentials};
 
 # fn main() -> testresult::TestResult {
 // Load from plaintext file in default location
@@ -45,6 +45,7 @@ Functions for the creation of secrets must be called by root.
 ```rust no_run
 use signstar_common::config::get_default_config_file_path;
 use signstar_config::{
+    AdminCredentials,
     AdministrativeSecretHandling,
     NetHsmAdminCredentials,
     ExtendedUserMapping,
