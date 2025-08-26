@@ -9,7 +9,6 @@ use std::{
 };
 
 use email_address::{EmailAddress, Options};
-use log::error;
 use pgp::{
     packet::KeyFlags,
     types::{KeyVersion, SignedUser},
