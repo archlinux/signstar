@@ -112,12 +112,29 @@ pub enum NonAdministrativeSecretHandling {
     SystemdCreds,
 }
 
+/// A connection to the YubiHSM backend.
+#[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum YubiHsmConnection {
+    /// Mock HSM used for tests.
+    Mock,
+    /// USB connection with given serial number.
+    Usb {
+        /// Serial number of the connected YubiHSM.
+        serial_number: String,
+    },
+}
+
 /// A connection to an HSM backend.
 #[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 pub enum BackendConnection {
     /// The [`Connection`] for a [`NetHsm`] backend.
     #[serde(rename = "nethsm")]
     NetHsm(Connection),
+
+    /// The [`Connection`] for a YubiHSM backend.
+    #[serde(rename = "yubihsm")]
+    YubiHsm(YubiHsmConnection),
 }
 
 /// A configuration for parallel use of connections with a set of system and NetHSM users.

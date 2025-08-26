@@ -6,7 +6,7 @@ pub mod connection;
 mod error;
 mod key;
 mod nethsm_sdk;
-pub mod openpgp;
+pub mod signer;
 #[cfg(feature = "test-helpers")]
 pub mod test;
 mod tls;
@@ -32,7 +32,6 @@ pub use nethsm_sdk_rs::models::{
     SystemUpdateData,
     UserData,
 };
-pub use openpgp::{extract_certificate as extract_openpgp_certificate, tsk_to_private_key_import};
 // Publicly re-export signstar_crypto types that are used in the NetHsm API.
 pub use signstar_crypto::{
     key::{
@@ -57,3 +56,31 @@ pub use tls::{
     HostCertificateFingerprints,
 };
 pub use user::{Credentials, Error as UserError, FullCredentials, NamespaceId, Passphrase, UserId};
+
+/// Extracts certificate (public key) from an OpenPGP TSK.
+///
+/// # Errors
+///
+/// Returns an error if
+///
+/// - a secret key cannot be decoded from `key_data`,
+/// - or writing a serialized certificate into a vector fails.
+pub fn extract_openpgp_certificate(key_data: &[u8]) -> Result<Vec<u8>, Error> {
+    signstar_crypto::signer::extract_certificate(key_data).map_err(Error::SignstarCryptoSigner)
+}
+
+/// Converts an OpenPGP Transferable Secret Key into [`PrivateKeyImport`] object.
+///
+/// # Errors
+///
+/// Returns an [`Error::SignstarCryptoSigner`] if creating a [`PrivateKeyImport`] from `key_data` is
+/// not possible.
+///
+/// Returns an [`crate::Error::Key`] if `key_data` is an RSA public key and is shorter than
+/// [`signstar_crypto::key::MIN_RSA_BIT_LENGTH`].
+pub fn tsk_to_private_key_import(
+    key_data: &[u8],
+) -> Result<(PrivateKeyImport, KeyMechanism), Error> {
+    signstar_crypto::signer::tsk_to_private_key_import(key_data)
+        .map_err(Error::SignstarCryptoSigner)
+}

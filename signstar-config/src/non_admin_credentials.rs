@@ -286,7 +286,7 @@ impl CredentialsLoading {
                 ssh_authorized_key: _,
                 system_user: _,
                 tag: _,
-            }
+            } | UserMapping::SystemYubiHsmOperatorSigning { .. }
         )
     }
 
