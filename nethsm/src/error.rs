@@ -47,9 +47,9 @@ pub enum Error {
     #[error("User data error: {0}")]
     User(#[from] crate::user::Error),
 
-    /// OpenPGP error
-    #[error("OpenPGP error: {0}")]
-    OpenPgp(#[from] crate::openpgp::Error),
+    /// A signstar_crypto signer error.
+    #[error("A signstar_crypto signer error:\n{0}")]
+    SignstarCryptoSigner(#[from] signstar_crypto::signer::error::Error),
 
     /// A signstar_crypto key error.
     #[error("A signstar_crypto key error:\n{0}")]
