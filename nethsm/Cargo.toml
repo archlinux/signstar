@@ -15,7 +15,6 @@ ignored = ["md-5"]
 [dependencies]
 base64ct.workspace = true
 chrono = { workspace = true, features = ["alloc"] }
-digest = { version = "0.10.7", features = ["alloc"] }
 ed25519-dalek = { workspace = true, features = ["pem", "pkcs8"] }
 hex = { version = "0.4.3", features = ["serde"] }
 log = "0.4.22"
@@ -24,7 +23,6 @@ nethsm-sdk-rs.workspace = true
 p256.workspace = true
 p384.workspace = true
 p521.workspace = true
-pgp.workspace = true
 picky-asn1-der = "0.5.1"
 picky-asn1-x509 = "0.15.0"
 rand.workspace = true
