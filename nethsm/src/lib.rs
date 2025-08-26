@@ -5,13 +5,14 @@ pub mod connection;
 mod error;
 mod key;
 mod nethsm_sdk;
-pub mod openpgp;
+pub mod signer;
 #[cfg(feature = "test-helpers")]
 pub mod test;
 mod tls;
 mod user;
 
 pub use base::NetHsm;
+pub use base::impl_openpgp::{extract_openpgp_certificate, tsk_to_private_key_import};
 // Publicly re-export chrono facilities used in the API of NetHsm.
 pub use chrono::{DateTime, Utc};
 pub use connection::{Connection, Url};
@@ -30,7 +31,6 @@ pub use nethsm_sdk_rs::models::{
     SystemUpdateData,
     UserData,
 };
-pub use openpgp::{extract_certificate as extract_openpgp_certificate, tsk_to_private_key_import};
 // Publicly re-export signstar_crypto types that are used in the NetHsm API.
 pub use signstar_crypto::{
     key::{
