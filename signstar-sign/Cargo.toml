@@ -17,6 +17,7 @@ log.workspace = true
 nethsm.workspace = true
 signstar-common = { features = ["logging"], workspace = true }
 signstar-config.workspace = true
+signstar-crypto.workspace = true
 signstar-request-signature.workspace = true
 thiserror.workspace = true
 
@@ -32,6 +33,7 @@ change-user-run.workspace = true
 httpmock = "0.8.0-alpha.1"
 log.workspace = true
 openssl = "0.10.71"
+pgp.workspace = true
 rcgen = "0.14.0"
 rstest.workspace = true
 signstar-common.workspace = true

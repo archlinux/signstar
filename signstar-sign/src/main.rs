@@ -3,13 +3,15 @@
 use std::process::ExitCode;
 
 use clap::Parser;
-use nethsm::{KeyId, NetHsm};
+use log::error;
+use nethsm::{NetHsm, signer::OwnedNetHsmKey};
 use signstar_config::{
     CredentialsLoading,
     Error as ConfigError,
     UserMapping,
     config::base::BackendConnection,
 };
+use signstar_crypto::signer::{openpgp::sign_hasher_state, traits::RawSigningKey};
 use signstar_request_signature::{Request, Response, Sha512};
 use signstar_sign::cli::Cli;
 
@@ -47,22 +49,34 @@ enum Error {
     /// A signstar-common logging error.
     #[error(transparent)]
     SignstarCommonLogging(#[from] signstar_common::logging::Error),
+
+    /// A signstar-crypto signer error.
+    #[error(transparent)]
+    SignstarCryptoSigner(#[from] signstar_crypto::signer::error::Error),
+
+    /// A signstar-crypto OpenPGP error.
+    #[error(transparent)]
+    SignstarCryptoOpenPgp(#[from] signstar_crypto::openpgp::Error),
 }
 
-/// Creates a new [`NetHsm`] object with correct connection and user settings and returns it
-/// alongside with the [`KeyId`] that should be used for signing.
+/// Creates a new [`RawSigningKey`] implementation from the system's Signstar config and current
+/// user.
 ///
 /// # Errors
 ///
 /// Returns an error if configuration:
 /// - loading encounters errors
-/// - does not contain any key ID settings
-/// - does not contain NetHSM connections
+/// - does not contain any key settings
+/// - does not contain valid connections
 /// - does not contain credentials with a passphrase
-fn load_nethsm_keyid() -> Result<(NetHsm, KeyId), Error> {
+fn load_signer() -> Result<Box<dyn RawSigningKey>, Error> {
     let credentials_loading = CredentialsLoading::from_system_user()?;
 
     if credentials_loading.has_userid_errors() {
+        error!(
+            "Credentials loading encountered errors: {:#?}",
+            credentials_loading.get_userid_errors()
+        );
         return Err(Error::HasUserIdErrors);
     }
 
@@ -81,29 +95,26 @@ fn load_nethsm_keyid() -> Result<(NetHsm, KeyId), Error> {
     // Currently, this picks the first connection found.
     // The Signstar setup assumes, that multiple backends are used in a round-robin fashion, but
     // this is not yet implemented.
-    let connection = if let Some(connection) = credentials_loading
+    if let Some(connection) = credentials_loading
         .get_mapping()
         .get_connections()
-        .iter()
+        .into_iter()
         .next()
     {
+        let credentials = credentials_loading.credentials_for_signing_user()?;
         match connection {
-            BackendConnection::NetHsm(connection) => connection.clone(),
+            BackendConnection::NetHsm(connection) => Ok(Box::new(OwnedNetHsmKey::new(
+                NetHsm::new(connection, Some(credentials.try_into()?), None, None)?,
+                key_id,
+            )?)),
             #[cfg(feature = "yubihsm2")]
             BackendConnection::YubiHsm2(_) => {
                 unimplemented!("The use of the YubiHSM2 backend is not yet implemented.")
             }
         }
     } else {
-        return Err(Error::NoCredentials);
-    };
-
-    let credentials = credentials_loading.credentials_for_signing_user()?;
-
-    Ok((
-        NetHsm::new(connection, Some(credentials.try_into()?), None, None)?,
-        key_id,
-    ))
+        Err(Error::NoCredentials)
+    }
 }
 
 /// Signs the signing request in `reader` and write the response to the `writer`.
@@ -117,7 +128,7 @@ fn load_nethsm_keyid() -> Result<(NetHsm, KeyId), Error> {
 /// - the [`Request`] does not use OpenPGP v4,
 /// - the [`Request`] is not version 1,
 /// - a [`Sha512`] hasher state can not be created from the [`Request`],
-/// - no [`NetHsm`] and [`KeyId`] can be retrieved for the calling user,
+/// - no HSM and key data can be retrieved for the calling user,
 /// - a signature can not be created over the hasher state,
 /// - or the [`Response`] can not be written to the `writer`.
 fn sign_request(reader: impl std::io::Read, writer: impl std::io::Write) -> Result<(), Error> {
@@ -133,9 +144,9 @@ fn sign_request(reader: impl std::io::Read, writer: impl std::io::Write) -> Resu
 
     let hasher: Sha512 = req.required.input.try_into()?;
 
-    let (nethsm, key_id) = load_nethsm_keyid()?;
+    let signer = load_signer()?;
 
-    let signature = nethsm.openpgp_sign_state(&key_id, hasher)?;
+    let signature = sign_hasher_state(&*signer, hasher)?;
 
     Response::v1(signature).to_writer(writer)?;
 

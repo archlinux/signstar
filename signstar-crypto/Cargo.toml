@@ -11,8 +11,11 @@ version = "0.1.0"
 
 [dependencies]
 base64ct = { workspace = true, optional = true }
+chrono = { workspace = true, features = ["alloc"] }
+digest = { version = "0.10.7", features = ["alloc"] }
 ed25519-dalek = { workspace = true, features = ["pem", "pkcs8"] }
 email_address = "0.2.9"
+log.workspace = true
 nethsm-sdk-rs = { workspace = true, optional = true }
 p256.workspace = true
 p384.workspace = true
@@ -22,6 +25,7 @@ rand.workspace = true
 rsa.workspace = true
 secrecy = { version = "0.10.3", features = ["serde"] }
 serde.workspace = true
+sha2.workspace = true
 strum.workspace = true
 thiserror.workspace = true
 
