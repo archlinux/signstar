@@ -2,6 +2,7 @@
 ignore = [
     "RUSTSEC-2023-0050", # nethsm-sdk-rs uses unmaintained multipart until something else becomes available: https://github.com/Nitrokey/nethsm-sdk-rs/issues/29
     "RUSTSEC-2023-0071", # side-channel attacks are not relevant for our use-case (only used in tests)
+    "RUSTSEC-2025-0052", # async-std is not our direct dependency, until all our deps are upgraded we need to suppress this lint
 ]
 version = 2
 yanked = "deny"
