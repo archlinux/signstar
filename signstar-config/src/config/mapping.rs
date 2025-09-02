@@ -489,17 +489,17 @@ impl UserMapping {
     ///     ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
     ///     tag: "tag1".to_string(),
     /// };
-    /// assert_eq!(mapping.get_key_ids(None), vec![KeyId::new("key1".to_string())?]);
+    /// assert_eq!(mapping.get_nethsm_key_ids(None), vec![KeyId::new("key1".to_string())?]);
     ///
     /// let mapping = UserMapping::SystemOnlyShareDownload {
     ///     system_user: "user1".parse()?,
     ///     ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
     /// };
-    /// assert_eq!(mapping.get_key_ids(None), vec![]);
+    /// assert_eq!(mapping.get_nethsm_key_ids(None), vec![]);
     /// # Ok(())
     /// # }
     /// ```
-    pub fn get_key_ids(&self, namespace: Option<&NamespaceId>) -> Vec<KeyId> {
+    pub fn get_nethsm_key_ids(&self, namespace: Option<&NamespaceId>) -> Vec<KeyId> {
         match self {
             UserMapping::SystemNetHsmOperatorSigning {
                 nethsm_user,

@@ -926,7 +926,7 @@ impl SignstarConfig {
             for key_id in self
                 .users
                 .iter()
-                .flat_map(|mapping| mapping.get_key_ids(None))
+                .flat_map(|mapping| mapping.get_nethsm_key_ids(None))
             {
                 if !set.insert(key_id.clone()) {
                     return Err(Error::DuplicateKeyId {
@@ -947,7 +947,7 @@ impl SignstarConfig {
                 for key_id in self
                     .users
                     .iter()
-                    .flat_map(|mapping| mapping.get_key_ids(Some(&namespace)))
+                    .flat_map(|mapping| mapping.get_nethsm_key_ids(Some(&namespace)))
                 {
                     if !set.insert(key_id.clone()) {
                         return Err(Error::DuplicateKeyId {
