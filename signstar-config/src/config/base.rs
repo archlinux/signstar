@@ -790,14 +790,14 @@ impl SignstarConfig {
                 .users
                 .iter()
                 .filter(|mapping| !matches!(mapping, UserMapping::NetHsmOnlyAdmin(_)))
-                .flat_map(|mapping| mapping.get_namespaces())
+                .flat_map(|mapping| mapping.get_nethsm_namespaces())
                 .collect::<HashSet<NamespaceId>>();
             // namespaces for all users, that are in the Administrator role
             let namespaces_admins = self
                 .users
                 .iter()
                 .filter(|mapping| matches!(mapping, UserMapping::NetHsmOnlyAdmin(_)))
-                .flat_map(|mapping| mapping.get_namespaces())
+                .flat_map(|mapping| mapping.get_nethsm_namespaces())
                 .collect::<HashSet<NamespaceId>>();
 
             let namespaces = namespaces_users
@@ -941,7 +941,7 @@ impl SignstarConfig {
             for namespace in self
                 .users
                 .iter()
-                .flat_map(|mapping| mapping.get_namespaces())
+                .flat_map(|mapping| mapping.get_nethsm_namespaces())
             {
                 let mut set = HashSet::new();
                 for key_id in self
@@ -978,7 +978,7 @@ impl SignstarConfig {
             for namespace in self
                 .users
                 .iter()
-                .flat_map(|mapping| mapping.get_namespaces())
+                .flat_map(|mapping| mapping.get_nethsm_namespaces())
             {
                 let mut set = HashSet::new();
                 for tag in self
