@@ -964,7 +964,11 @@ impl SignstarConfig {
         {
             // ensure that tags are unique system-wide
             let mut set = HashSet::new();
-            for tag in self.users.iter().flat_map(|mapping| mapping.get_tags(None)) {
+            for tag in self
+                .users
+                .iter()
+                .flat_map(|mapping| mapping.get_nethsm_tags(None))
+            {
                 if !set.insert(tag) {
                     return Err(Error::DuplicateTag {
                         tag: tag.to_string(),
@@ -984,7 +988,7 @@ impl SignstarConfig {
                 for tag in self
                     .users
                     .iter()
-                    .flat_map(|mapping| mapping.get_tags(Some(&namespace)))
+                    .flat_map(|mapping| mapping.get_nethsm_tags(Some(&namespace)))
                 {
                     if !set.insert(tag) {
                         return Err(Error::DuplicateTag {

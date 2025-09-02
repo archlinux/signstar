@@ -560,10 +560,10 @@ impl UserMapping {
     ///     system_user: "user1".parse()?,
     ///     ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
     /// };
-    /// assert!(mapping.get_tags(None).is_empty());
+    /// assert!(mapping.get_nethsm_tags(None).is_empty());
     ///
     /// let mapping = UserMapping::NetHsmOnlyAdmin("user1".parse()?);
-    /// assert!(mapping.get_tags(None).is_empty());
+    /// assert!(mapping.get_nethsm_tags(None).is_empty());
     ///
     /// let mapping = UserMapping::SystemNetHsmOperatorSigning{
     ///     nethsm_user: "ns1~user1".parse()?,
@@ -581,13 +581,13 @@ impl UserMapping {
     ///     ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
     ///     tag: "tag1".to_string(),
     /// };
-    /// assert!(mapping.get_tags(None).is_empty());
-    /// assert_eq!(mapping.get_tags(Some(&"ns1".parse()?)), vec!["tag1"]);
+    /// assert!(mapping.get_nethsm_tags(None).is_empty());
+    /// assert_eq!(mapping.get_nethsm_tags(Some(&"ns1".parse()?)), vec!["tag1"]);
     /// # Ok(())
     /// # }
     /// ```
     /// [namespace]: https://docs.nitrokey.com/nethsm/administration#namespaces
-    pub fn get_tags(&self, namespace: Option<&NamespaceId>) -> Vec<&str> {
+    pub fn get_nethsm_tags(&self, namespace: Option<&NamespaceId>) -> Vec<&str> {
         match self {
             UserMapping::SystemNetHsmOperatorSigning {
                 nethsm_user,
