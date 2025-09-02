@@ -860,11 +860,11 @@ impl UserMapping {
         }
     }
 
-    /// Returns whether the mapping has both system and [`NetHsm`] users.
+    /// Returns whether the mapping has both system and HSM backend users.
     ///
-    /// Returns `true` if the `self` has at least one system and one [`NetHsm`] user, and `false`
+    /// Returns `true` if the `self` has at least one system and one HSM backend user, and `false`
     /// otherwise.
-    pub fn has_system_and_nethsm_user(&self) -> bool {
+    pub fn has_system_and_backend_user(&self) -> bool {
         match self {
             UserMapping::SystemNetHsmOperatorSigning {
                 nethsm_user: _,
@@ -1358,13 +1358,13 @@ impl From<SignstarConfig> for Vec<ExtendedUserMapping> {
     ///
     /// A [`UserMapping`] can not be aware of credentials if it does not track at least one
     /// [`SystemUserId`] and one [`UserId`]. Therefore only those [`UserMapping`]s for which
-    /// [`has_system_and_nethsm_user`](UserMapping::has_system_and_nethsm_user) returns `true` are
+    /// [`UserMapping::has_system_and_backend_user`] returns `true` are
     /// returned.
     fn from(value: SignstarConfig) -> Self {
         value
             .iter_user_mappings()
             .filter_map(|mapping| {
-                if mapping.has_system_and_nethsm_user() {
+                if mapping.has_system_and_backend_user() {
                     Some(ExtendedUserMapping {
                         admin_secret_handling: value.get_administrative_secret_handling(),
                         non_admin_secret_handling: value.get_non_administrative_secret_handling(),
