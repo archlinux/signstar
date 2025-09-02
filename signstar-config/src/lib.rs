@@ -19,12 +19,13 @@ pub use config::{
     },
     credentials::{AuthorizedKeyEntry, SystemUserId, SystemWideUserId},
     error::Error as ConfigError,
-    mapping::{ExtendedUserMapping, FilterUserKeys, NetHsmMetricsUsers, UserMapping},
+    mapping::{ExtendedUserMapping, UserMapping},
 };
 pub use error::{Error, ErrorExitCode};
 pub use nethsm::{
     admin_credentials::NetHsmAdminCredentials,
     backend::NetHsmBackend,
+    config::{FilterUserKeys, NetHsmMetricsUsers},
     error::Error as NetHsmBackendError,
     state::{KeyState, State, UserState},
 };

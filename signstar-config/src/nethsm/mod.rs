@@ -2,6 +2,7 @@
 
 pub mod admin_credentials;
 pub mod backend;
+pub mod config;
 pub mod error;
 pub mod state;
 
