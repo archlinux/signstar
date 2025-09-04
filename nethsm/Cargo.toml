@@ -22,7 +22,7 @@ hex = { version = "0.4.3", features = ["serde"] }
 log = "0.4.22"
 md-5 = "0.10.6"
 nethsm-backup.workspace = true
-nethsm-sdk-rs = "1.1.1"
+nethsm-sdk-rs.workspace = true
 p256 = { version = "0.13.2", features = ["pem", "pkcs8"] }
 p384 = { version = "0.13.0", features = ["pem", "pkcs8"] }
 p521 = { version = "0.13.3", features = ["pem", "pkcs8"] }
