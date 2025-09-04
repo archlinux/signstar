@@ -17,7 +17,6 @@ base64ct.workspace = true
 chrono = { workspace = true, features = ["alloc"] }
 digest = { version = "0.10.7", features = ["alloc"] }
 ed25519-dalek = { workspace = true, features = ["pem", "pkcs8"] }
-email_address = "0.2.9"
 hex = { version = "0.4.3", features = ["serde"] }
 log = "0.4.22"
 md-5 = "0.10.6"
@@ -41,6 +40,9 @@ serde.workspace = true
 serde_json = "1.0.133"
 sha1 = "0.10.6"
 sha2.workspace = true
+signstar-crypto = { version = "0.1.0", path = "../signstar-crypto", features = [
+    "nethsm",
+] }
 strum.workspace = true
 testresult = { optional = true, workspace = true }
 thiserror.workspace = true

@@ -527,7 +527,7 @@ impl From<&SignstarConfig> for State {
 #[cfg(test)]
 mod tests {
     use log::LevelFilter;
-    use nethsm::OpenPgpUserIdList;
+    use nethsm::{OpenPgpUserIdList, OpenPgpVersion};
     use rstest::rstest;
     use signstar_common::logging::setup_logging;
     use testresult::TestResult;
@@ -595,7 +595,7 @@ mod tests {
             key_cert_state: KeyCertificateState::KeyContext(
                 CryptographicKeyContext::OpenPgp {
                     user_ids: OpenPgpUserIdList::new(vec!["Foobar McFooface <foobar@mcfooface.org>".parse()?])?,
-                    version: nethsm::OpenPgpVersion::V4,
+                    version: OpenPgpVersion::V4,
                 })
         },
         "key1 (namespace: ns1; tags: tag1, tag2; type: Curve25519; mechanisms: EdDsaSignature; context: OpenPGP (Version: 4; User IDs: \"Foobar McFooface <foobar@mcfooface.org>\"))",
@@ -797,7 +797,7 @@ mod tests {
                     key_cert_state: KeyCertificateState::KeyContext(
                         CryptographicKeyContext::OpenPgp {
                             user_ids: OpenPgpUserIdList::new(vec!["Foobar McFooface <foobar@mcfooface.org>".parse()?])?,
-                            version: nethsm::OpenPgpVersion::V4,
+                            version: OpenPgpVersion::V4,
                         }
                     )
                 },
@@ -827,7 +827,7 @@ mod tests {
                     key_cert_state: KeyCertificateState::KeyContext(
                         CryptographicKeyContext::OpenPgp {
                             user_ids: OpenPgpUserIdList::new(vec!["Foobar McFooface <foobar@mcfooface.org>".parse()?])?,
-                            version: nethsm::OpenPgpVersion::V4,
+                            version: OpenPgpVersion::V4,
                         }
                     )
                 },
@@ -873,7 +873,7 @@ mod tests {
                     key_cert_state: KeyCertificateState::KeyContext(
                         CryptographicKeyContext::OpenPgp {
                             user_ids: OpenPgpUserIdList::new(vec!["Foobar McFooface <foobar@mcfooface.org>".parse()?])?,
-                            version: nethsm::OpenPgpVersion::V4,
+                            version: OpenPgpVersion::V4,
                         }
                     )
                 },
@@ -918,7 +918,7 @@ key1 (tags: tag1; type: Curve25519; mechanisms: EdDsaSignature; context: OpenPGP
                     key_cert_state: KeyCertificateState::KeyContext(
                         CryptographicKeyContext::OpenPgp {
                             user_ids: OpenPgpUserIdList::new(vec!["Foobar McFooface <foobar@mcfooface.org>".parse()?])?,
-                            version: nethsm::OpenPgpVersion::V4,
+                            version: OpenPgpVersion::V4,
                         }
                     )
                 },
@@ -956,7 +956,7 @@ key1 (tags: tag1; type: Curve25519; mechanisms: EdDsaSignature; context: OpenPGP
                     key_cert_state: KeyCertificateState::KeyContext(
                         CryptographicKeyContext::OpenPgp {
                             user_ids: OpenPgpUserIdList::new(vec!["Foobar McFooface <foobar@mcfooface.org>".parse()?])?,
-                            version: nethsm::OpenPgpVersion::V4,
+                            version: OpenPgpVersion::V4,
                         }
                     )
                 },
@@ -1000,7 +1000,7 @@ key3 (tags: tag3; type: Curve25519; mechanisms: EdDsaSignature; context: OpenPGP
                     key_cert_state: KeyCertificateState::KeyContext(
                         CryptographicKeyContext::OpenPgp {
                             user_ids: OpenPgpUserIdList::new(vec!["Foobar McFooface <foobar@mcfooface.org>".parse()?])?,
-                            version: nethsm::OpenPgpVersion::V4,
+                            version: OpenPgpVersion::V4,
                         }
                     )
                 },

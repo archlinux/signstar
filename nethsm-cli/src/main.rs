@@ -22,6 +22,7 @@ use nethsm::{
     KeyFormat,
     KeyMechanism,
     NetworkConfig,
+    OpenPgpKeyUsageFlags,
     Passphrase,
     PrivateKeyImport,
     SystemState,
@@ -645,7 +646,7 @@ fn run_command(cli: Cli) -> Result<(), Error> {
                         &read_to_string(command.key_data)?,
                     ),
                 }
-                .map_err(nethsm::Error::Key)?;
+                .map_err(nethsm::Error::SignstarCryptoKey)?;
 
                 println!(
                     "{}",
@@ -795,7 +796,7 @@ fn run_command(cli: Cli) -> Result<(), Error> {
         Command::OpenPgp(command) => match command {
             cli::OpenPgpCommand::Add(command) => {
                 let flags = {
-                    let mut flags = nethsm::OpenPgpKeyUsageFlags::default();
+                    let mut flags = OpenPgpKeyUsageFlags::default();
                     if command.can_sign {
                         flags.set_sign();
                     }

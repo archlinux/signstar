@@ -50,4 +50,8 @@ pub enum Error {
     /// OpenPGP error
     #[error("OpenPGP error: {0}")]
     OpenPgp(#[from] crate::openpgp::Error),
+
+    /// A signstar_crypto key error.
+    #[error("A signstar_crypto key error:\n{0}")]
+    SignstarCryptoKey(#[from] signstar_crypto::key::Error),
 }

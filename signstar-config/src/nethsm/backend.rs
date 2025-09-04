@@ -589,7 +589,10 @@ fn add_system_wide_keys(
                     },
                     KeySetupComparison {
                         state_type: StateType::NetHsm,
-                        key_type: info.r#type.into(),
+                        key_type: info
+                            .r#type
+                            .try_into()
+                            .map_err(nethsm::Error::SignstarCryptoKey)?,
                         key_mechanisms: info.mechanisms.iter().map(Into::into).collect(),
                     },
                 );
@@ -715,7 +718,10 @@ fn add_namespaced_keys(
                     },
                     KeySetupComparison {
                         state_type: StateType::NetHsm,
-                        key_type: key_info.r#type.into(),
+                        key_type: key_info
+                            .r#type
+                            .try_into()
+                            .map_err(nethsm::Error::SignstarCryptoKey)?,
                         key_mechanisms: key_info.mechanisms.iter().map(Into::into).collect(),
                     },
                 );
@@ -1200,7 +1206,10 @@ fn get_key_states(
             name: key_id,
             namespace: None,
             tags: key.restrictions.tags.unwrap_or_default(),
-            key_type: key.r#type.into(),
+            key_type: key
+                .r#type
+                .try_into()
+                .map_err(nethsm::Error::SignstarCryptoKey)?,
             mechanisms: key.mechanisms.iter().map(KeyMechanism::from).collect(),
             key_cert_state: key_context,
         });
@@ -1236,7 +1245,10 @@ fn get_key_states(
                 name: key_id,
                 namespace: Some(namespace.clone()),
                 tags: key.restrictions.tags.unwrap_or_default(),
-                key_type: key.r#type.into(),
+                key_type: key
+                    .r#type
+                    .try_into()
+                    .map_err(nethsm::Error::SignstarCryptoKey)?,
                 mechanisms: key.mechanisms.iter().map(KeyMechanism::from).collect(),
                 key_cert_state: key_context,
             });
