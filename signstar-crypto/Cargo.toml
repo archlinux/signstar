@@ -1,0 +1,13 @@
+[package]
+authors.workspace = true
+description = "Common types for cryptography in Signstar"
+edition.workspace = true
+homepage.workspace = true
+license.workspace = true
+name = "signstar-crypto"
+repository.workspace = true
+rust-version.workspace = true
+version = "0.1.0"
+
+[lints]
+workspace = true
