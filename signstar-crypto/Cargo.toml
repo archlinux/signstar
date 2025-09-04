@@ -12,13 +12,18 @@ version = "0.1.0"
 [dependencies]
 email_address = "0.2.9"
 log.workspace = true
+nethsm-sdk-rs = { workspace = true, optional = true }
 pgp.workspace = true
 serde.workspace = true
 strum.workspace = true
 thiserror.workspace = true
 
 [dev-dependencies]
+rstest.workspace = true
 testresult.workspace = true
+
+[features]
+nethsm = ["dep:nethsm-sdk-rs"]
 
 [lints]
 workspace = true
