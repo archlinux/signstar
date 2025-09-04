@@ -9,5 +9,16 @@ repository.workspace = true
 rust-version.workspace = true
 version = "0.1.0"
 
+[dependencies]
+email_address = "0.2.9"
+log.workspace = true
+pgp.workspace = true
+serde.workspace = true
+strum.workspace = true
+thiserror.workspace = true
+
+[dev-dependencies]
+testresult.workspace = true
+
 [lints]
 workspace = true

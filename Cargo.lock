@@ -4461,6 +4461,15 @@ dependencies = [
 [[package]]
 name = "signstar-crypto"
 version = "0.1.0"
+dependencies = [
+ "email_address",
+ "log",
+ "pgp",
+ "serde",
+ "strum",
+ "testresult",
+ "thiserror 2.0.15",
+]
 
 [[package]]
 name = "signstar-request-signature"
