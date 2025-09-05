@@ -8,14 +8,8 @@
 https://raw.githubusercontent.com/Nitrokey/nethsm-sdk-py/main/tests/%7B%7D
 
 # URLs that only become available after release of a component
-https://docs.rs/signstar_common/latest/signstar_common/
-https://docs.rs/signstar_config/latest/signstar_config/
-https://docs.rs/signstar_test/latest/signstar_test/
-https://docs.rs/signstar_sign/latest/signstar_sign/
 
 # moved URLs that will be available only when merged
-https://signstar.archlinux.page/rustdoc/signstar_test/
-https://signstar.archlinux.page/rustdoc/signstar_sign/
 
 # Nitrokey is behind cloudflare and 403'ing all links
 https://nitrokey.com/
