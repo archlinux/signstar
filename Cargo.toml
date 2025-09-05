@@ -23,6 +23,9 @@ nethsm = { path = "nethsm", version = "0.10.0" }
 nethsm-backup = { path = "nethsm-backup", version = "0.2.0" }
 nethsm-config = { path = "nethsm-config", version = "0.5.0" }
 nethsm-sdk-rs = "1.1.1"
+p256 = "0.13.2"
+p384 = "0.13.1"
+p521 = "0.13.3"
 pgp = { version = "0.16", default-features = false }
 rand = "0.8.5"
 rsa = "0.9.7"

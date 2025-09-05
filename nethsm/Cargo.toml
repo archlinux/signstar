@@ -23,9 +23,9 @@ log = "0.4.22"
 md-5 = "0.10.6"
 nethsm-backup.workspace = true
 nethsm-sdk-rs.workspace = true
-p256 = { version = "0.13.2", features = ["pem", "pkcs8"] }
-p384 = { version = "0.13.0", features = ["pem", "pkcs8"] }
-p521 = { version = "0.13.3", features = ["pem", "pkcs8"] }
+p256.workspace = true
+p384.workspace = true
+p521.workspace = true
 pgp.workspace = true
 picky-asn1-der = "0.5.1"
 picky-asn1-x509 = "0.14.1"
