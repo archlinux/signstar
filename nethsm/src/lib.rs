@@ -7,6 +7,7 @@ mod error;
 mod key;
 mod nethsm_sdk;
 pub mod openpgp;
+pub mod openpgp_nethsm;
 #[cfg(feature = "test-helpers")]
 pub mod test;
 mod tls;

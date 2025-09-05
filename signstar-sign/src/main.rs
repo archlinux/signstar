@@ -4,7 +4,7 @@ use std::process::ExitCode;
 
 use clap::Parser;
 use log::error;
-use nethsm::{KeyId, NetHsm};
+use nethsm::{KeyId, NetHsm, OpenPgpKeyUsageFlags, OpenPgpUserId};
 use pgp::{
     composed::Deserializable,
     crypto::public_key::PublicKeyAlgorithm,
@@ -259,13 +259,13 @@ fn load_signer() -> Result<Box<dyn StateSigner>, Error> {
                         key_id,
                     };
 
-                    let mut flags = nethsm::openpgp::KeyUsageFlags::default();
+                    let mut flags = OpenPgpKeyUsageFlags::default();
                     flags.set_sign();
 
                     let cert = nethsm::openpgp::add_certificate_with_signer(
                         public_key,
                         flags,
-                        nethsm::openpgp::OpenPgpUserId::new("Test".to_owned()).unwrap(),
+                        OpenPgpUserId::new("Test".to_owned()).unwrap(),
                         nethsm::OpenPgpVersion::V4,
                         signer,
                     )
