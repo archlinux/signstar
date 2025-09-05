@@ -13,7 +13,7 @@ version = "0.10.0"
 ignored = ["md-5"]
 
 [dependencies]
-base64ct = { version = "1.6.0", features = ["alloc", "std"] }
+base64ct.workspace = true
 chrono = { workspace = true, features = ["alloc"] }
 digest = { version = "0.10.7", features = ["alloc"] }
 ed25519-dalek = { workspace = true, features = ["pem", "pkcs8"] }
