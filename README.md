@@ -1,6 +1,6 @@
 # Signstar
 
-This project provides tools and documentation for running a generic signing enclave with the help of one or more [Nitrokey NetHSM] devices.
+This project provides tools and documentation for running a generic signing enclave with the help of a Hardware Security Module (HSM) as backend.
 
 Raw cryptographic signatures and [OpenPGP data signatures] are supported.
 
@@ -15,15 +15,15 @@ Signstar consists of several loosely coupled components, some of which are used 
 - [signstar-common]: Shared components and data types for Signstar tools and libraries
 - [signstar-config]: Configuration file handling for Signstar hosts
 - [signstar-configure-build]: A commandline interface for the configuration of Signstar system during build-time
-- *signstar-configure*: An executable, that allows non-interactive configuration of a [Nitrokey NetHSM] based on a configuration ([#48])
+- *signstar-configure*: An executable, that allows non-interactive configuration of an HSM based on a configuration ([#48])
 - [signstar-crypto]: Common types and functionality for cryptography in Signstar
 - [signstar-request-signature]: An executable, run on a client host, that prepares data to be signed and retrieves a signature for it from a Signstar setup
-- [signstar-sign]: An executable, that allows signing of messages with the help of a [Nitrokey NetHSM], based on a configuration
+- [signstar-sign]: An executable, that allows signing of messages with the help of an HSM, based on a configuration
 
 ## Requirements
 
 A Signstar setup requires a [TPM-2.0]-enabled host, allowing to run [SignstarOS] which provides a read-only root filesystem and an encrypted `/var` partition for its state.
-This signing service host is connected to one or more [Nitrokey NetHSM] devices over an otherwise secluded network and exposes *signstar-sign* to clients of the signing service.
+This signing service host is connected to one or more HSM devices and exposes *signstar-sign* to clients of the signing service.
 
 Clients use *signstar-request-signature* to connect to a Signstar setup and retrieve a signature for a provided payload.
 
@@ -34,16 +34,16 @@ title: Simplified overview of a Signstar setup
 sequenceDiagram
     participant C as Client
     participant S as Signstar
-    participant N as NetHSM
+    participant H as HSM
 
     Note over S: pair of Signstar credentials
-    Note over N: pair of NetHSM credentials
+    Note over H: pair of HSM credentials
 
-    S ->> N: HSM is configured using *signstar-configure*
+    S ->> H: HSM is configured using *signstar-configure*
     C ->>+ S: User "A" requests signature using *signstar-request-signature*
     S ->> S: Host user "A" is mapped to HSM operator user "X" by *signstar-sign*
-    S ->> N: Signature is requested using operator user "X" by *signstar-sign*
-    N ->> S: Raw cryptographic signature is received by *signstar-sign*
+    S ->> H: Signature is requested using operator user "X" by *signstar-sign*
+    H ->> S: Raw cryptographic signature is received by *signstar-sign*
     S ->>- C: Signature for user "A" is returned by *signstar-sign*
 ```
 
