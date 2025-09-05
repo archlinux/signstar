@@ -4462,10 +4462,17 @@ dependencies = [
 name = "signstar-crypto"
 version = "0.1.0"
 dependencies = [
+ "base64ct",
+ "ed25519-dalek",
  "email_address",
  "log",
  "nethsm-sdk-rs",
+ "p256",
+ "p384",
+ "p521",
  "pgp",
+ "rand 0.8.5",
+ "rsa",
  "rstest",
  "serde",
  "strum",

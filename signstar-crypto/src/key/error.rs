@@ -5,6 +5,29 @@ use crate::key::base::{KeyMechanism, KeyType, MIN_RSA_BIT_LENGTH, SignatureType}
 /// An error that can occur when dealing with keys.
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
+    /// Importing from PKCS#8 DER or PEM failed
+    #[error("PKCS#8 error: {0}")]
+    Pkcs8(#[from] rsa::pkcs8::Error),
+
+    /// No primes found when importing an RSA key
+    #[error("No primes found")]
+    NoPrimes,
+
+    /// The [`KeyType`] is not supported
+    #[error("The {0} key type is not supported")]
+    UnsupportedKeyType(KeyType),
+
+    /// An input buffer is too long when trying to pad it.
+    #[error(
+        "The input buffer is {buffer_len} bytes long, but should be padded to only {pad_len} bytes in length."
+    )]
+    PaddingInputTooLong {
+        /// The length of the input buffer.
+        buffer_len: usize,
+        /// The length of the buffer the input should be padded to.
+        pad_len: usize,
+    },
+
     /// The key mechanisms provided for a key type are not valid
     #[error(
         "The key type {key_type} does not support the following key mechanisms: {invalid_mechanisms:?}"

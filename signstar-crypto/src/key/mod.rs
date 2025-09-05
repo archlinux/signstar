@@ -2,6 +2,7 @@
 
 pub mod base;
 mod error;
+pub mod import;
 
 pub use base::{
     CryptographicKeyContext,
@@ -17,3 +18,4 @@ pub use base::{
     key_type_matches_mechanisms,
 };
 pub use error::Error;
+pub use import::PrivateKeyImport;
