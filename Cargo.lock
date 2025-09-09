@@ -2791,7 +2791,6 @@ dependencies = [
  "rustainers",
  "rustls",
  "rustls-native-certs",
- "secrecy 0.10.3",
  "serde",
  "serde_json",
  "sha1",

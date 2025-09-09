@@ -54,4 +54,8 @@ pub enum Error {
     /// A signstar_crypto key error.
     #[error("A signstar_crypto key error:\n{0}")]
     SignstarCryptoKey(#[from] signstar_crypto::key::Error),
+
+    /// A signstar_crypto key error.
+    #[error("A signstar_crypto passphrase error:\n{0}")]
+    SignstarCryptoPassphrase(#[from] signstar_crypto::passphrase::Error),
 }

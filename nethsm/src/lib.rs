@@ -49,6 +49,7 @@ pub use signstar_crypto::{
         key_type_matches_mechanisms,
     },
     openpgp::{OpenPgpKeyUsageFlags, OpenPgpUserId, OpenPgpUserIdList, OpenPgpVersion},
+    passphrase::Passphrase,
 };
 pub use tls::{
     ConnectionSecurity,
@@ -56,4 +57,4 @@ pub use tls::{
     DEFAULT_TIMEOUT_SECONDS,
     HostCertificateFingerprints,
 };
-pub use user::{Credentials, Error as UserError, FullCredentials, NamespaceId, Passphrase, UserId};
+pub use user::{Credentials, Error as UserError, FullCredentials, NamespaceId, UserId};
