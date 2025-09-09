@@ -6,7 +6,7 @@
 /// Integration tests
 use nethsm::test::{ADMIN_USER_ID, BACKUP_USER_ID, NetHsmImage, nethsm_with_users};
 use nethsm::{NetHsm, Passphrase, UserId};
-use nethsm_backup::Backup;
+use nethsm_backup::{Backup, validate_backup};
 use rstest::rstest;
 use rustainers::Container;
 use testdir::testdir;
@@ -41,6 +41,12 @@ async fn create_backup_and_decrypt_it(
     let backup = nethsm.backup()?;
     std::fs::write(&backup_file, backup.clone())?;
     println!("Written NetHSM backup file: {:?}", &backup_file);
+
+    // Validate the backup.
+    validate_backup(
+        &mut std::fs::File::open(&backup_file)?,
+        Some(Passphrase::new(new_backup_passphrase.to_string())),
+    )?;
 
     let backup = Backup::parse(std::fs::File::open(&backup_file)?)?;
     let backup = backup.decrypt(new_backup_passphrase.as_bytes())?;

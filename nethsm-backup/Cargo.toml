@@ -13,6 +13,7 @@ repository.workspace = true
 aes-gcm = "0.10.3"
 log.workspace = true
 scrypt = "0.11.0"
+signstar-crypto = { version = "0.1.0", path = "../signstar-crypto" }
 thiserror.workspace = true
 
 [dev-dependencies]
