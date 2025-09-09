@@ -4474,6 +4474,7 @@ dependencies = [
  "rand 0.8.5",
  "rsa",
  "rstest",
+ "secrecy 0.10.3",
  "serde",
  "strum",
  "testresult",

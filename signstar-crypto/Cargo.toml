@@ -21,6 +21,7 @@ p521.workspace = true
 pgp.workspace = true
 rand.workspace = true
 rsa.workspace = true
+secrecy = { version = "0.10.3", features = ["serde"] }
 serde.workspace = true
 strum.workspace = true
 thiserror.workspace = true
