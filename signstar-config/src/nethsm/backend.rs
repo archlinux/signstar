@@ -1525,8 +1525,11 @@ impl<'a, 'b> NetHsmBackend<'a, 'b> {
                 );
 
                 self.nethsm.provision(
-                    Passphrase::from_str(self.admin_credentials.get_unlock_passphrase())
-                        .map_err(Error::NetHsmUser)?,
+                    Passphrase::from_str(self.admin_credentials.get_unlock_passphrase()).map_err(
+                        |source| {
+                            crate::Error::NetHsm(nethsm::Error::SignstarCryptoPassphrase(source))
+                        },
+                    )?,
                     self.admin_credentials
                         .get_default_administrator()?
                         .passphrase
