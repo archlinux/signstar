@@ -1,6 +1,5 @@
 #![doc = include_str!("../README.md")]
 
-mod backup;
 mod base;
 pub mod connection;
 mod error;
@@ -12,7 +11,6 @@ pub mod test;
 mod tls;
 mod user;
 
-pub use backup::validate_backup;
 pub use base::NetHsm;
 // Publicly re-export chrono facilities used in the API of NetHsm.
 pub use chrono::{DateTime, Utc};
