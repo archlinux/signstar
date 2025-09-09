@@ -17,6 +17,9 @@ use crate::key::MIN_RSA_BIT_LENGTH;
 use crate::key::{Error, KeyType, key_type_matches_length};
 
 /// The data for private key import
+// Allow dead code here, as the variants of `PrivateKeyData` are only used with a backend, which
+// requires enabling a feature.
+#[allow(dead_code)]
 enum PrivateKeyData {
     /// Data for [`KeyType::Curve25519`]
     Curve25519(Vec<u8>),
