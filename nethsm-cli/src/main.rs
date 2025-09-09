@@ -28,8 +28,8 @@ use nethsm::{
     SystemState,
     UserId,
     UserRole,
-    validate_backup,
 };
+use nethsm_backup::validate_backup;
 use nethsm_config::{
     Config,
     ConfigCredentials,
