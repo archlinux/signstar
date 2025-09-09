@@ -17,7 +17,9 @@ use crate::key::MIN_RSA_BIT_LENGTH;
 use crate::key::{Error, KeyType, key_type_matches_length};
 
 /// The data for private key import
-enum PrivateKeyData {
+// Allow dead code here, as the variants of `PrivateKeyData` are only used with a backend, which
+// requires enabling a feature.
+pub enum PrivateKeyData {
     /// Data for [`KeyType::Curve25519`]
     Curve25519(Vec<u8>),
     /// Data for [`KeyType::EcP256`]
@@ -28,8 +30,11 @@ enum PrivateKeyData {
     EcP521(Vec<u8>),
     /// Data for [`KeyType::Rsa`]
     Rsa {
+        /// The prime number `p`.
         prime_p: Vec<u8>,
+        /// The prime number `q`.
         prime_q: Vec<u8>,
+        /// The public exponent `e`.
         public_exponent: Vec<u8>,
     },
 }
