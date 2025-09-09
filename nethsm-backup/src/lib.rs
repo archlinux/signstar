@@ -129,6 +129,7 @@ use std::{
 use aes_gcm::{Aes256Gcm, KeyInit as _, aead::Aead as _};
 use log::error;
 use scrypt::{Params, scrypt};
+use signstar_crypto::passphrase::Passphrase;
 
 /// Backup processing error.
 #[derive(Debug, thiserror::Error)]
@@ -447,4 +448,74 @@ impl Iterator for BackupItemDecryptor<'_> {
             Ok((key, value))
         })
     }
+}
+
+/// Validates a [backup].
+///
+/// Parses a previously created backup file. If `passphrase` is
+/// [`Some`], additionally decrypts the backup and verifies the
+/// encrypted backup version number.
+///
+/// # Errors
+///
+/// Returns an error if validating a [backup] fails:
+///
+/// - the magic number is missing in the file
+/// - the version number is unknown
+/// - the provided passphrase is incorrect
+///
+/// # Examples
+///
+/// ```no_run
+/// use nethsm::{Connection, ConnectionSecurity, Credentials, NetHsm};
+/// use nethsm_backup::validate_backup;
+/// use signstar_crypto::passphrase::Passphrase;
+///
+/// # fn main() -> testresult::TestResult {
+/// // create a connection with a user in the Backup role
+/// let nethsm = NetHsm::new(
+///     Connection::new(
+///         "https://example.org/api/v1".try_into()?,
+///         ConnectionSecurity::Unsafe,
+///     ),
+///     Some(Credentials::new(
+///         "backup1".parse()?,
+///         Some(Passphrase::new("passphrase".to_string())),
+///     )),
+///     None,
+///     None,
+/// )?;
+///
+/// // create a backup and write it to file
+/// std::fs::write("nethsm.bkp", nethsm.backup()?)?;
+///
+/// // check for consistency only
+/// validate_backup(&mut std::fs::File::open("nethsm.bkp")?, None)?;
+///
+/// // check for correct passphrase by decrypting and validating the encrypted backup version
+/// validate_backup(
+///     &mut std::fs::File::open("nethsm.bkp")?,
+///     Passphrase::new("a sample password".into()),
+/// )?;
+/// # Ok(())
+/// # }
+/// ```
+/// [backup]: https://docs.nitrokey.com/nethsm/administration#backup
+pub fn validate_backup(
+    reader: &mut impl Read,
+    passphrase: impl Into<Option<Passphrase>>,
+) -> Result<()> {
+    let passphrase = passphrase.into();
+    let backup = Backup::parse(reader)?;
+    if let Some(passphrase) = passphrase {
+        let decryptor = backup.decrypt(passphrase.expose_borrowed().as_bytes())?;
+        let version = decryptor.version()?;
+        if version.len() != 1 || version[0] != 0 {
+            return Err(Error::BadVersion {
+                highest_supported_version: 0,
+                backup_version: version,
+            });
+        }
+    }
+    Ok(())
 }
