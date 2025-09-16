@@ -19,3 +19,7 @@ https://www.nitrokey.com/products/nethsm
 
 # Arch Linux is being DDoS'ed
 https://archlinux.org
+
+# new crate, so the URLs are not yet operational:
+https://docs.rs/signstar_crypto/latest/signstar_yubihsm/
+https://signstar.archlinux.page/rustdoc/signstar_yubihsm/
