@@ -106,6 +106,7 @@ async fn sign_data(_req: HttpRequest) -> impl Responder {
 #[rstest]
 #[case::plain(SIGNSTAR_CONFIG_PLAINTEXT)]
 #[case::full(SIGNSTAR_CONFIG_FULL)]
+#[case::yubi(SIGNSTAR_CONFIG_YUBI)]
 #[tokio::test]
 async fn load_credentials_for_user(#[case] config_data: &[u8]) -> TestResult {
     use signstar_common::common::get_data_home;

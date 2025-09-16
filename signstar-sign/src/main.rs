@@ -14,6 +14,7 @@ use signstar_config::{
 use signstar_crypto::signer::{RawSigningKey, sign_hasher_state};
 use signstar_request_signature::{Request, Response, Sha512};
 use signstar_sign::cli::Cli;
+use signstar_yubihsm::{Credentials, YubiHsmSigner};
 
 /// Signstar signing error.
 #[derive(Debug, thiserror::Error)]
@@ -57,6 +58,10 @@ enum Error {
     /// Signstar crypto error.
     #[error(transparent)]
     SignstarCryptoOpenPgp(#[from] signstar_crypto::openpgp::Error),
+
+    /// YubiHSM error.
+    #[error(transparent)]
+    YubiHsm(#[from] signstar_yubihsm::Error),
 }
 
 /// Creates a new [`StateSigner`] object with correct connection and user settings and returns it.
@@ -92,6 +97,15 @@ fn load_signer() -> Result<Box<dyn RawSigningKey>, Error> {
         Err(Error::NoKeyId)
     };
 
+    let yubihsm_key_id =
+        if let UserMapping::SystemYubiHsmOperatorSigning { yubihsm_key_id, .. } =
+            credentials_loading.get_mapping().get_user_mapping()
+        {
+            Ok(*yubihsm_key_id)
+        } else {
+            Err(Error::NoKeyId)
+        };
+
     // Currently, this picks the first connection found.
     // The Signstar setup assumes, that multiple backends are used in a round-robin fashion, but
     // this is not yet implemented.
@@ -110,6 +124,24 @@ fn load_signer() -> Result<Box<dyn RawSigningKey>, Error> {
             NetHsm::new(connection, Some(credentials.into()), None, None)?,
             nethsm_key_id?,
         )?)),
+        BackendConnection::YubiHsm(connection) => {
+            let key_id = yubihsm_key_id?;
+            let credentials = Credentials {
+                auth_key_id: credentials
+                    .name
+                    .to_string()
+                    .parse()
+                    .expect("to be a valid u16 auth key id"),
+                passphrase: credentials.passphrase.expose_owned(),
+            };
+
+            Ok(Box::new(match &connection {
+                YubiHsmConnection::Mock => YubiHsmSigner::mock(key_id, &credentials)?,
+                YubiHsmConnection::Usb { serial_number } => {
+                    YubiHsmSigner::new_with_serial_number(serial_number, key_id, &credentials)?
+                }
+            }))
+        }
     }
 }
 
