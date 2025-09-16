@@ -9,7 +9,7 @@ use signstar_crypto::{passphrase::Passphrase, traits::UserWithPassphrase};
 #[derive(Clone, Debug)]
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct Credentials {
-    id: u16,
+    pub(crate) id: u16,
     passphrase: Passphrase,
 }
 
@@ -39,6 +39,12 @@ impl UserWithPassphrase for Credentials {
 
     fn passphrase(&self) -> &Passphrase {
         &self.passphrase
+    }
+}
+
+impl From<&Credentials> for yubihsm::Credentials {
+    fn from(value: &Credentials) -> Self {
+        Self::from_password(value.id, value.passphrase.expose_borrowed().as_bytes())
     }
 }
 

@@ -12,7 +12,12 @@ version = "0.1.0"
 
 [dependencies]
 serde = { workspace = true, optional = true }
-signstar-crypto = { version = "0.1.0", path = "../signstar-crypto" }
+signstar-crypto.workspace = true
+thiserror.workspace = true
+yubihsm = { version = "0.42.1", features = ["http", "mockhsm", "usb"] }
+
+[dev-dependencies]
+testresult.workspace = true
 
 [features]
 default = ["serde"]
@@ -20,6 +25,3 @@ serde = ["dep:serde"]
 
 [lints]
 workspace = true
-
-[dev-dependencies]
-testresult.workspace = true
