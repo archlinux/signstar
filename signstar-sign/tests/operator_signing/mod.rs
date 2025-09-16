@@ -17,7 +17,7 @@ use signstar_config::test::{list_files_in_dir, prepare_system_with_config};
 use tempfile::tempdir;
 use testresult::TestResult;
 
-use crate::utils::{SIGNSTAR_CONFIG_FULL, SIGNSTAR_CONFIG_PLAINTEXT};
+use crate::utils::{SIGNSTAR_CONFIG_FULL, SIGNSTAR_CONFIG_PLAINTEXT, SIGNSTAR_CONFIG_YUBI};
 
 const SIGNSTAR_SIGN_PAYLOAD: &str = "signstar-sign";
 use actix_web::{App, HttpRequest, HttpServer, Responder, get, post};
@@ -106,6 +106,7 @@ async fn sign_data(_req: HttpRequest) -> impl Responder {
 #[rstest]
 #[case::plain(SIGNSTAR_CONFIG_PLAINTEXT)]
 #[case::full(SIGNSTAR_CONFIG_FULL)]
+#[case::yubi(SIGNSTAR_CONFIG_YUBI)]
 #[tokio::test]
 async fn load_credentials_for_user(#[case] config_data: &[u8]) -> TestResult {
     use signstar_common::common::get_data_home;
