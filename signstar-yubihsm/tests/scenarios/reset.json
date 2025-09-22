@@ -1,0 +1,11 @@
+[
+    {
+        "Auth": {
+            "user": 1,
+            "key_file": "tests/scenarios/keys/default"
+        }
+    },
+    {
+        "Reset": null
+    }
+]

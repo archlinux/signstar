@@ -398,7 +398,9 @@ test-readme project:
                 cargo install --locked --path signstar-request-signature
             ;;
         esac
-        cargo install --locked --path {{ project }}
+        # we need --debug because of mockhsm of signstar-yubihsm which fails to compile
+        # in release builds :(
+        cargo install --locked --debug --all-features --path {{ project }}
     }
 
     create_container() {

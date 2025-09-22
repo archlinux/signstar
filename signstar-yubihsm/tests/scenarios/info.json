@@ -1,0 +1,20 @@
+[
+    {
+        "Auth": {
+            "user": 1,
+            "password_file": "tests/scenarios/passphrases/password"
+        }
+    },
+    {
+        "Info": null
+    },
+    {
+        "Auth": {
+            "user": 1,
+            "password_file": "tests/scenarios/passphrases/password"
+        }
+    },
+    {
+        "Info": null
+    }
+]

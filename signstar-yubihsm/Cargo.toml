@@ -10,8 +10,24 @@ rust-version.workspace = true
 
 [dependencies]
 signstar-crypto = { path = "../signstar-crypto", version = "0.1.0" }
+testresult.workspace = true
 thiserror.workspace = true
-yubihsm = { version = "0.42.1", features = ["http", "mockhsm", "usb"] }
+yubihsm = { version = "0.42.1", features = ["mockhsm", "usb"] }
+
+clap = { workspace = true, optional = true }
+env_logger = "0.11.8"
+log.workspace = true
+serde = { workspace = true, features = ["derive"] }
+serde_json = "1.0.145"
 
 [lints]
 workspace = true
+
+[[bin]]
+name = "signstar-yubihsm"
+path = "src/main.rs"
+required-features = ["cli"]
+
+[features]
+cli = ["dep:clap"]
+default = []
