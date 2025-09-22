@@ -1,0 +1,69 @@
+{
+    "Auth": {
+        "user": 1,
+        "passphrase_file": "tests/scenarios/keys/default"
+    },
+    "Steps": [
+        {
+            "GenerateKey": {
+                "key_id": 5,
+                "domain": 1,
+                "caps": [
+                    "sign",
+                    "exportable"
+                ]
+            }
+        },
+        {
+            "PutWrapKey": {
+                "key_id": 5,
+                "domain": 1,
+                "caps": [
+                    "export"
+                ],
+                "delegated_caps": [
+                    "sign",
+                    "exportable"
+                ],
+                "passphrase_file": "tests/scenarios/keys/wrap-key"
+            }
+        },
+        {
+            "PutAuthKey": {
+                "key_id": 5,
+                "domain": 1,
+                "caps": [
+                    "export"
+                ],
+                "delegated_caps": [],
+                "passphrase_file": "tests/scenarios/keys/auth-key"
+            }
+        },
+        {
+            "Auth": {
+                "user": 5,
+                "passphrase_file": "tests/scenarios/keys/auth-key"
+            }
+        },
+        {
+            "ExportWrapped": {
+                "wrap_key_id": 5,
+                "object_type": "asymmetric-key",
+                "object_id": 5,
+                "wrapped_file": "/tmp/wrapped"
+            }
+        },
+        {
+            "Auth": {
+                "user": 1,
+                "passphrase_file": "tests/scenarios/keys/default"
+            }
+        },
+        {
+            "Delete": {
+                "object_type": "asymmetric-key",
+                "object_id": 5
+            }
+        }
+    ]
+}

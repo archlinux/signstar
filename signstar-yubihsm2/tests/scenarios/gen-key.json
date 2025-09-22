@@ -1,0 +1,28 @@
+{
+    "Auth": {
+        "user": 1,
+        "passphrase_file": "tests/scenarios/keys/default"
+    },
+    "Steps": [
+        {
+            "PutAuthKey": {
+                "key_id": 3,
+                "domain": 1,
+                "caps": [
+                    "sign"
+                ],
+                "delegated_caps": [],
+                "passphrase_file": "tests/scenarios/keys/auth-key"
+            }
+        },
+        {
+            "GenerateKey": {
+                "key_id": 3,
+                "domain": 1,
+                "caps": [
+                    "sign"
+                ]
+            }
+        }
+    ]
+}

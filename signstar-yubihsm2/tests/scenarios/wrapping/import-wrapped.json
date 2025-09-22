@@ -1,0 +1,99 @@
+{
+    "Auth": {
+        "user": 1,
+        "passphrase_file": "tests/scenarios/keys/default"
+    },
+    "Steps": [
+        {
+            "PutWrapKey": {
+                "key_id": 6,
+                "domain": 1,
+                "caps": [
+                    "import"
+                ],
+                "delegated_caps": [
+                    "sign",
+                    "exportable"
+                ],
+                "passphrase_file": "tests/scenarios/keys/wrap-key"
+            }
+        },
+        {
+            "PutAuthKey": {
+                "key_id": 6,
+                "domain": 1,
+                "caps": [
+                    "import"
+                ],
+                "delegated_caps": [],
+                "passphrase_file": "tests/scenarios/keys/auth-key"
+            }
+        },
+        {
+            "Auth": {
+                "user": 6,
+                "passphrase_file": "tests/scenarios/keys/auth-key"
+            }
+        },
+        {
+            "ImportWrapped": {
+                "wrap_key_id": 6,
+                "wrapped_file": "/tmp/wrapped"
+            }
+        },
+        {
+            "GetInfo": {
+                "object_type": "asymmetric-key",
+                "object_id": 5
+            }
+        },
+        {
+            "Auth": {
+                "user": 1,
+                "passphrase_file": "tests/scenarios/keys/default"
+            }
+        },
+        {
+            "Delete": {
+                "object_type": "authentication-key",
+                "object_id": 6
+            }
+        },
+        {
+            "PutAuthKey": {
+                "key_id": 6,
+                "domain": 1,
+                "caps": [
+                    "sign"
+                ],
+                "delegated_caps": [],
+                "passphrase_file": "tests/scenarios/keys/auth-key"
+            }
+        },
+        {
+            "Auth": {
+                "user": 6,
+                "passphrase_file": "tests/scenarios/keys/auth-key"
+            }
+        },
+        {
+            "SignEd25519": {
+                "key_id": 5,
+                "data": [
+                    1,
+                    2,
+                    3,
+                    4,
+                    5,
+                    6,
+                    7,
+                    8,
+                    9,
+                    10,
+                    11,
+                    12
+                ]
+            }
+        }
+    ]
+}

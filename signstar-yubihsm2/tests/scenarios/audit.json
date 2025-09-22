@@ -1,0 +1,87 @@
+{
+    "Auth": {
+        "user": 1,
+        "passphrase_file": "tests/scenarios/keys/default"
+    },
+    "Steps": [
+        {
+            "CommandAudit": {
+                "command": 106,
+                "setting": "on"
+            }
+        },
+        {
+            "ForceAudit": "on"
+        },
+        {
+            "GenerateKey": {
+                "key_id": 7,
+                "domain": 1,
+                "caps": [
+                    "sign",
+                    "exportable"
+                ]
+            }
+        },
+        {
+            "SignEd25519": {
+                "key_id": 7,
+                "data": [
+                    1,
+                    2,
+                    3,
+                    4,
+                    5,
+                    6,
+                    7,
+                    8,
+                    9,
+                    10,
+                    11,
+                    12
+                ]
+            }
+        },
+        {
+            "SignEd25519": {
+                "key_id": 7,
+                "data": [
+                    1,
+                    2,
+                    3,
+                    4,
+                    5,
+                    6,
+                    7,
+                    8,
+                    9,
+                    10,
+                    11,
+                    12
+                ]
+            }
+        },
+        {
+            "SignEd25519": {
+                "key_id": 7,
+                "data": [
+                    1,
+                    2,
+                    3,
+                    4,
+                    5,
+                    6,
+                    7,
+                    8,
+                    9,
+                    10,
+                    11,
+                    12
+                ]
+            }
+        },
+        {
+            "GetLog": null
+        }
+    ]
+}
