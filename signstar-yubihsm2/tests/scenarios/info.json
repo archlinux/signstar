@@ -1,0 +1,20 @@
+{
+    "Auth": {
+        "user": 1,
+        "passphrase_file": "tests/scenarios/keys/default"
+    },
+    "Steps": [
+        {
+            "Info": null
+        },
+        {
+            "Auth": {
+                "user": 1,
+                "passphrase_file": "tests/scenarios/keys/default"
+            }
+        },
+        {
+            "Info": null
+        }
+    ]
+}

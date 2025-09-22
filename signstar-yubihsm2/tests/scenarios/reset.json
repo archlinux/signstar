@@ -1,0 +1,11 @@
+{
+    "Auth": {
+        "user": 1,
+        "passphrase_file": "tests/scenarios/keys/default"
+    },
+    "Steps": [
+        {
+            "Reset": null
+        }
+    ]
+}

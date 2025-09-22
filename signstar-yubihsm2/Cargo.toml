@@ -11,17 +11,30 @@ rust-version.workspace = true
 version = "0.1.0"
 
 [dependencies]
-serde = { workspace = true, optional = true }
+clap = { workspace = true, optional = true }
+clap-verbosity-flag = "3.0.3"
+log.workspace = true
+serde = { workspace = true, features = ["derive"], optional = true }
+serde_json = "1.0.145"
+serde_repr = "0.1.20"
+signstar-common = { workspace = true, features = ["logging"] }
 signstar-crypto.workspace = true
 thiserror.workspace = true
-yubihsm = { version = "0.42.1", features = ["http", "mockhsm", "usb"] }
+yubihsm = { version = "0.42.1", features = ["mockhsm", "usb"] }
 
 [dev-dependencies]
+rstest.workspace = true
 testresult.workspace = true
 
 [features]
+cli = ["dep:clap"]
 default = ["serde"]
 serde = ["dep:serde"]
 
 [lints]
 workspace = true
+
+[[bin]]
+name = "signstar-yubihsm"
+path = "src/main.rs"
+required-features = ["cli"]

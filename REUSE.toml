@@ -53,6 +53,8 @@ path = [
     "signstar-crypto/tests/fixtures/*.asc",
     "signstar-request-signature/tests/*.json",
     "signstar-request-signature/tests/sshd/*",
+    "signstar-yubihsm2/tests/scenarios/**.json",
+    "signstar-yubihsm2/tests/scenarios/keys/*",
 ]
 precedence = "aggregate"
 
