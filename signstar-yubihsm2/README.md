@@ -7,6 +7,51 @@ Integration for YubiHSM2 devices as Signstar backend.
 - <https://signstar.archlinux.page/rustdoc/signstar_yubihsm2/> for development version of the crate
 - <https://docs.rs/signstar_yubihsm2/latest/signstar_yubihsm2/> for released versions of the crate
 
+## Example usage
+
+Reset the device to factory settings (erasing all key material) and get the HSM info:
+
+```bash
+echo $PWD
+signstar-yubihsm "tests/scenarios/reset.json" | jq --compact-output
+```
+
+Adding new authentication key:
+
+```bash
+signstar-yubihsm "tests/scenarios/add-auth.json" | jq --compact-output
+```
+
+Generating key:
+
+```bash
+signstar-yubihsm "tests/scenarios/gen-key.json" | jq --compact-output
+```
+
+Signing using ed25519 keys:
+
+```bash
+signstar-yubihsm "tests/scenarios/raw-sign.json" | jq --compact-output
+```
+
+Exporting key under wrap:
+
+```bash
+signstar-yubihsm "tests/scenarios/export-wrapped.json" | jq --compact-output
+```
+
+Import previously wrapped key and using it for signing:
+
+```bash
+signstar-yubihsm "tests/scenarios/import-wrapped.json" | jq --compact-output
+```
+
+Enable forced auditing of signing and retrieving log:
+
+```bash
+signstar-yubihsm "tests/scenarios/audit.json" | jq --compact-output
+```
+
 ## Contributing
 
 Please refer to the [contributing guidelines] to learn how to contribute to this project.
