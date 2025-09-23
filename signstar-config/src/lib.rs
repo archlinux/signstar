@@ -8,6 +8,8 @@ pub mod non_admin_credentials;
 #[cfg(feature = "test-helpers")]
 pub mod test;
 pub mod utils;
+#[cfg(feature = "yubihsm2")]
+pub mod yubihsm2;
 
 pub use admin_credentials::AdminCredentials;
 pub use config::{
