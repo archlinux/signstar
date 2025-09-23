@@ -13,6 +13,8 @@ use nethsm::{Connection, NamespaceId};
 use serde::{Deserialize, Serialize};
 use signstar_common::config::{get_config_file, get_run_override_config_file_path};
 
+#[cfg(feature = "yubihsm2")]
+use crate::yubihsm2::backend::YubiHsmConnection;
 use crate::{
     ConfigError as Error,
     SystemUserId,
@@ -118,6 +120,11 @@ pub enum BackendConnection {
     /// The [`Connection`] for a [`NetHsm`] backend.
     #[serde(rename = "nethsm")]
     NetHsm(Connection),
+
+    /// The [`YubiHsmConnection`] for a YubiHSM2 backend.
+    #[cfg(feature = "yubihsm2")]
+    #[serde(rename = "yubihsm2")]
+    YubiHsm2(YubiHsmConnection),
 }
 
 /// A configuration for parallel use of connections with a set of system and NetHSM users.

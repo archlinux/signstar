@@ -89,6 +89,10 @@ fn load_nethsm_keyid() -> Result<(NetHsm, KeyId), Error> {
     {
         match connection {
             BackendConnection::NetHsm(connection) => connection.clone(),
+            #[cfg(feature = "yubihsm2")]
+            BackendConnection::YubiHsm2(_) => {
+                unimplemented!("The use of the YubiHSM2 backend is not yet implemented.")
+            }
         }
     } else {
         return Err(Error::NoCredentials);
