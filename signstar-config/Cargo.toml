@@ -44,6 +44,7 @@ _integration-test = ["test-helpers"]
 _nethsm-integration-test = ["_integration-test", "test-helpers"]
 default = []
 test-helpers = ["dep:tempfile", "dep:testresult"]
+yubihsm2 = []
 
 [lints]
 workspace = true
