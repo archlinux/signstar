@@ -97,6 +97,27 @@ pub enum UserMapping {
         tag: String,
     },
 
+    /// A system user, with SSH access, mapped to a YubiHSM2 user in the
+    /// Operator role with access to a single signing key.
+    ///
+    /// Signing key and YubiHSM user are mapped using a permission.
+    #[cfg(feature = "yubihsm2")]
+    #[serde(rename = "system_yubihsm_operator_signing")]
+    SystemYubiHsmOperatorSigning {
+        /// The ID of the YubiHSM2 user.
+        backend_user: u16,
+        /// The setup of a YubiHSM2 key.
+        backend_key_setup: SigningKeySetup,
+        /// The key identifier.
+        backend_key_id: u16,
+        /// The key domain.
+        backend_key_domain: usize,
+        /// The SSH public key used for connecting to the `system_user`.
+        ssh_authorized_key: AuthorizedKeyEntry,
+        /// The name of the system user.
+        system_user: SystemUserId,
+    },
+
     /// A system user, without SSH access, mapped to a system-wide [`NetHsm`]
     /// user in the Metrics role and one or more NetHsm users in the Operator role with
     /// read-only access to zero or more keys
@@ -196,6 +217,15 @@ impl UserMapping {
                 system_user,
                 ssh_authorized_key: _,
             } => Some(system_user),
+            #[cfg(feature = "yubihsm2")]
+            UserMapping::SystemYubiHsmOperatorSigning {
+                backend_user: _,
+                backend_key_setup: _,
+                backend_key_id: _,
+                backend_key_domain: _,
+                system_user,
+                ssh_authorized_key: _,
+            } => Some(system_user),
         }
     }
 
@@ -255,6 +285,8 @@ impl UserMapping {
                 system_user: _,
                 ssh_authorized_key: _,
             } => vec![],
+            #[cfg(feature = "yubihsm2")]
+            UserMapping::SystemYubiHsmOperatorSigning { .. } => Vec::new(),
         }
     }
 
@@ -316,6 +348,8 @@ impl UserMapping {
                 system_user: _,
                 ssh_authorized_key: _,
             } => vec![],
+            #[cfg(feature = "yubihsm2")]
+            UserMapping::SystemYubiHsmOperatorSigning { .. } => Vec::new(),
         }
     }
 
@@ -398,6 +432,8 @@ impl UserMapping {
             UserMapping::SystemOnlyShareDownload { .. }
             | UserMapping::SystemOnlyShareUpload { .. }
             | UserMapping::SystemOnlyWireGuardDownload { .. } => Vec::new(),
+            #[cfg(feature = "yubihsm2")]
+            UserMapping::SystemYubiHsmOperatorSigning { .. } => Vec::new(),
         }
     }
 
@@ -459,6 +495,15 @@ impl UserMapping {
                 system_user: _,
                 ssh_authorized_key,
                 tag: _,
+            } => Some(ssh_authorized_key),
+            #[cfg(feature = "yubihsm2")]
+            UserMapping::SystemYubiHsmOperatorSigning {
+                backend_user: _,
+                backend_key_setup: _,
+                backend_key_id: _,
+                backend_key_domain: _,
+                system_user: _,
+                ssh_authorized_key,
             } => Some(ssh_authorized_key),
         }
     }
@@ -541,6 +586,8 @@ impl UserMapping {
                 system_user: _,
                 ssh_authorized_key: _,
             } => vec![],
+            #[cfg(feature = "yubihsm2")]
+            UserMapping::SystemYubiHsmOperatorSigning { .. } => Vec::new(),
         }
     }
 
@@ -629,6 +676,8 @@ impl UserMapping {
                 system_user: _,
                 ssh_authorized_key: _,
             } => vec![],
+            #[cfg(feature = "yubihsm2")]
+            UserMapping::SystemYubiHsmOperatorSigning { .. } => Vec::new(),
         }
     }
 
@@ -768,6 +817,8 @@ impl UserMapping {
                 system_user: _,
                 ssh_authorized_key: _,
             } => vec![],
+            #[cfg(feature = "yubihsm2")]
+            UserMapping::SystemYubiHsmOperatorSigning { .. } => Vec::new(),
         }
     }
 
@@ -857,6 +908,8 @@ impl UserMapping {
                 system_user: _,
                 ssh_authorized_key: _,
             } => vec![],
+            #[cfg(feature = "yubihsm2")]
+            UserMapping::SystemYubiHsmOperatorSigning { .. } => Vec::new(),
         }
     }
 
@@ -887,6 +940,8 @@ impl UserMapping {
                 system_user: _,
                 ssh_authorized_key: _,
             } => true,
+            #[cfg(feature = "yubihsm2")]
+            UserMapping::SystemYubiHsmOperatorSigning { .. } => true,
             UserMapping::SystemOnlyShareDownload {
                 system_user: _,
                 ssh_authorized_key: _,
