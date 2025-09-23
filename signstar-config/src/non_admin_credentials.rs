@@ -278,17 +278,18 @@ impl CredentialsLoading {
 
     /// Indicates whether the contained [`ExtendedUserMapping`] is that of a signing user.
     pub fn has_signing_user(&self) -> bool {
-        matches!(
-            self.mapping.get_user_mapping(),
-            UserMapping::SystemNetHsmOperatorSigning {
-                nethsm_user: _,
-                key_id: _,
-                nethsm_key_setup: _,
-                ssh_authorized_key: _,
-                system_user: _,
-                tag: _,
-            }
-        )
+        match self.mapping.get_user_mapping() {
+            UserMapping::NetHsmOnlyAdmin(_)
+            | UserMapping::SystemNetHsmBackup { .. }
+            | UserMapping::SystemNetHsmMetrics { .. }
+            | UserMapping::HermeticSystemNetHsmMetrics { .. }
+            | UserMapping::SystemOnlyShareDownload { .. }
+            | UserMapping::SystemOnlyShareUpload { .. }
+            | UserMapping::SystemOnlyWireGuardDownload { .. } => false,
+            UserMapping::SystemNetHsmOperatorSigning { .. } => true,
+            #[cfg(feature = "yubihsm2")]
+            UserMapping::SystemYubiHsmOperatorSigning { .. } => true,
+        }
     }
 
     /// Returns the credentials for a signing user.
