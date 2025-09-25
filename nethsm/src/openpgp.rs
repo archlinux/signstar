@@ -11,9 +11,9 @@ use pgp::{
     composed::{
         ArmorOptions,
         Deserializable as _,
+        DetachedSignature,
         SignedPublicKey,
         SignedSecretKey,
-        StandaloneSignature,
     },
     crypto::{hash::HashAlgorithm, public_key::PublicKeyAlgorithm},
     packet::{
@@ -694,7 +694,7 @@ pub fn sign_hasher_state(
 
     let signature = pgp::packet::Signature::from_config(sig_config, signed_hash_value, raw_sig)?;
 
-    let signature = StandaloneSignature { signature };
+    let signature = DetachedSignature { signature };
     Ok(signature.to_armored_string(ArmorOptions::default())?)
 }
 
