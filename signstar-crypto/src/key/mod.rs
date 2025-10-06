@@ -3,6 +3,7 @@
 pub mod base;
 mod error;
 pub mod import;
+pub mod setup;
 
 pub use base::{
     CryptographicKeyContext,
@@ -19,3 +20,4 @@ pub use base::{
 };
 pub use error::Error;
 pub use import::PrivateKeyImport;
+pub use setup::SigningKeySetup;
