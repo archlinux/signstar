@@ -632,7 +632,8 @@ impl UserMapping {
         }
     }
 
-    /// Returns a list of tuples of [`UserId`], [`SigningKeySetup`] and tag for the mapping.
+    /// Returns a list of tuples of [`UserId`], [`KeyId`], [`SigningKeySetup`] and tag for the
+    /// mapping.
     ///
     /// Using a `filter` (see [`FilterUserKeys`]) it is possible to have only a subset of the
     /// available tuples be returned:
@@ -672,6 +673,7 @@ impl UserMapping {
     ///     mapping.get_nethsm_user_key_and_tag(FilterUserKeys::All),
     ///     vec![(
     ///         UserId::new("user1".to_string())?,
+    ///         "key1".parse()?,
     ///         SigningKeySetup::new(
     ///             "key1".parse()?,
     ///             "Curve25519".parse()?,
@@ -700,7 +702,7 @@ impl UserMapping {
     pub fn get_nethsm_user_key_and_tag(
         &self,
         filter: FilterUserKeys,
-    ) -> Vec<(UserId, SigningKeySetup, String)> {
+    ) -> Vec<(UserId, KeyId, SigningKeySetup, String)> {
         match self {
             UserMapping::SystemNetHsmOperatorSigning {
                 nethsm_user,
@@ -710,32 +712,57 @@ impl UserMapping {
                 tag,
             } => match filter {
                 FilterUserKeys::All => {
-                    vec![(nethsm_user.clone(), nethsm_key_setup.clone(), tag.clone())]
+                    vec![(
+                        nethsm_user.clone(),
+                        nethsm_key_setup.get_key_id(),
+                        nethsm_key_setup.clone(),
+                        tag.clone(),
+                    )]
                 }
                 FilterUserKeys::Namespaced => {
                     if nethsm_user.is_namespaced() {
-                        vec![(nethsm_user.clone(), nethsm_key_setup.clone(), tag.clone())]
+                        vec![(
+                            nethsm_user.clone(),
+                            nethsm_key_setup.get_key_id(),
+                            nethsm_key_setup.clone(),
+                            tag.clone(),
+                        )]
                     } else {
                         Vec::new()
                     }
                 }
                 FilterUserKeys::Namespace(namespace) => {
                     if Some(&namespace) == nethsm_user.namespace() {
-                        vec![(nethsm_user.clone(), nethsm_key_setup.clone(), tag.clone())]
+                        vec![(
+                            nethsm_user.clone(),
+                            nethsm_key_setup.get_key_id(),
+                            nethsm_key_setup.clone(),
+                            tag.clone(),
+                        )]
                     } else {
                         Vec::new()
                     }
                 }
                 FilterUserKeys::SystemWide => {
                     if !nethsm_user.is_namespaced() {
-                        vec![(nethsm_user.clone(), nethsm_key_setup.clone(), tag.clone())]
+                        vec![(
+                            nethsm_user.clone(),
+                            nethsm_key_setup.get_key_id(),
+                            nethsm_key_setup.clone(),
+                            tag.clone(),
+                        )]
                     } else {
                         Vec::new()
                     }
                 }
                 FilterUserKeys::Tag(filter_tag) => {
                     if &filter_tag == tag {
-                        vec![(nethsm_user.clone(), nethsm_key_setup.clone(), tag.clone())]
+                        vec![(
+                            nethsm_user.clone(),
+                            nethsm_key_setup.get_key_id(),
+                            nethsm_key_setup.clone(),
+                            tag.clone(),
+                        )]
                     } else {
                         Vec::new()
                     }
@@ -1436,6 +1463,7 @@ mod tests {
         FilterUserKeys::All,
         vec![(
             "operator".parse()?,
+            "key1".parse()?,
             SigningKeySetup::new(
                 "key1".parse()?,
                 "Curve25519".parse()?,
@@ -1513,6 +1541,7 @@ mod tests {
         FilterUserKeys::Namespaced,
         vec![(
             "ns1~operator".parse()?,
+            "key1".parse()?,
             SigningKeySetup::new(
                 "key1".parse()?,
                 "Curve25519".parse()?,
@@ -1548,6 +1577,7 @@ mod tests {
         FilterUserKeys::Namespace("ns1".parse()?),
         vec![(
             "ns1~operator".parse()?,
+            "key1".parse()?,
             SigningKeySetup::new(
                 "key1".parse()?,
                 "Curve25519".parse()?,
@@ -1583,6 +1613,7 @@ mod tests {
         FilterUserKeys::Tag("tag1".parse()?),
         vec![(
             "ns1~operator".parse()?,
+            "key1".parse()?,
             SigningKeySetup::new(
                 "key1".parse()?,
                 "Curve25519".parse()?,
@@ -1656,7 +1687,7 @@ mod tests {
     fn usermapping_get_nethsm_user_key_and_tag(
         #[case] mapping: UserMapping,
         #[case] filter: FilterUserKeys,
-        #[case] output: Vec<(UserId, SigningKeySetup, String)>,
+        #[case] output: Vec<(UserId, KeyId, SigningKeySetup, String)>,
     ) -> TestResult {
         assert_eq!(mapping.get_nethsm_user_key_and_tag(filter), output);
         Ok(())

@@ -502,8 +502,8 @@ impl From<&SignstarConfig> for State {
                 mapping
                     .get_nethsm_user_key_and_tag(FilterUserKeys::All)
                     .iter()
-                    .map(|(user_id, key_setup, tag)| KeyState {
-                        name: key_setup.get_key_id(),
+                    .map(|(user_id, key_id, key_setup, tag)| KeyState {
+                        name: key_id.clone(),
                         namespace: user_id.namespace().cloned(),
                         tags: vec![tag.to_string()],
                         key_type: key_setup.get_key_type(),

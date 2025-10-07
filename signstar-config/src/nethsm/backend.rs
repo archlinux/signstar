@@ -570,11 +570,10 @@ fn add_system_wide_keys(
     let available_keys = nethsm.get_keys(None)?;
 
     for mapping in users {
-        for (_user, key_setup, tag) in
+        for (_user, key_id, key_setup, tag) in
             mapping.get_nethsm_user_key_and_tag(FilterUserKeys::SystemWide)
         {
-            let key_id = key_setup.get_key_id();
-            if available_keys.contains(&key_setup.get_key_id()) {
+            if available_keys.contains(&key_id) {
                 // Retrieve information about the key.
                 let info = nethsm.get_key(&key_id)?;
 
@@ -680,10 +679,9 @@ fn add_namespaced_keys(
     let available_users = nethsm.get_users()?;
 
     for mapping in users {
-        for (user, key_setup, tag) in
+        for (user, key_id, key_setup, tag) in
             mapping.get_nethsm_user_key_and_tag(FilterUserKeys::Namespaced)
         {
-            let key_id = key_setup.get_key_id();
             debug!("Set up key \"{key_id}\" with tag {tag} for user {user}");
 
             // Extract the namespace from the user or return an error.
@@ -824,7 +822,7 @@ fn add_system_wide_openpgp_certificates(
             continue;
         }
 
-        for (user, key_setup, tag) in
+        for (user, key_id, key_setup, tag) in
             mapping.get_nethsm_user_key_and_tag(FilterUserKeys::SystemWide)
         {
             // Get OpenPGP User IDs and version or continue to the next user/key setup if the
@@ -833,8 +831,7 @@ fn add_system_wide_openpgp_certificates(
                 key_setup.get_key_context()
             else {
                 debug!(
-                    "Skip creating an OpenPGP certificate for the key \"{}\" used by user \"{user}\" as it is not used in an OpenPGP context.",
-                    key_setup.get_key_id()
+                    "Skip creating an OpenPGP certificate for the key \"{key_id}\" used by user \"{user}\" as it is not used in an OpenPGP context."
                 );
                 continue;
             };
@@ -849,7 +846,6 @@ fn add_system_wide_openpgp_certificates(
             }
 
             let available_keys = nethsm.get_keys(None)?;
-            let key_id = key_setup.get_key_id();
 
             // Ensure the targeted key exists.
             if !available_keys.contains(&key_id) {
@@ -960,7 +956,7 @@ fn add_namespaced_openpgp_certificates(
             continue;
         }
 
-        for (user, key_setup, tag) in
+        for (user, key_id, key_setup, tag) in
             mapping.get_nethsm_user_key_and_tag(FilterUserKeys::Namespaced)
         {
             // Get OpenPGP User IDs and version or continue to the next user/key setup if the
@@ -1008,7 +1004,6 @@ fn add_namespaced_openpgp_certificates(
             }
 
             let available_keys = nethsm.get_keys(None)?;
-            let key_id = key_setup.get_key_id();
 
             // Ensure the targeted key exists.
             if !available_keys.contains(&key_id) {
