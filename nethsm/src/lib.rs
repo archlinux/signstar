@@ -16,7 +16,7 @@ pub use base::NetHsm;
 pub use chrono::{DateTime, Utc};
 pub use connection::{Connection, Url};
 pub use error::Error;
-pub use key::{KeyId, SigningKeySetup, tls_key_type_matches_length};
+pub use key::{KeyId, tls_key_type_matches_length};
 pub use nethsm_sdk::{BootMode, LogLevel, TlsKeyType, UserRole};
 // Publicly re-export nethsm_sdk_rs types that are used in return values of the NetHsm API.
 pub use nethsm_sdk_rs::models::{
