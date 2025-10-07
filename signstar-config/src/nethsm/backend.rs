@@ -583,8 +583,8 @@ fn add_system_wide_keys(
                     None,
                     KeySetupComparison {
                         state_type: StateType::SignstarConfig,
-                        key_type: key_setup.get_key_type(),
-                        key_mechanisms: HashSet::from_iter(key_setup.get_key_mechanisms()),
+                        key_type: key_setup.key_type(),
+                        key_mechanisms: HashSet::from_iter(key_setup.key_mechanisms().to_vec()),
                     },
                     KeySetupComparison {
                         state_type: StateType::NetHsm,
@@ -607,9 +607,9 @@ fn add_system_wide_keys(
             } else {
                 // Add the key, including the required tag.
                 nethsm.generate_key(
-                    key_setup.get_key_type(),
-                    key_setup.get_key_mechanisms(),
-                    key_setup.get_key_length(),
+                    key_setup.key_type(),
+                    key_setup.key_mechanisms().to_vec(),
+                    key_setup.key_length(),
                     Some(key_id.clone()),
                     Some(vec![tag]),
                 )?;
@@ -711,8 +711,8 @@ fn add_namespaced_keys(
                     Some(namespace),
                     KeySetupComparison {
                         state_type: StateType::SignstarConfig,
-                        key_type: key_setup.get_key_type(),
-                        key_mechanisms: HashSet::from_iter(key_setup.get_key_mechanisms()),
+                        key_type: key_setup.key_type(),
+                        key_mechanisms: HashSet::from_iter(key_setup.key_mechanisms().to_vec()),
                     },
                     KeySetupComparison {
                         state_type: StateType::NetHsm,
@@ -746,9 +746,9 @@ fn add_namespaced_keys(
             } else {
                 // Add the key, including the required tag.
                 nethsm.generate_key(
-                    key_setup.get_key_type(),
-                    key_setup.get_key_mechanisms(),
-                    key_setup.get_key_length(),
+                    key_setup.key_type(),
+                    key_setup.key_mechanisms().to_vec(),
+                    key_setup.key_length(),
                     Some(key_id.clone()),
                     Some(vec![tag]),
                 )?;
@@ -827,8 +827,7 @@ fn add_system_wide_openpgp_certificates(
         {
             // Get OpenPGP User IDs and version or continue to the next user/key setup if the
             // mapping is not used for OpenPGP signing.
-            let CryptographicKeyContext::OpenPgp { user_ids, version } =
-                key_setup.get_key_context()
+            let CryptographicKeyContext::OpenPgp { user_ids, version } = key_setup.key_context()
             else {
                 debug!(
                     "Skip creating an OpenPGP certificate for the key \"{key_id}\" used by user \"{user}\" as it is not used in an OpenPGP context."
@@ -876,7 +875,7 @@ fn add_system_wide_openpgp_certificates(
                     OpenPgpKeyUsageFlags::default(),
                     user_id.clone(),
                     Utc::now(),
-                    version,
+                    *version,
                 )?;
 
                 // Switch back to the default R-Administrator for the import of the OpenPGP
@@ -961,8 +960,7 @@ fn add_namespaced_openpgp_certificates(
         {
             // Get OpenPGP User IDs and version or continue to the next user/key setup if the
             // mapping is not used for OpenPGP signing.
-            let CryptographicKeyContext::OpenPgp { user_ids, version } =
-                key_setup.get_key_context()
+            let CryptographicKeyContext::OpenPgp { user_ids, version } = key_setup.key_context()
             else {
                 continue;
             };
@@ -1047,7 +1045,7 @@ fn add_namespaced_openpgp_certificates(
                     OpenPgpKeyUsageFlags::default(),
                     user_id.clone(),
                     Utc::now(),
-                    version,
+                    *version,
                 )?;
 
                 // Switch back to the N-Administrator for the import of the OpenPGP certificate.

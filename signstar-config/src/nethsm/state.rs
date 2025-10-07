@@ -506,10 +506,10 @@ impl From<&SignstarConfig> for State {
                         name: key_id.clone(),
                         namespace: user_id.namespace().cloned(),
                         tags: vec![tag.to_string()],
-                        key_type: key_setup.get_key_type(),
-                        mechanisms: key_setup.get_key_mechanisms(),
+                        key_type: key_setup.key_type(),
+                        mechanisms: key_setup.key_mechanisms().to_vec(),
                         key_cert_state: KeyCertificateState::KeyContext(
-                            key_setup.get_key_context(),
+                            key_setup.key_context().clone(),
                         ),
                     })
                     .collect::<Vec<KeyState>>()

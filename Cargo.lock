@@ -4448,6 +4448,7 @@ dependencies = [
  "rstest",
  "serde",
  "signstar-common",
+ "signstar-crypto",
  "ssh-key",
  "strum",
  "tempfile",

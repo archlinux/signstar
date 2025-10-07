@@ -218,6 +218,7 @@ impl TryFrom<&UserMapping> for SshForceCommand {
             } => Ok(Self::DownloadMetrics),
             UserMapping::SystemNetHsmOperatorSigning {
                 nethsm_user: _,
+                key_id: _,
                 nethsm_key_setup: _,
                 ssh_authorized_key: _,
                 system_user: _,

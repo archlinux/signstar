@@ -211,13 +211,13 @@ pub enum BackendConnection {
 /// [[users]]
 ///
 /// [users.system_nethsm_operator_signing]
+/// key_id = "key1"
 /// nethsm_user = "operator1"
 /// ssh_authorized_key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAN54Gd1jMz+yNDjBRwX1SnOtWuUsVF64RJIeYJ8DI7b user@host"
 /// system_user = "ssh-operator1"
 /// tag = "tag1"
 ///
 /// [users.system_nethsm_operator_signing.nethsm_key_setup]
-/// key_id = "key1"
 /// key_type = "Curve25519"
 /// key_mechanisms = ["EdDsaSignature"]
 /// signature_type = "EdDsa"
@@ -233,13 +233,13 @@ pub enum BackendConnection {
 /// [[users]]
 ///
 /// [users.system_nethsm_operator_signing]
+/// key_id = "key2"
 /// nethsm_user = "operator2"
 /// ssh_authorized_key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOh9BTe81DC6A0YZALsq9dWcyl6xjjqlxWPwlExTFgBt user@host"
 /// system_user = "ssh-operator2"
 /// tag = "tag2"
 ///
 /// [users.system_nethsm_operator_signing.nethsm_key_setup]
-/// key_id = "key2"
 /// key_type = "Curve25519"
 /// key_mechanisms = ["EdDsaSignature"]
 /// signature_type = "EdDsa"
@@ -259,13 +259,13 @@ pub enum BackendConnection {
 /// [[users]]
 ///
 /// [users.system_nethsm_operator_signing]
+/// key_id = "key1"
 /// nethsm_user = "ns1~operator1"
 /// ssh_authorized_key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILWqWyMCk5BdSl1c3KYoLEokKr7qNVPbI1IbBhgEBQj5 user@host"
 /// system_user = "ns1-ssh-operator1"
 /// tag = "tag1"
 ///
 /// [users.system_nethsm_operator_signing.nethsm_key_setup]
-/// key_id = "key1"
 /// key_type = "Curve25519"
 /// key_mechanisms = ["EdDsaSignature"]
 /// signature_type = "EdDsa"
@@ -281,13 +281,13 @@ pub enum BackendConnection {
 /// [[users]]
 ///
 /// [users.system_nethsm_operator_signing]
+/// key_id = "key2"
 /// nethsm_user = "ns1~operator2"
 /// ssh_authorized_key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINrIYA+bfMBThUP5lKbMFEHiytmcCPhpkGrB/85n0mAN user@host"
 /// system_user = "ns1-ssh-operator2"
 /// tag = "tag2"
 ///
 /// [users.system_nethsm_operator_signing.nethsm_key_setup]
-/// key_id = "key2"
 /// key_type = "Curve25519"
 /// key_mechanisms = ["EdDsaSignature"]
 /// signature_type = "EdDsa"
@@ -406,13 +406,13 @@ impl SignstarConfig {
     ///
     /// [[users]]
     /// [users.system_nethsm_operator_signing]
+    /// key_id = "key1"
     /// nethsm_user = "operator1"
     /// ssh_authorized_key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAN54Gd1jMz+yNDjBRwX1SnOtWuUsVF64RJIeYJ8DI7b user@host"
     /// system_user = "ssh-operator1"
     /// tag = "tag1"
     ///
     /// [users.system_nethsm_operator_signing.nethsm_key_setup]
-    /// key_id = "key1"
     /// key_type = "Curve25519"
     /// key_mechanisms = ["EdDsaSignature"]
     /// signature_type = "EdDsa"
@@ -423,13 +423,13 @@ impl SignstarConfig {
     ///
     /// [[users]]
     /// [users.system_nethsm_operator_signing]
+    /// key_id = "key2"
     /// nethsm_user = "operator2"
     /// ssh_authorized_key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOh9BTe81DC6A0YZALsq9dWcyl6xjjqlxWPwlExTFgBt user@host"
     /// system_user = "ssh-operator2"
     /// tag = "tag2"
     ///
     /// [users.system_nethsm_operator_signing.nethsm_key_setup]
-    /// key_id = "key2"
     /// key_type = "Curve25519"
     /// key_mechanisms = ["EdDsaSignature"]
     /// signature_type = "EdDsa"
@@ -574,7 +574,8 @@ impl SignstarConfig {
     /// ```
     /// use std::collections::HashSet;
     ///
-    /// use nethsm::{Connection,CryptographicKeyContext, OpenPgpUserIdList, SigningKeySetup, UserRole};
+    /// use nethsm::{Connection,CryptographicKeyContext, OpenPgpUserIdList, UserRole};
+    /// use signstar_crypto::key::SigningKeySetup;
     /// use signstar_config::{
     ///     AdministrativeSecretHandling,
     ///     BackendConnection,
@@ -606,8 +607,8 @@ impl SignstarConfig {
     ///         },
     ///         UserMapping::SystemNetHsmOperatorSigning {
     ///             nethsm_user: "operator1".parse()?,
+    ///             key_id: "key1".parse()?,
     ///             nethsm_key_setup: SigningKeySetup::new(
-    ///                 "key1".parse()?,
     ///                 "Curve25519".parse()?,
     ///                 vec!["EdDsaSignature".parse()?],
     ///                 None,

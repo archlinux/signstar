@@ -70,11 +70,10 @@ fn load_nethsm_keyid() -> Result<(NetHsm, KeyId), Error> {
         return Err(Error::NoCredentials);
     }
 
-    let key_id = if let UserMapping::SystemNetHsmOperatorSigning {
-        nethsm_key_setup, ..
-    } = credentials_loading.get_mapping().get_user_mapping()
+    let key_id = if let UserMapping::SystemNetHsmOperatorSigning { key_id, .. } =
+        credentials_loading.get_mapping().get_user_mapping()
     {
-        nethsm_key_setup.get_key_id().clone()
+        key_id.clone()
     } else {
         return Err(Error::NoKeyId);
     };

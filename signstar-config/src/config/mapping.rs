@@ -11,7 +11,7 @@ use std::{
 
 #[cfg(doc)]
 use nethsm::NetHsm;
-use nethsm::{FullCredentials, KeyId, NamespaceId, Passphrase, SigningKeySetup, UserId, UserRole};
+use nethsm::{FullCredentials, KeyId, NamespaceId, Passphrase, UserId, UserRole};
 use rand::{Rng, distributions::Alphanumeric, thread_rng};
 use serde::{Deserialize, Serialize};
 use signstar_common::{
@@ -23,6 +23,7 @@ use signstar_common::{
         get_user_secrets_dir,
     },
 };
+use signstar_crypto::key::SigningKeySetup;
 
 use crate::{
     AdministrativeSecretHandling,
@@ -87,6 +88,8 @@ pub enum UserMapping {
     SystemNetHsmOperatorSigning {
         /// The name of the [`NetHsm`] user.
         nethsm_user: UserId,
+        /// The ID of the [`NetHsm`] key.
+        key_id: KeyId,
         /// The setup of a [`NetHsm`] key.
         nethsm_key_setup: SigningKeySetup,
         /// The SSH public key used for connecting to the `system_user`.
@@ -170,6 +173,7 @@ impl UserMapping {
             }
             | UserMapping::SystemNetHsmOperatorSigning {
                 nethsm_user: _,
+                key_id: _,
                 nethsm_key_setup: _,
                 ssh_authorized_key: _,
                 system_user,
@@ -229,6 +233,7 @@ impl UserMapping {
             UserMapping::NetHsmOnlyAdmin(nethsm_user)
             | UserMapping::SystemNetHsmOperatorSigning {
                 nethsm_user,
+                key_id: _,
                 nethsm_key_setup: _,
                 system_user: _,
                 ssh_authorized_key: _,
@@ -290,6 +295,7 @@ impl UserMapping {
             }
             UserMapping::SystemNetHsmOperatorSigning {
                 nethsm_user,
+                key_id: _,
                 nethsm_key_setup: _,
                 system_user: _,
                 ssh_authorized_key: _,
@@ -330,14 +336,15 @@ impl UserMapping {
     /// # Examples
     ///
     /// ```
-    /// use nethsm::{CryptographicKeyContext, OpenPgpUserIdList, SigningKeySetup, UserId, UserRole};
+    /// use nethsm::{CryptographicKeyContext, OpenPgpUserIdList, UserId, UserRole};
+    /// use signstar_crypto::key::SigningKeySetup;
     /// use signstar_config::{AuthorizedKeyEntry, UserMapping};
     ///
     /// # fn main() -> testresult::TestResult {
     /// let mapping = UserMapping::SystemNetHsmOperatorSigning {
     ///     nethsm_user: "user1".parse()?,
+    ///     key_id: "key1".parse()?,
     ///     nethsm_key_setup: SigningKeySetup::new(
-    ///         "key1".parse()?,
     ///         "Curve25519".parse()?,
     ///         vec!["EdDsaSignature".parse()?],
     ///         None,
@@ -361,6 +368,7 @@ impl UserMapping {
         match self {
             UserMapping::SystemNetHsmOperatorSigning {
                 nethsm_user,
+                key_id: _,
                 nethsm_key_setup: _,
                 system_user: _,
                 ssh_authorized_key: _,
@@ -455,6 +463,7 @@ impl UserMapping {
             }
             | UserMapping::SystemNetHsmOperatorSigning {
                 nethsm_user: _,
+                key_id: _,
                 nethsm_key_setup: _,
                 system_user: _,
                 ssh_authorized_key,
@@ -468,14 +477,15 @@ impl UserMapping {
     /// # Examples
     ///
     /// ```
-    /// use nethsm::{CryptographicKeyContext, KeyId, OpenPgpUserIdList, SigningKeySetup};
+    /// use nethsm::{CryptographicKeyContext, KeyId, OpenPgpUserIdList};
+    /// use signstar_crypto::key::SigningKeySetup;
     /// use signstar_config::{AuthorizedKeyEntry, UserMapping};
     ///
     /// # fn main() -> testresult::TestResult {
     /// let mapping = UserMapping::SystemNetHsmOperatorSigning {
     ///     nethsm_user: "user1".parse()?,
+    ///     key_id: "key1".parse()?,
     ///     nethsm_key_setup: SigningKeySetup::new(
-    ///         "key1".parse()?,
     ///         "Curve25519".parse()?,
     ///         vec!["EdDsaSignature".parse()?],
     ///         None,
@@ -503,13 +513,14 @@ impl UserMapping {
         match self {
             UserMapping::SystemNetHsmOperatorSigning {
                 nethsm_user,
-                nethsm_key_setup,
+                key_id,
+                nethsm_key_setup: _,
                 system_user: _,
                 ssh_authorized_key: _,
                 tag: _,
             } => {
                 if nethsm_user.namespace() == namespace {
-                    vec![nethsm_key_setup.get_key_id()]
+                    vec![key_id.clone()]
                 } else {
                     vec![]
                 }
@@ -552,7 +563,8 @@ impl UserMapping {
     /// # Examples
     ///
     /// ```
-    /// use nethsm::{CryptographicKeyContext, OpenPgpUserIdList, SigningKeySetup};
+    /// use nethsm::{CryptographicKeyContext, OpenPgpUserIdList};
+    /// use signstar_crypto::key::SigningKeySetup;
     /// use signstar_config::UserMapping;
     ///
     /// # fn main() -> testresult::TestResult {
@@ -567,8 +579,8 @@ impl UserMapping {
     ///
     /// let mapping = UserMapping::SystemNetHsmOperatorSigning{
     ///     nethsm_user: "ns1~user1".parse()?,
+    ///     key_id: "key1".parse()?,
     ///     nethsm_key_setup: SigningKeySetup::new(
-    ///         "key1".parse()?,
     ///         "Curve25519".parse()?,
     ///         vec!["EdDsaSignature".parse()?],
     ///         None,
@@ -591,6 +603,7 @@ impl UserMapping {
         match self {
             UserMapping::SystemNetHsmOperatorSigning {
                 nethsm_user,
+                key_id: _,
                 nethsm_key_setup: _,
                 system_user: _,
                 ssh_authorized_key: _,
@@ -648,14 +661,15 @@ impl UserMapping {
     /// # Examples
     ///
     /// ```
-    /// use nethsm::{CryptographicKeyContext, KeyId, OpenPgpUserIdList, SigningKeySetup, UserId};
+    /// use nethsm::{CryptographicKeyContext, KeyId, OpenPgpUserIdList, UserId};
+    /// use signstar_crypto::key::SigningKeySetup;
     /// use signstar_config::{FilterUserKeys, UserMapping};
     ///
     /// # fn main() -> testresult::TestResult {
     /// let mapping = UserMapping::SystemNetHsmOperatorSigning {
     ///     nethsm_user: "user1".parse()?,
+    ///     key_id: "key1".parse()?,
     ///     nethsm_key_setup: SigningKeySetup::new(
-    ///         "key1".parse()?,
     ///         "Curve25519".parse()?,
     ///         vec!["EdDsaSignature".parse()?],
     ///         None,
@@ -672,10 +686,9 @@ impl UserMapping {
     /// assert_eq!(
     ///     mapping.get_nethsm_user_key_and_tag(FilterUserKeys::All),
     ///     vec![(
-    ///         UserId::new("user1".to_string())?,
+    ///         "user1".parse()?,
     ///         "key1".parse()?,
     ///         SigningKeySetup::new(
-    ///             "key1".parse()?,
     ///             "Curve25519".parse()?,
     ///             vec!["EdDsaSignature".parse()?],
     ///             None,
@@ -706,6 +719,7 @@ impl UserMapping {
         match self {
             UserMapping::SystemNetHsmOperatorSigning {
                 nethsm_user,
+                key_id,
                 nethsm_key_setup,
                 system_user: _,
                 ssh_authorized_key: _,
@@ -714,7 +728,7 @@ impl UserMapping {
                 FilterUserKeys::All => {
                     vec![(
                         nethsm_user.clone(),
-                        nethsm_key_setup.get_key_id(),
+                        key_id.clone(),
                         nethsm_key_setup.clone(),
                         tag.clone(),
                     )]
@@ -723,7 +737,7 @@ impl UserMapping {
                     if nethsm_user.is_namespaced() {
                         vec![(
                             nethsm_user.clone(),
-                            nethsm_key_setup.get_key_id(),
+                            key_id.clone(),
                             nethsm_key_setup.clone(),
                             tag.clone(),
                         )]
@@ -735,7 +749,7 @@ impl UserMapping {
                     if Some(&namespace) == nethsm_user.namespace() {
                         vec![(
                             nethsm_user.clone(),
-                            nethsm_key_setup.get_key_id(),
+                            key_id.clone(),
                             nethsm_key_setup.clone(),
                             tag.clone(),
                         )]
@@ -747,7 +761,7 @@ impl UserMapping {
                     if !nethsm_user.is_namespaced() {
                         vec![(
                             nethsm_user.clone(),
-                            nethsm_key_setup.get_key_id(),
+                            key_id.clone(),
                             nethsm_key_setup.clone(),
                             tag.clone(),
                         )]
@@ -759,7 +773,7 @@ impl UserMapping {
                     if &filter_tag == tag {
                         vec![(
                             nethsm_user.clone(),
-                            nethsm_key_setup.get_key_id(),
+                            key_id.clone(),
                             nethsm_key_setup.clone(),
                             tag.clone(),
                         )]
@@ -803,7 +817,8 @@ impl UserMapping {
     /// # Examples
     ///
     /// ```
-    /// use nethsm::{CryptographicKeyContext, OpenPgpUserIdList, SigningKeySetup};
+    /// use nethsm::{CryptographicKeyContext, OpenPgpUserIdList};
+    /// use signstar_crypto::key::SigningKeySetup;
     /// use signstar_config::UserMapping;
     ///
     /// # fn main() -> testresult::TestResult {
@@ -818,8 +833,8 @@ impl UserMapping {
     ///
     /// let mapping = UserMapping::SystemNetHsmOperatorSigning{
     ///     nethsm_user: "ns1~user1".parse()?,
+    ///     key_id: "key1".parse()?,
     ///     nethsm_key_setup: SigningKeySetup::new(
-    ///         "key1".parse()?,
     ///         "Curve25519".parse()?,
     ///         vec!["EdDsaSignature".parse()?],
     ///         None,
@@ -842,6 +857,7 @@ impl UserMapping {
             UserMapping::NetHsmOnlyAdmin(nethsm_user)
             | UserMapping::SystemNetHsmOperatorSigning {
                 nethsm_user,
+                key_id: _,
                 nethsm_key_setup: _,
                 system_user: _,
                 ssh_authorized_key: _,
@@ -895,6 +911,7 @@ impl UserMapping {
         match self {
             UserMapping::SystemNetHsmOperatorSigning {
                 nethsm_user: _,
+                key_id: _,
                 nethsm_key_setup: _,
                 system_user: _,
                 ssh_authorized_key: _,
@@ -1445,8 +1462,8 @@ mod tests {
     #[case(
         UserMapping::SystemNetHsmOperatorSigning {
             nethsm_user: "operator".parse()?,
+            key_id: "key1".parse()?,
             nethsm_key_setup: SigningKeySetup::new(
-                "key1".parse()?,
                 "Curve25519".parse()?,
                 vec!["EdDsaSignature".parse()?],
                 None,
@@ -1465,7 +1482,6 @@ mod tests {
             "operator".parse()?,
             "key1".parse()?,
             SigningKeySetup::new(
-                "key1".parse()?,
                 "Curve25519".parse()?,
                 vec!["EdDsaSignature".parse()?],
                 None,
@@ -1481,8 +1497,8 @@ mod tests {
     #[case::systemwide_operator_filter_namespaced(
         UserMapping::SystemNetHsmOperatorSigning {
             nethsm_user: "operator".parse()?,
+            key_id: "key1".parse()?,
             nethsm_key_setup: SigningKeySetup::new(
-                "key1".parse()?,
                 "Curve25519".parse()?,
                 vec!["EdDsaSignature".parse()?],
                 None,
@@ -1502,8 +1518,8 @@ mod tests {
     #[case::systemwide_operator_filter_namespace(
         UserMapping::SystemNetHsmOperatorSigning {
             nethsm_user: "operator".parse()?,
+            key_id: "key1".parse()?,
             nethsm_key_setup: SigningKeySetup::new(
-                "key1".parse()?,
                 "Curve25519".parse()?,
                 vec!["EdDsaSignature".parse()?],
                 None,
@@ -1523,8 +1539,8 @@ mod tests {
     #[case::namespace_operator_filter_namespaced(
         UserMapping::SystemNetHsmOperatorSigning {
             nethsm_user: "ns1~operator".parse()?,
+            key_id: "key1".parse()?,
             nethsm_key_setup: SigningKeySetup::new(
-                "key1".parse()?,
                 "Curve25519".parse()?,
                 vec!["EdDsaSignature".parse()?],
                 None,
@@ -1543,7 +1559,6 @@ mod tests {
             "ns1~operator".parse()?,
             "key1".parse()?,
             SigningKeySetup::new(
-                "key1".parse()?,
                 "Curve25519".parse()?,
                 vec!["EdDsaSignature".parse()?],
                 None,
@@ -1559,8 +1574,8 @@ mod tests {
     #[case::namespace_operator_filter_namespace(
         UserMapping::SystemNetHsmOperatorSigning {
             nethsm_user: "ns1~operator".parse()?,
+            key_id: "key1".parse()?,
             nethsm_key_setup: SigningKeySetup::new(
-                "key1".parse()?,
                 "Curve25519".parse()?,
                 vec!["EdDsaSignature".parse()?],
                 None,
@@ -1579,7 +1594,6 @@ mod tests {
             "ns1~operator".parse()?,
             "key1".parse()?,
             SigningKeySetup::new(
-                "key1".parse()?,
                 "Curve25519".parse()?,
                 vec!["EdDsaSignature".parse()?],
                 None,
@@ -1595,8 +1609,8 @@ mod tests {
     #[case::namespace_operator_filter_tag(
         UserMapping::SystemNetHsmOperatorSigning {
             nethsm_user: "ns1~operator".parse()?,
+            key_id: "key1".parse()?,
             nethsm_key_setup: SigningKeySetup::new(
-                "key1".parse()?,
                 "Curve25519".parse()?,
                 vec!["EdDsaSignature".parse()?],
                 None,
@@ -1615,7 +1629,6 @@ mod tests {
             "ns1~operator".parse()?,
             "key1".parse()?,
             SigningKeySetup::new(
-                "key1".parse()?,
                 "Curve25519".parse()?,
                 vec!["EdDsaSignature".parse()?],
                 None,
@@ -1631,8 +1644,8 @@ mod tests {
     #[case::namespace_operator_filter_wrong_tag(
         UserMapping::SystemNetHsmOperatorSigning {
             nethsm_user: "ns1~operator".parse()?,
+            key_id: "key1".parse()?,
             nethsm_key_setup: SigningKeySetup::new(
-                "key1".parse()?,
                 "Curve25519".parse()?,
                 vec!["EdDsaSignature".parse()?],
                 None,
@@ -1726,8 +1739,8 @@ mod tests {
     #[case::systemwide_operator(
         UserMapping::SystemNetHsmOperatorSigning {
             nethsm_user: "operator".parse()?,
+            key_id: "key1".parse()?,
             nethsm_key_setup: SigningKeySetup::new(
-                "key1".parse()?,
                 "Curve25519".parse()?,
                 vec!["EdDsaSignature".parse()?],
                 None,
@@ -1749,8 +1762,8 @@ mod tests {
     #[case::namespace_operator(
         UserMapping::SystemNetHsmOperatorSigning {
             nethsm_user: "ns1~operator".parse()?,
+            key_id: "key1".parse()?,
             nethsm_key_setup: SigningKeySetup::new(
-                "key1".parse()?,
                 "Curve25519".parse()?,
                 vec!["EdDsaSignature".parse()?],
                 None,
