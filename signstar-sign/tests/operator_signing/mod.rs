@@ -107,6 +107,7 @@ async fn sign_data(_req: HttpRequest) -> impl Responder {
 #[rstest]
 #[case::plain(SIGNSTAR_CONFIG_PLAINTEXT)]
 #[case::full(SIGNSTAR_CONFIG_FULL)]
+#[cfg_attr(feature = "yubihsm2", case::yubi(crate::utils::SIGNSTAR_CONFIG_YUBI))]
 #[tokio::test]
 async fn load_credentials_for_user(#[case] config_data: &[u8]) -> TestResult {
     setup_logging(LevelFilter::Info)?;
@@ -171,6 +172,7 @@ async fn load_credentials_for_user(#[case] config_data: &[u8]) -> TestResult {
     for mapping in &creds_mapping {
         mapping.create_secrets_dir()?;
         mapping.create_non_administrative_secrets()?;
+        eprintln!("Created credentials for {mapping:?}");
     }
     // List all files and directories in the data home.
     list_files_in_dir(get_data_home())?;

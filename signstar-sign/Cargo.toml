@@ -19,6 +19,7 @@ signstar-common = { features = ["logging"], workspace = true }
 signstar-config.workspace = true
 signstar-crypto.workspace = true
 signstar-request-signature.workspace = true
+signstar-yubihsm2 = { path = "../signstar-yubihsm2", version = "0.1.0" }
 thiserror.workspace = true
 
 [features]
