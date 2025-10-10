@@ -769,7 +769,7 @@ containerized-integration-tests *options:
         just ensure-command bash cargo cargo-nextest jq podman
     fi
 
-    cargo nextest run --features _containerized-integration-test "${options[@]}" --filterset 'kind(test)'
+    cargo nextest run --features _containerized-integration-test,yubihsm2 "${options[@]}" --filterset 'kind(test)'
 
 # Creates code coverage for all projects.
 [group('test')]
