@@ -14,6 +14,8 @@ use signstar_config::{
 use signstar_crypto::signer::{RawSigningKey, sign_hasher_state};
 use signstar_request_signature::{Request, Response, Sha512};
 use signstar_sign::cli::Cli;
+#[cfg(feature = "yubihsm2")]
+use signstar_yubihsm2::{Credentials, YubiHsmSigner};
 
 /// Signstar signing error.
 #[derive(Debug, thiserror::Error)]
@@ -57,6 +59,11 @@ enum Error {
     /// A signstar-crypto OpenPGP error.
     #[error(transparent)]
     SignstarCryptoOpenPgp(#[from] signstar_crypto::openpgp::Error),
+
+    /// YubiHSM error.
+    #[cfg(feature = "yubihsm2")]
+    #[error(transparent)]
+    YubiHsm(#[from] signstar_yubihsm2::Error),
 }
 
 /// Creates a new [`StateSigner`] object with correct connection and user settings and returns it.
@@ -86,33 +93,58 @@ fn load_signer() -> Result<Box<dyn RawSigningKey>, Error> {
     let key_id = if let UserMapping::SystemNetHsmOperatorSigning { key_id, .. } =
         credentials_loading.get_mapping().get_user_mapping()
     {
-        key_id.clone()
+        Ok(key_id.clone())
     } else {
-        return Err(Error::NoKeyId);
+        Err(Error::NoKeyId)
+    };
+
+    #[cfg(feature = "yubihsm2")]
+    let yubihsm_key_ids = if let UserMapping::SystemYubiHsmOperatorSigning {
+        authentication_key_id,
+        backend_key_id,
+        ..
+    } = credentials_loading.get_mapping().get_user_mapping()
+    {
+        Ok((*authentication_key_id, *backend_key_id))
+    } else {
+        Err(Error::NoKeyId)
     };
 
     // Currently, this picks the first connection found.
     // The Signstar setup assumes, that multiple backends are used in a round-robin fashion, but
     // this is not yet implemented.
-    if let Some(connection) = credentials_loading
+    let Some(connection) = credentials_loading
         .get_mapping()
         .get_connections()
         .into_iter()
         .next()
-    {
-        let credentials = credentials_loading.credentials_for_signing_user()?;
-        match connection {
-            BackendConnection::NetHsm(connection) => Ok(Box::new(OwnedNetHsmKey::new(
-                NetHsm::new(connection, Some(credentials.try_into()?), None, None)?,
-                key_id,
-            )?)),
-            #[cfg(feature = "yubihsm2")]
-            BackendConnection::YubiHsm2(_) => {
-                unimplemented!("The use of the YubiHSM2 backend is not yet implemented.")
-            }
+    else {
+        return Err(Error::NoCredentials);
+    };
+
+    let credentials = credentials_loading.credentials_for_signing_user()?;
+    match connection {
+        BackendConnection::NetHsm(connection) => Ok(Box::new(OwnedNetHsmKey::new(
+            NetHsm::new(connection, Some(credentials.try_into()?), None, None)?,
+            key_id?,
+        )?)),
+        #[cfg(feature = "yubihsm2")]
+        BackendConnection::YubiHsm2(connection) => {
+            use signstar_config::yubihsm2::backend::YubiHsmConnection;
+
+            let (authentication_key_id, backend_key_id) = yubihsm_key_ids?;
+            let credentials =
+                Credentials::new(authentication_key_id, credentials.passphrase().clone());
+
+            Ok(Box::new(match &connection {
+                YubiHsmConnection::Mock => YubiHsmSigner::mock(backend_key_id, &credentials)?,
+                YubiHsmConnection::Usb { serial_number } => YubiHsmSigner::new_with_serial_number(
+                    serial_number,
+                    backend_key_id,
+                    &credentials,
+                )?,
+            }))
         }
-    } else {
-        Err(Error::NoCredentials)
     }
 }
 
