@@ -295,6 +295,22 @@ impl UserMapping {
         }
     }
 
+    /// XXX
+    pub fn get_users(&self) -> Vec<String> {
+        match self {
+            #[cfg(feature = "yubihsm2")]
+            UserMapping::SystemYubiHsmOperatorSigning { system_user, .. } => {
+                vec![system_user.to_string()]
+            }
+
+            _ => self
+                .get_nethsm_users()
+                .into_iter()
+                .map(|u| u.to_string())
+                .collect(),
+        }
+    }
+
     /// Returns the list of all tracked [`UserId`]s and their respective [`UserRole`]s.
     ///
     /// # Examples
@@ -1147,7 +1163,7 @@ impl ExtendedUserMapping {
         let mut credentials = Vec::new();
         let mut errors = Vec::new();
 
-        for user_id in self.get_user_mapping().get_nethsm_users() {
+        for user_id in self.get_user_mapping().get_users() {
             let secrets_file = match secret_handling {
                 NonAdministrativeSecretHandling::Plaintext => {
                     get_plaintext_secret_file(system_user.as_ref(), &user_id.to_string())
@@ -1158,7 +1174,10 @@ impl ExtendedUserMapping {
             };
             // Ensure the secrets file has correct ownership and permissions.
             if let Err(error) = check_secrets_file(secrets_file.as_path()) {
-                errors.push(CredentialsLoadingError::new(user_id, error));
+                errors.push(CredentialsLoadingError::new(
+                    user_id.parse().unwrap(),
+                    error,
+                ));
                 continue;
             };
 
@@ -1174,10 +1193,15 @@ impl ExtendedUserMapping {
                             },
                         )
                     }) {
-                        Ok(passphrase) => credentials
-                            .push(FullCredentials::new(user_id, Passphrase::new(passphrase))),
+                        Ok(passphrase) => credentials.push(FullCredentials::new(
+                            user_id.parse().unwrap(),
+                            Passphrase::new(passphrase),
+                        )),
                         Err(error) => {
-                            errors.push(CredentialsLoadingError::new(user_id, error));
+                            errors.push(CredentialsLoadingError::new(
+                                user_id.parse().unwrap(),
+                                error,
+                            ));
                             continue;
                         }
                     }
@@ -1200,7 +1224,7 @@ impl ExtendedUserMapping {
                             // fail if decryption did not result in a successful status code
                             if !command_output.status.success() {
                                 errors.push(CredentialsLoadingError::new(
-                                    user_id,
+                                    user_id.parse().unwrap(),
                                     Error::CommandNonZero {
                                         command: format!("{command:?}"),
                                         exit_status: command_output.status,
@@ -1215,7 +1239,7 @@ impl ExtendedUserMapping {
                                 Ok(creds) => creds,
                                 Err(source) => {
                                     errors.push(CredentialsLoadingError::new(
-                                        user_id.clone(),
+                                        user_id.clone().parse().unwrap(),
                                         Error::Utf8String {
                                             path: secrets_file,
                                             context: format!(
@@ -1228,10 +1252,16 @@ impl ExtendedUserMapping {
                                 }
                             };
 
-                            credentials.push(FullCredentials::new(user_id, Passphrase::new(creds)));
+                            credentials.push(FullCredentials::new(
+                                user_id.parse().unwrap(),
+                                Passphrase::new(creds),
+                            ));
                         }
                         Err(error) => {
-                            errors.push(CredentialsLoadingError::new(user_id, error));
+                            errors.push(CredentialsLoadingError::new(
+                                user_id.parse().unwrap(),
+                                error,
+                            ));
                             continue;
                         }
                     }
@@ -1331,8 +1361,8 @@ impl ExtendedUserMapping {
 
         let secret_handling = self.get_non_admin_secret_handling();
 
-        // add a secret for each NetHSM user
-        for user_id in self.get_user_mapping().get_nethsm_users() {
+        // add a secret for each user
+        for user_id in self.get_user_mapping().get_users() {
             let secrets_file = match secret_handling {
                 NonAdministrativeSecretHandling::Plaintext => {
                     get_plaintext_secret_file(system_user.as_ref(), &user_id.to_string())
