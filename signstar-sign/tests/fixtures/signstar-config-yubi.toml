@@ -1,0 +1,47 @@
+admin_secret_handling = "shamirs-secret-sharing"
+iteration = 1
+non_admin_secret_handling = "plaintext"
+
+[[connections]]
+#yubihsm2 = { usb = { serial_number = "1234567890" } }
+yubihsm2 = "mock"
+
+[[users]]
+nethsm_only_admin = "admin" # this should not be necessary
+
+[[users]]
+
+[users.system_yubihsm_operator_signing]
+authentication_key_id = 2
+backend_key_domain = 1
+backend_key_id = 201
+ssh_authorized_key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAN54Gd1jMz+yNDjBRwX1SnOtWuUsVF64RJIeYJ8DI7b user@host"
+system_user = "sshoperator1"
+
+[users.system_yubihsm_operator_signing.backend_key_setup]
+key_id = "key1"
+key_mechanisms = ["EdDsaSignature"]
+key_type = "Curve25519"
+signature_type = "EdDsa"
+
+[users.system_yubihsm_operator_signing.backend_key_setup.key_context.openpgp]
+user_ids = ["Foobar McFooface <foobar@mcfooface.org>"]
+version = "4"
+
+[[users]]
+
+[users.system_only_share_download]
+ssh_authorized_key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOh96uFTnvX6P1ebbLxXFvy6sK7qFqlMHDOuJ0TmuXQQ user@host"
+system_user = "ssh-share-down"
+
+[[users]]
+
+[users.system_only_share_upload]
+ssh_authorized_key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOh96uFTnvX6P1ebbLxXFvy6sK7qFqlMHDOuJ0TmuXQQ user@host"
+system_user = "ssh-share-up"
+
+[[users]]
+
+[users.system_only_wireguard_download]
+ssh_authorized_key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIClIXZdx0aDOPcIQA+6Qx68cwSUgGTL3TWzDSX3qUEOQ user@host"
+system_user = "ssh-wireguard-down"

@@ -4587,6 +4587,7 @@ dependencies = [
  "signstar-config",
  "signstar-crypto",
  "signstar-request-signature",
+ "signstar-yubihsm2",
  "tempfile",
  "testresult",
  "thiserror 2.0.15",
