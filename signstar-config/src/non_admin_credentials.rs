@@ -6,7 +6,6 @@ use std::{
 
 #[cfg(doc)]
 use nethsm::NetHsm;
-use nethsm::UserId;
 use signstar_common::common::SECRET_FILE_MODE;
 use signstar_crypto::traits::UserWithPassphrase;
 
@@ -122,22 +121,21 @@ pub enum Error {
 
 /// An error that may occur when loading credentials for a [`SystemUserId`].
 ///
-/// Alongside an [`Error`][`crate::Error`] contains a target [`UserId`] for which the error
-/// occurred.
+/// Alongside an [`Error`][`crate::Error`] contains a target user name for which the error occurred.
 #[derive(Debug)]
 pub struct CredentialsLoadingError {
-    user_id: UserId,
+    user_id: String,
     error: crate::Error,
 }
 
 impl CredentialsLoadingError {
     /// Creates a new [`CredentialsLoadingError`].
-    pub fn new(user_id: UserId, error: crate::Error) -> Self {
+    pub fn new(user_id: String, error: crate::Error) -> Self {
         Self { user_id, error }
     }
 
-    /// Returns a reference to the [`UserId`].
-    pub fn get_user_id(&self) -> &UserId {
+    /// Returns a reference to the user name.
+    pub fn get_user_id(&self) -> &str {
         &self.user_id
     }
 
@@ -265,14 +263,14 @@ impl CredentialsLoading {
         }
     }
 
-    /// Indicates whether there are any errors with [`UserId`]s.
+    /// Indicates whether there are any errors with user names.
     ///
     /// Returns `true` if there are errors, `false` otherwise.
     pub fn has_userid_errors(&self) -> bool {
         !self.errors.get_errors().is_empty()
     }
 
-    /// Returns the collected errors for [`UserId`]s.
+    /// Returns the collected errors for user names.
     pub fn get_userid_errors(self) -> CredentialsLoadingErrors {
         self.errors
     }

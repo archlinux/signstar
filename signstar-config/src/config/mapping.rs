@@ -1158,7 +1158,7 @@ impl ExtendedUserMapping {
             };
             // Ensure the secrets file has correct ownership and permissions.
             if let Err(error) = check_secrets_file(secrets_file.as_path()) {
-                errors.push(CredentialsLoadingError::new(user_id, error));
+                errors.push(CredentialsLoadingError::new(user_id.to_string(), error));
                 continue;
             };
 
@@ -1179,7 +1179,7 @@ impl ExtendedUserMapping {
                             Passphrase::new(passphrase),
                         ))),
                         Err(error) => {
-                            errors.push(CredentialsLoadingError::new(user_id, error));
+                            errors.push(CredentialsLoadingError::new(user_id.to_string(), error));
                             continue;
                         }
                     }
@@ -1202,7 +1202,7 @@ impl ExtendedUserMapping {
                             // fail if decryption did not result in a successful status code
                             if !command_output.status.success() {
                                 errors.push(CredentialsLoadingError::new(
-                                    user_id,
+                                    user_id.to_string(),
                                     Error::CommandNonZero {
                                         command: format!("{command:?}"),
                                         exit_status: command_output.status,
@@ -1217,7 +1217,7 @@ impl ExtendedUserMapping {
                                 Ok(creds) => creds,
                                 Err(source) => {
                                     errors.push(CredentialsLoadingError::new(
-                                        user_id.clone(),
+                                        user_id.to_string(),
                                         Error::Utf8String {
                                             path: secrets_file,
                                             context: format!(
@@ -1236,7 +1236,7 @@ impl ExtendedUserMapping {
                             )));
                         }
                         Err(error) => {
-                            errors.push(CredentialsLoadingError::new(user_id, error));
+                            errors.push(CredentialsLoadingError::new(user_id.to_string(), error));
                             continue;
                         }
                     }
