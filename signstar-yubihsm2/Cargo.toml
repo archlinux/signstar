@@ -1,0 +1,16 @@
+[package]
+authors.workspace = true
+description = "Integration for YubiHSM2 devices as Signstar backend"
+edition.workspace = true
+homepage.workspace = true
+license.workspace = true
+name = "signstar-yubihsm2"
+readme = "README.md"
+repository.workspace = true
+rust-version.workspace = true
+version = "0.1.0"
+
+[dependencies]
+
+[lints]
+workspace = true

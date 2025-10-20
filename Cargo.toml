@@ -10,6 +10,7 @@ members = [
     "signstar-crypto",
     "signstar-request-signature",
     "signstar-sign",
+    "signstar-yubihsm2",
 ]
 resolver = "3"
 
