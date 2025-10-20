@@ -460,6 +460,16 @@ impl FullCredentials {
     }
 }
 
+impl UserWithPassphrase for FullCredentials {
+    fn user(&self) -> String {
+        self.name.to_string()
+    }
+
+    fn passphrase(&self) -> &Passphrase {
+        &self.passphrase
+    }
+}
+
 impl From<FullCredentials> for BasicAuth {
     fn from(value: FullCredentials) -> Self {
         Self::from(&value)
