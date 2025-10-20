@@ -12,7 +12,6 @@ use std::{
 #[cfg(doc)]
 use nethsm::NetHsm;
 use nethsm::{FullCredentials, KeyId, NamespaceId, Passphrase, UserId, UserRole};
-use rand::{Rng, distributions::Alphanumeric, thread_rng};
 use serde::{Deserialize, Serialize};
 use signstar_common::{
     common::SECRET_FILE_MODE,
@@ -1428,8 +1427,9 @@ impl ExtendedUserMapping {
 
     /// Creates passphrases for all non-administrative mappings.
     ///
-    /// Creates a random alphanumeric, 30-char long passphrase for each backend user of each
-    /// non-administrative user mapping.
+    /// If the targeted [`UserMapping`] is that of non-administrative backend user(s), a new random
+    /// passphrase (see [`Passphrase::generate`]) is created for each of those backend user(s).
+    /// Each passphrase is written to disk and finally the list of credentials are returned.
     ///
     /// - If `self` is configured to use [`NonAdministrativeSecretHandling::Plaintext`], the
     ///   passphrase is stored in a secrets file, defined by [`get_plaintext_secret_file`].
@@ -1440,6 +1440,7 @@ impl ExtendedUserMapping {
     /// # Errors
     ///
     /// Returns an error if
+    ///
     /// - the targeted system user does not exist in the mapping or on the system,
     /// - the function is called using a non-root user,
     /// - the [systemd-creds] command is not available when trying to encrypt the passphrase,
@@ -1449,7 +1450,9 @@ impl ExtendedUserMapping {
     /// - or the ownership and permissions of the secrets file can not be changed.
     ///
     /// [systemd-creds]: https://man.archlinux.org/man/systemd-creds.1
-    pub fn create_non_administrative_secrets(&self) -> Result<(), Error> {
+    pub fn create_non_administrative_secrets(
+        &self,
+    ) -> Result<Vec<Box<dyn UserWithPassphrase>>, Error> {
         // Retrieve required SystemUserId and User.
         let (system_user, user) = get_system_user_pair(self)?;
 
@@ -1457,31 +1460,33 @@ impl ExtendedUserMapping {
         fail_if_not_root(&get_current_system_user()?)?;
 
         let secret_handling = self.get_non_admin_secret_handling();
+        // Get credentials for all backend users (with newly generated passphrases).
+        let credentials =
+            self.get_user_mapping()
+                .backend_users_with_new_passphrase(UserMappingFilter {
+                    backend_user_kind: BackendUserKind::NonAdmin,
+                });
 
-        // add a secret for each NetHSM user
-        for user_id in self.get_user_mapping().get_nethsm_users() {
+        // Write the passphrase for each set of credentials to disk.
+        for creds in credentials.iter() {
             let secrets_file = match secret_handling {
                 NonAdministrativeSecretHandling::Plaintext => {
-                    get_plaintext_secret_file(system_user.as_ref(), &user_id.to_string())
+                    get_plaintext_secret_file(system_user.as_ref(), &creds.user())
                 }
                 NonAdministrativeSecretHandling::SystemdCreds => {
-                    get_systemd_creds_secret_file(system_user.as_ref(), &user_id.to_string())
+                    get_systemd_creds_secret_file(system_user.as_ref(), &creds.user())
                 }
             };
+
             println!(
-                "Create secret for system user {system_user} and backend user {user_id} in file: {secrets_file:?}"
+                "Create secret for system user {system_user} and backend user {} in file: {secrets_file:?}",
+                creds.user()
             );
             let secret = {
-                // create initial (unencrypted) secret
-                let initial_secret: String = thread_rng()
-                    .sample_iter(&Alphanumeric)
-                    .take(30)
-                    .map(char::from)
-                    .collect();
                 // Create credentials files depending on secret handling
                 match secret_handling {
                     NonAdministrativeSecretHandling::Plaintext => {
-                        initial_secret.as_bytes().to_vec()
+                        creds.passphrase().expose_borrowed().as_bytes().to_vec()
                     }
                     NonAdministrativeSecretHandling::SystemdCreds => {
                         // Create systemd-creds encrypted secret.
@@ -1511,7 +1516,7 @@ impl ExtendedUserMapping {
                             .ok_or(Error::CommandAttachToStdin {
                                 command: format!("{command:?}"),
                             })?
-                            .write_all(initial_secret.as_bytes())
+                            .write_all(creds.passphrase().expose_borrowed().as_bytes())
                             .map_err(|source| Error::CommandWriteToStdin {
                                 command: format!("{command:?}"),
                                 source,
@@ -1575,7 +1580,8 @@ impl ExtendedUserMapping {
                 source,
             })?;
         }
-        Ok(())
+
+        Ok(credentials)
     }
 }
 
