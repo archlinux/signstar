@@ -4541,6 +4541,10 @@ dependencies = [
 [[package]]
 name = "signstar-yubihsm2"
 version = "0.1.0"
+dependencies = [
+ "signstar-crypto",
+ "testresult",
+]
 
 [[package]]
 name = "similar"

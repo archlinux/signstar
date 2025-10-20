@@ -11,6 +11,10 @@ rust-version.workspace = true
 version = "0.1.0"
 
 [dependencies]
+signstar-crypto = { version = "0.1.0", path = "../signstar-crypto" }
 
 [lints]
 workspace = true
+
+[dev-dependencies]
+testresult.workspace = true
