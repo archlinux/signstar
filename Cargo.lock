@@ -4438,6 +4438,7 @@ dependencies = [
  "serde",
  "signstar-common",
  "signstar-crypto",
+ "signstar-yubihsm2",
  "ssh-key",
  "strum",
  "tempfile",

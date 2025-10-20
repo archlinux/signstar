@@ -19,6 +19,7 @@ rand.workspace = true
 serde.workspace = true
 signstar-common.workspace = true
 signstar-crypto = { version = "0.1.0", path = "../signstar-crypto" }
+signstar-yubihsm2 = { version = "0.1.0", path = "../signstar-yubihsm2", optional = true }
 ssh-key = "0.6.7"
 strum.workspace = true
 tempfile = { version = "3.16.0", optional = true }
@@ -44,7 +45,7 @@ _integration-test = ["test-helpers"]
 _nethsm-integration-test = ["_integration-test", "test-helpers"]
 default = []
 test-helpers = ["dep:tempfile", "dep:testresult"]
-yubihsm2 = []
+yubihsm2 = ["dep:signstar-yubihsm2"]
 
 [lints]
 workspace = true
