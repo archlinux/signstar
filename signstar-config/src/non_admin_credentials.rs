@@ -6,8 +6,9 @@ use std::{
 
 #[cfg(doc)]
 use nethsm::NetHsm;
-use nethsm::{FullCredentials, UserId};
+use nethsm::UserId;
 use signstar_common::common::SECRET_FILE_MODE;
+use signstar_crypto::traits::UserWithPassphrase;
 
 use crate::{
     ExtendedUserMapping,
@@ -186,12 +187,12 @@ impl Display for CredentialsLoadingErrors {
 
 /// A collection of credentials and credential loading errors for a system user.
 ///
-/// Tracks a [`SystemUserId`], zero or more [`FullCredentials`] mapped to it, as well as zero or
-/// more errors related to loading the passphrase for a [`UserId`].
+/// Tracks a [`SystemUserId`], zero or more [`UserWithPassphrase`] implementations mapped to it, as
+/// well as zero or more errors related to loading the passphrase for each of those backend users.
 #[derive(Debug)]
 pub struct CredentialsLoading {
     mapping: ExtendedUserMapping,
-    credentials: Vec<FullCredentials>,
+    credentials: Vec<Box<dyn UserWithPassphrase>>,
     errors: CredentialsLoadingErrors,
 }
 
@@ -199,7 +200,7 @@ impl CredentialsLoading {
     /// Creates a new [`CredentialsLoading`].
     pub fn new(
         mapping: ExtendedUserMapping,
-        credentials: Vec<FullCredentials>,
+        credentials: Vec<Box<dyn UserWithPassphrase>>,
         errors: CredentialsLoadingErrors,
     ) -> Self {
         Self {
@@ -247,8 +248,8 @@ impl CredentialsLoading {
         &self.mapping
     }
 
-    /// Returns all [`FullCredentials`].
-    pub fn get_credentials(&self) -> &[FullCredentials] {
+    /// Returns all [credentials][`UserWithPassphrase`].
+    pub fn get_credentials(&self) -> &[Box<dyn UserWithPassphrase>] {
         &self.credentials
     }
 
@@ -300,7 +301,7 @@ impl CredentialsLoading {
     /// - the tracked user is not a signing user
     /// - errors occurred when loading the system user's credentials
     /// - or there are no credentials for the system user.
-    pub fn credentials_for_signing_user(self) -> Result<FullCredentials, crate::Error> {
+    pub fn credentials_for_signing_user(self) -> Result<Box<dyn UserWithPassphrase>, crate::Error> {
         if !self.has_signing_user() {
             return Err(crate::Error::NonAdminSecretHandling(Error::NotSigningUser));
         }
@@ -314,14 +315,15 @@ impl CredentialsLoading {
             ));
         }
 
-        if let Some(credentials) = self.credentials.first() {
-            Ok(credentials.clone())
+        let system_user = self.get_system_user_id()?.clone();
+        let mut iterator = self.credentials.into_iter();
+
+        if let Some(credentials) = iterator.next() {
+            Ok(credentials)
         } else {
-            return Err(crate::Error::NonAdminSecretHandling(
-                Error::CredentialsMissing {
-                    system_user: self.get_system_user_id()?.clone(),
-                },
-            ));
+            Err(crate::Error::NonAdminSecretHandling(
+                Error::CredentialsMissing { system_user },
+            ))
         }
     }
 }

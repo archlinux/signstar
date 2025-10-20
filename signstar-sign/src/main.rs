@@ -101,7 +101,7 @@ fn load_nethsm_keyid() -> Result<(NetHsm, KeyId), Error> {
     let credentials = credentials_loading.credentials_for_signing_user()?;
 
     Ok((
-        NetHsm::new(connection, Some(credentials.into()), None, None)?,
+        NetHsm::new(connection, Some(credentials.try_into()?), None, None)?,
         key_id,
     ))
 }

@@ -23,7 +23,7 @@ use signstar_common::{
         get_user_secrets_dir,
     },
 };
-use signstar_crypto::key::SigningKeySetup;
+use signstar_crypto::{key::SigningKeySetup, traits::UserWithPassphrase};
 
 use crate::{
     AdministrativeSecretHandling,
@@ -1144,7 +1144,7 @@ impl ExtendedUserMapping {
         match_current_system_user(&current_system_user, &user)?;
 
         let secret_handling = self.get_non_admin_secret_handling();
-        let mut credentials = Vec::new();
+        let mut credentials: Vec<Box<dyn UserWithPassphrase>> = Vec::new();
         let mut errors = Vec::new();
 
         for user_id in self.get_user_mapping().get_nethsm_users() {
@@ -1174,8 +1174,10 @@ impl ExtendedUserMapping {
                             },
                         )
                     }) {
-                        Ok(passphrase) => credentials
-                            .push(FullCredentials::new(user_id, Passphrase::new(passphrase))),
+                        Ok(passphrase) => credentials.push(Box::new(FullCredentials::new(
+                            user_id,
+                            Passphrase::new(passphrase),
+                        ))),
                         Err(error) => {
                             errors.push(CredentialsLoadingError::new(user_id, error));
                             continue;
@@ -1228,7 +1230,10 @@ impl ExtendedUserMapping {
                                 }
                             };
 
-                            credentials.push(FullCredentials::new(user_id, Passphrase::new(creds)));
+                            credentials.push(Box::new(FullCredentials::new(
+                                user_id,
+                                Passphrase::new(creds),
+                            )));
                         }
                         Err(error) => {
                             errors.push(CredentialsLoadingError::new(user_id, error));

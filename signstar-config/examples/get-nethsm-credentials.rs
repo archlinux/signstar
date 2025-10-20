@@ -38,8 +38,8 @@ fn load_user_credentials() -> Result<(), Error> {
         let credentials = credentials_loading.credentials_for_signing_user()?;
         eprintln!(
             "user: {}\npassphrase: {}",
-            credentials.name,
-            credentials.passphrase.expose_owned()
+            credentials.user(),
+            credentials.passphrase().expose_borrowed()
         )
     }
 
