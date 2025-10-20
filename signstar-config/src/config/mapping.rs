@@ -9,6 +9,7 @@ use std::{
     process::{Command, Stdio},
 };
 
+use log::info;
 #[cfg(doc)]
 use nethsm::NetHsm;
 use nethsm::{FullCredentials, KeyId, NamespaceId, Passphrase, UserId, UserRole};
@@ -1360,6 +1361,9 @@ impl ExtendedUserMapping {
                     get_systemd_creds_secret_file(system_user.as_ref(), &name)
                 }
             };
+            info!(
+                "Load secret for system user {system_user} and backend user {name} from file: {secrets_file:?}"
+            );
             // Ensure the secrets file has correct ownership and permissions.
             if let Err(error) = check_secrets_file(secrets_file.as_path()) {
                 errors.push(CredentialsLoadingError::new(name.clone(), error));
@@ -1589,7 +1593,7 @@ impl ExtendedUserMapping {
                 }
             };
 
-            println!(
+            info!(
                 "Create secret for system user {system_user} and backend user {} in file: {secrets_file:?}",
                 creds.user()
             );
