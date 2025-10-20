@@ -1311,20 +1311,24 @@ impl ExtendedUserMapping {
         &self.user_mapping
     }
 
-    /// Loads credentials for each [`UserId`] associated with a [`SystemUserId`].
+    /// Loads credentials for each backend user associated with a [`SystemUserId`].
     ///
     /// The [`SystemUserId`] of the mapping must be equal to the current system user calling this
     /// function.
     /// Relies on [`get_plaintext_secret_file`] and [`get_systemd_creds_secret_file`] to retrieve
-    /// the specific path to a secret file for each [`UserId`] mapped to a [`SystemUserId`].
+    /// the specific path to a secrets file for each backend user name mapped to a [`SystemUserId`].
     ///
     /// Returns a [`CredentialsLoading`], which may contain critical errors related to loading a
-    /// passphrase for each available [`UserId`].
+    /// passphrase from a secrets file for each available backend user.
+    ///
+    /// # Note
+    ///
     /// The caller is expected to handle any errors tracked in the returned object based on context.
     ///
     /// # Errors
     ///
     /// Returns an error if
+    ///
     /// - the [`ExtendedUserMapping`] provides no [`SystemUserId`],
     /// - no system user equal to the [`SystemUserId`] exists,
     /// - the [`SystemUserId`] is not equal to the currently calling system user,
@@ -1344,22 +1348,25 @@ impl ExtendedUserMapping {
         let mut credentials: Vec<Box<dyn UserWithPassphrase>> = Vec::new();
         let mut errors = Vec::new();
 
-        for user_id in self.get_user_mapping().get_nethsm_users() {
+        // Iterate over the names of non-administrative backend users of the mapping.
+        for name in self.get_user_mapping().backend_users(UserMappingFilter {
+            backend_user_kind: BackendUserKind::NonAdmin,
+        }) {
             let secrets_file = match secret_handling {
                 NonAdministrativeSecretHandling::Plaintext => {
-                    get_plaintext_secret_file(system_user.as_ref(), &user_id.to_string())
+                    get_plaintext_secret_file(system_user.as_ref(), &name)
                 }
                 NonAdministrativeSecretHandling::SystemdCreds => {
-                    get_systemd_creds_secret_file(system_user.as_ref(), &user_id.to_string())
+                    get_systemd_creds_secret_file(system_user.as_ref(), &name)
                 }
             };
             // Ensure the secrets file has correct ownership and permissions.
             if let Err(error) = check_secrets_file(secrets_file.as_path()) {
-                errors.push(CredentialsLoadingError::new(user_id.to_string(), error));
+                errors.push(CredentialsLoadingError::new(name.clone(), error));
                 continue;
             };
 
-            match secret_handling {
+            let passphrase = match secret_handling {
                 // Read from plaintext secrets file.
                 NonAdministrativeSecretHandling::Plaintext => {
                     // get passphrase or error
@@ -1371,12 +1378,9 @@ impl ExtendedUserMapping {
                             },
                         )
                     }) {
-                        Ok(passphrase) => credentials.push(Box::new(FullCredentials::new(
-                            user_id,
-                            Passphrase::new(passphrase),
-                        ))),
+                        Ok(passphrase) => Passphrase::new(passphrase),
                         Err(error) => {
-                            errors.push(CredentialsLoadingError::new(user_id.to_string(), error));
+                            errors.push(CredentialsLoadingError::new(name.clone(), error));
                             continue;
                         }
                     }
@@ -1399,7 +1403,7 @@ impl ExtendedUserMapping {
                             // fail if decryption did not result in a successful status code
                             if !command_output.status.success() {
                                 errors.push(CredentialsLoadingError::new(
-                                    user_id.to_string(),
+                                    name.clone(),
                                     Error::CommandNonZero {
                                         command: format!("{command:?}"),
                                         exit_status: command_output.status,
@@ -1414,7 +1418,7 @@ impl ExtendedUserMapping {
                                 Ok(creds) => creds,
                                 Err(source) => {
                                     errors.push(CredentialsLoadingError::new(
-                                        user_id.to_string(),
+                                        name.clone(),
                                         Error::Utf8String {
                                             path: secrets_file,
                                             context: format!(
@@ -1427,17 +1431,48 @@ impl ExtendedUserMapping {
                                 }
                             };
 
-                            credentials.push(Box::new(FullCredentials::new(
-                                user_id,
-                                Passphrase::new(creds),
-                            )));
+                            Passphrase::new(creds)
                         }
                         Err(error) => {
-                            errors.push(CredentialsLoadingError::new(user_id.to_string(), error));
+                            errors.push(CredentialsLoadingError::new(name.clone(), error));
                             continue;
                         }
                     }
                 }
+            };
+
+            // Add the credentials to the output.
+            //
+            // NOTE: Some UserMappings do not have non-administrative backend users and are only
+            // matched to allow for variants behind dedicated features to be addressed properly.
+            match self.get_user_mapping() {
+                // NOTE: This is a no-op, because an admin user's credentials are not persisted the
+                // same way as those of a non-admin user.
+                UserMapping::NetHsmOnlyAdmin(_) => {}
+                // NOTE: This is a no-op, as these mappings have no backend user.
+                UserMapping::SystemOnlyShareDownload { .. }
+                | UserMapping::SystemOnlyShareUpload { .. }
+                | UserMapping::SystemOnlyWireGuardDownload { .. } => {}
+                UserMapping::SystemNetHsmBackup { .. }
+                | UserMapping::SystemNetHsmMetrics { .. }
+                | UserMapping::SystemNetHsmOperatorSigning { .. }
+                | UserMapping::HermeticSystemNetHsmMetrics { .. } => {
+                    credentials.push(Box::new(FullCredentials::new(
+                        // NOTE: It is not possible to actually trigger this error, as we are
+                        // deriving `name` from a `UserId` in this case.
+                        UserId::new(name)
+                            .map_err(|source| Error::NetHsm(nethsm::Error::User(source)))?,
+                        passphrase,
+                    )));
+                }
+                #[cfg(feature = "yubihsm2")]
+                UserMapping::SystemYubiHsmOperatorSigning {
+                    authentication_key_id,
+                    ..
+                } => credentials.push(Box::new(signstar_yubihsm2::Credentials::new(
+                    *authentication_key_id,
+                    passphrase,
+                ))),
             }
         }
 
