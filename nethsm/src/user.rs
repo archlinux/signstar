@@ -5,6 +5,7 @@ use std::str::FromStr;
 
 use nethsm_sdk_rs::apis::configuration::BasicAuth;
 use serde::{Deserialize, Serialize};
+use signstar_crypto::traits::UserWithPassphrase;
 use strum::AsRefStr;
 
 use crate::{Passphrase, UserRole};
@@ -574,6 +575,17 @@ impl From<&FullCredentials> for Credentials {
 impl From<FullCredentials> for Credentials {
     fn from(value: FullCredentials) -> Self {
         Credentials::new(value.name, Some(value.passphrase))
+    }
+}
+
+impl TryFrom<Box<dyn UserWithPassphrase>> for Credentials {
+    type Error = crate::Error;
+
+    fn try_from(value: Box<dyn UserWithPassphrase>) -> Result<Self, Self::Error> {
+        Ok(Self::new(
+            UserId::try_from(value.user())?,
+            Some(value.passphrase().clone()),
+        ))
     }
 }
 
