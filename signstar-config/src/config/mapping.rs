@@ -48,6 +48,26 @@ use crate::{
     },
 };
 
+/// The kind of backend user.
+///
+/// This distinguishes between the different access rights levels (i.e. administrative and
+/// non-administrative) of a backend user.
+#[derive(Clone, Copy, Debug, Default)]
+pub enum BackendUserKind {
+    /// Administrative user.
+    Admin,
+    /// Non-administrative user.
+    #[default]
+    NonAdmin,
+}
+
+/// A filter for [`UserMapping`] variants.
+#[derive(Clone, Debug, Default)]
+pub struct UserMappingFilter {
+    /// The kind of backend user.
+    pub backend_user_kind: BackendUserKind,
+}
+
 /// User mapping between system users and [`NetHsm`] users
 #[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 pub enum UserMapping {

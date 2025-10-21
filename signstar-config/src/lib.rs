@@ -21,7 +21,7 @@ pub use config::{
     },
     credentials::{AuthorizedKeyEntry, SystemUserId, SystemWideUserId},
     error::Error as ConfigError,
-    mapping::{ExtendedUserMapping, UserMapping},
+    mapping::{BackendUserKind, ExtendedUserMapping, UserMapping, UserMappingFilter},
 };
 pub use error::{Error, ErrorExitCode};
 pub use nethsm::{
