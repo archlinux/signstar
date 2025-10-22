@@ -131,7 +131,7 @@ check-spelling:
 [private]
 get-workspace-members:
     just ensure-command cargo jq
-    cargo metadata --format-version=1 |jq -r '.workspace_members[] | capture("/(?<name>[a-z-]+)#.*").name'
+    cargo metadata --format-version=1 |jq -r '.workspace_members[] | capture("/(?<name>[a-z-0-9]+)#.*").name'
 
 # Checks if a string matches a workspace member exactly
 [private]
