@@ -70,7 +70,7 @@ impl<'a, 'b> NetHsmKey<'a, 'b> {
     }
 }
 
-/// Converts base64-encoded data into a vector of bytes.
+/// Converts base64-encoded EC public key data into a vector of bytes.
 ///
 /// # Errors
 ///
@@ -78,7 +78,7 @@ impl<'a, 'b> NetHsmKey<'a, 'b> {
 ///
 /// - `data` is [`None`],
 /// - or `data` provides invalid base64 encoding.
-fn data_to_bytes(data: Option<&str>) -> Result<Vec<u8>, Error> {
+fn ec_public_key_data_to_bytes(data: Option<&str>) -> Result<Vec<u8>, Error> {
     Base64::decode_vec(data.ok_or(Error::KeyData("missing EC public key data".into()))?).map_err(
         |e| Error::Hsm {
             context: "deserializing EC data",
@@ -149,10 +149,18 @@ impl RawSigningKey for NetHsmKey<'_, '_> {
                     source: Box::new(e),
                 })?,
             },
-            KeyType::Curve25519 => RawPublicKey::Ed25519(data_to_bytes(public.data.as_deref())?),
-            KeyType::EcP256 => RawPublicKey::P256(data_to_bytes(public.data.as_deref())?),
-            KeyType::EcP384 => RawPublicKey::P384(data_to_bytes(public.data.as_deref())?),
-            KeyType::EcP521 => RawPublicKey::P521(data_to_bytes(public.data.as_deref())?),
+            KeyType::Curve25519 => {
+                RawPublicKey::Ed25519(ec_public_key_data_to_bytes(public.data.as_deref())?)
+            }
+            KeyType::EcP256 => {
+                RawPublicKey::P256(ec_public_key_data_to_bytes(public.data.as_deref())?)
+            }
+            KeyType::EcP384 => {
+                RawPublicKey::P384(ec_public_key_data_to_bytes(public.data.as_deref())?)
+            }
+            KeyType::EcP521 => {
+                RawPublicKey::P521(ec_public_key_data_to_bytes(public.data.as_deref())?)
+            }
             _ => {
                 warn!("Unsupported key type: {key_type}");
                 return Err(Error::KeyData(format!("Unsupported key type: {key_type}")));
