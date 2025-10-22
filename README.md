@@ -4,6 +4,10 @@ This project provides tools and documentation for running a generic signing encl
 
 Raw cryptographic signatures and [OpenPGP data signatures] are supported.
 
+## Documentation
+
+The project documentation for the Signstar project can be found at <https://signstar.archlinux.page>
+
 ## Components
 
 Signstar consists of several loosely coupled components, some of which are used in conjunction with one another.
