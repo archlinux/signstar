@@ -23,6 +23,7 @@ Signstar consists of several loosely coupled components, some of which are used 
 - [signstar-crypto]: Common types and functionality for cryptography in Signstar
 - [signstar-request-signature]: An executable, run on a client host, that prepares data to be signed and retrieves a signature for it from a Signstar setup
 - [signstar-sign]: An executable, that allows signing of messages with the help of an HSM, based on a configuration
+- [signstar-yubihsm2]: Integration for YubiHSM2 devices as Signstar backend
 
 ## Requirements
 
@@ -115,3 +116,4 @@ Changes to this project - unless stated otherwise - automatically fall under the
 [signstar-crypto]: signstar-crypto/
 [signstar-request-signature]: signstar-request-signature/
 [signstar-sign]: signstar-sign/
+[signstar-yubihsm2]: signstar-yubihsm2/
