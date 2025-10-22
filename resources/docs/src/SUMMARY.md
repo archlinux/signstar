@@ -27,6 +27,8 @@
     - [Response spec](./signstar-request-signature/response.md)
 - [signstar-sign](./signstar-sign/README.md)
     - [CHANGELOG](./signstar-sign/CHANGELOG.md)
+- [signstar-yubihsm2](./signstar-yubihsm2/README.md)
+    - [CHANGELOG](./signstar-yubihsm2/CHANGELOG.md)
 
 # OS
 

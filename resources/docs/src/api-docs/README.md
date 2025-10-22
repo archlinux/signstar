@@ -9,6 +9,7 @@
 - [signstar-configure-build](/rustdoc/signstar_configure_build)
 - [signstar-request-signature](/rustdoc/signstar_request_signature)
 - [signstar-sign](/rustdoc/signstar_sign)
+- [signstar-yubihsm2](/rustdoc/signstar_yubihsm2)
 
 ## Local Dependency Graph
 
