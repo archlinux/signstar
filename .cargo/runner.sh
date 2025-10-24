@@ -41,8 +41,6 @@ if [[ "$test_executable_path" == *integration* ]] && [[ "$first_test_argument" !
     # Create network namespace, but no network setup for the container.
     --network=none
     --rm
-    # Store container data on non-persistent media.
-    --transient-store
     # Mounts the current working directory into the container.
     --volume "$PWD:/test"
     # Mounts the user's cargo target directory into the container.
