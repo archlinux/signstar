@@ -43,13 +43,19 @@ pub enum Error {
 
     /// There is no SSH ForceCommand defined for a [`UserMapping`]
     #[error(
-        "No SSH ForceCommand defined for user mapping (NetHSM users: {nethsm_users:?}, system user: {system_user})"
+        "No SSH ForceCommand defined for user mapping (HSM users: {}{})",
+        backend_users.join(", "),
+        if let Some(system_user) = system_user {
+            format!(", system user: {}", system_user)
+        } else {
+            "".to_string()
+        }
     )]
     NoForceCommandForMapping {
-        /// The list of NetHSM backend users mapped to a `system_user`.
-        nethsm_users: Vec<String>,
-        /// The system user for which no SSH "ForceCommand" is specified.
-        system_user: String,
+        /// The list of HSM backend users for which no SSH `ForceCommand` is defined.
+        backend_users: Vec<String>,
+        /// The optional system user mapped to `backend_users`.
+        system_user: Option<String>,
     },
 
     /// No process information could be retrieved from the current PID
@@ -271,16 +277,12 @@ impl TryFrom<&UserMapping> for SshForceCommand {
                 nethsm_users: _,
                 system_user: _,
             } => Err(Error::NoForceCommandForMapping {
-                nethsm_users: value
+                backend_users: value
                     .get_nethsm_users()
                     .iter()
                     .map(|user| user.to_string())
                     .collect(),
-                system_user: if let Some(system_user_id) = value.get_system_user() {
-                    system_user_id.to_string()
-                } else {
-                    "".to_string()
-                },
+                system_user: value.get_system_user().map(|user| user.to_string()),
             }),
         }
     }
