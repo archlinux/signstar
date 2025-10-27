@@ -10,8 +10,6 @@ use std::{
 };
 
 use log::info;
-#[cfg(doc)]
-use nethsm::NetHsm;
 use nethsm::{FullCredentials, KeyId, NamespaceId, Passphrase, UserId, UserRole};
 use serde::{Deserialize, Serialize};
 use signstar_common::{
@@ -68,17 +66,17 @@ pub struct UserMappingFilter {
     pub backend_user_kind: BackendUserKind,
 }
 
-/// User mapping between system users and [`NetHsm`] users
+/// User and data mapping between system users and HSM users.
 #[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 pub enum UserMapping {
     /// A NetHsm user in the Administrator role, without a system user mapped to it
     #[serde(rename = "nethsm_only_admin")]
     NetHsmOnlyAdmin(UserId),
 
-    /// A system user, with SSH access, mapped to a system-wide [`NetHsm`] user in the Backup role.
+    /// A system user, with SSH access, mapped to a system-wide NetHSM user in the Backup role.
     #[serde(rename = "system_nethsm_backup")]
     SystemNetHsmBackup {
-        /// The name of the [`NetHsm`] user.
+        /// The name of the NetHSM user.
         nethsm_user: SystemWideUserId,
         /// The SSH public key used for connecting to the `system_user`.
         ssh_authorized_key: AuthorizedKeyEntry,
@@ -86,12 +84,12 @@ pub enum UserMapping {
         system_user: SystemUserId,
     },
 
-    /// A system user, with SSH access, mapped to a system-wide [`NetHsm`] user
+    /// A system user, with SSH access, mapped to a system-wide NetHSM user
     /// in the Metrics role and `n` users in the Operator role with read-only access to zero or
     /// more keys
     #[serde(rename = "system_nethsm_metrics")]
     SystemNetHsmMetrics {
-        /// The [`NetHsm`] users in the [`Metrics`][`UserRole::Metrics`] and
+        /// The NetHSM users in the [`Metrics`][`UserRole::Metrics`] and
         /// [`operator`][`UserRole::Operator`] role.
         nethsm_users: NetHsmMetricsUsers,
         /// The SSH public key used for connecting to the `system_user`.
@@ -100,23 +98,23 @@ pub enum UserMapping {
         system_user: SystemUserId,
     },
 
-    /// A system user, with SSH access, mapped to a [`NetHsm`] user in the
+    /// A system user, with SSH access, mapped to a NetHSM user in the
     /// Operator role with access to a single signing key.
     ///
     /// Signing key and NetHSM user are mapped using a tag.
     #[serde(rename = "system_nethsm_operator_signing")]
     SystemNetHsmOperatorSigning {
-        /// The name of the [`NetHsm`] user.
+        /// The name of the NetHSM user.
         nethsm_user: UserId,
-        /// The ID of the [`NetHsm`] key.
+        /// The ID of the NetHSM key.
         key_id: KeyId,
-        /// The setup of a [`NetHsm`] key.
+        /// The setup of a NetHSM key.
         nethsm_key_setup: SigningKeySetup,
         /// The SSH public key used for connecting to the `system_user`.
         ssh_authorized_key: AuthorizedKeyEntry,
         /// The name of the system user.
         system_user: SystemUserId,
-        /// The tag used for the user and the signing key on the [`NetHsm`].
+        /// The tag used for the user and the signing key on the NetHSM.
         tag: String,
     },
 
@@ -141,12 +139,12 @@ pub enum UserMapping {
         system_user: SystemUserId,
     },
 
-    /// A system user, without SSH access, mapped to a system-wide [`NetHsm`]
+    /// A system user, without SSH access, mapped to a system-wide NetHSM
     /// user in the Metrics role and one or more NetHsm users in the Operator role with
     /// read-only access to zero or more keys
     #[serde(rename = "hermetic_system_nethsm_metrics")]
     HermeticSystemNetHsmMetrics {
-        /// The [`NetHsm`] users in the [`Metrics`][`UserRole::Metrics`] and
+        /// The NetHSM users in the [`Metrics`][`UserRole::Metrics`] and
         /// [`operator`][`UserRole::Operator`] role.
         nethsm_users: NetHsmMetricsUsers,
         /// The name of the system user.
@@ -431,7 +429,7 @@ impl UserMapping {
         }
     }
 
-    /// Returns the NetHsm users of the mapping
+    /// Returns the NetHSM users of the mapping
     ///
     /// # Examples
     ///
@@ -1061,7 +1059,7 @@ impl UserMapping {
         }
     }
 
-    /// Returns all [`NetHsm`][`nethsm::NetHsm`] [namespaces] of the mapping
+    /// Returns all NetHSM [namespaces] of the mapping.
     ///
     /// # Examples
     ///

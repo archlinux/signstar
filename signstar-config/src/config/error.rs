@@ -1,7 +1,5 @@
 //! Error handling for [`SignstarConfig`] and related components.
 
-#[cfg(doc)]
-use nethsm::NetHsm;
 use nethsm::{KeyId, NamespaceId, UserId};
 use signstar_common::config::get_config_file_paths;
 
@@ -18,10 +16,10 @@ pub enum Error {
     )]
     ConfigIsMissing,
 
-    /// Duplicate NetHsm user names
-    #[error("The NetHsm user ID {nethsm_user_id} is used more than once!")]
+    /// Duplicate NetHSM user names
+    #[error("The NetHSM user ID {nethsm_user_id} is used more than once!")]
     DuplicateNetHsmUserId {
-        /// The name of a [`NetHsm`] user that is used more than once.
+        /// The name of a NetHSM user that is used more than once.
         nethsm_user_id: UserId,
     },
 
@@ -89,7 +87,7 @@ pub enum Error {
     /// [`Operator`][`nethsm::UserRole::Operator`] role.
     #[error("The NetHsm user {metrics_user} is both in the Metrics and Operator role!")]
     MetricsAlsoOperator {
-        /// The system-wide User ID of a [`NetHsm`] user that is both in the
+        /// The system-wide User ID of a NetHSM user that is both in the
         /// [`Metrics`][`nethsm::UserRole::Metrics`] and
         /// [`Operator`][`nethsm::UserRole::Operator`] role.
         metrics_user: SystemWideUserId,

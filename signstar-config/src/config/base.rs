@@ -7,8 +7,6 @@ use std::{
     path::Path,
 };
 
-#[cfg(doc)]
-use nethsm::NetHsm;
 use nethsm::{Connection, NamespaceId};
 use serde::{Deserialize, Serialize};
 use signstar_common::config::{get_config_file, get_run_override_config_file_path};
@@ -63,7 +61,7 @@ pub enum AdministrativeSecretHandling {
 
 /// The handling of non-administrative secrets.
 ///
-/// Non-administrative secrets represent passphrases for (non-Administrator) NetHSM users and may be
+/// Non-administrative secrets represent passphrases for (non-administrator) HSM users and may be
 /// handled in different ways (e.g. encrypted or not encrypted).
 #[derive(
     Clone,
@@ -117,7 +115,7 @@ pub enum NonAdministrativeSecretHandling {
 /// A connection to an HSM backend.
 #[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 pub enum BackendConnection {
-    /// The [`Connection`] for a [`NetHsm`] backend.
+    /// The [`Connection`] for a NetHSM backend.
     #[serde(rename = "nethsm")]
     NetHsm(Connection),
 
@@ -127,22 +125,26 @@ pub enum BackendConnection {
     YubiHsm2(YubiHsmConnection),
 }
 
-/// A configuration for parallel use of connections with a set of system and NetHSM users.
+/// A configuration file for the parallel use of connections with a set of system and HSM users.
 ///
 /// This configuration type is meant to be used in a read-only fashion and does not support tracking
 /// the passphrases for users.
-/// As such, it is useful for tools, that create system users, as well as NetHSM users and keys
+/// As such, it is useful for tools, that create system users, as well as HSM users and keys
 /// according to it.
 ///
-/// Various mappings of system and NetHSM users exist, that are defined by the variants of
+/// Various mappings of system and HSM users exist, that are defined by the variants of
 /// [`UserMapping`].
 ///
 /// Some system users require providing SSH authorized key(s), while others do not allow that at
 /// all.
-/// NetHSM users can be added in namespaces, or system-wide, depending on their use-case.
-/// System and NetHSM users must be unique.
+/// Depending on HSM backend, HSM users can be added for different contexts, depending on their
+/// use-case.
+/// System and HSM users must be unique.
 ///
-/// Key IDs must be unique per namespace or system-wide (depending on where they are used).
+/// # Note
+///
+/// When using the NetHSM backend, key IDs must be unique per namespace or system-wide (depending on
+/// where they are used).
 /// Tags, used to provide access to keys for NetHSM users must be unique per namespace or
 /// system-wide (depending on in which scope the user and key are used)
 ///
@@ -753,7 +755,7 @@ impl SignstarConfig {
             }
         }
 
-        // ensure there are no duplicate NetHsm users
+        // ensure there are no duplicate NetHSM users
         {
             let mut nethsm_users = HashSet::new();
             for nethsm_user_id in self

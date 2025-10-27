@@ -1,11 +1,9 @@
-//! Non-administrative credentials handling for a NetHSM backend.
+//! Non-administrative credentials handling for an HSM backend.
 use std::{
     fmt::{Debug, Display},
     path::PathBuf,
 };
 
-#[cfg(doc)]
-use nethsm::NetHsm;
 use signstar_common::common::SECRET_FILE_MODE;
 use signstar_crypto::traits::UserWithPassphrase;
 
@@ -17,7 +15,7 @@ use crate::{
     utils::get_current_system_user,
 };
 
-/// An error that may occur when handling non-administrative credentials for a NetHSM backend.
+/// An error that may occur when handling non-administrative credentials for an HSM backend.
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
     /// There are one or more errors when loading credentials for a specific system user.
@@ -40,8 +38,8 @@ pub enum Error {
     #[error("There is no system user in the mapping.")]
     NoSystemUser,
 
-    /// A user is not a signing user for the NetHSM backend.
-    #[error("The user is not an operator user in the NetHSM backend used for signing.")]
+    /// A user is not a signing user for the HSM backend.
+    #[error("The user is not an operator user in the HSM backend used for signing.")]
     NotSigningUser,
 
     /// A passphrase directory can not be created.
@@ -212,8 +210,7 @@ impl CredentialsLoading {
     ///
     /// Uses the data of the calling system user to derive the specific mapping for it from the
     /// Signstar configuration (a [`SignstarConfig`]).
-    /// Then continues to retrieve the credentials for all associated [`NetHsm`] users of the
-    /// mapping.
+    /// Then continues to retrieve the credentials for all associated HSM users of the mapping.
     ///
     /// # Errors
     ///
