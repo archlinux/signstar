@@ -10,7 +10,7 @@ use std::{
 };
 
 use log::info;
-use nethsm::{FullCredentials, KeyId, NamespaceId, Passphrase, UserId, UserRole};
+use nethsm::{FullCredentials, KeyId, NamespaceId, Passphrase, SystemWideUserId, UserId, UserRole};
 use serde::{Deserialize, Serialize};
 use signstar_common::{
     common::SECRET_FILE_MODE,
@@ -33,7 +33,6 @@ use crate::{
     NonAdministrativeSecretHandling,
     SignstarConfig,
     SystemUserId,
-    SystemWideUserId,
     config::base::BackendConnection,
     nethsm::config::{FilterUserKeys, NetHsmMetricsUsers},
     utils::{

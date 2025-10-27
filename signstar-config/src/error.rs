@@ -285,10 +285,6 @@ pub enum ErrorExitCode {
     /// Mapping for [`crate::ConfigError::User`] wrapped in [`Error::Config`].
     ConfigUser = 136,
 
-    /// Mapping for [`crate::ConfigError::SystemWideUserIdWithNamespace`] wrapped in
-    /// [`Error::Config`].
-    ConfigSystemWideUserIdWithNamespace = 137,
-
     /// Mapping for [`crate::Error::NetHsm`].
     IoPath = 17,
 
@@ -454,9 +450,6 @@ impl From<Error> for ErrorExitCode {
                 crate::ConfigError::NoSssButShareUsers { .. } => Self::ConfigNoSssButShareUsers,
                 crate::ConfigError::SshKey(_) => Self::ConfigSshKey,
                 crate::ConfigError::User(_) => Self::ConfigUser,
-                crate::ConfigError::SystemWideUserIdWithNamespace(_) => {
-                    Self::ConfigSystemWideUserIdWithNamespace
-                }
             },
             // NetHSM related errors
             Error::NetHsm(_) => Self::NetHsm,
