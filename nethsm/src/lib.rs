@@ -55,4 +55,11 @@ pub use tls::{
     DEFAULT_TIMEOUT_SECONDS,
     HostCertificateFingerprints,
 };
-pub use user::{Credentials, Error as UserError, FullCredentials, NamespaceId, UserId};
+pub use user::{
+    Credentials,
+    Error as UserError,
+    FullCredentials,
+    NamespaceId,
+    SystemWideUserId,
+    UserId,
+};

@@ -72,6 +72,10 @@ pub enum Error {
         /// The [`UserRole`] of `target`.
         role: UserRole,
     },
+
+    /// A system-wide [`UserId`] has a namespace
+    #[error("The system-wide User ID has a namespace: {0}")]
+    SystemWideUserIdWithNamespace(UserId),
 }
 
 /// Whether a resource has [namespace] support or not
@@ -428,6 +432,81 @@ impl TryFrom<String> for UserId {
     }
 }
 
+/// A guaranteed to be system-wide [`NetHsm`][`crate::NetHsm`] user.
+#[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
+#[serde(into = "String", try_from = "String")]
+pub struct SystemWideUserId(UserId);
+
+impl SystemWideUserId {
+    /// Creates a new [`SystemWideUserId`] from an owned string
+    ///
+    /// # Errors
+    ///
+    /// Returns an error, if the provided `user_id` contains a namespace.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use nethsm::SystemWideUserId;
+    ///
+    /// # fn main() -> testresult::TestResult {
+    /// SystemWideUserId::new("user1".to_string())?;
+    ///
+    /// // this fails because the User ID contains a namespace
+    /// assert!(SystemWideUserId::new("ns1~user1".to_string()).is_err());
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn new(user_id: String) -> Result<Self, Error> {
+        let user_id = UserId::new(user_id)?;
+
+        if user_id.is_namespaced() {
+            return Err(Error::SystemWideUserIdWithNamespace(user_id));
+        }
+
+        Ok(Self(user_id))
+    }
+}
+
+impl AsRef<UserId> for SystemWideUserId {
+    fn as_ref(&self) -> &UserId {
+        &self.0
+    }
+}
+
+impl Display for SystemWideUserId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.0.fmt(f)
+    }
+}
+
+impl FromStr for SystemWideUserId {
+    type Err = Error;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Self::new(s.to_string())
+    }
+}
+
+impl From<SystemWideUserId> for String {
+    fn from(value: SystemWideUserId) -> Self {
+        value.to_string()
+    }
+}
+
+impl From<SystemWideUserId> for UserId {
+    fn from(value: SystemWideUserId) -> Self {
+        value.0
+    }
+}
+
+impl TryFrom<String> for SystemWideUserId {
+    type Error = Error;
+
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        Self::new(value)
+    }
+}
+
 /// Credentials for a [`NetHsm`][`crate::NetHsm`].
 ///
 /// Tracks a [`UserId`] and an accompanying [`Passphrase`].
@@ -703,6 +782,19 @@ mod tests {
                     .is_err()
             )
         }
+        Ok(())
+    }
+
+    #[test]
+    fn system_wide_user_id_new_fails() -> TestResult {
+        assert!(SystemWideUserId::new("ns1~test".to_string()).is_err());
+        Ok(())
+    }
+
+    #[test]
+    fn system_wide_user_id_from_str() -> TestResult {
+        assert!(SystemWideUserId::from_str("ns1~test").is_err());
+        assert!(SystemWideUserId::from_str("test").is_ok());
         Ok(())
     }
 }
