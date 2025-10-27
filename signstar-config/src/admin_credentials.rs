@@ -1,4 +1,4 @@
-//! Administrative credentials handling for a NetHSM backend.
+//! Administrative credentials handling for an HSM backend.
 
 use std::{
     fs::{File, Permissions, read_to_string, set_permissions},
@@ -8,8 +8,6 @@ use std::{
     process::{Command, Stdio},
 };
 
-#[cfg(doc)]
-use nethsm::NetHsm;
 use serde::{de::DeserializeOwned, ser::Serialize};
 use signstar_common::{
     admin_credentials::{
@@ -25,7 +23,7 @@ use crate::{
     utils::{fail_if_not_root, get_command, get_current_system_user},
 };
 
-/// An error that may occur when handling administrative credentials for a NetHSM backend.
+/// An error that may occur when handling administrative credentials for a backend.
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
     /// There is no top-level administrator.
