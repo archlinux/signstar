@@ -4537,6 +4537,7 @@ dependencies = [
 name = "signstar-yubihsm2"
 version = "0.1.0"
 dependencies = [
+ "serde",
  "signstar-crypto",
  "testresult",
 ]
