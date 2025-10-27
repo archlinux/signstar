@@ -2,10 +2,10 @@
 
 #[cfg(doc)]
 use nethsm::NetHsm;
-use nethsm::{NamespaceId, UserId, UserRole};
+use nethsm::{NamespaceId, SystemWideUserId, UserId, UserRole};
 use serde::{Deserialize, Serialize};
 
-use crate::{Error, SystemWideUserId};
+use crate::Error;
 
 /// A filter for retrieving information about users and keys.
 #[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]

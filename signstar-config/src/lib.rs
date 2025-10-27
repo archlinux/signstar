@@ -19,7 +19,7 @@ pub use config::{
         NonAdministrativeSecretHandling,
         SignstarConfig,
     },
-    credentials::{AuthorizedKeyEntry, SystemUserId, SystemWideUserId},
+    credentials::{AuthorizedKeyEntry, SystemUserId},
     error::Error as ConfigError,
     mapping::{BackendUserKind, ExtendedUserMapping, UserMapping, UserMappingFilter},
 };

@@ -1,11 +1,11 @@
 //! Error handling for [`SignstarConfig`] and related components.
 
-use nethsm::{KeyId, NamespaceId, UserId};
+use nethsm::{KeyId, NamespaceId, SystemWideUserId, UserId};
 use signstar_common::config::get_config_file_paths;
 
 #[cfg(doc)]
 use crate::SignstarConfig;
-use crate::{SystemUserId, SystemWideUserId};
+use crate::SystemUserId;
 
 /// An error that may occur when handling a [`SignstarConfig`].
 #[derive(Debug, thiserror::Error)]
@@ -144,8 +144,4 @@ pub enum Error {
     /// An SSH key error
     #[error("SSH key error: {0}")]
     SshKey(#[from] ssh_key::Error),
-
-    /// A system-wide [`UserId`] has a namespace
-    #[error("The system-wide User ID has a namespace: {0}")]
-    SystemWideUserIdWithNamespace(UserId),
 }
