@@ -272,6 +272,11 @@ impl TryFrom<&UserMapping> for SshForceCommand {
                 system_user: _,
                 ssh_authorized_key: _,
             } => Ok(SshForceCommand::DownloadWireGuard),
+            #[cfg(feature = "yubihsm2")]
+            UserMapping::YubiHsmOnlyAdmin(admin) => Err(Error::NoForceCommandForMapping {
+                backend_users: vec![admin.to_string()],
+                system_user: None,
+            }),
             UserMapping::NetHsmOnlyAdmin(_)
             | UserMapping::HermeticSystemNetHsmMetrics {
                 nethsm_users: _,
