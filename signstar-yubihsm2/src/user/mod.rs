@@ -7,6 +7,7 @@ use signstar_crypto::{passphrase::Passphrase, traits::UserWithPassphrase};
 /// Credentials are mapped to the authentication key ID and the passphrase used as key derivation
 /// function (KDF) for an authentication key.
 #[derive(Clone, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct Credentials {
     id: u16,
     passphrase: Passphrase,

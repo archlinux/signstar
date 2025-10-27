@@ -11,7 +11,12 @@ rust-version.workspace = true
 version = "0.1.0"
 
 [dependencies]
+serde = { workspace = true, optional = true }
 signstar-crypto = { version = "0.1.0", path = "../signstar-crypto" }
+
+[features]
+default = ["serde"]
+serde = ["dep:serde"]
 
 [lints]
 workspace = true
