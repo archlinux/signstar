@@ -1,0 +1,10 @@
+backup_passphrase = "backup-passphrase"
+iteration = 1
+
+[[administrators]]
+id = 1
+passphrase = "admin-passphrase"
+
+[[administrators]]
+id = 2
+passphrase = "other-admin-passphrase"
