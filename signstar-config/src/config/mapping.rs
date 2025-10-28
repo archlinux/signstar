@@ -121,6 +121,13 @@ pub enum UserMapping {
     /// Operator role with access to a single signing key.
     ///
     /// Signing key and YubiHSM user are mapped using a permission.
+    ///
+    /// # Note
+    ///
+    /// This variant implies, that the created user should have all [capabilities] for signatures
+    /// (i.e. "sign-ecdsa", "sign-eddsa", "sign-pkcs" and "sign-pss").
+    ///
+    /// [capabilities]: https://docs.yubico.com/hardware/yubihsm-2/hsm-2-user-guide/hsm2-core-concepts.html#capability-protocol-details
     #[cfg(feature = "yubihsm2")]
     #[serde(rename = "system_yubihsm_operator_signing")]
     SystemYubiHsmOperatorSigning {
