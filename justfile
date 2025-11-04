@@ -299,6 +299,13 @@ test *options:
 
     readonly coverage="{{ coverage }}"
     read -r -a options <<< "{{ options }}"
+    # If no options are provided, run all targets, locked.
+    if (( ${#options[@]} == 0 )); then
+        options+=(
+            --locked
+            --all
+        )
+    fi
 
     if [[ "$coverage" == "true" ]]; then
         just ensure-command cargo cargo-llvm-cov cargo-nextest mold
@@ -309,7 +316,7 @@ test *options:
         just ensure-command cargo cargo-nextest mold
     fi
 
-    cargo nextest run --locked --all "${options[@]}"
+    cargo nextest run "${options[@]}"
 
     just test-docs
     just docs
