@@ -131,6 +131,12 @@ test:
       # This allows us to easily spot changes in the overall coverage.
       metrics: target/llvm-cov/coverage-metrics.txt
 
+docs:
+  extends: .default-rust
+  script:
+    - just docs
+  stage: test
+
 integration-test:
   extends: .default
   script:
