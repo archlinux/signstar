@@ -19,7 +19,7 @@ base64ct = { version = "1.6.0", features = ["alloc", "std"] }
 change-user-run = "0.1.1"
 chrono = "0.4.38"
 clap = { version = "4.5.23", features = ["derive", "env"] }
-confy = "1.0.0"
+confy = "2.0.0"
 ed25519-dalek = "2.1.1"
 log = { version = "0.4.27", features = ["kv_std"] }
 nethsm = { path = "nethsm", version = "0.10.0" }
