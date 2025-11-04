@@ -726,7 +726,7 @@ build-book: docs
     for name in "${workspace_members[@]}"; do
         cp -r "$target_dir/doc/${name//-/_}" "$rustdoc_dir"
     done
-    cp -r "$target_dir/doc/"{search.desc,src,static.files,trait.impl,type.impl} "$rustdoc_dir"
+    cp -r "$target_dir/doc/"{search.*,src,static.files,trait.impl,type.impl} "$rustdoc_dir"
     cp -r "$target_dir/doc/"*.{js,html} "$rustdoc_dir"
 
 # Serves the documentation book using miniserve
