@@ -182,15 +182,12 @@ mod tests {
         match result {
             Err(Error::InvalidKeyMechanism { .. }) => {}
             Err(error) => {
-                return Err(
-                    format!("Expected an Error::InvalidKeyMechanism, but got {error}").into(),
-                );
+                panic!("Expected an Error::InvalidKeyMechanism, but got {error}");
             }
             Ok(setup) => {
-                return Err(format!(
+                panic!(
                     "Should have failed, but succeeded in creating a SigningKeySetup: {setup:?}"
-                )
-                .into());
+                );
             }
         }
 
@@ -216,15 +213,12 @@ mod tests {
         match result {
             Err(Error::KeyLengthUnsupported { .. }) => {}
             Err(error) => {
-                return Err(
-                    format!("Expected an Error::KeyLengthUnsupported, but got {error}").into(),
-                );
+                panic!("Expected an Error::KeyLengthUnsupported, but got {error}");
             }
             Ok(setup) => {
-                return Err(format!(
+                panic!(
                     "Should have failed, but succeeded in creating a SigningKeySetup: {setup:?}"
-                )
-                .into());
+                );
             }
         }
 
@@ -250,15 +244,14 @@ mod tests {
         match result {
             Err(Error::KeyLengthRequired { .. }) | Err(Error::InvalidKeyLengthRsa { .. }) => {}
             Err(error) => {
-                return Err(
-                    format!("Expected an Error::KeyLengthRequired or Error::InvalidKeyLengthRsa, but got {error}").into(),
+                panic!(
+                    "Expected an Error::KeyLengthRequired or Error::InvalidKeyLengthRsa, but got {error}"
                 );
             }
             Ok(setup) => {
-                return Err(format!(
+                panic!(
                     "Should have failed, but succeeded in creating a SigningKeySetup: {setup:?}"
-                )
-                .into());
+                );
             }
         }
 
@@ -285,15 +278,12 @@ mod tests {
             Err(Error::InvalidKeyTypeForSignatureType { .. })
             | Err(Error::InvalidKeyMechanismsForSignatureType { .. }) => {}
             Err(error) => {
-                return Err(
-                    format!("Expected an Error::InvalidKeyTypeForSignatureType or Error::InvalidKeyMechanismsForSignatureType, but got {error}").into(),
-                );
+                panic!(
+                    "Expected an Error::InvalidKeyTypeForSignatureType or Error::InvalidKeyMechanismsForSignatureType, but got {error}"
+                )
             }
             Ok(setup) => {
-                return Err(format!(
-                    "Should have failed, but succeeded in creating a SigningKeySetup: {setup:?}"
-                )
-                .into());
+                panic!("Should have failed, but succeeded in creating a SigningKeySetup: {setup:?}")
             }
         }
 

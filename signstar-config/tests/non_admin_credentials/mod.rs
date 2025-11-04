@@ -144,12 +144,14 @@ fn load_credentials_for_user_succeeds(#[case] config_data: &[u8]) -> TestResult 
             )?;
 
             if !status.success() {
-                return Err(signstar_config::Error::CommandNonZero {
-                    command,
-                    exit_status: status,
-                    stderr,
-                }
-                .into());
+                panic!(
+                    "{}",
+                    signstar_config::Error::CommandNonZero {
+                        command,
+                        exit_status: status,
+                        stderr,
+                    }
+                );
             }
         }
     }
