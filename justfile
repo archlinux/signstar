@@ -319,9 +319,6 @@ test *options:
 
     cargo nextest run "${options[@]}"
 
-    just test-docs
-    just docs
-
 # Runs all doc tests
 [group('test')]
 test-docs *options:
