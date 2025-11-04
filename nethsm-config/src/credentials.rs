@@ -1,3 +1,5 @@
+#![allow(unused_assignments)]
+
 use nethsm::{Credentials, Passphrase, UserId, UserRole};
 use serde::{Deserialize, Serialize};
 use zeroize::Zeroize;
