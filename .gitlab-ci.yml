@@ -108,6 +108,7 @@ test:
   extends: .default-rust
   script:
     - just test
+    - just test-docs
     - just create-coverage-report doc unit-test-coverage
   stage: test
   cache:
