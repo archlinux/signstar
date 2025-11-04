@@ -13,7 +13,6 @@ version = "0.1.0"
 base64ct = { workspace = true, optional = true }
 ed25519-dalek = { workspace = true, features = ["pem", "pkcs8"] }
 email_address = "0.2.9"
-log.workspace = true
 nethsm-sdk-rs = { workspace = true, optional = true }
 p256.workspace = true
 p384.workspace = true

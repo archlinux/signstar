@@ -4465,7 +4465,6 @@ dependencies = [
  "base64ct",
  "ed25519-dalek",
  "email_address",
- "log",
  "nethsm-sdk-rs",
  "p256",
  "p384",
