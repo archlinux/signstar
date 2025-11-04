@@ -824,7 +824,7 @@ impl UserMapping {
     ///     system_user: "user1".parse()?,
     ///     ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
     /// };
-    /// assert_eq!(mapping.get_nethsm_key_ids(None), vec![]);
+    /// assert_eq!(mapping.get_nethsm_key_ids(None), Vec::new());
     /// # Ok(())
     /// # }
     /// ```
@@ -1028,14 +1028,14 @@ impl UserMapping {
     ///         "tag1".to_string(),
     ///     )]
     /// );
-    /// assert_eq!(mapping.get_nethsm_user_key_and_tag(FilterUserKeys::Namespace("test".parse()?)), vec![]);
-    /// assert_eq!(mapping.get_nethsm_user_key_and_tag(FilterUserKeys::Tag("tag2".parse()?)), vec![]);
+    /// assert_eq!(mapping.get_nethsm_user_key_and_tag(FilterUserKeys::Namespace("test".parse()?)), Vec::new());
+    /// assert_eq!(mapping.get_nethsm_user_key_and_tag(FilterUserKeys::Tag("tag2".parse()?)), Vec::new());
     ///
     /// let mapping = UserMapping::SystemOnlyShareDownload {
     ///     system_user: "user1".parse()?,
     ///     ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
     /// };
-    /// assert_eq!(mapping.get_nethsm_user_key_and_tag(FilterUserKeys::All), vec![]);
+    /// assert_eq!(mapping.get_nethsm_user_key_and_tag(FilterUserKeys::All), Vec::new());
     /// # Ok(())
     /// # }
     /// ```
@@ -1817,876 +1817,2286 @@ impl From<SignstarConfig> for Vec<ExtendedUserMapping> {
 #[cfg(test)]
 mod tests {
     use log::{LevelFilter, debug};
-    use nethsm::{CryptographicKeyContext, OpenPgpUserIdList};
     use rstest::rstest;
     use signstar_common::logging::setup_logging;
+    use signstar_crypto::{key::CryptographicKeyContext, openpgp::OpenPgpUserIdList};
     use tempfile::{NamedTempFile, TempDir};
     use testresult::TestResult;
 
     use super::*;
 
-    #[rstest]
-    #[case(UserMapping::NetHsmOnlyAdmin("test".parse()?), FilterUserKeys::All, Vec::new())]
-    #[case(
-        UserMapping::SystemNetHsmMetrics {
-            nethsm_users: NetHsmMetricsUsers::new(
-                SystemWideUserId::new("metrics".to_string())?,
-                vec![
-                    UserId::new("operator".to_string())?,
-                ],
-            )?,
-            ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
-            system_user: "system-metrics".parse()?,
-        },
-        FilterUserKeys::All,
-        Vec::new(),
-    )]
-    #[case(
-        UserMapping::SystemNetHsmBackup {
-            nethsm_user: "backup".parse()?,
-            ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
-            system_user: "system-backup".parse()?,
-        },
-        FilterUserKeys::All,
-        Vec::new(),
-    )]
-    #[case(
-        UserMapping::SystemNetHsmOperatorSigning {
-            nethsm_user: "operator".parse()?,
-            key_id: "key1".parse()?,
-            nethsm_key_setup: SigningKeySetup::new(
-                "Curve25519".parse()?,
-                vec!["EdDsaSignature".parse()?],
-                None,
-                "EdDsa".parse()?,
-                CryptographicKeyContext::OpenPgp{
-                    user_ids: OpenPgpUserIdList::new(vec!["John Doe <john@example.org>".parse()?])?,
-                    version: "v4".parse()?,
-                },
-            )?,
-            ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
-            system_user: "system-operator".parse()?,
-            tag: "tag1".to_string(),
-        },
-        FilterUserKeys::All,
-        vec![(
-            "operator".parse()?,
-            "key1".parse()?,
-            SigningKeySetup::new(
-                "Curve25519".parse()?,
-                vec!["EdDsaSignature".parse()?],
-                None,
-                "EdDsa".parse()?,
-                CryptographicKeyContext::OpenPgp{
-                    user_ids: OpenPgpUserIdList::new(vec!["John Doe <john@example.org>".parse()?])?,
-                    version: "v4".parse()?,
-                },
-            )?,
-            "tag1".to_string(),
-        )],
-    )]
-    #[case::systemwide_operator_filter_namespaced(
-        UserMapping::SystemNetHsmOperatorSigning {
-            nethsm_user: "operator".parse()?,
-            key_id: "key1".parse()?,
-            nethsm_key_setup: SigningKeySetup::new(
-                "Curve25519".parse()?,
-                vec!["EdDsaSignature".parse()?],
-                None,
-                "EdDsa".parse()?,
-                CryptographicKeyContext::OpenPgp{
-                    user_ids: OpenPgpUserIdList::new(vec!["John Doe <john@example.org>".parse()?])?,
-                    version: "v4".parse()?,
-                },
-            )?,
-            ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
-            system_user: "system-operator".parse()?,
-            tag: "tag1".to_string(),
-        },
-        FilterUserKeys::Namespaced,
-        Vec::new(),
-    )]
-    #[case::systemwide_operator_filter_namespace(
-        UserMapping::SystemNetHsmOperatorSigning {
-            nethsm_user: "operator".parse()?,
-            key_id: "key1".parse()?,
-            nethsm_key_setup: SigningKeySetup::new(
-                "Curve25519".parse()?,
-                vec!["EdDsaSignature".parse()?],
-                None,
-                "EdDsa".parse()?,
-                CryptographicKeyContext::OpenPgp{
-                    user_ids: OpenPgpUserIdList::new(vec!["John Doe <john@example.org>".parse()?])?,
-                    version: "v4".parse()?,
-                },
-            )?,
-            ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
-            system_user: "system-operator".parse()?,
-            tag: "tag1".to_string(),
-        },
-        FilterUserKeys::Namespace("ns1".parse()?),
-        Vec::new(),
-    )]
-    #[case::namespace_operator_filter_namespaced(
-        UserMapping::SystemNetHsmOperatorSigning {
-            nethsm_user: "ns1~operator".parse()?,
-            key_id: "key1".parse()?,
-            nethsm_key_setup: SigningKeySetup::new(
-                "Curve25519".parse()?,
-                vec!["EdDsaSignature".parse()?],
-                None,
-                "EdDsa".parse()?,
-                CryptographicKeyContext::OpenPgp{
-                    user_ids: OpenPgpUserIdList::new(vec!["John Doe <john@example.org>".parse()?])?,
-                    version: "v4".parse()?,
-                },
-            )?,
-            ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
-            system_user: "system-operator".parse()?,
-            tag: "tag1".to_string(),
-        },
-        FilterUserKeys::Namespaced,
-        vec![(
-            "ns1~operator".parse()?,
-            "key1".parse()?,
-            SigningKeySetup::new(
-                "Curve25519".parse()?,
-                vec!["EdDsaSignature".parse()?],
-                None,
-                "EdDsa".parse()?,
-                CryptographicKeyContext::OpenPgp{
-                    user_ids: OpenPgpUserIdList::new(vec!["John Doe <john@example.org>".parse()?])?,
-                    version: "v4".parse()?,
-                },
-            )?,
-            "tag1".to_string(),
-        )],
-    )]
-    #[case::namespace_operator_filter_namespace(
-        UserMapping::SystemNetHsmOperatorSigning {
-            nethsm_user: "ns1~operator".parse()?,
-            key_id: "key1".parse()?,
-            nethsm_key_setup: SigningKeySetup::new(
-                "Curve25519".parse()?,
-                vec!["EdDsaSignature".parse()?],
-                None,
-                "EdDsa".parse()?,
-                CryptographicKeyContext::OpenPgp{
-                    user_ids: OpenPgpUserIdList::new(vec!["John Doe <john@example.org>".parse()?])?,
-                    version: "v4".parse()?,
-                },
-            )?,
-            ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
-            system_user: "system-operator".parse()?,
-            tag: "tag1".to_string(),
-        },
-        FilterUserKeys::Namespace("ns1".parse()?),
-        vec![(
-            "ns1~operator".parse()?,
-            "key1".parse()?,
-            SigningKeySetup::new(
-                "Curve25519".parse()?,
-                vec!["EdDsaSignature".parse()?],
-                None,
-                "EdDsa".parse()?,
-                CryptographicKeyContext::OpenPgp{
-                    user_ids: OpenPgpUserIdList::new(vec!["John Doe <john@example.org>".parse()?])?,
-                    version: "v4".parse()?,
-                },
-            )?,
-            "tag1".to_string(),
-        )],
-    )]
-    #[case::namespace_operator_filter_tag(
-        UserMapping::SystemNetHsmOperatorSigning {
-            nethsm_user: "ns1~operator".parse()?,
-            key_id: "key1".parse()?,
-            nethsm_key_setup: SigningKeySetup::new(
-                "Curve25519".parse()?,
-                vec!["EdDsaSignature".parse()?],
-                None,
-                "EdDsa".parse()?,
-                CryptographicKeyContext::OpenPgp{
-                    user_ids: OpenPgpUserIdList::new(vec!["John Doe <john@example.org>".parse()?])?,
-                    version: "v4".parse()?,
-                },
-            )?,
-            ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
-            system_user: "system-operator".parse()?,
-            tag: "tag1".to_string(),
-        },
-        FilterUserKeys::Tag("tag1".parse()?),
-        vec![(
-            "ns1~operator".parse()?,
-            "key1".parse()?,
-            SigningKeySetup::new(
-                "Curve25519".parse()?,
-                vec!["EdDsaSignature".parse()?],
-                None,
-                "EdDsa".parse()?,
-                CryptographicKeyContext::OpenPgp{
-                    user_ids: OpenPgpUserIdList::new(vec!["John Doe <john@example.org>".parse()?])?,
-                    version: "v4".parse()?,
-                },
-            )?,
-            "tag1".to_string(),
-        )],
-    )]
-    #[case::namespace_operator_filter_wrong_tag(
-        UserMapping::SystemNetHsmOperatorSigning {
-            nethsm_user: "ns1~operator".parse()?,
-            key_id: "key1".parse()?,
-            nethsm_key_setup: SigningKeySetup::new(
-                "Curve25519".parse()?,
-                vec!["EdDsaSignature".parse()?],
-                None,
-                "EdDsa".parse()?,
-                CryptographicKeyContext::OpenPgp{
-                    user_ids: OpenPgpUserIdList::new(vec!["John Doe <john@example.org>".parse()?])?,
-                    version: "v4".parse()?,
-                },
-            )?,
-            ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
-            system_user: "system-operator".parse()?,
-            tag: "tag2".to_string(),
-        },
-        FilterUserKeys::Tag("tag1".parse()?),
-        Vec::new(),
-    )]
-    #[case::hermetic_system_metrics(
-        UserMapping::HermeticSystemNetHsmMetrics {
-            nethsm_users: NetHsmMetricsUsers::new(
-                "metrics".parse()?,
-                vec!["operator".parse()?],
-            )?,
-            system_user: "system-metrics".parse()?,
-        },
-        FilterUserKeys::All,
-        Vec::new(),
-    )]
-    #[case::share_download(
-        UserMapping::SystemOnlyShareDownload {
-            system_user: "system-share".parse()?,
-            ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
-        },
-        FilterUserKeys::All,
-        Vec::new(),
-    )]
-    #[case::share_upload(
-        UserMapping::SystemOnlyShareUpload {
-            system_user: "system-share".parse()?,
-            ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
-        },
-        FilterUserKeys::All,
-        Vec::new(),
-    )]
-    #[case::wireguard_download(
-        UserMapping::SystemOnlyWireGuardDownload {
-            system_user: "system-wireguard".parse()?,
-            ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
-        },
-        FilterUserKeys::All,
-        Vec::new(),
-    )]
-    fn usermapping_get_nethsm_user_key_and_tag(
-        #[case] mapping: UserMapping,
-        #[case] filter: FilterUserKeys,
-        #[case] output: Vec<(UserId, KeyId, SigningKeySetup, String)>,
-    ) -> TestResult {
-        assert_eq!(mapping.get_nethsm_user_key_and_tag(filter), output);
-        Ok(())
+    mod nethsm {
+        use super::*;
+
+        /// Ensures that NetHSM specific [`UserMapping`] variants work with
+        /// [`UserMapping::get_system_user`].
+        #[rstest]
+        #[case::admin(UserMapping::NetHsmOnlyAdmin("test".parse()?), None)]
+        #[case::metrics(
+            UserMapping::SystemNetHsmMetrics {
+                nethsm_users: NetHsmMetricsUsers::new(
+                    SystemWideUserId::new("metrics".to_string())?,
+                    vec![
+                        UserId::new("operator".to_string())?,
+                    ],
+                )?,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+                system_user: "system-metrics".parse()?,
+            },
+            Some("system-metrics".parse()?),
+        )]
+        #[case::backup(
+            UserMapping::SystemNetHsmBackup {
+                nethsm_user: "backup".parse()?,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+                system_user: "system-backup".parse()?,
+            },
+            Some("system-backup".parse()?),
+        )]
+        #[case::operator(
+            UserMapping::SystemNetHsmOperatorSigning {
+                nethsm_user: "operator".parse()?,
+                key_id: "key1".parse()?,
+                nethsm_key_setup: SigningKeySetup::new(
+                    "Curve25519".parse()?,
+                    vec!["EdDsaSignature".parse()?],
+                    None,
+                    "EdDsa".parse()?,
+                    CryptographicKeyContext::OpenPgp{
+                        user_ids: OpenPgpUserIdList::new(vec!["John Doe <john@example.org>".parse()?])?,
+                        version: "v4".parse()?,
+                    },
+                )?,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+                system_user: "system-operator".parse()?,
+                tag: "tag1".to_string(),
+            },
+            Some("system-operator".parse()?),
+        )]
+        #[case::hermetic_system_metrics(
+            UserMapping::HermeticSystemNetHsmMetrics {
+                nethsm_users: NetHsmMetricsUsers::new(
+                    "metrics".parse()?,
+                    vec!["operator".parse()?],
+                )?,
+                system_user: "system-metrics".parse()?,
+            },
+            Some("system-metrics".parse()?),
+        )]
+        fn user_mapping_get_system_user(
+            #[case] mapping: UserMapping,
+            #[case] result: Option<SystemUserId>,
+        ) -> TestResult {
+            assert_eq!(mapping.get_system_user(), result.as_ref());
+            Ok(())
+        }
+
+        /// Ensures that NetHSM specific [`UserMapping`] variants work with
+        /// [`UserMapping::backend_users`].
+        #[rstest]
+        #[case::admin_filter_default(
+            UserMapping::NetHsmOnlyAdmin("admin".parse()?),
+            UserMappingFilter::default(),
+            &[],
+        )]
+        #[case::admin_filter_admin(
+            UserMapping::NetHsmOnlyAdmin("admin".parse()?),
+            UserMappingFilter{backend_user_kind: BackendUserKind::Admin},
+            &["admin"],
+        )]
+        #[case::metrics_filter_default(
+            UserMapping::SystemNetHsmMetrics {
+                nethsm_users: NetHsmMetricsUsers::new(
+                    SystemWideUserId::new("metrics".to_string())?,
+                    vec![
+                        UserId::new("operator".to_string())?,
+                    ],
+                )?,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+                system_user: "system-metrics".parse()?,
+            },
+            UserMappingFilter::default(),
+            &["metrics", "operator"],
+        )]
+        #[case::metrics_filter_admin(
+            UserMapping::SystemNetHsmMetrics {
+                nethsm_users: NetHsmMetricsUsers::new(
+                    SystemWideUserId::new("metrics".to_string())?,
+                    vec![
+                        UserId::new("operator".to_string())?,
+                    ],
+                )?,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+                system_user: "system-metrics".parse()?,
+            },
+            UserMappingFilter{backend_user_kind: BackendUserKind::Admin},
+            &[],
+        )]
+        #[case::backup_filter_default(
+            UserMapping::SystemNetHsmBackup {
+                nethsm_user: "backup".parse()?,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+                system_user: "system-backup".parse()?,
+            },
+            UserMappingFilter::default(),
+            &["backup"],
+        )]
+        #[case::backup_filter_admin(
+            UserMapping::SystemNetHsmBackup {
+                nethsm_user: "backup".parse()?,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+                system_user: "system-backup".parse()?,
+            },
+            UserMappingFilter{backend_user_kind: BackendUserKind::Admin},
+            &[],
+        )]
+        #[case::operator_filter_default(
+            UserMapping::SystemNetHsmOperatorSigning {
+                nethsm_user: "operator".parse()?,
+                key_id: "key1".parse()?,
+                nethsm_key_setup: SigningKeySetup::new(
+                    "Curve25519".parse()?,
+                    vec!["EdDsaSignature".parse()?],
+                    None,
+                    "EdDsa".parse()?,
+                    CryptographicKeyContext::OpenPgp{
+                        user_ids: OpenPgpUserIdList::new(vec!["John Doe <john@example.org>".parse()?])?,
+                        version: "v4".parse()?,
+                    },
+                )?,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+                system_user: "system-operator".parse()?,
+                tag: "tag1".to_string(),
+            },
+            UserMappingFilter::default(),
+            &["operator"],
+        )]
+        #[case::operator_filter_admin(
+            UserMapping::SystemNetHsmOperatorSigning {
+                nethsm_user: "operator".parse()?,
+                key_id: "key1".parse()?,
+                nethsm_key_setup: SigningKeySetup::new(
+                    "Curve25519".parse()?,
+                    vec!["EdDsaSignature".parse()?],
+                    None,
+                    "EdDsa".parse()?,
+                    CryptographicKeyContext::OpenPgp{
+                        user_ids: OpenPgpUserIdList::new(vec!["John Doe <john@example.org>".parse()?])?,
+                        version: "v4".parse()?,
+                    },
+                )?,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+                system_user: "system-operator".parse()?,
+                tag: "tag1".to_string(),
+            },
+            UserMappingFilter{backend_user_kind: BackendUserKind::Admin},
+            &[],
+        )]
+        #[case::hermetic_system_metrics_filter_default(
+            UserMapping::HermeticSystemNetHsmMetrics {
+                nethsm_users: NetHsmMetricsUsers::new(
+                    "metrics".parse()?,
+                    vec!["operator".parse()?],
+                )?,
+                system_user: "system-metrics".parse()?,
+            },
+            UserMappingFilter::default(),
+            &["metrics", "operator"],
+        )]
+        #[case::hermetic_system_metrics_filter_admin(
+            UserMapping::HermeticSystemNetHsmMetrics {
+                nethsm_users: NetHsmMetricsUsers::new(
+                    "metrics".parse()?,
+                    vec!["operator".parse()?],
+                )?,
+                system_user: "system-metrics".parse()?,
+            },
+            UserMappingFilter{backend_user_kind: BackendUserKind::Admin},
+            &[],
+        )]
+        fn user_mapping_backend_users(
+            #[case] mapping: UserMapping,
+            #[case] filter: UserMappingFilter,
+            #[case] expected_names: &[&str],
+        ) -> TestResult {
+            assert_eq!(mapping.backend_users(filter), expected_names);
+            Ok(())
+        }
+
+        /// Ensures that NetHSM specific [`UserMapping`] variants work with
+        /// [`UserMapping::backend_users_with_new_passphrase`].
+        #[rstest]
+        #[case::admin_filter_default(
+            UserMapping::NetHsmOnlyAdmin("admin".parse()?),
+            UserMappingFilter::default(),
+            0
+        )]
+        #[case::admin_filter_admin(
+            UserMapping::NetHsmOnlyAdmin("admin".parse()?),
+            UserMappingFilter{backend_user_kind: BackendUserKind::Admin},
+            1
+        )]
+        #[case::metrics_filter_default(
+            UserMapping::SystemNetHsmMetrics {
+                nethsm_users: NetHsmMetricsUsers::new(
+                    SystemWideUserId::new("metrics".to_string())?,
+                    vec![
+                        UserId::new("operator".to_string())?,
+                    ],
+                )?,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+                system_user: "system-metrics".parse()?,
+            },
+            UserMappingFilter::default(),
+            2
+        )]
+        #[case::metrics_filter_admin(
+            UserMapping::SystemNetHsmMetrics {
+                nethsm_users: NetHsmMetricsUsers::new(
+                    SystemWideUserId::new("metrics".to_string())?,
+                    vec![
+                        UserId::new("operator".to_string())?,
+                    ],
+                )?,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+                system_user: "system-metrics".parse()?,
+            },
+            UserMappingFilter{backend_user_kind: BackendUserKind::Admin},
+            0
+        )]
+        #[case::backup_filter_default(
+            UserMapping::SystemNetHsmBackup {
+                nethsm_user: "backup".parse()?,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+                system_user: "system-backup".parse()?,
+            },
+            UserMappingFilter::default(),
+            1
+        )]
+        #[case::backup_filter_admin(
+            UserMapping::SystemNetHsmBackup {
+                nethsm_user: "backup".parse()?,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+                system_user: "system-backup".parse()?,
+            },
+            UserMappingFilter{backend_user_kind: BackendUserKind::Admin},
+            0
+        )]
+        #[case::operator_filter_default(
+            UserMapping::SystemNetHsmOperatorSigning {
+                nethsm_user: "operator".parse()?,
+                key_id: "key1".parse()?,
+                nethsm_key_setup: SigningKeySetup::new(
+                    "Curve25519".parse()?,
+                    vec!["EdDsaSignature".parse()?],
+                    None,
+                    "EdDsa".parse()?,
+                    CryptographicKeyContext::OpenPgp{
+                        user_ids: OpenPgpUserIdList::new(vec!["John Doe <john@example.org>".parse()?])?,
+                        version: "v4".parse()?,
+                    },
+                )?,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+                system_user: "system-operator".parse()?,
+                tag: "tag1".to_string(),
+            },
+            UserMappingFilter::default(),
+            1
+        )]
+        #[case::operator_filter_admin(
+            UserMapping::SystemNetHsmOperatorSigning {
+                nethsm_user: "operator".parse()?,
+                key_id: "key1".parse()?,
+                nethsm_key_setup: SigningKeySetup::new(
+                    "Curve25519".parse()?,
+                    vec!["EdDsaSignature".parse()?],
+                    None,
+                    "EdDsa".parse()?,
+                    CryptographicKeyContext::OpenPgp{
+                        user_ids: OpenPgpUserIdList::new(vec!["John Doe <john@example.org>".parse()?])?,
+                        version: "v4".parse()?,
+                    },
+                )?,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+                system_user: "system-operator".parse()?,
+                tag: "tag1".to_string(),
+            },
+            UserMappingFilter{backend_user_kind: BackendUserKind::Admin},
+            0
+        )]
+        #[case::hermetic_system_metrics_filter_default(
+            UserMapping::HermeticSystemNetHsmMetrics {
+                nethsm_users: NetHsmMetricsUsers::new(
+                    "metrics".parse()?,
+                    vec!["operator".parse()?],
+                )?,
+                system_user: "system-metrics".parse()?,
+            },
+            UserMappingFilter::default(),
+            2
+        )]
+        #[case::hermetic_system_metrics_filter_admin(
+            UserMapping::HermeticSystemNetHsmMetrics {
+                nethsm_users: NetHsmMetricsUsers::new(
+                    "metrics".parse()?,
+                    vec!["operator".parse()?],
+                )?,
+                system_user: "system-metrics".parse()?,
+            },
+            UserMappingFilter{backend_user_kind: BackendUserKind::Admin},
+            0
+        )]
+        fn user_mapping_backend_users_with_new_passphrase(
+            #[case] mapping: UserMapping,
+            #[case] filter: UserMappingFilter,
+            #[case] expected_length: usize,
+        ) -> TestResult {
+            assert_eq!(
+                mapping.backend_users_with_new_passphrase(filter).len(),
+                expected_length
+            );
+            Ok(())
+        }
+
+        /// Ensures that NetHSM specific [`UserMapping`] variants work with
+        /// [`UserMapping::get_nethsm_users`].
+        #[rstest]
+        #[case::admin(UserMapping::NetHsmOnlyAdmin("test".parse()?), vec!["test".parse()?])]
+        #[case::metrics(
+            UserMapping::SystemNetHsmMetrics {
+                nethsm_users: NetHsmMetricsUsers::new(
+                    SystemWideUserId::new("metrics".to_string())?,
+                    vec![
+                        UserId::new("operator".to_string())?,
+                    ],
+                )?,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+                system_user: "system-metrics".parse()?,
+            },
+            vec!["metrics".parse()?, "operator".parse()?],
+        )]
+        #[case::backup(
+            UserMapping::SystemNetHsmBackup {
+                nethsm_user: "backup".parse()?,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+                system_user: "system-backup".parse()?,
+            },
+            vec!["backup".parse()?],
+        )]
+        #[case::operator(
+            UserMapping::SystemNetHsmOperatorSigning {
+                nethsm_user: "operator".parse()?,
+                key_id: "key1".parse()?,
+                nethsm_key_setup: SigningKeySetup::new(
+                    "Curve25519".parse()?,
+                    vec!["EdDsaSignature".parse()?],
+                    None,
+                    "EdDsa".parse()?,
+                    CryptographicKeyContext::OpenPgp{
+                        user_ids: OpenPgpUserIdList::new(vec!["John Doe <john@example.org>".parse()?])?,
+                        version: "v4".parse()?,
+                    },
+                )?,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+                system_user: "system-operator".parse()?,
+                tag: "tag1".to_string(),
+            },
+            vec!["operator".parse()?],
+        )]
+        #[case::hermetic_system_metrics(
+            UserMapping::HermeticSystemNetHsmMetrics {
+                nethsm_users: NetHsmMetricsUsers::new(
+                    "metrics".parse()?,
+                    vec!["operator".parse()?],
+                )?,
+                system_user: "system-metrics".parse()?,
+            },
+            vec!["metrics".parse()?, "operator".parse()?],
+        )]
+        fn user_mapping_get_nethsm_users(
+            #[case] mapping: UserMapping,
+            #[case] expected: Vec<UserId>,
+        ) -> TestResult {
+            assert_eq!(mapping.get_nethsm_users(), expected);
+            Ok(())
+        }
+
+        /// Ensures that NetHSM specific [`UserMapping`] variants work with
+        /// [`UserMapping::get_nethsm_users_and_roles`].
+        #[rstest]
+        #[case::systemwide_admin(
+            UserMapping::NetHsmOnlyAdmin("admin".parse()?),
+            vec![("admin".parse()?, UserRole::Administrator)],
+        )]
+        #[case::namespace_admin(
+            UserMapping::NetHsmOnlyAdmin("ns1~admin".parse()?),
+            vec![("ns1~admin".parse()?, UserRole::Administrator)],
+        )]
+        #[case::metrics(
+            UserMapping::SystemNetHsmMetrics {
+                nethsm_users: NetHsmMetricsUsers::new(
+                    SystemWideUserId::new("metrics".to_string())?,
+                    vec![
+                        UserId::new("operator".to_string())?,
+                    ],
+                )?,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+                system_user: "system-metrics".parse()?,
+            },
+            vec![("metrics".parse()?, UserRole::Metrics), ("operator".parse()?, UserRole::Operator)],
+        )]
+        #[case::backup(
+            UserMapping::SystemNetHsmBackup {
+                nethsm_user: "backup".parse()?,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+                system_user: "system-backup".parse()?,
+            },
+            vec![("backup".parse()?, UserRole::Backup)],
+        )]
+        #[case::systemwide_operator(
+            UserMapping::SystemNetHsmOperatorSigning {
+                nethsm_user: "operator".parse()?,
+                key_id: "key1".parse()?,
+                nethsm_key_setup: SigningKeySetup::new(
+                    "Curve25519".parse()?,
+                    vec!["EdDsaSignature".parse()?],
+                    None,
+                    "EdDsa".parse()?,
+                    CryptographicKeyContext::OpenPgp{
+                        user_ids: OpenPgpUserIdList::new(vec!["John Doe <john@example.org>".parse()?])?,
+                        version: "v4".parse()?,
+                    },
+                )?,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+                system_user: "system-operator".parse()?,
+                tag: "tag1".to_string(),
+            },
+            vec![(
+                "operator".parse()?,
+                UserRole::Operator,
+            )],
+        )]
+        #[case::namespace_operator(
+            UserMapping::SystemNetHsmOperatorSigning {
+                nethsm_user: "ns1~operator".parse()?,
+                key_id: "key1".parse()?,
+                nethsm_key_setup: SigningKeySetup::new(
+                    "Curve25519".parse()?,
+                    vec!["EdDsaSignature".parse()?],
+                    None,
+                    "EdDsa".parse()?,
+                    CryptographicKeyContext::OpenPgp{
+                        user_ids: OpenPgpUserIdList::new(vec!["John Doe <john@example.org>".parse()?])?,
+                        version: "v4".parse()?,
+                    },
+                )?,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+                system_user: "system-operator".parse()?,
+                tag: "tag1".to_string(),
+            },
+            vec![(
+                "ns1~operator".parse()?,
+                UserRole::Operator,
+            )],
+        )]
+        #[case::hermetic_system_metrics(
+            UserMapping::HermeticSystemNetHsmMetrics {
+                nethsm_users: NetHsmMetricsUsers::new(
+                    "metrics".parse()?,
+                    vec!["operator".parse()?],
+                )?,
+                system_user: "system-metrics".parse()?,
+            },
+            vec![
+                ("metrics".parse()?, UserRole::Metrics),
+                ("operator".parse()?, UserRole::Operator),
+            ],
+        )]
+        fn usermapping_get_nethsm_users_and_roles(
+            #[case] mapping: UserMapping,
+            #[case] output: Vec<(UserId, UserRole)>,
+        ) -> TestResult {
+            assert_eq!(mapping.get_nethsm_users_and_roles(), output);
+            Ok(())
+        }
+
+        /// Ensures that NetHSM specific [`UserMapping`] variants work with
+        /// [`UserMapping::get_nethsm_user_key_and_tag`].
+        #[rstest]
+        #[case::admin_filter_all(UserMapping::NetHsmOnlyAdmin("test".parse()?), FilterUserKeys::All, Vec::new())]
+        #[case::metrics(
+            UserMapping::SystemNetHsmMetrics {
+                nethsm_users: NetHsmMetricsUsers::new(
+                    SystemWideUserId::new("metrics".to_string())?,
+                    vec![
+                        UserId::new("operator".to_string())?,
+                    ],
+                )?,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+                system_user: "system-metrics".parse()?,
+            },
+            FilterUserKeys::All,
+            Vec::new(),
+        )]
+        #[case::backup_filter_all(
+            UserMapping::SystemNetHsmBackup {
+                nethsm_user: "backup".parse()?,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+                system_user: "system-backup".parse()?,
+            },
+            FilterUserKeys::All,
+            Vec::new(),
+        )]
+        #[case::operator_signing_filter_all(
+            UserMapping::SystemNetHsmOperatorSigning {
+                nethsm_user: "operator".parse()?,
+                key_id: "key1".parse()?,
+                nethsm_key_setup: SigningKeySetup::new(
+                    "Curve25519".parse()?,
+                    vec!["EdDsaSignature".parse()?],
+                    None,
+                    "EdDsa".parse()?,
+                    CryptographicKeyContext::OpenPgp{
+                        user_ids: OpenPgpUserIdList::new(vec!["John Doe <john@example.org>".parse()?])?,
+                        version: "v4".parse()?,
+                    },
+                )?,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+                system_user: "system-operator".parse()?,
+                tag: "tag1".to_string(),
+            },
+            FilterUserKeys::All,
+            vec![(
+                "operator".parse()?,
+                "key1".parse()?,
+                SigningKeySetup::new(
+                    "Curve25519".parse()?,
+                    vec!["EdDsaSignature".parse()?],
+                    None,
+                    "EdDsa".parse()?,
+                    CryptographicKeyContext::OpenPgp{
+                        user_ids: OpenPgpUserIdList::new(vec!["John Doe <john@example.org>".parse()?])?,
+                        version: "v4".parse()?,
+                    },
+                )?,
+                "tag1".to_string(),
+            )],
+        )]
+        #[case::systemwide_operator_filter_namespaced(
+            UserMapping::SystemNetHsmOperatorSigning {
+                nethsm_user: "operator".parse()?,
+                key_id: "key1".parse()?,
+                nethsm_key_setup: SigningKeySetup::new(
+                    "Curve25519".parse()?,
+                    vec!["EdDsaSignature".parse()?],
+                    None,
+                    "EdDsa".parse()?,
+                    CryptographicKeyContext::OpenPgp{
+                        user_ids: OpenPgpUserIdList::new(vec!["John Doe <john@example.org>".parse()?])?,
+                        version: "v4".parse()?,
+                    },
+                )?,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+                system_user: "system-operator".parse()?,
+                tag: "tag1".to_string(),
+            },
+            FilterUserKeys::Namespaced,
+            Vec::new(),
+        )]
+        #[case::systemwide_operator_filter_namespace(
+            UserMapping::SystemNetHsmOperatorSigning {
+                nethsm_user: "operator".parse()?,
+                key_id: "key1".parse()?,
+                nethsm_key_setup: SigningKeySetup::new(
+                    "Curve25519".parse()?,
+                    vec!["EdDsaSignature".parse()?],
+                    None,
+                    "EdDsa".parse()?,
+                    CryptographicKeyContext::OpenPgp{
+                        user_ids: OpenPgpUserIdList::new(vec!["John Doe <john@example.org>".parse()?])?,
+                        version: "v4".parse()?,
+                    },
+                )?,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+                system_user: "system-operator".parse()?,
+                tag: "tag1".to_string(),
+            },
+            FilterUserKeys::Namespace("ns1".parse()?),
+            Vec::new(),
+        )]
+        #[case::namespace_operator_filter_namespaced(
+            UserMapping::SystemNetHsmOperatorSigning {
+                nethsm_user: "ns1~operator".parse()?,
+                key_id: "key1".parse()?,
+                nethsm_key_setup: SigningKeySetup::new(
+                    "Curve25519".parse()?,
+                    vec!["EdDsaSignature".parse()?],
+                    None,
+                    "EdDsa".parse()?,
+                    CryptographicKeyContext::OpenPgp{
+                        user_ids: OpenPgpUserIdList::new(vec!["John Doe <john@example.org>".parse()?])?,
+                        version: "v4".parse()?,
+                    },
+                )?,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+                system_user: "system-operator".parse()?,
+                tag: "tag1".to_string(),
+            },
+            FilterUserKeys::Namespaced,
+            vec![(
+                "ns1~operator".parse()?,
+                "key1".parse()?,
+                SigningKeySetup::new(
+                    "Curve25519".parse()?,
+                    vec!["EdDsaSignature".parse()?],
+                    None,
+                    "EdDsa".parse()?,
+                    CryptographicKeyContext::OpenPgp{
+                        user_ids: OpenPgpUserIdList::new(vec!["John Doe <john@example.org>".parse()?])?,
+                        version: "v4".parse()?,
+                    },
+                )?,
+                "tag1".to_string(),
+            )],
+        )]
+        #[case::namespace_operator_filter_matching_namespace(
+            UserMapping::SystemNetHsmOperatorSigning {
+                nethsm_user: "ns1~operator".parse()?,
+                key_id: "key1".parse()?,
+                nethsm_key_setup: SigningKeySetup::new(
+                    "Curve25519".parse()?,
+                    vec!["EdDsaSignature".parse()?],
+                    None,
+                    "EdDsa".parse()?,
+                    CryptographicKeyContext::OpenPgp{
+                        user_ids: OpenPgpUserIdList::new(vec!["John Doe <john@example.org>".parse()?])?,
+                        version: "v4".parse()?,
+                    },
+                )?,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+                system_user: "system-operator".parse()?,
+                tag: "tag1".to_string(),
+            },
+            FilterUserKeys::Namespace("ns1".parse()?),
+            vec![(
+                "ns1~operator".parse()?,
+                "key1".parse()?,
+                SigningKeySetup::new(
+                    "Curve25519".parse()?,
+                    vec!["EdDsaSignature".parse()?],
+                    None,
+                    "EdDsa".parse()?,
+                    CryptographicKeyContext::OpenPgp{
+                        user_ids: OpenPgpUserIdList::new(vec!["John Doe <john@example.org>".parse()?])?,
+                        version: "v4".parse()?,
+                    },
+                )?,
+                "tag1".to_string(),
+            )],
+        )]
+        #[case::namespace_operator_filter_matching_tag(
+            UserMapping::SystemNetHsmOperatorSigning {
+                nethsm_user: "ns1~operator".parse()?,
+                key_id: "key1".parse()?,
+                nethsm_key_setup: SigningKeySetup::new(
+                    "Curve25519".parse()?,
+                    vec!["EdDsaSignature".parse()?],
+                    None,
+                    "EdDsa".parse()?,
+                    CryptographicKeyContext::OpenPgp{
+                        user_ids: OpenPgpUserIdList::new(vec!["John Doe <john@example.org>".parse()?])?,
+                        version: "v4".parse()?,
+                    },
+                )?,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+                system_user: "system-operator".parse()?,
+                tag: "tag1".to_string(),
+            },
+            FilterUserKeys::Tag("tag1".parse()?),
+            vec![(
+                "ns1~operator".parse()?,
+                "key1".parse()?,
+                SigningKeySetup::new(
+                    "Curve25519".parse()?,
+                    vec!["EdDsaSignature".parse()?],
+                    None,
+                    "EdDsa".parse()?,
+                    CryptographicKeyContext::OpenPgp{
+                        user_ids: OpenPgpUserIdList::new(vec!["John Doe <john@example.org>".parse()?])?,
+                        version: "v4".parse()?,
+                    },
+                )?,
+                "tag1".to_string(),
+            )],
+        )]
+        #[case::namespace_operator_filter_mismatching_tag(
+            UserMapping::SystemNetHsmOperatorSigning {
+                nethsm_user: "ns1~operator".parse()?,
+                key_id: "key1".parse()?,
+                nethsm_key_setup: SigningKeySetup::new(
+                    "Curve25519".parse()?,
+                    vec!["EdDsaSignature".parse()?],
+                    None,
+                    "EdDsa".parse()?,
+                    CryptographicKeyContext::OpenPgp{
+                        user_ids: OpenPgpUserIdList::new(vec!["John Doe <john@example.org>".parse()?])?,
+                        version: "v4".parse()?,
+                    },
+                )?,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+                system_user: "system-operator".parse()?,
+                tag: "tag2".to_string(),
+            },
+            FilterUserKeys::Tag("tag1".parse()?),
+            Vec::new(),
+        )]
+        #[case::hermetic_system_metrics_filter_all(
+            UserMapping::HermeticSystemNetHsmMetrics {
+                nethsm_users: NetHsmMetricsUsers::new(
+                    "metrics".parse()?,
+                    vec!["operator".parse()?],
+                )?,
+                system_user: "system-metrics".parse()?,
+            },
+            FilterUserKeys::All,
+            Vec::new(),
+        )]
+        fn user_mapping_get_nethsm_user_key_and_tag(
+            #[case] mapping: UserMapping,
+            #[case] filter: FilterUserKeys,
+            #[case] output: Vec<(UserId, KeyId, SigningKeySetup, String)>,
+        ) -> TestResult {
+            assert_eq!(mapping.get_nethsm_user_key_and_tag(filter), output);
+            Ok(())
+        }
+
+        /// Ensures that NetHSM specific [`UserMapping`] variants work with
+        /// [`UserMapping::get_nethsm_user_role_and_tags`].
+        #[rstest]
+        #[case::system_wide_admin(
+            UserMapping::NetHsmOnlyAdmin("test".parse()?),
+            vec![("test".parse()?, UserRole::Administrator, Vec::new())],
+        )]
+        #[case::metrics(
+            UserMapping::SystemNetHsmMetrics {
+                nethsm_users: NetHsmMetricsUsers::new(
+                    SystemWideUserId::new("metrics".to_string())?,
+                    vec![
+                        UserId::new("operator".to_string())?,
+                    ],
+                )?,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+                system_user: "system-metrics".parse()?,
+            },
+            vec![("metrics".parse()?, UserRole::Metrics, Vec::new()), ("operator".parse()?, UserRole::Operator, Vec::new())],
+        )]
+        #[case::backup(
+            UserMapping::SystemNetHsmBackup {
+                nethsm_user: "backup".parse()?,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+                system_user: "system-backup".parse()?,
+            },
+            vec![("backup".parse()?, UserRole::Backup, Vec::new())],
+        )]
+        #[case::system_wide_operator(
+            UserMapping::SystemNetHsmOperatorSigning {
+                nethsm_user: "operator".parse()?,
+                key_id: "key1".parse()?,
+                nethsm_key_setup: SigningKeySetup::new(
+                    "Curve25519".parse()?,
+                    vec!["EdDsaSignature".parse()?],
+                    None,
+                    "EdDsa".parse()?,
+                    CryptographicKeyContext::OpenPgp{
+                        user_ids: OpenPgpUserIdList::new(vec!["John Doe <john@example.org>".parse()?])?,
+                        version: "v4".parse()?,
+                    },
+                )?,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+                system_user: "system-operator".parse()?,
+                tag: "tag1".to_string(),
+            },
+            vec![("operator".parse()?, UserRole::Operator, vec!["tag1".to_string()])],
+        )]
+        #[case::namespace_operator(
+            UserMapping::SystemNetHsmOperatorSigning {
+                nethsm_user: "ns1~operator".parse()?,
+                key_id: "key1".parse()?,
+                nethsm_key_setup: SigningKeySetup::new(
+                    "Curve25519".parse()?,
+                    vec!["EdDsaSignature".parse()?],
+                    None,
+                    "EdDsa".parse()?,
+                    CryptographicKeyContext::OpenPgp{
+                        user_ids: OpenPgpUserIdList::new(vec!["John Doe <john@example.org>".parse()?])?,
+                        version: "v4".parse()?,
+                    },
+                )?,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+                system_user: "system-operator".parse()?,
+                tag: "tag1".to_string(),
+            },
+            vec![("ns1~operator".parse()?, UserRole::Operator, vec!["tag1".to_string()])],
+        )]
+        #[case::hermetic_system_metrics_filter_all(
+            UserMapping::HermeticSystemNetHsmMetrics {
+                nethsm_users: NetHsmMetricsUsers::new(
+                    "metrics".parse()?,
+                    vec!["operator".parse()?],
+                )?,
+                system_user: "system-metrics".parse()?,
+            },
+            vec![("metrics".parse()?, UserRole::Metrics, Vec::new()), ("operator".parse()?, UserRole::Operator, Vec::new())],
+        )]
+        fn user_mapping_get_nethsm_user_role_and_tags(
+            #[case] mapping: UserMapping,
+            #[case] expected: Vec<(UserId, UserRole, Vec<String>)>,
+        ) -> TestResult {
+            assert_eq!(mapping.get_nethsm_user_role_and_tags(), expected);
+            Ok(())
+        }
+
+        /// Ensures that NetHSM specific [`UserMapping`] variants work with
+        /// [`UserMapping::get_ssh_authorized_key`].
+        #[rstest]
+        #[case::system_wide_admin(UserMapping::NetHsmOnlyAdmin("test".parse()?), None)]
+        #[case::metrics(
+            UserMapping::SystemNetHsmMetrics {
+                nethsm_users: NetHsmMetricsUsers::new(
+                    SystemWideUserId::new("metrics".to_string())?,
+                    vec![
+                        UserId::new("operator".to_string())?,
+                    ],
+                )?,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+                system_user: "system-metrics".parse()?,
+            },
+            Some("ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?),
+        )]
+        #[case::backup(
+            UserMapping::SystemNetHsmBackup {
+                nethsm_user: "backup".parse()?,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+                system_user: "system-backup".parse()?,
+            },
+            Some("ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?),
+        )]
+        #[case::system_wide_operator(
+            UserMapping::SystemNetHsmOperatorSigning {
+                nethsm_user: "operator".parse()?,
+                key_id: "key1".parse()?,
+                nethsm_key_setup: SigningKeySetup::new(
+                    "Curve25519".parse()?,
+                    vec!["EdDsaSignature".parse()?],
+                    None,
+                    "EdDsa".parse()?,
+                    CryptographicKeyContext::OpenPgp{
+                        user_ids: OpenPgpUserIdList::new(vec!["John Doe <john@example.org>".parse()?])?,
+                        version: "v4".parse()?,
+                    },
+                )?,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+                system_user: "system-operator".parse()?,
+                tag: "tag1".to_string(),
+            },
+            Some("ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?),
+        )]
+        #[case::namespace_operator(
+            UserMapping::SystemNetHsmOperatorSigning {
+                nethsm_user: "ns1~operator".parse()?,
+                key_id: "key1".parse()?,
+                nethsm_key_setup: SigningKeySetup::new(
+                    "Curve25519".parse()?,
+                    vec!["EdDsaSignature".parse()?],
+                    None,
+                    "EdDsa".parse()?,
+                    CryptographicKeyContext::OpenPgp{
+                        user_ids: OpenPgpUserIdList::new(vec!["John Doe <john@example.org>".parse()?])?,
+                        version: "v4".parse()?,
+                    },
+                )?,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+                system_user: "system-operator".parse()?,
+                tag: "tag1".to_string(),
+            },
+            Some("ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?),
+        )]
+        #[case::hermetic_system_metrics_filter_all(
+            UserMapping::HermeticSystemNetHsmMetrics {
+                nethsm_users: NetHsmMetricsUsers::new(
+                    "metrics".parse()?,
+                    vec!["operator".parse()?],
+                )?,
+                system_user: "system-metrics".parse()?,
+            },
+            None,
+        )]
+        fn user_mapping_get_ssh_authorized_key(
+            #[case] mapping: UserMapping,
+            #[case] output: Option<AuthorizedKeyEntry>,
+        ) -> TestResult {
+            assert_eq!(mapping.get_ssh_authorized_key(), output.as_ref());
+            Ok(())
+        }
+
+        /// Ensures that NetHSM specific [`UserMapping`] variants work with
+        /// [`UserMapping::get_nethsm_key_ids`].
+        #[rstest]
+        #[case::system_wide_admin(UserMapping::NetHsmOnlyAdmin("test".parse()?), None, Vec::new())]
+        #[case::metrics(
+            UserMapping::SystemNetHsmMetrics {
+                nethsm_users: NetHsmMetricsUsers::new(
+                    SystemWideUserId::new("metrics".to_string())?,
+                    vec![
+                        UserId::new("operator".to_string())?,
+                    ],
+                )?,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+                system_user: "system-metrics".parse()?,
+            },
+            None,
+            Vec::new()
+        )]
+        #[case::backup(
+            UserMapping::SystemNetHsmBackup {
+                nethsm_user: "backup".parse()?,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+                system_user: "system-backup".parse()?,
+            },
+            None,
+            Vec::new()
+        )]
+        #[case::system_wide_operator_target_system_wide(
+            UserMapping::SystemNetHsmOperatorSigning {
+                nethsm_user: "operator".parse()?,
+                key_id: "key1".parse()?,
+                nethsm_key_setup: SigningKeySetup::new(
+                    "Curve25519".parse()?,
+                    vec!["EdDsaSignature".parse()?],
+                    None,
+                    "EdDsa".parse()?,
+                    CryptographicKeyContext::OpenPgp{
+                        user_ids: OpenPgpUserIdList::new(vec!["John Doe <john@example.org>".parse()?])?,
+                        version: "v4".parse()?,
+                    },
+                )?,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+                system_user: "system-operator".parse()?,
+                tag: "tag1".to_string(),
+            },
+            None,
+            vec!["key1".parse()?],
+        )]
+        #[case::system_wide_operator_target_namespace(
+            UserMapping::SystemNetHsmOperatorSigning {
+                nethsm_user: "operator".parse()?,
+                key_id: "key1".parse()?,
+                nethsm_key_setup: SigningKeySetup::new(
+                    "Curve25519".parse()?,
+                    vec!["EdDsaSignature".parse()?],
+                    None,
+                    "EdDsa".parse()?,
+                    CryptographicKeyContext::OpenPgp{
+                        user_ids: OpenPgpUserIdList::new(vec!["John Doe <john@example.org>".parse()?])?,
+                        version: "v4".parse()?,
+                    },
+                )?,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+                system_user: "system-operator".parse()?,
+                tag: "tag1".to_string(),
+            },
+            Some("ns1".parse()?),
+            Vec::new(),
+        )]
+        #[case::namespace_operator_target_system_wide(
+            UserMapping::SystemNetHsmOperatorSigning {
+                nethsm_user: "ns1~operator".parse()?,
+                key_id: "key1".parse()?,
+                nethsm_key_setup: SigningKeySetup::new(
+                    "Curve25519".parse()?,
+                    vec!["EdDsaSignature".parse()?],
+                    None,
+                    "EdDsa".parse()?,
+                    CryptographicKeyContext::OpenPgp{
+                        user_ids: OpenPgpUserIdList::new(vec!["John Doe <john@example.org>".parse()?])?,
+                        version: "v4".parse()?,
+                    },
+                )?,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+                system_user: "system-operator".parse()?,
+                tag: "tag1".to_string(),
+            },
+            None,
+            Vec::new(),
+        )]
+        #[case::namespace_operator_target_namespace(
+            UserMapping::SystemNetHsmOperatorSigning {
+                nethsm_user: "ns1~operator".parse()?,
+                key_id: "key1".parse()?,
+                nethsm_key_setup: SigningKeySetup::new(
+                    "Curve25519".parse()?,
+                    vec!["EdDsaSignature".parse()?],
+                    None,
+                    "EdDsa".parse()?,
+                    CryptographicKeyContext::OpenPgp{
+                        user_ids: OpenPgpUserIdList::new(vec!["John Doe <john@example.org>".parse()?])?,
+                        version: "v4".parse()?,
+                    },
+                )?,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+                system_user: "system-operator".parse()?,
+                tag: "tag1".to_string(),
+            },
+            Some("ns1".parse()?),
+            vec!["key1".parse()?],
+        )]
+        #[case::hermetic_system_metrics_filter_all(
+            UserMapping::HermeticSystemNetHsmMetrics {
+                nethsm_users: NetHsmMetricsUsers::new(
+                    "metrics".parse()?,
+                    vec!["operator".parse()?],
+                )?,
+                system_user: "system-metrics".parse()?,
+            },
+            None,
+            Vec::new()
+        )]
+        fn user_mapping_get_nethsm_key_ids(
+            #[case] mapping: UserMapping,
+            #[case] namespace: Option<NamespaceId>,
+            #[case] output: Vec<KeyId>,
+        ) -> TestResult {
+            assert_eq!(mapping.get_nethsm_key_ids(namespace.as_ref()), output);
+            Ok(())
+        }
+
+        /// Ensures that NetHSM specific [`UserMapping`] variants work with
+        /// [`UserMapping::get_nethsm_key_ids`].
+        #[rstest]
+        #[case::system_wide_admin(UserMapping::NetHsmOnlyAdmin("test".parse()?), None, Vec::new())]
+        #[case::metrics(
+            UserMapping::SystemNetHsmMetrics {
+                nethsm_users: NetHsmMetricsUsers::new(
+                    SystemWideUserId::new("metrics".to_string())?,
+                    vec![
+                        UserId::new("operator".to_string())?,
+                    ],
+                )?,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+                system_user: "system-metrics".parse()?,
+            },
+            None,
+            Vec::new()
+        )]
+        #[case::backup(
+            UserMapping::SystemNetHsmBackup {
+                nethsm_user: "backup".parse()?,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+                system_user: "system-backup".parse()?,
+            },
+            None,
+            Vec::new()
+        )]
+        #[case::system_wide_operator_target_system_wide(
+            UserMapping::SystemNetHsmOperatorSigning {
+                nethsm_user: "operator".parse()?,
+                key_id: "key1".parse()?,
+                nethsm_key_setup: SigningKeySetup::new(
+                    "Curve25519".parse()?,
+                    vec!["EdDsaSignature".parse()?],
+                    None,
+                    "EdDsa".parse()?,
+                    CryptographicKeyContext::OpenPgp{
+                        user_ids: OpenPgpUserIdList::new(vec!["John Doe <john@example.org>".parse()?])?,
+                        version: "v4".parse()?,
+                    },
+                )?,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+                system_user: "system-operator".parse()?,
+                tag: "tag1".to_string(),
+            },
+            None,
+            vec!["tag1"],
+        )]
+        #[case::system_wide_operator_target_namespace(
+            UserMapping::SystemNetHsmOperatorSigning {
+                nethsm_user: "operator".parse()?,
+                key_id: "key1".parse()?,
+                nethsm_key_setup: SigningKeySetup::new(
+                    "Curve25519".parse()?,
+                    vec!["EdDsaSignature".parse()?],
+                    None,
+                    "EdDsa".parse()?,
+                    CryptographicKeyContext::OpenPgp{
+                        user_ids: OpenPgpUserIdList::new(vec!["John Doe <john@example.org>".parse()?])?,
+                        version: "v4".parse()?,
+                    },
+                )?,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+                system_user: "system-operator".parse()?,
+                tag: "tag1".to_string(),
+            },
+            Some("ns1".parse()?),
+            Vec::new(),
+        )]
+        #[case::namespace_operator_target_system_wide(
+            UserMapping::SystemNetHsmOperatorSigning {
+                nethsm_user: "ns1~operator".parse()?,
+                key_id: "key1".parse()?,
+                nethsm_key_setup: SigningKeySetup::new(
+                    "Curve25519".parse()?,
+                    vec!["EdDsaSignature".parse()?],
+                    None,
+                    "EdDsa".parse()?,
+                    CryptographicKeyContext::OpenPgp{
+                        user_ids: OpenPgpUserIdList::new(vec!["John Doe <john@example.org>".parse()?])?,
+                        version: "v4".parse()?,
+                    },
+                )?,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+                system_user: "system-operator".parse()?,
+                tag: "tag1".to_string(),
+            },
+            None,
+            Vec::new(),
+        )]
+        #[case::namespace_operator_target_namespace(
+            UserMapping::SystemNetHsmOperatorSigning {
+                nethsm_user: "ns1~operator".parse()?,
+                key_id: "key1".parse()?,
+                nethsm_key_setup: SigningKeySetup::new(
+                    "Curve25519".parse()?,
+                    vec!["EdDsaSignature".parse()?],
+                    None,
+                    "EdDsa".parse()?,
+                    CryptographicKeyContext::OpenPgp{
+                        user_ids: OpenPgpUserIdList::new(vec!["John Doe <john@example.org>".parse()?])?,
+                        version: "v4".parse()?,
+                    },
+                )?,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+                system_user: "system-operator".parse()?,
+                tag: "tag1".to_string(),
+            },
+            Some("ns1".parse()?),
+            vec!["tag1"],
+        )]
+        #[case::hermetic_system_metrics_filter_all(
+            UserMapping::HermeticSystemNetHsmMetrics {
+                nethsm_users: NetHsmMetricsUsers::new(
+                    "metrics".parse()?,
+                    vec!["operator".parse()?],
+                )?,
+                system_user: "system-metrics".parse()?,
+            },
+            None,
+            Vec::new()
+        )]
+        fn user_mapping_get_nethsm_tags(
+            #[case] mapping: UserMapping,
+            #[case] namespace: Option<NamespaceId>,
+            #[case] output: Vec<&str>,
+        ) -> TestResult {
+            assert_eq!(mapping.get_nethsm_tags(namespace.as_ref()), output);
+            Ok(())
+        }
+
+        /// Ensures that NetHSM specific [`UserMapping`] variants work with
+        /// [`UserMapping::get_nethsm_namespaces`].
+        #[rstest]
+        #[case::system_wide_admin(UserMapping::NetHsmOnlyAdmin("test".parse()?), Vec::new())]
+        #[case::namespace_admin(UserMapping::NetHsmOnlyAdmin("ns1~test".parse()?), vec!["ns1".parse()?])]
+        #[case::metrics(
+            UserMapping::SystemNetHsmMetrics {
+                nethsm_users: NetHsmMetricsUsers::new(
+                    SystemWideUserId::new("metrics".to_string())?,
+                    vec![
+                        UserId::new("operator".to_string())?,
+                    ],
+                )?,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+                system_user: "system-metrics".parse()?,
+            },
+            Vec::new(),
+        )]
+        #[case::backup(
+            UserMapping::SystemNetHsmBackup {
+                nethsm_user: "backup".parse()?,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+                system_user: "system-backup".parse()?,
+            },
+            Vec::new(),
+        )]
+        #[case::system_wide_operator(
+            UserMapping::SystemNetHsmOperatorSigning {
+                nethsm_user: "operator".parse()?,
+                key_id: "key1".parse()?,
+                nethsm_key_setup: SigningKeySetup::new(
+                    "Curve25519".parse()?,
+                    vec!["EdDsaSignature".parse()?],
+                    None,
+                    "EdDsa".parse()?,
+                    CryptographicKeyContext::OpenPgp{
+                        user_ids: OpenPgpUserIdList::new(vec!["John Doe <john@example.org>".parse()?])?,
+                        version: "v4".parse()?,
+                    },
+                )?,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+                system_user: "system-operator".parse()?,
+                tag: "tag1".to_string(),
+            },
+            Vec::new(),
+        )]
+        #[case::namespace_operator(
+            UserMapping::SystemNetHsmOperatorSigning {
+                nethsm_user: "ns1~operator".parse()?,
+                key_id: "key1".parse()?,
+                nethsm_key_setup: SigningKeySetup::new(
+                    "Curve25519".parse()?,
+                    vec!["EdDsaSignature".parse()?],
+                    None,
+                    "EdDsa".parse()?,
+                    CryptographicKeyContext::OpenPgp{
+                        user_ids: OpenPgpUserIdList::new(vec!["John Doe <john@example.org>".parse()?])?,
+                        version: "v4".parse()?,
+                    },
+                )?,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+                system_user: "system-operator".parse()?,
+                tag: "tag1".to_string(),
+            },
+            vec!["ns1".parse()?],
+        )]
+        #[case::hermetic_system_metrics_filter_all(
+            UserMapping::HermeticSystemNetHsmMetrics {
+                nethsm_users: NetHsmMetricsUsers::new(
+                    "metrics".parse()?,
+                    vec!["operator".parse()?],
+                )?,
+                system_user: "system-metrics".parse()?,
+            },
+            Vec::new(),
+        )]
+        fn user_mapping_get_nethsm_namespaces(
+            #[case] mapping: UserMapping,
+            #[case] output: Vec<NamespaceId>,
+        ) -> TestResult {
+            assert_eq!(mapping.get_nethsm_namespaces(), output);
+            Ok(())
+        }
+
+        /// Ensures that NetHSM specific [`UserMapping`] variants work with
+        /// [`UserMapping::has_system_and_backend_user`].
+        #[rstest]
+        #[case::system_wide_admin(UserMapping::NetHsmOnlyAdmin("test".parse()?), false)]
+        #[case::namespace_admin(UserMapping::NetHsmOnlyAdmin("ns1~test".parse()?), false)]
+        #[case::metrics(
+            UserMapping::SystemNetHsmMetrics {
+                nethsm_users: NetHsmMetricsUsers::new(
+                    SystemWideUserId::new("metrics".to_string())?,
+                    vec![
+                        UserId::new("operator".to_string())?,
+                    ],
+                )?,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+                system_user: "system-metrics".parse()?,
+            },
+            true,
+        )]
+        #[case::backup(
+            UserMapping::SystemNetHsmBackup {
+                nethsm_user: "backup".parse()?,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+                system_user: "system-backup".parse()?,
+            },
+            true,
+        )]
+        #[case::system_wide_operator(
+            UserMapping::SystemNetHsmOperatorSigning {
+                nethsm_user: "operator".parse()?,
+                key_id: "key1".parse()?,
+                nethsm_key_setup: SigningKeySetup::new(
+                    "Curve25519".parse()?,
+                    vec!["EdDsaSignature".parse()?],
+                    None,
+                    "EdDsa".parse()?,
+                    CryptographicKeyContext::OpenPgp{
+                        user_ids: OpenPgpUserIdList::new(vec!["John Doe <john@example.org>".parse()?])?,
+                        version: "v4".parse()?,
+                    },
+                )?,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+                system_user: "system-operator".parse()?,
+                tag: "tag1".to_string(),
+            },
+            true,
+        )]
+        #[case::namespace_operator(
+            UserMapping::SystemNetHsmOperatorSigning {
+                nethsm_user: "ns1~operator".parse()?,
+                key_id: "key1".parse()?,
+                nethsm_key_setup: SigningKeySetup::new(
+                    "Curve25519".parse()?,
+                    vec!["EdDsaSignature".parse()?],
+                    None,
+                    "EdDsa".parse()?,
+                    CryptographicKeyContext::OpenPgp{
+                        user_ids: OpenPgpUserIdList::new(vec!["John Doe <john@example.org>".parse()?])?,
+                        version: "v4".parse()?,
+                    },
+                )?,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+                system_user: "system-operator".parse()?,
+                tag: "tag1".to_string(),
+            },
+            true,
+        )]
+        #[case::hermetic_system_metrics_filter_all(
+            UserMapping::HermeticSystemNetHsmMetrics {
+                nethsm_users: NetHsmMetricsUsers::new(
+                    "metrics".parse()?,
+                    vec!["operator".parse()?],
+                )?,
+                system_user: "system-metrics".parse()?,
+            },
+            true,
+        )]
+        fn user_mapping_has_system_and_backend_user(
+            #[case] mapping: UserMapping,
+            #[case] output: bool,
+        ) -> TestResult {
+            assert_eq!(mapping.has_system_and_backend_user(), output);
+            Ok(())
+        }
     }
 
-    #[rstest]
-    #[case::admin_filter_default(
-        UserMapping::NetHsmOnlyAdmin("admin".parse()?),
-        UserMappingFilter::default(),
-        &[],
-    )]
-    #[case::admin_filter_admin(
-        UserMapping::NetHsmOnlyAdmin("admin".parse()?),
-        UserMappingFilter{backend_user_kind: BackendUserKind::Admin},
-        &["admin"],
-    )]
-    #[case::metrics_filter_default(
-        UserMapping::SystemNetHsmMetrics {
-            nethsm_users: NetHsmMetricsUsers::new(
-                SystemWideUserId::new("metrics".to_string())?,
-                vec![
-                    UserId::new("operator".to_string())?,
-                ],
-            )?,
-            ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
-            system_user: "system-metrics".parse()?,
-        },
-        UserMappingFilter::default(),
-        &["metrics", "operator"],
-    )]
-    #[case::metrics_filter_admin(
-        UserMapping::SystemNetHsmMetrics {
-            nethsm_users: NetHsmMetricsUsers::new(
-                SystemWideUserId::new("metrics".to_string())?,
-                vec![
-                    UserId::new("operator".to_string())?,
-                ],
-            )?,
-            ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
-            system_user: "system-metrics".parse()?,
-        },
-        UserMappingFilter{backend_user_kind: BackendUserKind::Admin},
-        &[],
-    )]
-    #[case::backup_filter_default(
-        UserMapping::SystemNetHsmBackup {
-            nethsm_user: "backup".parse()?,
-            ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
-            system_user: "system-backup".parse()?,
-        },
-        UserMappingFilter::default(),
-        &["backup"],
-    )]
-    #[case::backup_filter_admin(
-        UserMapping::SystemNetHsmBackup {
-            nethsm_user: "backup".parse()?,
-            ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
-            system_user: "system-backup".parse()?,
-        },
-        UserMappingFilter{backend_user_kind: BackendUserKind::Admin},
-        &[],
-    )]
-    #[case::operator_filter_default(
-        UserMapping::SystemNetHsmOperatorSigning {
-            nethsm_user: "operator".parse()?,
-            key_id: "key1".parse()?,
-            nethsm_key_setup: SigningKeySetup::new(
-                "Curve25519".parse()?,
-                vec!["EdDsaSignature".parse()?],
-                None,
-                "EdDsa".parse()?,
-                CryptographicKeyContext::OpenPgp{
-                    user_ids: OpenPgpUserIdList::new(vec!["John Doe <john@example.org>".parse()?])?,
-                    version: "v4".parse()?,
-                },
-            )?,
-            ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
-            system_user: "system-operator".parse()?,
-            tag: "tag1".to_string(),
-        },
-        UserMappingFilter::default(),
-        &["operator"],
-    )]
-    #[case::operator_filter_admin(
-        UserMapping::SystemNetHsmOperatorSigning {
-            nethsm_user: "operator".parse()?,
-            key_id: "key1".parse()?,
-            nethsm_key_setup: SigningKeySetup::new(
-                "Curve25519".parse()?,
-                vec!["EdDsaSignature".parse()?],
-                None,
-                "EdDsa".parse()?,
-                CryptographicKeyContext::OpenPgp{
-                    user_ids: OpenPgpUserIdList::new(vec!["John Doe <john@example.org>".parse()?])?,
-                    version: "v4".parse()?,
-                },
-            )?,
-            ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
-            system_user: "system-operator".parse()?,
-            tag: "tag1".to_string(),
-        },
-        UserMappingFilter{backend_user_kind: BackendUserKind::Admin},
-        &[],
-    )]
-    #[case::hermetic_system_metrics_filter_default(
-        UserMapping::HermeticSystemNetHsmMetrics {
-            nethsm_users: NetHsmMetricsUsers::new(
-                "metrics".parse()?,
-                vec!["operator".parse()?],
-            )?,
-            system_user: "system-metrics".parse()?,
-        },
-        UserMappingFilter::default(),
-        &["metrics", "operator"],
-    )]
-    #[case::hermetic_system_metrics_filter_admin(
-        UserMapping::HermeticSystemNetHsmMetrics {
-            nethsm_users: NetHsmMetricsUsers::new(
-                "metrics".parse()?,
-                vec!["operator".parse()?],
-            )?,
-            system_user: "system-metrics".parse()?,
-        },
-        UserMappingFilter{backend_user_kind: BackendUserKind::Admin},
-        &[],
-    )]
-    fn usermapping_system_backend_users(
-        #[case] mapping: UserMapping,
-        #[case] filter: UserMappingFilter,
-        #[case] expected_names: &[&str],
-    ) -> TestResult {
-        assert_eq!(mapping.backend_users(filter), expected_names);
-        Ok(())
+    mod system {
+        use super::*;
+
+        /// Ensures that backend agnostic [`UserMapping`] variants work with
+        /// [`UserMapping::get_system_user`].
+        #[rstest]
+        #[case::share_download(
+            UserMapping::SystemOnlyShareDownload {
+                system_user: "system-share".parse()?,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+            },
+            Some("system-share".parse()?),
+        )]
+        #[case::share_upload(
+            UserMapping::SystemOnlyShareUpload {
+                system_user: "system-share".parse()?,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+            },
+            Some("system-share".parse()?),
+        )]
+        #[case::wireguard_download(
+            UserMapping::SystemOnlyWireGuardDownload {
+                system_user: "system-wireguard".parse()?,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+            },
+            Some("system-wireguard".parse()?),
+        )]
+        fn user_mapping_get_system_user(
+            #[case] mapping: UserMapping,
+            #[case] result: Option<SystemUserId>,
+        ) -> TestResult {
+            assert_eq!(mapping.get_system_user(), result.as_ref());
+            Ok(())
+        }
+
+        /// Ensures that backend agnostic [`UserMapping`] variants work with
+        /// [`UserMapping::backend_users`].
+        #[rstest]
+        #[case::share_download_filter_default(
+            UserMapping::SystemOnlyShareDownload {
+                system_user: "system-share".parse()?,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+            },
+            UserMappingFilter::default(),
+        )]
+        #[case::share_download_filter_admin(
+            UserMapping::SystemOnlyShareDownload {
+                system_user: "system-share".parse()?,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+            },
+            UserMappingFilter{backend_user_kind: BackendUserKind::Admin},
+        )]
+        #[case::share_upload_filter_default(
+            UserMapping::SystemOnlyShareUpload {
+                system_user: "system-share".parse()?,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+            },
+            UserMappingFilter::default(),
+        )]
+        #[case::share_upload_filter_admin(
+            UserMapping::SystemOnlyShareUpload {
+                system_user: "system-share".parse()?,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+            },
+            UserMappingFilter{backend_user_kind: BackendUserKind::Admin},
+        )]
+        #[case::wireguard_download_filter_default(
+            UserMapping::SystemOnlyWireGuardDownload {
+                system_user: "system-wireguard".parse()?,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+            },
+            UserMappingFilter::default(),
+        )]
+        #[case::wireguard_download_filter_admin(
+            UserMapping::SystemOnlyWireGuardDownload {
+                system_user: "system-wireguard".parse()?,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+            },
+            UserMappingFilter{backend_user_kind: BackendUserKind::Admin},
+        )]
+        fn user_mapping_backend_users(
+            #[case] mapping: UserMapping,
+            #[case] filter: UserMappingFilter,
+        ) -> TestResult {
+            assert_eq!(mapping.backend_users(filter).len(), 0);
+            Ok(())
+        }
+
+        /// Ensures that backend agnostic [`UserMapping`] variants work with
+        /// [`UserMapping::backend_users_with_new_passphrase`].
+        #[rstest]
+        #[case::share_download_filter_default(
+            UserMapping::SystemOnlyShareDownload {
+                system_user: "system-share".parse()?,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+            },
+            UserMappingFilter::default(),
+        )]
+        #[case::share_download_filter_admin(
+            UserMapping::SystemOnlyShareDownload {
+                system_user: "system-share".parse()?,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+            },
+            UserMappingFilter{backend_user_kind: BackendUserKind::Admin},
+        )]
+        #[case::share_upload_filter_default(
+            UserMapping::SystemOnlyShareUpload {
+                system_user: "system-share".parse()?,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+            },
+            UserMappingFilter::default(),
+        )]
+        #[case::share_upload_filter_admin(
+            UserMapping::SystemOnlyShareUpload {
+                system_user: "system-share".parse()?,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+            },
+            UserMappingFilter{backend_user_kind: BackendUserKind::Admin},
+        )]
+        #[case::wireguard_download_filter_default(
+            UserMapping::SystemOnlyWireGuardDownload {
+                system_user: "system-wireguard".parse()?,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+            },
+            UserMappingFilter::default(),
+        )]
+        #[case::wireguard_download_filter_admin(
+            UserMapping::SystemOnlyWireGuardDownload {
+                system_user: "system-wireguard".parse()?,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+            },
+            UserMappingFilter{backend_user_kind: BackendUserKind::Admin},
+        )]
+        fn user_mapping_backend_users_with_new_passphrase(
+            #[case] mapping: UserMapping,
+            #[case] filter: UserMappingFilter,
+        ) -> TestResult {
+            assert!(mapping.backend_users_with_new_passphrase(filter).is_empty());
+            Ok(())
+        }
+
+        /// Ensures that backend agnostic [`UserMapping`] variants work with
+        /// [`UserMapping::get_nethsm_users`].
+        #[rstest]
+        #[case::share_download(
+            UserMapping::SystemOnlyShareDownload {
+                system_user: "system-share".parse()?,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+            },
+            Vec::new(),
+        )]
+        #[case::share_upload(
+            UserMapping::SystemOnlyShareUpload {
+                system_user: "system-share".parse()?,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+            },
+            Vec::new(),
+        )]
+        #[case::wireguard_download(
+            UserMapping::SystemOnlyWireGuardDownload {
+                system_user: "system-wireguard".parse()?,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+            },
+            Vec::new(),
+        )]
+        fn user_mapping_get_nethsm_users(
+            #[case] mapping: UserMapping,
+            #[case] expected: Vec<UserId>,
+        ) -> TestResult {
+            assert_eq!(mapping.get_nethsm_users(), expected);
+            Ok(())
+        }
+
+        /// Ensures that backend agnostic [`UserMapping`] variants work with
+        /// [`UserMapping::get_nethsm_users_and_roles`].
+        #[rstest]
+        #[case::share_download(
+            UserMapping::SystemOnlyShareDownload {
+                system_user: "system-share".parse()?,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+            },
+        )]
+        #[case::share_upload(
+            UserMapping::SystemOnlyShareUpload {
+                system_user: "system-share".parse()?,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+            },
+        )]
+        #[case::wireguard_download(
+            UserMapping::SystemOnlyWireGuardDownload {
+                system_user: "system-wireguard".parse()?,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+            },
+        )]
+        fn usermapping_get_nethsm_users_and_roles(#[case] mapping: UserMapping) -> TestResult {
+            let expected: Vec<(UserId, UserRole)> = Vec::new();
+            assert_eq!(mapping.get_nethsm_users_and_roles(), expected);
+            Ok(())
+        }
+
+        /// Ensures that backend agnostic [`UserMapping`] variants work with
+        /// [`UserMapping::get_nethsm_user_key_and_tag`].
+        #[rstest]
+        #[case::share_download(
+            UserMapping::SystemOnlyShareDownload {
+                system_user: "system-share".parse()?,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+            },
+            FilterUserKeys::All,
+        )]
+        #[case::share_upload(
+            UserMapping::SystemOnlyShareUpload {
+                system_user: "system-share".parse()?,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+            },
+            FilterUserKeys::All,
+        )]
+        #[case::wireguard_download(
+            UserMapping::SystemOnlyWireGuardDownload {
+                system_user: "system-wireguard".parse()?,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+            },
+            FilterUserKeys::All,
+        )]
+        fn user_mapping_get_nethsm_user_key_and_tag(
+            #[case] mapping: UserMapping,
+            #[case] filter: FilterUserKeys,
+        ) -> TestResult {
+            let expected: Vec<(UserId, KeyId, SigningKeySetup, String)> = Vec::new();
+            assert_eq!(mapping.get_nethsm_user_key_and_tag(filter), expected);
+            Ok(())
+        }
+
+        /// Ensures that backend agnostic [`UserMapping`] variants work with
+        /// [`UserMapping::get_nethsm_user_role_and_tags`].
+        #[rstest]
+        #[case::share_download(
+            UserMapping::SystemOnlyShareDownload {
+                system_user: "system-share".parse()?,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+            },
+        )]
+        #[case::share_upload(
+            UserMapping::SystemOnlyShareUpload {
+                system_user: "system-share".parse()?,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+            },
+        )]
+        #[case::wireguard_download(
+            UserMapping::SystemOnlyWireGuardDownload {
+                system_user: "system-wireguard".parse()?,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+            },
+        )]
+        fn user_mapping_get_nethsm_user_role_and_tags(#[case] mapping: UserMapping) -> TestResult {
+            let expected: Vec<(UserId, UserRole, Vec<String>)> = Vec::new();
+            assert_eq!(mapping.get_nethsm_user_role_and_tags(), expected);
+            Ok(())
+        }
+
+        /// Ensures that backend agnostic [`UserMapping`] variants work with
+        /// [`UserMapping::get_ssh_authorized_key`].
+        #[rstest]
+        #[case::share_download(
+            UserMapping::SystemOnlyShareDownload {
+                system_user: "system-share".parse()?,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+            },
+        )]
+        #[case::share_upload(
+            UserMapping::SystemOnlyShareUpload {
+                system_user: "system-share".parse()?,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+            },
+        )]
+        #[case::wireguard_download(
+            UserMapping::SystemOnlyWireGuardDownload {
+                system_user: "system-wireguard".parse()?,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+            },
+        )]
+        fn user_mapping_get_ssh_authorized_key(#[case] mapping: UserMapping) -> TestResult {
+            let expected: Option<AuthorizedKeyEntry> = Some("ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?);
+            assert_eq!(mapping.get_ssh_authorized_key(), expected.as_ref());
+            Ok(())
+        }
+
+        /// Ensures that backend agnostic [`UserMapping`] variants work with
+        /// [`UserMapping::get_nethsm_key_ids`].
+        #[rstest]
+        #[case::share_download_target_system_wide(
+            UserMapping::SystemOnlyShareDownload {
+                system_user: "system-share".parse()?,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+            },
+            None,
+        )]
+        #[case::share_download_target_namespace(
+            UserMapping::SystemOnlyShareDownload {
+                system_user: "system-share".parse()?,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+            },
+            Some("ns1".parse()?),
+        )]
+        #[case::share_upload_target_system_wide(
+            UserMapping::SystemOnlyShareUpload {
+                system_user: "system-share".parse()?,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+            },
+            None,
+        )]
+        #[case::share_upload_target_namespace(
+            UserMapping::SystemOnlyShareUpload {
+                system_user: "system-share".parse()?,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+            },
+            Some("ns1".parse()?),
+        )]
+        #[case::wireguard_download_target_system_wide(
+            UserMapping::SystemOnlyWireGuardDownload {
+                system_user: "system-wireguard".parse()?,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+            },
+            None,
+        )]
+        #[case::wireguard_download_target_namespace(
+            UserMapping::SystemOnlyWireGuardDownload {
+                system_user: "system-wireguard".parse()?,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+            },
+            Some("ns1".parse()?),
+        )]
+        fn user_mapping_get_nethsm_key_ids(
+            #[case] mapping: UserMapping,
+            #[case] namespace: Option<NamespaceId>,
+        ) -> TestResult {
+            let expected: Vec<KeyId> = Vec::new();
+            assert_eq!(mapping.get_nethsm_key_ids(namespace.as_ref()), expected);
+            Ok(())
+        }
+
+        /// Ensures that backend agnostic [`UserMapping`] variants work with
+        /// [`UserMapping::get_nethsm_key_ids`].
+        #[rstest]
+        #[case::share_download_target_system_wide(
+            UserMapping::SystemOnlyShareDownload {
+                system_user: "system-share".parse()?,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+            },
+            None,
+        )]
+        #[case::share_download_target_namespace(
+            UserMapping::SystemOnlyShareDownload {
+                system_user: "system-share".parse()?,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+            },
+            Some("ns1".parse()?),
+        )]
+        #[case::share_upload_target_system_wide(
+            UserMapping::SystemOnlyShareUpload {
+                system_user: "system-share".parse()?,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+            },
+            None,
+        )]
+        #[case::share_upload_target_namespace(
+            UserMapping::SystemOnlyShareUpload {
+                system_user: "system-share".parse()?,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+            },
+            Some("ns1".parse()?),
+        )]
+        #[case::wireguard_download_target_system_wide(
+            UserMapping::SystemOnlyWireGuardDownload {
+                system_user: "system-wireguard".parse()?,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+            },
+            None,
+        )]
+        #[case::wireguard_download_target_namespace(
+            UserMapping::SystemOnlyWireGuardDownload {
+                system_user: "system-wireguard".parse()?,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+            },
+            Some("ns1".parse()?),
+        )]
+        fn user_mapping_get_nethsm_tags(
+            #[case] mapping: UserMapping,
+            #[case] namespace: Option<NamespaceId>,
+        ) -> TestResult {
+            let expected: Vec<&str> = Vec::new();
+            assert_eq!(mapping.get_nethsm_tags(namespace.as_ref()), expected);
+            Ok(())
+        }
+
+        /// Ensures that backend agnostic [`UserMapping`] variants work with
+        /// [`UserMapping::get_nethsm_namespaces`].
+        #[rstest]
+        #[case::share_download(
+            UserMapping::SystemOnlyShareDownload {
+                system_user: "system-share".parse()?,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+            },
+            Vec::new(),
+        )]
+        #[case::share_upload(
+            UserMapping::SystemOnlyShareUpload {
+                system_user: "system-share".parse()?,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+            },
+            Vec::new(),
+        )]
+        #[case::wireguard_download(
+            UserMapping::SystemOnlyWireGuardDownload {
+                system_user: "system-wireguard".parse()?,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+            },
+            Vec::new(),
+        )]
+        fn user_mapping_get_nethsm_namespaces(
+            #[case] mapping: UserMapping,
+            #[case] output: Vec<NamespaceId>,
+        ) -> TestResult {
+            assert_eq!(mapping.get_nethsm_namespaces(), output);
+            Ok(())
+        }
+
+        /// Ensures that backend agnostic [`UserMapping`] variants work with
+        /// [`UserMapping::has_system_and_backend_user`].
+        #[rstest]
+        #[case::share_download(
+            UserMapping::SystemOnlyShareDownload {
+                system_user: "system-share".parse()?,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+            },
+            false,
+        )]
+        #[case::share_upload(
+            UserMapping::SystemOnlyShareUpload {
+                system_user: "system-share".parse()?,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+            },
+            false,
+        )]
+        #[case::wireguard_download(
+            UserMapping::SystemOnlyWireGuardDownload {
+                system_user: "system-wireguard".parse()?,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+            },
+            false,
+        )]
+        fn user_mapping_has_system_and_backend_user(
+            #[case] mapping: UserMapping,
+            #[case] output: bool,
+        ) -> TestResult {
+            assert_eq!(mapping.has_system_and_backend_user(), output);
+            Ok(())
+        }
     }
 
-    #[rstest]
-    #[case::share_download_filter_default(
-        UserMapping::SystemOnlyShareDownload {
-            system_user: "system-share".parse()?,
-            ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
-        },
-        UserMappingFilter::default(),
-    )]
-    #[case::share_download_filter_admin(
-        UserMapping::SystemOnlyShareDownload {
-            system_user: "system-share".parse()?,
-            ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
-        },
-        UserMappingFilter{backend_user_kind: BackendUserKind::Admin},
-    )]
-    #[case::share_upload_filter_default(
-        UserMapping::SystemOnlyShareUpload {
-            system_user: "system-share".parse()?,
-            ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
-        },
-        UserMappingFilter::default(),
-    )]
-    #[case::share_upload_filter_admin(
-        UserMapping::SystemOnlyShareUpload {
-            system_user: "system-share".parse()?,
-            ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
-        },
-        UserMappingFilter{backend_user_kind: BackendUserKind::Admin},
-    )]
-    #[case::wireguard_download_filter_default(
-        UserMapping::SystemOnlyWireGuardDownload {
-            system_user: "system-wireguard".parse()?,
-            ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
-        },
-        UserMappingFilter::default(),
-    )]
-    #[case::wireguard_download_filter_admin(
-        UserMapping::SystemOnlyWireGuardDownload {
-            system_user: "system-wireguard".parse()?,
-            ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
-        },
-        UserMappingFilter{backend_user_kind: BackendUserKind::Admin},
-    )]
-    fn usermapping_nethsm_backend_users(
-        #[case] mapping: UserMapping,
-        #[case] filter: UserMappingFilter,
-    ) -> TestResult {
-        assert_eq!(mapping.backend_users(filter).len(), 0);
-        Ok(())
-    }
-
-    #[rstest]
-    #[case::operator_filter_default(
-        UserMapping::SystemYubiHsmOperatorSigning {
-            backend_key_id: 1,
-            backend_key_setup: SigningKeySetup::new(
-                "Curve25519".parse()?,
-                vec!["EdDsaSignature".parse()?],
-                None,
-                "EdDsa".parse()?,
-                CryptographicKeyContext::OpenPgp{
-                    user_ids: OpenPgpUserIdList::new(vec!["John Doe <john@example.org>".parse()?])?,
-                    version: "v4".parse()?,
-                },
-            )?,
-            authentication_key_id: 1,
-            backend_key_domain: 1,
-            ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
-            system_user: "system-operator".parse()?,
-        },
-        UserMappingFilter::default(),
-        &["1"]
-    )]
-    #[case::operator_filter_admin(
-        UserMapping::SystemYubiHsmOperatorSigning {
-            backend_key_id: 1,
-            backend_key_setup: SigningKeySetup::new(
-                "Curve25519".parse()?,
-                vec!["EdDsaSignature".parse()?],
-                None,
-                "EdDsa".parse()?,
-                CryptographicKeyContext::OpenPgp{
-                    user_ids: OpenPgpUserIdList::new(vec!["John Doe <john@example.org>".parse()?])?,
-                    version: "v4".parse()?,
-                },
-            )?,
-            authentication_key_id: 1,
-            backend_key_domain: 1,
-            ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
-            system_user: "system-operator".parse()?,
-        },
-        UserMappingFilter{backend_user_kind: BackendUserKind::Admin},
-        &[]
-    )]
     #[cfg(feature = "yubihsm2")]
-    fn usermapping_yubihsm_backend_users(
-        #[case] mapping: UserMapping,
-        #[case] filter: UserMappingFilter,
-        #[case] expected_names: &[&str],
-    ) -> TestResult {
-        assert_eq!(mapping.backend_users(filter), expected_names);
-        Ok(())
-    }
+    mod yubihsm {
+        use super::*;
 
-    #[rstest]
-    #[case::admin_filter_default(
-        UserMapping::NetHsmOnlyAdmin("admin".parse()?),
-        UserMappingFilter::default(),
-        0
-    )]
-    #[case::admin_filter_admin(
-        UserMapping::NetHsmOnlyAdmin("admin".parse()?),
-        UserMappingFilter{backend_user_kind: BackendUserKind::Admin},
-        1
-    )]
-    #[case::metrics_filter_default(
-        UserMapping::SystemNetHsmMetrics {
-            nethsm_users: NetHsmMetricsUsers::new(
-                SystemWideUserId::new("metrics".to_string())?,
-                vec![
-                    UserId::new("operator".to_string())?,
-                ],
-            )?,
-            ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
-            system_user: "system-metrics".parse()?,
-        },
-        UserMappingFilter::default(),
-        2
-    )]
-    #[case::metrics_filter_admin(
-        UserMapping::SystemNetHsmMetrics {
-            nethsm_users: NetHsmMetricsUsers::new(
-                SystemWideUserId::new("metrics".to_string())?,
-                vec![
-                    UserId::new("operator".to_string())?,
-                ],
-            )?,
-            ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
-            system_user: "system-metrics".parse()?,
-        },
-        UserMappingFilter{backend_user_kind: BackendUserKind::Admin},
-        0
-    )]
-    #[case::backup_filter_default(
-        UserMapping::SystemNetHsmBackup {
-            nethsm_user: "backup".parse()?,
-            ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
-            system_user: "system-backup".parse()?,
-        },
-        UserMappingFilter::default(),
-        1
-    )]
-    #[case::backup_filter_admin(
-        UserMapping::SystemNetHsmBackup {
-            nethsm_user: "backup".parse()?,
-            ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
-            system_user: "system-backup".parse()?,
-        },
-        UserMappingFilter{backend_user_kind: BackendUserKind::Admin},
-        0
-    )]
-    #[case::operator_filter_default(
-        UserMapping::SystemNetHsmOperatorSigning {
-            nethsm_user: "operator".parse()?,
-            key_id: "key1".parse()?,
-            nethsm_key_setup: SigningKeySetup::new(
-                "Curve25519".parse()?,
-                vec!["EdDsaSignature".parse()?],
-                None,
-                "EdDsa".parse()?,
-                CryptographicKeyContext::OpenPgp{
-                    user_ids: OpenPgpUserIdList::new(vec!["John Doe <john@example.org>".parse()?])?,
-                    version: "v4".parse()?,
-                },
-            )?,
-            ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
-            system_user: "system-operator".parse()?,
-            tag: "tag1".to_string(),
-        },
-        UserMappingFilter::default(),
-        1
-    )]
-    #[case::operator_filter_admin(
-        UserMapping::SystemNetHsmOperatorSigning {
-            nethsm_user: "operator".parse()?,
-            key_id: "key1".parse()?,
-            nethsm_key_setup: SigningKeySetup::new(
-                "Curve25519".parse()?,
-                vec!["EdDsaSignature".parse()?],
-                None,
-                "EdDsa".parse()?,
-                CryptographicKeyContext::OpenPgp{
-                    user_ids: OpenPgpUserIdList::new(vec!["John Doe <john@example.org>".parse()?])?,
-                    version: "v4".parse()?,
-                },
-            )?,
-            ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
-            system_user: "system-operator".parse()?,
-            tag: "tag1".to_string(),
-        },
-        UserMappingFilter{backend_user_kind: BackendUserKind::Admin},
-        0
-    )]
-    #[case::hermetic_system_metrics_filter_default(
-        UserMapping::HermeticSystemNetHsmMetrics {
-            nethsm_users: NetHsmMetricsUsers::new(
-                "metrics".parse()?,
-                vec!["operator".parse()?],
-            )?,
-            system_user: "system-metrics".parse()?,
-        },
-        UserMappingFilter::default(),
-        2
-    )]
-    #[case::hermetic_system_metrics_filter_admin(
-        UserMapping::HermeticSystemNetHsmMetrics {
-            nethsm_users: NetHsmMetricsUsers::new(
-                "metrics".parse()?,
-                vec!["operator".parse()?],
-            )?,
-            system_user: "system-metrics".parse()?,
-        },
-        UserMappingFilter{backend_user_kind: BackendUserKind::Admin},
-        0
-    )]
-    fn usermapping_nethsm_backend_users_with_new_passphrase(
-        #[case] mapping: UserMapping,
-        #[case] filter: UserMappingFilter,
-        #[case] expected_length: usize,
-    ) -> TestResult {
-        assert_eq!(
-            mapping.backend_users_with_new_passphrase(filter).len(),
-            expected_length
-        );
-        Ok(())
-    }
+        /// Ensures that YubiHSM2 specific [`UserMapping`] variants work with
+        /// [`UserMapping::get_system_user`].
+        #[rstest]
+        #[case::admin(UserMapping::YubiHsmOnlyAdmin(1), None)]
+        #[case::operator_signing(
+            UserMapping::SystemYubiHsmOperatorSigning {
+                authentication_key_id: 1,
+                backend_key_setup: SigningKeySetup::new(
+                    "Curve25519".parse()?,
+                    vec!["EdDsaSignature".parse()?],
+                    None,
+                    "EdDsa".parse()?,
+                    CryptographicKeyContext::OpenPgp{
+                        user_ids: OpenPgpUserIdList::new(vec!["John Doe <john@example.org>".parse()?])?,
+                        version: "v4".parse()?,
+                    },
+                )?,
+                backend_key_id: 1, backend_key_domain: 1,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+                system_user: "system-operator".parse()?,
+            },
+            Some("system-operator".parse()?),
+        )]
+        fn user_mapping_get_system_user(
+            #[case] mapping: UserMapping,
+            #[case] result: Option<SystemUserId>,
+        ) -> TestResult {
+            assert_eq!(mapping.get_system_user(), result.as_ref());
+            Ok(())
+        }
 
-    #[rstest]
-    #[case::share_download_filter_default(
-        UserMapping::SystemOnlyShareDownload {
-            system_user: "system-share".parse()?,
-            ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
-        },
-        UserMappingFilter::default(),
-    )]
-    #[case::share_download_filter_admin(
-        UserMapping::SystemOnlyShareDownload {
-            system_user: "system-share".parse()?,
-            ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
-        },
-        UserMappingFilter{backend_user_kind: BackendUserKind::Admin},
-    )]
-    #[case::share_upload_filter_default(
-        UserMapping::SystemOnlyShareUpload {
-            system_user: "system-share".parse()?,
-            ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
-        },
-        UserMappingFilter::default(),
-    )]
-    #[case::share_upload_filter_admin(
-        UserMapping::SystemOnlyShareUpload {
-            system_user: "system-share".parse()?,
-            ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
-        },
-        UserMappingFilter{backend_user_kind: BackendUserKind::Admin},
-    )]
-    #[case::wireguard_download_filter_default(
-        UserMapping::SystemOnlyWireGuardDownload {
-            system_user: "system-wireguard".parse()?,
-            ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
-        },
-        UserMappingFilter::default(),
-    )]
-    #[case::wireguard_download_filter_admin(
-        UserMapping::SystemOnlyWireGuardDownload {
-            system_user: "system-wireguard".parse()?,
-            ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
-        },
-        UserMappingFilter{backend_user_kind: BackendUserKind::Admin},
-    )]
-    fn usermapping_system_backend_users_with_new_passphrase(
-        #[case] mapping: UserMapping,
-        #[case] filter: UserMappingFilter,
-    ) -> TestResult {
-        assert!(mapping.backend_users_with_new_passphrase(filter).is_empty());
-        Ok(())
-    }
+        /// Ensures that YubiHSM2 specific [`UserMapping`] variants work with
+        /// [`UserMapping::backend_users`].
+        #[rstest]
+        #[case::admin_filter_default(UserMapping::YubiHsmOnlyAdmin(1), UserMappingFilter::default(), &[])]
+        #[case::admin_filter_admin(UserMapping::YubiHsmOnlyAdmin(1), UserMappingFilter{backend_user_kind: BackendUserKind::Admin}, &["1"])]
+        #[case::operator_filter_default(
+            UserMapping::SystemYubiHsmOperatorSigning {
+                backend_key_id: 1,
+                backend_key_setup: SigningKeySetup::new(
+                    "Curve25519".parse()?,
+                    vec!["EdDsaSignature".parse()?],
+                    None,
+                    "EdDsa".parse()?,
+                    CryptographicKeyContext::OpenPgp{
+                        user_ids: OpenPgpUserIdList::new(vec!["John Doe <john@example.org>".parse()?])?,
+                        version: "v4".parse()?,
+                    },
+                )?,
+                authentication_key_id: 1,
+                backend_key_domain: 1,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+                system_user: "system-operator".parse()?,
+            },
+            UserMappingFilter::default(),
+            &["1"]
+        )]
+        #[case::operator_filter_admin(
+            UserMapping::SystemYubiHsmOperatorSigning {
+                backend_key_id: 1,
+                backend_key_setup: SigningKeySetup::new(
+                    "Curve25519".parse()?,
+                    vec!["EdDsaSignature".parse()?],
+                    None,
+                    "EdDsa".parse()?,
+                    CryptographicKeyContext::OpenPgp{
+                        user_ids: OpenPgpUserIdList::new(vec!["John Doe <john@example.org>".parse()?])?,
+                        version: "v4".parse()?,
+                    },
+                )?,
+                authentication_key_id: 1,
+                backend_key_domain: 1,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+                system_user: "system-operator".parse()?,
+            },
+            UserMappingFilter{backend_user_kind: BackendUserKind::Admin},
+            &[]
+        )]
+        fn user_mapping_backend_users(
+            #[case] mapping: UserMapping,
+            #[case] filter: UserMappingFilter,
+            #[case] expected_names: &[&str],
+        ) -> TestResult {
+            assert_eq!(mapping.backend_users(filter), expected_names);
+            Ok(())
+        }
 
-    #[rstest]
-    #[case::operator_filter_default(
-        UserMapping::SystemYubiHsmOperatorSigning {
-            backend_key_id: 1,
-            backend_key_setup: SigningKeySetup::new(
-                "Curve25519".parse()?,
-                vec!["EdDsaSignature".parse()?],
-                None,
-                "EdDsa".parse()?,
-                CryptographicKeyContext::OpenPgp{
-                    user_ids: OpenPgpUserIdList::new(vec!["John Doe <john@example.org>".parse()?])?,
-                    version: "v4".parse()?,
-                },
-            )?,
-            authentication_key_id: 1,
-            backend_key_domain: 1,
-            ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
-            system_user: "system-operator".parse()?,
-        },
-        UserMappingFilter::default(),
-        1
-    )]
-    #[case::operator_filter_admin(
-        UserMapping::SystemYubiHsmOperatorSigning {
-            backend_key_id: 1,
-            backend_key_setup: SigningKeySetup::new(
-                "Curve25519".parse()?,
-                vec!["EdDsaSignature".parse()?],
-                None,
-                "EdDsa".parse()?,
-                CryptographicKeyContext::OpenPgp{
-                    user_ids: OpenPgpUserIdList::new(vec!["John Doe <john@example.org>".parse()?])?,
-                    version: "v4".parse()?,
-                },
-            )?,
-            authentication_key_id: 1,
-            backend_key_domain: 1,
-            ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
-            system_user: "system-operator".parse()?,
-        },
-        UserMappingFilter{backend_user_kind: BackendUserKind::Admin},
-        0
-    )]
-    #[cfg(feature = "yubihsm2")]
-    fn usermapping_yubihsm_backend_users_with_new_passphrase(
-        #[case] mapping: UserMapping,
-        #[case] filter: UserMappingFilter,
-        #[case] expected_length: usize,
-    ) -> TestResult {
-        assert_eq!(
-            mapping.backend_users_with_new_passphrase(filter).len(),
-            expected_length
-        );
-        Ok(())
-    }
+        /// Ensures that YubiHSM2 specific [`UserMapping`] variants work with
+        /// [`UserMapping::backend_users_with_new_passphrase`].
+        #[rstest]
+        #[case::admin_filter_default(
+            UserMapping::YubiHsmOnlyAdmin(1),
+            UserMappingFilter::default(),
+            0
+        )]
+        #[case::admin_filter_admin(
+            UserMapping::YubiHsmOnlyAdmin(1),
+            UserMappingFilter{backend_user_kind: BackendUserKind::Admin},
+            1
+        )]
+        #[case::operator_filter_default(
+            UserMapping::SystemYubiHsmOperatorSigning {
+                backend_key_id: 1,
+                backend_key_setup: SigningKeySetup::new(
+                    "Curve25519".parse()?,
+                    vec!["EdDsaSignature".parse()?],
+                    None,
+                    "EdDsa".parse()?,
+                    CryptographicKeyContext::OpenPgp{
+                        user_ids: OpenPgpUserIdList::new(vec!["John Doe <john@example.org>".parse()?])?,
+                        version: "v4".parse()?,
+                    },
+                )?,
+                authentication_key_id: 1,
+                backend_key_domain: 1,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+                system_user: "system-operator".parse()?,
+            },
+            UserMappingFilter::default(),
+            1
+        )]
+        #[case::operator_filter_admin(
+            UserMapping::SystemYubiHsmOperatorSigning {
+                backend_key_id: 1,
+                backend_key_setup: SigningKeySetup::new(
+                    "Curve25519".parse()?,
+                    vec!["EdDsaSignature".parse()?],
+                    None,
+                    "EdDsa".parse()?,
+                    CryptographicKeyContext::OpenPgp{
+                        user_ids: OpenPgpUserIdList::new(vec!["John Doe <john@example.org>".parse()?])?,
+                        version: "v4".parse()?,
+                    },
+                )?,
+                authentication_key_id: 1,
+                backend_key_domain: 1,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+                system_user: "system-operator".parse()?,
+            },
+            UserMappingFilter{backend_user_kind: BackendUserKind::Admin},
+            0
+        )]
+        fn usermapping_yubihsm_backend_users_with_new_passphrase(
+            #[case] mapping: UserMapping,
+            #[case] filter: UserMappingFilter,
+            #[case] expected_length: usize,
+        ) -> TestResult {
+            assert_eq!(
+                mapping.backend_users_with_new_passphrase(filter).len(),
+                expected_length
+            );
+            Ok(())
+        }
 
-    #[rstest]
-    #[case::systemwide_admin(
-        UserMapping::NetHsmOnlyAdmin("admin".parse()?),
-        vec![("admin".parse()?, UserRole::Administrator)],
-    )]
-    #[case::namespace_admin(
-        UserMapping::NetHsmOnlyAdmin("ns1~admin".parse()?),
-        vec![("ns1~admin".parse()?, UserRole::Administrator)],
-    )]
-    #[case::metrics(
-        UserMapping::SystemNetHsmMetrics {
-            nethsm_users: NetHsmMetricsUsers::new(
-                SystemWideUserId::new("metrics".to_string())?,
-                vec![
-                    UserId::new("operator".to_string())?,
-                ],
-            )?,
-            ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
-            system_user: "system-metrics".parse()?,
-        },
-        vec![("metrics".parse()?, UserRole::Metrics), ("operator".parse()?, UserRole::Operator)],
-    )]
-    #[case::backup(
-        UserMapping::SystemNetHsmBackup {
-            nethsm_user: "backup".parse()?,
-            ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
-            system_user: "system-backup".parse()?,
-        },
-        vec![("backup".parse()?, UserRole::Backup)],
-    )]
-    #[case::systemwide_operator(
-        UserMapping::SystemNetHsmOperatorSigning {
-            nethsm_user: "operator".parse()?,
-            key_id: "key1".parse()?,
-            nethsm_key_setup: SigningKeySetup::new(
-                "Curve25519".parse()?,
-                vec!["EdDsaSignature".parse()?],
-                None,
-                "EdDsa".parse()?,
-                CryptographicKeyContext::OpenPgp{
-                    user_ids: OpenPgpUserIdList::new(vec!["John Doe <john@example.org>".parse()?])?,
-                    version: "v4".parse()?,
-                },
-            )?,
-            ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
-            system_user: "system-operator".parse()?,
-            tag: "tag1".to_string(),
-        },
-        vec![(
-            "operator".parse()?,
-            UserRole::Operator,
-        )],
-    )]
-    #[case::namespace_operator(
-        UserMapping::SystemNetHsmOperatorSigning {
-            nethsm_user: "ns1~operator".parse()?,
-            key_id: "key1".parse()?,
-            nethsm_key_setup: SigningKeySetup::new(
-                "Curve25519".parse()?,
-                vec!["EdDsaSignature".parse()?],
-                None,
-                "EdDsa".parse()?,
-                CryptographicKeyContext::OpenPgp{
-                    user_ids: OpenPgpUserIdList::new(vec!["John Doe <john@example.org>".parse()?])?,
-                    version: "v4".parse()?,
-                },
-            )?,
-            ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
-            system_user: "system-operator".parse()?,
-            tag: "tag1".to_string(),
-        },
-        vec![(
-            "ns1~operator".parse()?,
-            UserRole::Operator,
-        )],
-    )]
-    #[case::hermetic_system_metrics(
-        UserMapping::HermeticSystemNetHsmMetrics {
-            nethsm_users: NetHsmMetricsUsers::new(
-                "metrics".parse()?,
-                vec!["operator".parse()?],
-            )?,
-            system_user: "system-metrics".parse()?,
-        },
-        vec![
-            ("metrics".parse()?, UserRole::Metrics),
-            ("operator".parse()?, UserRole::Operator),
-        ],
-    )]
-    #[case::share_download(
-        UserMapping::SystemOnlyShareDownload {
-            system_user: "system-share".parse()?,
-            ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
-        },
-        Vec::new(),
-    )]
-    #[case::share_upload(
-        UserMapping::SystemOnlyShareUpload {
-            system_user: "system-share".parse()?,
-            ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
-        },
-        Vec::new(),
-    )]
-    #[case::wireguard_download(
-        UserMapping::SystemOnlyWireGuardDownload {
-            system_user: "system-wireguard".parse()?,
-            ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
-        },
-        Vec::new(),
-    )]
-    fn usermapping_get_nethsm_users_and_roles(
-        #[case] mapping: UserMapping,
-        #[case] output: Vec<(UserId, UserRole)>,
-    ) -> TestResult {
-        assert_eq!(mapping.get_nethsm_users_and_roles(), output);
-        Ok(())
+        /// Ensures that YubiHSM2 specific [`UserMapping`] variants work with
+        /// [`UserMapping::get_nethsm_users`].
+        #[rstest]
+        #[case::admin(UserMapping::YubiHsmOnlyAdmin(1))]
+        #[case::operator_signing(
+            UserMapping::SystemYubiHsmOperatorSigning {
+                authentication_key_id: 1,
+                backend_key_setup: SigningKeySetup::new(
+                    "Curve25519".parse()?,
+                    vec!["EdDsaSignature".parse()?],
+                    None,
+                    "EdDsa".parse()?,
+                    CryptographicKeyContext::OpenPgp{
+                        user_ids: OpenPgpUserIdList::new(vec!["John Doe <john@example.org>".parse()?])?,
+                        version: "v4".parse()?,
+                    },
+                )?,
+                backend_key_id: 1, backend_key_domain: 1,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+                system_user: "system-operator".parse()?,
+            },
+        )]
+        fn user_mapping_get_nethsm_users(#[case] mapping: UserMapping) -> TestResult {
+            let expected: Vec<UserId> = Vec::new();
+            assert_eq!(mapping.get_nethsm_users(), expected);
+            Ok(())
+        }
+
+        /// Ensures that YubiHSM2 specific [`UserMapping`] variants work with
+        /// [`UserMapping::get_nethsm_users_and_roles`].
+        #[rstest]
+        #[case::admin(UserMapping::YubiHsmOnlyAdmin(1))]
+        #[case::operator_signing(
+            UserMapping::SystemYubiHsmOperatorSigning {
+                authentication_key_id: 1,
+                backend_key_setup: SigningKeySetup::new(
+                    "Curve25519".parse()?,
+                    vec!["EdDsaSignature".parse()?],
+                    None,
+                    "EdDsa".parse()?,
+                    CryptographicKeyContext::OpenPgp{
+                        user_ids: OpenPgpUserIdList::new(vec!["John Doe <john@example.org>".parse()?])?,
+                        version: "v4".parse()?,
+                    },
+                )?,
+                backend_key_id: 1, backend_key_domain: 1,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+                system_user: "system-operator".parse()?,
+            },
+        )]
+        fn usermapping_get_nethsm_users_and_roles(#[case] mapping: UserMapping) -> TestResult {
+            let expected: Vec<(UserId, UserRole)> = Vec::new();
+            assert_eq!(mapping.get_nethsm_users_and_roles(), expected);
+            Ok(())
+        }
+
+        /// Ensures that YubiHSM2 specific [`UserMapping`] variants work with
+        /// [`UserMapping::get_nethsm_user_key_and_tag`].
+        #[rstest]
+        #[case::admin(UserMapping::YubiHsmOnlyAdmin(1), FilterUserKeys::All)]
+        #[case::operator_signing(
+            UserMapping::SystemYubiHsmOperatorSigning {
+                authentication_key_id: 1,
+                backend_key_setup: SigningKeySetup::new(
+                    "Curve25519".parse()?,
+                    vec!["EdDsaSignature".parse()?],
+                    None,
+                    "EdDsa".parse()?,
+                    CryptographicKeyContext::OpenPgp{
+                        user_ids: OpenPgpUserIdList::new(vec!["John Doe <john@example.org>".parse()?])?,
+                        version: "v4".parse()?,
+                    },
+                )?,
+                backend_key_id: 1, backend_key_domain: 1,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+                system_user: "system-operator".parse()?,
+            },
+            FilterUserKeys::All,
+        )]
+        fn user_mapping_get_nethsm_user_key_and_tag(
+            #[case] mapping: UserMapping,
+            #[case] filter: FilterUserKeys,
+        ) -> TestResult {
+            let expected: Vec<(UserId, KeyId, SigningKeySetup, String)> = Vec::new();
+            assert_eq!(mapping.get_nethsm_user_key_and_tag(filter), expected);
+            Ok(())
+        }
+
+        /// Ensures that YubiHSM2 specific [`UserMapping`] variants work with
+        /// [`UserMapping::get_nethsm_user_role_and_tags`].
+        #[rstest]
+        #[case::admin(UserMapping::YubiHsmOnlyAdmin(1))]
+        #[case::operator_signing(
+            UserMapping::SystemYubiHsmOperatorSigning {
+                authentication_key_id: 1,
+                backend_key_setup: SigningKeySetup::new(
+                    "Curve25519".parse()?,
+                    vec!["EdDsaSignature".parse()?],
+                    None,
+                    "EdDsa".parse()?,
+                    CryptographicKeyContext::OpenPgp{
+                        user_ids: OpenPgpUserIdList::new(vec!["John Doe <john@example.org>".parse()?])?,
+                        version: "v4".parse()?,
+                    },
+                )?,
+                backend_key_id: 1, backend_key_domain: 1,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+                system_user: "system-operator".parse()?,
+            },
+        )]
+        fn user_mapping_get_nethsm_user_role_and_tags(#[case] mapping: UserMapping) -> TestResult {
+            let expected: Vec<(UserId, UserRole, Vec<String>)> = Vec::new();
+            assert_eq!(mapping.get_nethsm_user_role_and_tags(), expected);
+            Ok(())
+        }
+
+        /// Ensures that YubiHSM2 specific [`UserMapping`] variants work with
+        /// [`UserMapping::get_ssh_authorized_key`].
+        #[rstest]
+        #[case::admin(UserMapping::YubiHsmOnlyAdmin(1), None)]
+        #[case::operator_signing(
+            UserMapping::SystemYubiHsmOperatorSigning {
+                authentication_key_id: 1,
+                backend_key_setup: SigningKeySetup::new(
+                    "Curve25519".parse()?,
+                    vec!["EdDsaSignature".parse()?],
+                    None,
+                    "EdDsa".parse()?,
+                    CryptographicKeyContext::OpenPgp{
+                        user_ids: OpenPgpUserIdList::new(vec!["John Doe <john@example.org>".parse()?])?,
+                        version: "v4".parse()?,
+                    },
+                )?,
+                backend_key_id: 1, backend_key_domain: 1,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+                system_user: "system-operator".parse()?,
+            },
+            Some("ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?),
+        )]
+        fn user_mapping_get_ssh_authorized_key(
+            #[case] mapping: UserMapping,
+            #[case] output: Option<AuthorizedKeyEntry>,
+        ) -> TestResult {
+            assert_eq!(mapping.get_ssh_authorized_key(), output.as_ref());
+            Ok(())
+        }
+
+        /// Ensures that YubiHSM2 specific [`UserMapping`] variants work with
+        /// [`UserMapping::get_nethsm_key_ids`].
+        #[rstest]
+        #[case::admin_target_system_wide(UserMapping::YubiHsmOnlyAdmin(1), None)]
+        #[case::admin_target_namespace(UserMapping::YubiHsmOnlyAdmin(1), Some("ns1".parse()?))]
+        #[case::operator_signing_target_system_wide(
+            UserMapping::SystemYubiHsmOperatorSigning {
+                authentication_key_id: 1,
+                backend_key_setup: SigningKeySetup::new(
+                    "Curve25519".parse()?,
+                    vec!["EdDsaSignature".parse()?],
+                    None,
+                    "EdDsa".parse()?,
+                    CryptographicKeyContext::OpenPgp{
+                        user_ids: OpenPgpUserIdList::new(vec!["John Doe <john@example.org>".parse()?])?,
+                        version: "v4".parse()?,
+                    },
+                )?,
+                backend_key_id: 1, backend_key_domain: 1,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+                system_user: "system-operator".parse()?,
+            },
+            None,
+        )]
+        #[case::operator_signing_target_namespace(
+            UserMapping::SystemYubiHsmOperatorSigning {
+                authentication_key_id: 1,
+                backend_key_setup: SigningKeySetup::new(
+                    "Curve25519".parse()?,
+                    vec!["EdDsaSignature".parse()?],
+                    None,
+                    "EdDsa".parse()?,
+                    CryptographicKeyContext::OpenPgp{
+                        user_ids: OpenPgpUserIdList::new(vec!["John Doe <john@example.org>".parse()?])?,
+                        version: "v4".parse()?,
+                    },
+                )?,
+                backend_key_id: 1, backend_key_domain: 1,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+                system_user: "system-operator".parse()?,
+            },
+            Some("ns1".parse()?),
+        )]
+        fn user_mapping_get_nethsm_key_ids(
+            #[case] mapping: UserMapping,
+            #[case] namespace: Option<NamespaceId>,
+        ) -> TestResult {
+            let expected: Vec<KeyId> = Vec::new();
+            assert_eq!(mapping.get_nethsm_key_ids(namespace.as_ref()), expected);
+            Ok(())
+        }
+
+        /// Ensures that YubiHSM2 specific [`UserMapping`] variants work with
+        /// [`UserMapping::get_nethsm_tags`].
+        #[rstest]
+        #[case::admin_target_system_wide(UserMapping::YubiHsmOnlyAdmin(1), None)]
+        #[case::admin_target_namespace(UserMapping::YubiHsmOnlyAdmin(1), Some("ns1".parse()?))]
+        #[case::operator_signing_target_system_wide(
+            UserMapping::SystemYubiHsmOperatorSigning {
+                authentication_key_id: 1,
+                backend_key_setup: SigningKeySetup::new(
+                    "Curve25519".parse()?,
+                    vec!["EdDsaSignature".parse()?],
+                    None,
+                    "EdDsa".parse()?,
+                    CryptographicKeyContext::OpenPgp{
+                        user_ids: OpenPgpUserIdList::new(vec!["John Doe <john@example.org>".parse()?])?,
+                        version: "v4".parse()?,
+                    },
+                )?,
+                backend_key_id: 1, backend_key_domain: 1,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+                system_user: "system-operator".parse()?,
+            },
+            None,
+        )]
+        #[case::operator_signing_target_namespace(
+            UserMapping::SystemYubiHsmOperatorSigning {
+                authentication_key_id: 1,
+                backend_key_setup: SigningKeySetup::new(
+                    "Curve25519".parse()?,
+                    vec!["EdDsaSignature".parse()?],
+                    None,
+                    "EdDsa".parse()?,
+                    CryptographicKeyContext::OpenPgp{
+                        user_ids: OpenPgpUserIdList::new(vec!["John Doe <john@example.org>".parse()?])?,
+                        version: "v4".parse()?,
+                    },
+                )?,
+                backend_key_id: 1, backend_key_domain: 1,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+                system_user: "system-operator".parse()?,
+            },
+            Some("ns1".parse()?),
+        )]
+        fn user_mapping_get_nethsm_tags(
+            #[case] mapping: UserMapping,
+            #[case] namespace: Option<NamespaceId>,
+        ) -> TestResult {
+            let expected: Vec<&str> = Vec::new();
+            assert_eq!(mapping.get_nethsm_tags(namespace.as_ref()), expected);
+            Ok(())
+        }
+
+        /// Ensures that YubiHSM2 specific [`UserMapping`] variants work with
+        /// [`UserMapping::get_nethsm_namespaces`].
+        #[rstest]
+        #[case::admin(UserMapping::YubiHsmOnlyAdmin(1))]
+        #[case::operator_signing(
+            UserMapping::SystemYubiHsmOperatorSigning {
+                authentication_key_id: 1,
+                backend_key_setup: SigningKeySetup::new(
+                    "Curve25519".parse()?,
+                    vec!["EdDsaSignature".parse()?],
+                    None,
+                    "EdDsa".parse()?,
+                    CryptographicKeyContext::OpenPgp{
+                        user_ids: OpenPgpUserIdList::new(vec!["John Doe <john@example.org>".parse()?])?,
+                        version: "v4".parse()?,
+                    },
+                )?,
+                backend_key_id: 1, backend_key_domain: 1,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+                system_user: "system-operator".parse()?,
+            },
+        )]
+        fn user_mapping_get_nethsm_namespaces(#[case] mapping: UserMapping) -> TestResult {
+            let expected: Vec<NamespaceId> = Vec::new();
+            assert_eq!(mapping.get_nethsm_namespaces(), expected);
+            Ok(())
+        }
+
+        /// Ensures that YubiHSM2 specific [`UserMapping`] variants work with
+        /// [`UserMapping::has_system_and_backend_user`].
+        #[rstest]
+        #[case::admin(UserMapping::YubiHsmOnlyAdmin(1), false)]
+        #[case::operator_signing(
+            UserMapping::SystemYubiHsmOperatorSigning {
+                authentication_key_id: 1,
+                backend_key_setup: SigningKeySetup::new(
+                    "Curve25519".parse()?,
+                    vec!["EdDsaSignature".parse()?],
+                    None,
+                    "EdDsa".parse()?,
+                    CryptographicKeyContext::OpenPgp{
+                        user_ids: OpenPgpUserIdList::new(vec!["John Doe <john@example.org>".parse()?])?,
+                        version: "v4".parse()?,
+                    },
+                )?,
+                backend_key_id: 1, backend_key_domain: 1,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+                system_user: "system-operator".parse()?,
+            },
+            true,
+        )]
+        fn user_mapping_has_system_and_backend_user(
+            #[case] mapping: UserMapping,
+            #[case] output: bool,
+        ) -> TestResult {
+            assert_eq!(mapping.has_system_and_backend_user(), output);
+            Ok(())
+        }
     }
 
     /// Ensures that a file with the correct permissions is successfully checked using
