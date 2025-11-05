@@ -271,7 +271,7 @@ impl UserMapping {
                 nethsm_key_setup: _,
                 ssh_authorized_key: _,
                 system_user,
-                tag: _,
+                ..
             }
             | UserMapping::SystemNetHsmMetrics {
                 nethsm_users: _,
@@ -282,14 +282,8 @@ impl UserMapping {
                 nethsm_users: _,
                 system_user,
             }
-            | UserMapping::SystemOnlyShareDownload {
-                system_user,
-                ssh_authorized_key: _,
-            }
-            | UserMapping::SystemOnlyShareUpload {
-                system_user,
-                ssh_authorized_key: _,
-            }
+            | UserMapping::SystemOnlyShareDownload { system_user, .. }
+            | UserMapping::SystemOnlyShareUpload { system_user, .. }
             | UserMapping::SystemOnlyWireGuardDownload {
                 system_user,
                 ssh_authorized_key: _,
@@ -303,7 +297,7 @@ impl UserMapping {
                 backend_key_id: _,
                 backend_key_domain: _,
                 system_user,
-                ssh_authorized_key: _,
+                ..
             } => Some(system_user),
         }
     }
@@ -521,41 +515,18 @@ impl UserMapping {
     /// ```
     pub fn get_nethsm_users(&self) -> Vec<UserId> {
         match self {
-            UserMapping::SystemNetHsmBackup {
-                nethsm_user,
-                system_user: _,
-                ssh_authorized_key: _,
-            } => vec![nethsm_user.clone().into()],
+            UserMapping::SystemNetHsmBackup { nethsm_user, .. } => vec![nethsm_user.clone().into()],
             UserMapping::NetHsmOnlyAdmin(nethsm_user)
-            | UserMapping::SystemNetHsmOperatorSigning {
-                nethsm_user,
-                key_id: _,
-                nethsm_key_setup: _,
-                system_user: _,
-                ssh_authorized_key: _,
-                tag: _,
-            } => vec![nethsm_user.clone()],
-            UserMapping::SystemNetHsmMetrics {
-                nethsm_users,
-                system_user: _,
-                ssh_authorized_key: _,
+            | UserMapping::SystemNetHsmOperatorSigning { nethsm_user, .. } => {
+                vec![nethsm_user.clone()]
             }
-            | UserMapping::HermeticSystemNetHsmMetrics {
-                nethsm_users,
-                system_user: _,
-            } => nethsm_users.get_users(),
-            UserMapping::SystemOnlyShareDownload {
-                system_user: _,
-                ssh_authorized_key: _,
+            UserMapping::SystemNetHsmMetrics { nethsm_users, .. }
+            | UserMapping::HermeticSystemNetHsmMetrics { nethsm_users, .. } => {
+                nethsm_users.get_users()
             }
-            | UserMapping::SystemOnlyShareUpload {
-                system_user: _,
-                ssh_authorized_key: _,
-            }
-            | UserMapping::SystemOnlyWireGuardDownload {
-                system_user: _,
-                ssh_authorized_key: _,
-            } => vec![],
+            UserMapping::SystemOnlyShareDownload { .. }
+            | UserMapping::SystemOnlyShareUpload { .. }
+            | UserMapping::SystemOnlyWireGuardDownload { .. } => Vec::new(),
             #[cfg(feature = "yubihsm2")]
             UserMapping::YubiHsmOnlyAdmin(_) => Vec::new(),
             #[cfg(feature = "yubihsm2")]
@@ -585,43 +556,22 @@ impl UserMapping {
     /// ```
     pub fn get_nethsm_users_and_roles(&self) -> Vec<(UserId, UserRole)> {
         match self {
-            UserMapping::SystemNetHsmBackup {
-                nethsm_user,
-                system_user: _,
-                ssh_authorized_key: _,
-            } => vec![(nethsm_user.clone().into(), UserRole::Backup)],
+            UserMapping::SystemNetHsmBackup { nethsm_user, .. } => {
+                vec![(nethsm_user.clone().into(), UserRole::Backup)]
+            }
             UserMapping::NetHsmOnlyAdmin(nethsm_user) => {
                 vec![(nethsm_user.clone(), UserRole::Administrator)]
             }
-            UserMapping::SystemNetHsmOperatorSigning {
-                nethsm_user,
-                key_id: _,
-                nethsm_key_setup: _,
-                system_user: _,
-                ssh_authorized_key: _,
-                tag: _,
-            } => vec![(nethsm_user.clone(), UserRole::Operator)],
-            UserMapping::SystemNetHsmMetrics {
-                nethsm_users,
-                system_user: _,
-                ssh_authorized_key: _,
+            UserMapping::SystemNetHsmOperatorSigning { nethsm_user, .. } => {
+                vec![(nethsm_user.clone(), UserRole::Operator)]
             }
-            | UserMapping::HermeticSystemNetHsmMetrics {
-                nethsm_users,
-                system_user: _,
-            } => nethsm_users.get_users_and_roles(),
-            UserMapping::SystemOnlyShareDownload {
-                system_user: _,
-                ssh_authorized_key: _,
+            UserMapping::SystemNetHsmMetrics { nethsm_users, .. }
+            | UserMapping::HermeticSystemNetHsmMetrics { nethsm_users, .. } => {
+                nethsm_users.get_users_and_roles()
             }
-            | UserMapping::SystemOnlyShareUpload {
-                system_user: _,
-                ssh_authorized_key: _,
-            }
-            | UserMapping::SystemOnlyWireGuardDownload {
-                system_user: _,
-                ssh_authorized_key: _,
-            } => vec![],
+            UserMapping::SystemOnlyShareDownload { .. }
+            | UserMapping::SystemOnlyShareUpload { .. }
+            | UserMapping::SystemOnlyWireGuardDownload { .. } => Vec::new(),
             #[cfg(feature = "yubihsm2")]
             UserMapping::YubiHsmOnlyAdmin(_) => Vec::new(),
             #[cfg(feature = "yubihsm2")]
@@ -682,27 +632,18 @@ impl UserMapping {
                 UserRole::Operator,
                 vec![tag.to_string()],
             )],
-            UserMapping::SystemNetHsmBackup {
-                nethsm_user,
-                ssh_authorized_key: _,
-                system_user: _,
-            } => vec![(nethsm_user.clone().into(), UserRole::Backup, Vec::new())],
+            UserMapping::SystemNetHsmBackup { nethsm_user, .. } => {
+                vec![(nethsm_user.clone().into(), UserRole::Backup, Vec::new())]
+            }
             UserMapping::NetHsmOnlyAdmin(user_id) => {
                 vec![(user_id.clone(), UserRole::Administrator, Vec::new())]
             }
-            UserMapping::SystemNetHsmMetrics {
-                nethsm_users,
-                ssh_authorized_key: _,
-                system_user: _,
-            } => nethsm_users
+            UserMapping::SystemNetHsmMetrics { nethsm_users, .. } => nethsm_users
                 .get_users_and_roles()
                 .iter()
                 .map(|(user, role)| (user.clone(), *role, Vec::new()))
                 .collect(),
-            UserMapping::HermeticSystemNetHsmMetrics {
-                nethsm_users,
-                system_user: _,
-            } => nethsm_users
+            UserMapping::HermeticSystemNetHsmMetrics { nethsm_users, .. } => nethsm_users
                 .get_users_and_roles()
                 .iter()
                 .map(|(user, role)| (user.clone(), *role, Vec::new()))
@@ -742,11 +683,9 @@ impl UserMapping {
     /// ```
     pub fn get_ssh_authorized_key(&self) -> Option<&AuthorizedKeyEntry> {
         match self {
-            UserMapping::NetHsmOnlyAdmin(_)
-            | UserMapping::HermeticSystemNetHsmMetrics {
-                nethsm_users: _,
-                system_user: _,
-            } => None,
+            UserMapping::NetHsmOnlyAdmin(_) | UserMapping::HermeticSystemNetHsmMetrics { .. } => {
+                None
+            }
             UserMapping::SystemNetHsmBackup {
                 nethsm_user: _,
                 system_user: _,
@@ -775,7 +714,7 @@ impl UserMapping {
                 nethsm_key_setup: _,
                 system_user: _,
                 ssh_authorized_key,
-                tag: _,
+                ..
             } => Some(ssh_authorized_key),
             #[cfg(feature = "yubihsm2")]
             UserMapping::YubiHsmOnlyAdmin(_) => None,
@@ -833,44 +772,21 @@ impl UserMapping {
             UserMapping::SystemNetHsmOperatorSigning {
                 nethsm_user,
                 key_id,
-                nethsm_key_setup: _,
-                system_user: _,
-                ssh_authorized_key: _,
-                tag: _,
+                ..
             } => {
                 if nethsm_user.namespace() == namespace {
                     vec![key_id.clone()]
                 } else {
-                    vec![]
+                    Vec::new()
                 }
             }
-            UserMapping::SystemNetHsmMetrics {
-                nethsm_users: _,
-                system_user: _,
-                ssh_authorized_key: _,
-            }
+            UserMapping::SystemNetHsmMetrics { .. }
             | UserMapping::NetHsmOnlyAdmin(_)
-            | UserMapping::HermeticSystemNetHsmMetrics {
-                nethsm_users: _,
-                system_user: _,
-            }
-            | UserMapping::SystemNetHsmBackup {
-                nethsm_user: _,
-                system_user: _,
-                ssh_authorized_key: _,
-            }
-            | UserMapping::SystemOnlyShareDownload {
-                system_user: _,
-                ssh_authorized_key: _,
-            }
-            | UserMapping::SystemOnlyShareUpload {
-                system_user: _,
-                ssh_authorized_key: _,
-            }
-            | UserMapping::SystemOnlyWireGuardDownload {
-                system_user: _,
-                ssh_authorized_key: _,
-            } => vec![],
+            | UserMapping::HermeticSystemNetHsmMetrics { .. }
+            | UserMapping::SystemNetHsmBackup { .. }
+            | UserMapping::SystemOnlyShareDownload { .. }
+            | UserMapping::SystemOnlyShareUpload { .. }
+            | UserMapping::SystemOnlyWireGuardDownload { .. } => Vec::new(),
             #[cfg(feature = "yubihsm2")]
             UserMapping::YubiHsmOnlyAdmin(_) => Vec::new(),
             #[cfg(feature = "yubihsm2")]
@@ -935,36 +851,16 @@ impl UserMapping {
                 if nethsm_user.namespace() == namespace {
                     vec![tag.as_str()]
                 } else {
-                    vec![]
+                    Vec::new()
                 }
             }
-            UserMapping::SystemNetHsmMetrics {
-                nethsm_users: _,
-                system_user: _,
-                ssh_authorized_key: _,
-            }
+            UserMapping::SystemNetHsmMetrics { .. }
             | UserMapping::NetHsmOnlyAdmin(_)
-            | UserMapping::HermeticSystemNetHsmMetrics {
-                nethsm_users: _,
-                system_user: _,
-            }
-            | UserMapping::SystemNetHsmBackup {
-                nethsm_user: _,
-                system_user: _,
-                ssh_authorized_key: _,
-            }
-            | UserMapping::SystemOnlyShareDownload {
-                system_user: _,
-                ssh_authorized_key: _,
-            }
-            | UserMapping::SystemOnlyShareUpload {
-                system_user: _,
-                ssh_authorized_key: _,
-            }
-            | UserMapping::SystemOnlyWireGuardDownload {
-                system_user: _,
-                ssh_authorized_key: _,
-            } => vec![],
+            | UserMapping::HermeticSystemNetHsmMetrics { .. }
+            | UserMapping::SystemNetHsmBackup { .. }
+            | UserMapping::SystemOnlyShareDownload { .. }
+            | UserMapping::SystemOnlyShareUpload { .. }
+            | UserMapping::SystemOnlyWireGuardDownload { .. } => Vec::new(),
             #[cfg(feature = "yubihsm2")]
             UserMapping::YubiHsmOnlyAdmin(_) => Vec::new(),
             #[cfg(feature = "yubihsm2")]
@@ -1109,33 +1005,13 @@ impl UserMapping {
                     }
                 }
             },
-            UserMapping::SystemNetHsmMetrics {
-                nethsm_users: _,
-                system_user: _,
-                ssh_authorized_key: _,
-            }
+            UserMapping::SystemNetHsmMetrics { .. }
             | UserMapping::NetHsmOnlyAdmin(_)
-            | UserMapping::HermeticSystemNetHsmMetrics {
-                nethsm_users: _,
-                system_user: _,
-            }
-            | UserMapping::SystemNetHsmBackup {
-                nethsm_user: _,
-                system_user: _,
-                ssh_authorized_key: _,
-            }
-            | UserMapping::SystemOnlyShareDownload {
-                system_user: _,
-                ssh_authorized_key: _,
-            }
-            | UserMapping::SystemOnlyShareUpload {
-                system_user: _,
-                ssh_authorized_key: _,
-            }
-            | UserMapping::SystemOnlyWireGuardDownload {
-                system_user: _,
-                ssh_authorized_key: _,
-            } => vec![],
+            | UserMapping::HermeticSystemNetHsmMetrics { .. }
+            | UserMapping::SystemNetHsmBackup { .. }
+            | UserMapping::SystemOnlyShareDownload { .. }
+            | UserMapping::SystemOnlyShareUpload { .. }
+            | UserMapping::SystemOnlyWireGuardDownload { .. } => Vec::new(),
             #[cfg(feature = "yubihsm2")]
             UserMapping::YubiHsmOnlyAdmin(_) => Vec::new(),
             #[cfg(feature = "yubihsm2")]
@@ -1186,51 +1062,24 @@ impl UserMapping {
     pub fn get_nethsm_namespaces(&self) -> Vec<NamespaceId> {
         match self {
             UserMapping::NetHsmOnlyAdmin(nethsm_user)
-            | UserMapping::SystemNetHsmOperatorSigning {
-                nethsm_user,
-                key_id: _,
-                nethsm_key_setup: _,
-                system_user: _,
-                ssh_authorized_key: _,
-                tag: _,
-            } => {
+            | UserMapping::SystemNetHsmOperatorSigning { nethsm_user, .. } => {
                 if let Some(namespace) = nethsm_user.namespace() {
                     vec![namespace.clone()]
                 } else {
-                    vec![]
+                    Vec::new()
                 }
             }
-            UserMapping::HermeticSystemNetHsmMetrics {
-                nethsm_users,
-                system_user: _,
-            }
-            | UserMapping::SystemNetHsmMetrics {
-                nethsm_users,
-                system_user: _,
-                ssh_authorized_key: _,
-            } => nethsm_users
+            UserMapping::HermeticSystemNetHsmMetrics { nethsm_users, .. }
+            | UserMapping::SystemNetHsmMetrics { nethsm_users, .. } => nethsm_users
                 .get_users()
                 .iter()
                 .filter_map(|user_id| user_id.namespace())
                 .cloned()
                 .collect(),
-            UserMapping::SystemOnlyShareDownload {
-                system_user: _,
-                ssh_authorized_key: _,
-            }
-            | UserMapping::SystemNetHsmBackup {
-                nethsm_user: _,
-                system_user: _,
-                ssh_authorized_key: _,
-            }
-            | UserMapping::SystemOnlyShareUpload {
-                system_user: _,
-                ssh_authorized_key: _,
-            }
-            | UserMapping::SystemOnlyWireGuardDownload {
-                system_user: _,
-                ssh_authorized_key: _,
-            } => vec![],
+            UserMapping::SystemOnlyShareDownload { .. }
+            | UserMapping::SystemNetHsmBackup { .. }
+            | UserMapping::SystemOnlyShareUpload { .. }
+            | UserMapping::SystemOnlyWireGuardDownload { .. } => Vec::new(),
             #[cfg(feature = "yubihsm2")]
             UserMapping::YubiHsmOnlyAdmin(_) => Vec::new(),
             #[cfg(feature = "yubihsm2")]
@@ -1244,44 +1093,17 @@ impl UserMapping {
     /// otherwise.
     pub fn has_system_and_backend_user(&self) -> bool {
         match self {
-            UserMapping::SystemNetHsmOperatorSigning {
-                nethsm_user: _,
-                key_id: _,
-                nethsm_key_setup: _,
-                system_user: _,
-                ssh_authorized_key: _,
-                tag: _,
-            }
-            | UserMapping::HermeticSystemNetHsmMetrics {
-                nethsm_users: _,
-                system_user: _,
-            }
-            | UserMapping::SystemNetHsmMetrics {
-                nethsm_users: _,
-                system_user: _,
-                ssh_authorized_key: _,
-            }
-            | UserMapping::SystemNetHsmBackup {
-                nethsm_user: _,
-                system_user: _,
-                ssh_authorized_key: _,
-            } => true,
+            UserMapping::SystemNetHsmOperatorSigning { .. }
+            | UserMapping::HermeticSystemNetHsmMetrics { .. }
+            | UserMapping::SystemNetHsmMetrics { .. }
+            | UserMapping::SystemNetHsmBackup { .. } => true,
             #[cfg(feature = "yubihsm2")]
             UserMapping::YubiHsmOnlyAdmin(_) => false,
             #[cfg(feature = "yubihsm2")]
             UserMapping::SystemYubiHsmOperatorSigning { .. } => true,
-            UserMapping::SystemOnlyShareDownload {
-                system_user: _,
-                ssh_authorized_key: _,
-            }
-            | UserMapping::SystemOnlyShareUpload {
-                system_user: _,
-                ssh_authorized_key: _,
-            }
-            | UserMapping::SystemOnlyWireGuardDownload {
-                system_user: _,
-                ssh_authorized_key: _,
-            }
+            UserMapping::SystemOnlyShareDownload { .. }
+            | UserMapping::SystemOnlyShareUpload { .. }
+            | UserMapping::SystemOnlyWireGuardDownload { .. }
             | UserMapping::NetHsmOnlyAdmin(_) => false,
         }
     }
