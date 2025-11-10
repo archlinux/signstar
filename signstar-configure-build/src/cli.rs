@@ -16,7 +16,7 @@ use strum::VariantNames;
 use crate::{ConfigPath, SshForceCommand};
 
 /// The name of the executable.
-pub const BIN_NAME: &str = crate_name!();
+const BIN_NAME: &str = crate_name!();
 /// The list of commands enforced by SSH's "ForceCommand".
 const SSH_FORCE_COMMAND_VARIANTS: &[&str] = SshForceCommand::VARIANTS;
 
@@ -60,7 +60,8 @@ This \"sshd_config\" drop-in configuration enforces the use of the user's \"auth
     get_home_base_dir_path(),
     get_ssh_authorized_key_base_dir(),
     get_sshd_config_dropin_dir(),
-    )
+    ),
+    version
 )]
 pub struct Cli {
     /// An optional path to a configuration file to use.
@@ -90,13 +91,4 @@ If none of the above are found, the default location {:?} is used.",
         short
     )]
     pub config: Option<ConfigPath>,
-
-    /// Whether to return name and version of the executable.
-    #[arg(
-        global = true,
-        help = "Return the name and version of the application",
-        long,
-        short
-    )]
-    pub version: bool,
 }

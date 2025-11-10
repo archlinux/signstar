@@ -2,21 +2,11 @@
 
 use std::process::ExitCode;
 
-use clap::{Parser, crate_version};
+use clap::Parser;
 use signstar_config::SignstarConfig;
-use signstar_configure_build::{
-    Error,
-    cli::{BIN_NAME, Cli},
-    create_system_users,
-    ensure_root,
-};
+use signstar_configure_build::{Error, cli::Cli, create_system_users, ensure_root};
 
 fn run_command(cli: Cli) -> Result<(), Error> {
-    if cli.version {
-        println!("{} {}", BIN_NAME, crate_version!());
-        return Ok(());
-    }
-
     ensure_root()?;
 
     let config = SignstarConfig::new_from_file(Some(cli.config.unwrap_or_default().as_ref()))?;
