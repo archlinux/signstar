@@ -21,3 +21,6 @@ thiserror.workspace = true
 [features]
 default = []
 yubihsm2 = ["signstar-config/yubihsm2"]
+
+[lints]
+workspace = true

@@ -17,3 +17,6 @@ thiserror.workspace = true
 
 [features]
 logging = ["dep:simplelog", "dep:systemd-journal-logger"]
+
+[lints]
+workspace = true
