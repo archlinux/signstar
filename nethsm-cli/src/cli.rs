@@ -37,7 +37,7 @@ mod unlock;
 mod user;
 
 /// The name of the executable.
-pub const BIN_NAME: &str = "nethsm";
+const BIN_NAME: &str = "nethsm";
 
 /// Errors related to the CLI
 #[derive(Debug, thiserror::Error)]
