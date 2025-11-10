@@ -49,6 +49,7 @@ pub enum Error {
 }
 
 /// Passphrase prompt
+#[derive(Debug)]
 pub enum PassphrasePrompt {
     /// Prompt for backup passphrase
     Backup,
@@ -113,6 +114,7 @@ impl PassphrasePrompt {
 }
 
 /// Username prompt
+#[derive(Debug)]
 pub struct UserPrompt(UserRole);
 
 impl UserPrompt {
