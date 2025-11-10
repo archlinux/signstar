@@ -8,6 +8,7 @@ use strum::IntoEnumIterator;
 
 use crate::passphrase_file::PassphraseFile;
 
+/// The "nethsm config" command.
 #[derive(Debug, Subcommand)]
 #[command(
     about = "Manage the configuration of a device",
@@ -16,22 +17,32 @@ use crate::passphrase_file::PassphraseFile;
 Allows adding, removing and listing of configuration items"
 )]
 pub enum ConfigCommand {
+    /// The "nethsm config get" command.
     #[command(subcommand)]
     Get(ConfigGetCommand),
 
+    /// The "nethsm config set" command.
     #[command(subcommand)]
     Set(ConfigSetCommand),
 }
 
+/// The "nethsm config get" command.
 #[derive(Debug, Subcommand)]
 #[command(about = "Get a configuration item for a device")]
 pub enum ConfigGetCommand {
+    /// The "nethsm config get boot-mode" command.
     BootMode(GetBootModeCommand),
+    /// The "nethsm config get logging" command.
     Logging(GetLoggingCommand),
+    /// The "nethsm config get network" command.
     Network(GetNetworkCommand),
+    /// The "nethsm config get time" command.
     Time(GetTimeCommand),
+    /// The "nethsm config get tls-certificate" command.
     TlsCertificate(GetTlsCertificateCommand),
+    /// The "nethsm config get tls-csr" command.
     TlsCsr(GetTlsCsrCommand),
+    /// The "nethsm config get tls-public-key" command.
     TlsPublicKey(GetTlsPublicKeyCommand),
 }
 
@@ -236,16 +247,25 @@ pub struct GetTlsPublicKeyCommand {
     pub output: Option<PathBuf>,
 }
 
+/// The "nethsm config get" command.
 #[derive(Debug, Subcommand)]
 #[command(about = "Set a configuration item for a device")]
 pub enum ConfigSetCommand {
+    /// The "nethsm config set backup-passphrase" command.
     BackupPassphrase(SetBackupPassphraseCommand),
+    /// The "nethsm config set boot-mode" command.
     BootMode(SetBootModeCommand),
+    /// The "nethsm config set logging" command.
     Logging(SetLoggingCommand),
+    /// The "nethsm config set network" command.
     Network(SetNetworkCommand),
+    /// The "nethsm config set time" command.
     Time(SetTimeCommand),
+    /// The "nethsm config set tls-certificate" command.
     TlsCertificate(SetTlsCertificateCommand),
+    /// The "nethsm config set tls-generate" command.
     TlsGenerate(SetTlsGenerateCommand),
+    /// The "nethsm config set unlock-passphrase" command.
     UnlockPassphrase(SetUnlockPassphraseCommand),
 }
 

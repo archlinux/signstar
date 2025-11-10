@@ -11,18 +11,29 @@ use nethsm::{
 use super::BIN_NAME;
 use crate::passphrase_file::PassphraseFile;
 
+/// The "nethsm system" command.
 #[derive(Debug, Subcommand)]
 #[command(about = "Do system actions for a device")]
 pub enum SystemCommand {
+    /// The "nethsm system backup" command.
     Backup(SystemBackupCommand),
+    /// The "nethsm system factory-reset" command.
     FactoryReset(SystemFactoryResetCommand),
+    /// The "nethsm system info" command.
     Info(SystemInfoCommand),
+    /// The "nethsm system reboot" command.
     Reboot(SystemRebootCommand),
+    /// The "nethsm system restore" command.
     Restore(SystemRestoreCommand),
+    /// The "nethsm system shutdown" command.
     Shutdown(SystemShutdownCommand),
+    /// The "nethsm system upload-update" command.
     UploadUpdate(SystemUploadUpdateCommand),
+    /// The "nethsm system cancel-update" command.
     CancelUpdate(SystemCancelUpdateCommand),
+    /// The "nethsm system commit-update" command.
     CommitUpdate(SystemCommitUpdateCommand),
+    /// The "nethsm system validate-backup" command.
     ValidateBackup(SystemValidateBackupCommand),
 }
 

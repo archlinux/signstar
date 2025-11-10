@@ -1,3 +1,5 @@
+//! The "nethsm" command line interface.
+
 use std::fs::{File, read, read_to_string};
 use std::io::{Write, stdout};
 use std::path::{Path, PathBuf};
@@ -44,6 +46,7 @@ use crate::cli::EnvCommand;
 mod cli;
 mod passphrase_file;
 
+/// The error that may occur when using the "nethsm" command line interface.
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
     /// A config error
@@ -90,6 +93,7 @@ pub enum Error {
     #[error("Request deserialization failed: {0}")]
     Request(#[from] signstar_request_signature::Error),
 
+    /// Processing a signing request failed.
     #[error("Signing request processing error: {0}")]
     SigningRequest(String),
 }

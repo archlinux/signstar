@@ -36,7 +36,11 @@ pub enum Error {
     /// of wrapped Error types (e.g. those for loading TOML files).
     #[error("Config loading issue: {source}\n{description}")]
     Load {
+        /// The source error.
         source: confy::ConfyError,
+        /// A description on what went wrong.
+        ///
+        /// This is usually the error's string representation.
         description: String,
     },
 
@@ -55,7 +59,9 @@ pub enum Error {
     /// None of the provided users map to one of the provided roles
     #[error("None of the provided users ({names:?}) map to one of the provided roles ({roles:?})")]
     MatchingCredentialsMissing {
+        /// A list of user IDs that do not map to the provided `roles`.
         names: Vec<UserId>,
+        /// A list of user roles that do not map to any of the `names`.
         roles: Vec<UserRole>,
     },
 

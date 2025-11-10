@@ -4,6 +4,7 @@ use nethsm::{SystemState::Locked, UserRole::Administrator};
 
 use crate::passphrase_file::PassphraseFile;
 
+/// The "nethsm unlock" command.
 #[derive(Debug, Parser)]
 #[command(
     about = "Unlock a device",
@@ -16,6 +17,7 @@ If no passphrase is provided it is prompted for interactively.
 Requires authentication of a user in the \"{Administrator}\" role."),
 )]
 pub struct UnlockCommand {
+    /// The optional path to a file containing the unlock passphrase.
     #[arg(
         env = "NETHSM_UNLOCK_PASSPHRASE_FILE",
         help = "The path to a file containing the unlock passphrase",

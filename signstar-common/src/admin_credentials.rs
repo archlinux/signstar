@@ -32,23 +32,31 @@ pub enum Error {
     /// Applying permissions to a file failed.
     #[error("Unable to apply permissions {permissions} to {path}:\n{source}")]
     ApplyPermissions {
+        /// The octal permissions applied to a `path`.
         permissions: u32,
+        /// The path the `permissions` are applied to.
         path: PathBuf,
+        /// The error source.
         source: std::io::Error,
     },
 
     /// No plaintext administrative credentials file can be found
     #[error("Unable to create directory {dir}:\n{source}")]
     CreateDirectory {
+        /// The directory that cannot be created.
         dir: &'static str,
+        /// The error source.
         source: std::io::Error,
     },
 
     /// The ownership of a directory can not be set.
     #[error("Ownership of directory {dir} can not be changed to user {system_user}: {source}")]
     DirChangeOwner {
+        /// The directory for which ownership cannot be transferred to a `system_user`.
         dir: PathBuf,
+        /// The system user that cannot be made owner of `dir`.
         system_user: String,
+        /// The error source.
         source: std::io::Error,
     },
 }

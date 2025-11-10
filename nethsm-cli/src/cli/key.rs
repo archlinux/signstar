@@ -16,6 +16,7 @@ use strum::IntoEnumIterator;
 
 use super::BIN_NAME;
 
+/// The "nethsm key" command.
 #[derive(Debug, Subcommand)]
 #[command(
     about = "Operate on the keys of a device",
@@ -28,22 +29,36 @@ While system-wide users only have access to system-wide keys, namespaced users o
     )
 )]
 pub enum KeyCommand {
+    /// The "nethsm key cert" command.
     #[command(subcommand)]
     Cert(KeyCertCommand),
+    /// The "nethsm key csr" command.
     Csr(KeyCsrCommand),
+    /// The "nethsm key decrypt" command.
     Decrypt(KeyDecryptCommand),
+    /// The "nethsm key encrypt" command.
     Encrypt(KeyEncryptCommand),
+    /// The "nethsm key generate" command.
     Generate(KeyGenerateCommand),
+    /// The "nethsm key get" command.
     Get(KeyGetCommand),
+    /// The "nethsm key import" command.
     Import(KeyImportCommand),
+    /// The "nethsm key list" command.
     List(KeyListCommand),
+    /// The "nethsm key public-key" command.
     PublicKey(KeyPublicKeyCommand),
+    /// The "nethsm key remove" command.
     Remove(KeyRemoveCommand),
+    /// The "nethsm key sign" command.
     Sign(KeySignCommand),
+    /// The "nethsm key tag" command.
     Tag(KeyTagCommand),
+    /// The "nethsm key untag" command.
     Untag(KeyUntagCommand),
 }
 
+/// The "nethsm key cert" command.
 #[derive(Debug, Subcommand)]
 #[command(
     about = "Operate on certificates for a key",
@@ -56,8 +71,11 @@ Namespaced users only have access to keys in their own namespace.
 "
 )]
 pub enum KeyCertCommand {
+    /// The "nethsm key cert delete" command.
     Delete(KeyCertDeleteCommand),
+    /// The "nethsm key cert get" command.
     Get(KeyCertGetCommand),
+    /// The "nethsm key cert import" command.
     Import(KeyCertImportCommand),
 }
 

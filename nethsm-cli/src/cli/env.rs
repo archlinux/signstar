@@ -5,19 +5,24 @@ use strum::IntoEnumIterator;
 
 use crate::passphrase_file::PassphraseFile;
 
+/// The "netshm env" command.
 #[derive(Debug, Subcommand)]
 #[command(about = "Manage environments in the configuration file")]
 pub enum EnvCommand {
+    /// The "netshm env add" command.
     #[command(subcommand)]
     Add(EnvAddCommand),
 
+    /// The "netshm env delete" command.
     #[command(subcommand)]
     Delete(EnvDeleteCommand),
 
+    /// The "netshm env list" command.
     #[command(about = "List all items in the configuration file")]
     List,
 }
 
+/// The "netshm env add" command.
 #[derive(Debug, Subcommand)]
 #[command(
     about = "Add a configuration item",
@@ -26,7 +31,9 @@ pub enum EnvCommand {
 Add a new device, or credentials for an existing one."
 )]
 pub enum EnvAddCommand {
+    /// The "netshm env add credentials" command.
     Credentials(CredentialsAddCommand),
+    /// The "netshm env add device" command.
     Device(DeviceAddCommand),
 }
 
@@ -103,6 +110,7 @@ One of the following:
     pub tls_security: ConnectionSecurity,
 }
 
+/// The "nethsm env delete" command.
 #[derive(Debug, Subcommand)]
 #[command(
     about = "Delete a configuration item",
@@ -111,7 +119,9 @@ One of the following:
 Delete credentials for an existing device or a device."
 )]
 pub enum EnvDeleteCommand {
+    /// The "nethsm env credentials" command.
     Credentials(CredentialsDeleteCommand),
+    /// The "nethsm env device" command.
     Device(DeviceDeleteCommand),
 }
 

@@ -1,3 +1,5 @@
+//! Command line interface handling for the "signstar-configure-build" executable.
+
 use clap::{Parser, crate_name};
 use signstar_common::{
     config::{
@@ -13,9 +15,12 @@ use strum::VariantNames;
 
 use crate::{ConfigPath, SshForceCommand};
 
+/// The name of the executable.
 pub const BIN_NAME: &str = crate_name!();
+/// The list of commands enforced by SSH's "ForceCommand".
 const SSH_FORCE_COMMAND_VARIANTS: &[&str] = SshForceCommand::VARIANTS;
 
+/// The "signstar-configure-build" command.
 #[derive(Debug, Parser)]
 #[command(
     about = "A command-line interface for Signstar image build configuration",
@@ -58,6 +63,7 @@ This \"sshd_config\" drop-in configuration enforces the use of the user's \"auth
     )
 )]
 pub struct Cli {
+    /// An optional path to a configuration file to use.
     #[arg(
         env = "SIGNSTAR_CONFIG",
         global = true,
@@ -85,6 +91,7 @@ If none of the above are found, the default location {:?} is used.",
     )]
     pub config: Option<ConfigPath>,
 
+    /// Whether to return name and version of the executable.
     #[arg(
         global = true,
         help = "Return the name and version of the application",

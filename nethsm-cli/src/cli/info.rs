@@ -1,5 +1,6 @@
 use clap::Parser;
 
+/// The "nethsm info" command.
 #[derive(Debug, Parser)]
 #[command(
     about = "Retrieve the info for a device",

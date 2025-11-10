@@ -61,7 +61,12 @@ const CONFIG_FILE: &str = "config.toml";
 pub enum Error {
     /// A directory can not be created.
     #[error("Unable to create directory {dir}:\n{source}")]
-    CreateDirectory { dir: String, source: std::io::Error },
+    CreateDirectory {
+        /// The directory that cannot be created.
+        dir: String,
+        /// The source error.
+        source: std::io::Error,
+    },
 }
 
 /// Returns the first Signstar configuration file available, or [`None`] if none found.

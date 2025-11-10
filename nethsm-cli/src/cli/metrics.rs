@@ -2,6 +2,7 @@ use clap::Parser;
 use expression_format::ex_format;
 use nethsm::UserRole::Metrics;
 
+/// The "netshm metrics" command.
 #[derive(Debug, Parser)]
 #[command(
     about = "Get metrics",

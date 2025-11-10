@@ -66,7 +66,9 @@ pub enum PassphrasePrompt {
     Unlock,
     /// Prompt for current user passphrase
     User {
+        /// The optional user ID to show.
         user_id: Option<UserId>,
+        /// The optional real name to show.
         real_name: Option<String>,
     },
 }

@@ -10,6 +10,7 @@ use strum::IntoEnumIterator;
 use super::BIN_NAME;
 use crate::passphrase_file::PassphraseFile;
 
+/// The "nethsm user" command.
 #[derive(Debug, Subcommand)]
 #[command(
     about = "Operate on users of a device",
@@ -23,12 +24,19 @@ Users in a namespace can only be administrated by users in the \"{Administrator}
 System-wide users can only be administratred by system-wide users in the \"{Administrator}\" role.")
 )]
 pub enum UserCommand {
+    /// The "nethsm user add" command.
     Add(UserAddCommand),
+    /// The "nethsm user get" command.
     Get(UserGetCommand),
+    /// The "nethsm user list" command.
     List(UserListCommand),
+    /// The "nethsm user passphrase" command.
     Passphrase(UserPassphraseCommand),
+    /// The "nethsm user remove" command.
     Remove(UserRemoveCommand),
+    /// The "nethsm user tag" command.
     Tag(UserTagCommand),
+    /// The "nethsm user untag" command.
     Untag(UserUntagCommand),
 }
 

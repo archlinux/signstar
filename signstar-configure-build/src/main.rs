@@ -1,3 +1,5 @@
+#![doc = include_str!("../README.md")]
+
 use std::process::ExitCode;
 
 use clap::{Parser, crate_version};

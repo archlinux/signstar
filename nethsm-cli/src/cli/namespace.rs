@@ -4,6 +4,7 @@ use nethsm::{NamespaceId, SystemState::Operational, UserRole::Administrator};
 
 use super::BIN_NAME;
 
+/// The "nethsm namespace" command.
 #[derive(Debug, Subcommand)]
 #[command(
     about = "Operate on namespaces of a device",
@@ -16,8 +17,11 @@ Users in a namespace only have access to the keys in their own namespace.
 "
 )]
 pub enum NamespaceCommand {
+    /// The "nethsm namespace add" command.
     Add(NamespaceAddCommand),
+    /// The "nethsm namespace list" command.
     List(NamespaceListCommand),
+    /// The "nethsm namespace remove" command.
     Remove(NamespaceRemoveCommand),
 }
 

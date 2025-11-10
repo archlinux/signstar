@@ -1,3 +1,5 @@
+//! Handling of files containing a [`Passphrase`].
+
 use std::{
     fs::read_to_string,
     path::{Path, PathBuf},
@@ -20,10 +22,16 @@ pub enum Error {
 /// A representation of a file containing a passphrase
 #[derive(Clone, Debug)]
 pub struct PassphraseFile {
+    /// The passphrase contained in the file.
     pub passphrase: Passphrase,
 }
 
 impl PassphraseFile {
+    /// Creates a new [`PassphraseFile`] from a path.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if reading the file to string fails.
     pub fn new(path: &Path) -> Result<Self, Error> {
         Ok(Self {
             passphrase: Passphrase::new(read_to_string(path)?),

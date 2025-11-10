@@ -2,6 +2,7 @@ use clap::{Parser, Subcommand};
 use expression_format::ex_format;
 use nethsm::SystemState::{Locked, Operational, Unprovisioned};
 
+/// The "netshm health" command.
 #[derive(Debug, Subcommand)]
 #[command(
     about = "Retrieve health information for a device",
@@ -10,8 +11,11 @@ use nethsm::SystemState::{Locked, Operational, Unprovisioned};
 Retrieve alive, ready and state information."
 )]
 pub enum HealthCommand {
+    /// The "netshm health alive" command.
     Alive(AliveCommand),
+    /// The "netshm health ready" command.
     Ready(ReadyCommand),
+    /// The "netshm health state" command.
     State(StateCommand),
 }
 

@@ -13,6 +13,7 @@ use strum::IntoEnumIterator;
 
 use super::BIN_NAME;
 
+/// The "nethsm openpgp" command.
 #[derive(Debug, Subcommand)]
 #[command(
     about = "OpenPGP operations",
@@ -24,9 +25,13 @@ Keys may exist in specific scopes: system-wide or in namespaces (see \"{BIN_NAME
 While system-wide users only have access to system-wide keys, namespaced users only have access to keys in their own namespace.")
 )]
 pub enum OpenPgpCommand {
+    /// The "nethsm openpgp add" command.
     Add(OpenPgpAddCommand),
+    /// The "nethsm openpgp import" command.
     Import(OpenPgpImportCommand),
+    /// The "nethsm openpgp sign" command.
     Sign(OpenPgpSignCommand),
+    /// The "nethsm openpgp sign-state" command.
     SignState(OpenPgpSignStateCommand),
 }
 

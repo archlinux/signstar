@@ -1,3 +1,5 @@
+#![doc = include_str!("../README.md")]
+
 use std::{
     fs::File,
     io::Write,
@@ -17,6 +19,7 @@ use sysinfo::{Pid, System};
 
 pub mod cli;
 
+/// The error that may occur when using the "signstar-configure-build" executable.
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
     /// A config error
@@ -28,7 +31,9 @@ pub enum Error {
         "The command exited with non-zero status code (\"{exit_status}\") and produced the following output on stderr:\n{stderr}"
     )]
     CommandNonZero {
+        /// The exit status of the failed command.
         exit_status: ExitStatus,
+        /// The stderr of the failed command.
         stderr: String,
     },
 
@@ -41,7 +46,9 @@ pub enum Error {
         "No SSH ForceCommand defined for user mapping (NetHSM users: {nethsm_users:?}, system user: {system_user})"
     )]
     NoForceCommandForMapping {
+        /// The list of NetHSM backend users mapped to a `system_user`.
         nethsm_users: Vec<String>,
+        /// The system user for which no SSH "ForceCommand" is specified.
         system_user: String,
     },
 
@@ -66,50 +73,70 @@ pub enum Error {
         "The Path value {path} for the tmpfiles.d integration for {user} is not valid:\n{reason}"
     )]
     TmpfilesDPath {
+        /// The path that is not valid.
         path: String,
+        /// The system user for which a `path` is invalid.
         user: SystemUserId,
+        /// The reason why a path is not valid.
+        ///
+        /// # Note
+        ///
+        /// This is meant to complete the sentence "The Path value {path} for the tmpfiles.d
+        /// integration for {user} is not valid: "
         reason: &'static str,
     },
 
     /// Adding a user failed
     #[error("Adding user {user} failed:\n{source}")]
     UserAdd {
+        /// The system user which cannot be added.
         user: SystemUserId,
+        /// The source error.
         source: std::io::Error,
     },
 
     /// Modifying a user failed
     #[error("Modifying the user {user} failed:\n{source}")]
     UserMod {
+        /// The system user which cannot be modified.
         user: SystemUserId,
+        /// The source error.
         source: std::io::Error,
     },
 
     /// A system user name can not be derived from a configuration user name
     #[error("Getting a system user for the username {user} failed:\n{source}")]
     UserNameConversion {
+        /// The system user that only exists in the configuration file.
         user: SystemUserId,
+        /// The source error.
         source: nix::Error,
     },
 
     /// Writing authorized_keys file for user failed
     #[error("Writing authorized_keys file for {user} failed:\n{source}")]
     WriteAuthorizedKeys {
+        /// The system user for which no "authorized_keys" file can be written.
         user: SystemUserId,
+        /// The source error.
         source: std::io::Error,
     },
 
     /// Writing sshd_config drop-in file for user failed
     #[error("Writing sshd_config drop-in for {user} failed:\n{source}")]
     WriteSshdConfig {
+        /// The system user for which an sshd_config drop-in cannot be written.
         user: SystemUserId,
+        /// The source error.
         source: std::io::Error,
     },
 
     /// Writing tmpfiles.d integration for user failed
     #[error("Writing tmpfiles.d integration for {user} failed:\n{source}")]
     WriteTmpfilesD {
+        /// The system user for which a tmpfiles.d file cannot be written.
         user: SystemUserId,
+        /// The source error.
         source: std::io::Error,
     },
 }
@@ -121,6 +148,7 @@ pub enum Error {
 pub struct ConfigPath(PathBuf);
 
 impl ConfigPath {
+    /// Creates a new [`ConfigPath`] from a path.
     pub fn new(path: PathBuf) -> Self {
         Self(path)
     }

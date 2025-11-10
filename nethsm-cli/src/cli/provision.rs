@@ -5,6 +5,7 @@ use nethsm::SystemState::Unprovisioned;
 
 use crate::passphrase_file::PassphraseFile;
 
+/// The "nethsm provision" command.
 #[derive(Debug, Parser)]
 #[command(
     about = "Provision a device",
@@ -16,6 +17,7 @@ If none of the values are provided, the passwords are prompted for interactively
 Requires no authentication.")
 )]
 pub struct ProvisionCommand {
+    /// The optional path to a file containing an admin passphrase.
     #[arg(
         env = "NETHSM_ADMIN_PASSPHRASE_FILE",
         help = "The path to a file containing the admin passphrase",
@@ -27,6 +29,7 @@ The passphrase must be >= 10 and <= 200 characters long.",
     )]
     pub admin_passphrase_file: Option<PassphraseFile>,
 
+    /// The optional system time to use.
     #[arg(
         env = "NETHSM_SYSTEM_TIME",
         help = "The initial system time for the device",
@@ -38,6 +41,7 @@ Must be provided as an ISO 8601 formatted UTC timestamp.",
     )]
     pub system_time: Option<DateTime<Utc>>,
 
+    /// The optional path to a file containing the unlock passphrase.
     #[arg(
         env = "NETHSM_UNLOCK_PASSPHRASE_FILE",
         help = "The path to a file containing the unlock passphrase",

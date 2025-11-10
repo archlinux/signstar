@@ -1,3 +1,5 @@
+//! Command line handling for the "nethsm" executable.
+
 use std::path::PathBuf;
 
 use clap::Parser;
@@ -34,6 +36,7 @@ mod system;
 mod unlock;
 mod user;
 
+/// The name of the executable.
 pub const BIN_NAME: &str = "nethsm";
 
 /// Errors related to the CLI
@@ -46,9 +49,11 @@ pub enum Error {
     OptionMissing(String),
 }
 
+/// The "nethsm" CLI.
 #[derive(Debug, Parser)]
 #[command(name = BIN_NAME)]
 pub struct Cli {
+    /// Passphrase file(s).
     #[arg(
         env = "NETHSM_AUTH_PASSPHRASE_FILE",
         global = true,
@@ -64,6 +69,7 @@ With multiple passphrase files ordering matters, as the files are assigned to th
     )]
     pub auth_passphrase_file: Vec<PassphraseFile>,
 
+    /// An optional config file to use.
     #[arg(
         env = "NETHSM_CONFIG",
         global = true,
@@ -76,6 +82,7 @@ If specified, the custom configuration file is used instead of the default confi
     )]
     pub config: Option<PathBuf>,
 
+    /// An optional label to use for a NetHSM backend.
     #[arg(
         env = "NETHSM_LABEL",
         global = true,
@@ -88,6 +95,7 @@ Must be provided if more than one device is setup in the configuration file.",
     )]
     pub label: Option<String>,
 
+    /// A user ID to use with a NetHSM backend.
     #[arg(
         env = "NETHSM_USER",
         global = true,
@@ -104,46 +112,62 @@ This option can be provided multiple times, which is needed for commands that re
     )]
     pub user: Vec<UserId>,
 
+    /// A "nethsm" subcommand.
     #[command(subcommand)]
     pub command: Command,
 }
 
+/// The "nethsm" CLI commands.
 #[derive(Debug, Parser)]
 #[command(about, author, version)]
 pub enum Command {
+    /// The "nethsm config" command.
     #[command(subcommand)]
     Config(ConfigCommand),
 
+    /// The "nethsm env" command.
     #[command(subcommand)]
     Env(EnvCommand),
 
+    /// The "nethsm health" command.
     #[command(subcommand)]
     Health(HealthCommand),
 
+    /// The "nethsm info" command.
     Info(InfoCommand),
 
+    /// The "nethsm key" command.
     #[command(subcommand)]
     Key(KeyCommand),
 
+    /// The "nethsm lock" command.
     Lock(LockCommand),
 
+    /// The "nethsm metrics" command.
     Metrics(MetricsCommand),
 
+    /// The "nethsm namespace" command.
     #[command(subcommand)]
     Namespace(NamespaceCommand),
 
+    /// The "nethsm openpgp" command.
     #[command(subcommand, name = "openpgp")]
     OpenPgp(OpenPgpCommand),
 
+    /// The "nethsm provision" command.
     Provision(ProvisionCommand),
 
+    /// The "nethsm random" command.
     Random(RandomCommand),
 
+    /// The "nethsm system" command.
     #[command(subcommand)]
     System(SystemCommand),
 
+    /// The "nethsm unlock" command.
     Unlock(UnlockCommand),
 
+    /// The "nethsm user" command.
     #[command(subcommand)]
     User(UserCommand),
 }
