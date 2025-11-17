@@ -83,6 +83,25 @@ pub enum UserMapping {
         system_user: SystemUserId,
     },
 
+    /// A system user, with SSH access, mapped to a YubiHSM2 authentication key.
+    ///
+    /// # Note
+    ///
+    /// This variant implies, that the created user should have all [capabilities] for backup
+    /// related actions (i.e. "export-wrapped", "wrap-data").
+    ///
+    /// [capabilities]: https://docs.yubico.com/hardware/yubihsm-2/hsm-2-user-guide/hsm2-core-concepts.html#capability-protocol-details
+    #[cfg(feature = "yubihsm2")]
+    #[serde(rename = "system_yubihsm2_backup")]
+    SystemYubiHsm2Backup {
+        /// The identifier of the authentication key used to create a session with the YubiHSM2.
+        authentication_key_id: u16,
+        /// The SSH public key used for connecting to the `system_user`.
+        ssh_authorized_key: AuthorizedKeyEntry,
+        /// The name of the system user.
+        system_user: SystemUserId,
+    },
+
     /// A system user, with SSH access, mapped to a system-wide NetHSM user
     /// in the Metrics role and `n` users in the Operator role with read-only access to zero or
     /// more keys
@@ -298,7 +317,8 @@ impl UserMapping {
                 backend_key_domain: _,
                 system_user,
                 ..
-            } => Some(system_user),
+            }
+            | UserMapping::SystemYubiHsm2Backup { system_user, .. } => Some(system_user),
         }
     }
 
@@ -374,6 +394,10 @@ impl UserMapping {
             },
             #[cfg(feature = "yubihsm2")]
             UserMapping::SystemYubiHsmOperatorSigning {
+                authentication_key_id,
+                ..
+            }
+            | UserMapping::SystemYubiHsm2Backup {
                 authentication_key_id,
                 ..
             } => match filter.backend_user_kind {
@@ -483,6 +507,10 @@ impl UserMapping {
             UserMapping::SystemYubiHsmOperatorSigning {
                 authentication_key_id,
                 ..
+            }
+            | UserMapping::SystemYubiHsm2Backup {
+                authentication_key_id,
+                ..
             } => match filter.backend_user_kind {
                 BackendUserKind::Admin => Vec::new(),
                 BackendUserKind::NonAdmin => vec![Box::new(signstar_yubihsm2::Credentials::new(
@@ -528,9 +556,9 @@ impl UserMapping {
             | UserMapping::SystemOnlyShareUpload { .. }
             | UserMapping::SystemOnlyWireGuardDownload { .. } => Vec::new(),
             #[cfg(feature = "yubihsm2")]
-            UserMapping::YubiHsmOnlyAdmin(_) => Vec::new(),
-            #[cfg(feature = "yubihsm2")]
-            UserMapping::SystemYubiHsmOperatorSigning { .. } => Vec::new(),
+            UserMapping::YubiHsmOnlyAdmin(_)
+            | UserMapping::SystemYubiHsm2Backup { .. }
+            | UserMapping::SystemYubiHsmOperatorSigning { .. } => Vec::new(),
         }
     }
 
@@ -573,9 +601,9 @@ impl UserMapping {
             | UserMapping::SystemOnlyShareUpload { .. }
             | UserMapping::SystemOnlyWireGuardDownload { .. } => Vec::new(),
             #[cfg(feature = "yubihsm2")]
-            UserMapping::YubiHsmOnlyAdmin(_) => Vec::new(),
-            #[cfg(feature = "yubihsm2")]
-            UserMapping::SystemYubiHsmOperatorSigning { .. } => Vec::new(),
+            UserMapping::YubiHsmOnlyAdmin(_)
+            | UserMapping::SystemYubiHsm2Backup { .. }
+            | UserMapping::SystemYubiHsmOperatorSigning { .. } => Vec::new(),
         }
     }
 
@@ -652,9 +680,9 @@ impl UserMapping {
             | UserMapping::SystemOnlyShareUpload { .. }
             | UserMapping::SystemOnlyWireGuardDownload { .. } => Vec::new(),
             #[cfg(feature = "yubihsm2")]
-            UserMapping::YubiHsmOnlyAdmin(_) => Vec::new(),
-            #[cfg(feature = "yubihsm2")]
-            UserMapping::SystemYubiHsmOperatorSigning { .. } => Vec::new(),
+            UserMapping::YubiHsmOnlyAdmin(_)
+            | UserMapping::SystemYubiHsm2Backup { .. }
+            | UserMapping::SystemYubiHsmOperatorSigning { .. } => Vec::new(),
         }
     }
 
@@ -726,6 +754,9 @@ impl UserMapping {
                 backend_key_domain: _,
                 system_user: _,
                 ssh_authorized_key,
+            }
+            | UserMapping::SystemYubiHsm2Backup {
+                ssh_authorized_key, ..
             } => Some(ssh_authorized_key),
         }
     }
@@ -788,9 +819,9 @@ impl UserMapping {
             | UserMapping::SystemOnlyShareUpload { .. }
             | UserMapping::SystemOnlyWireGuardDownload { .. } => Vec::new(),
             #[cfg(feature = "yubihsm2")]
-            UserMapping::YubiHsmOnlyAdmin(_) => Vec::new(),
-            #[cfg(feature = "yubihsm2")]
-            UserMapping::SystemYubiHsmOperatorSigning { .. } => Vec::new(),
+            UserMapping::YubiHsmOnlyAdmin(_)
+            | UserMapping::SystemYubiHsm2Backup { .. }
+            | UserMapping::SystemYubiHsmOperatorSigning { .. } => Vec::new(),
         }
     }
 
@@ -862,9 +893,9 @@ impl UserMapping {
             | UserMapping::SystemOnlyShareUpload { .. }
             | UserMapping::SystemOnlyWireGuardDownload { .. } => Vec::new(),
             #[cfg(feature = "yubihsm2")]
-            UserMapping::YubiHsmOnlyAdmin(_) => Vec::new(),
-            #[cfg(feature = "yubihsm2")]
-            UserMapping::SystemYubiHsmOperatorSigning { .. } => Vec::new(),
+            UserMapping::YubiHsmOnlyAdmin(_)
+            | UserMapping::SystemYubiHsm2Backup { .. }
+            | UserMapping::SystemYubiHsmOperatorSigning { .. } => Vec::new(),
         }
     }
 
@@ -1013,9 +1044,9 @@ impl UserMapping {
             | UserMapping::SystemOnlyShareUpload { .. }
             | UserMapping::SystemOnlyWireGuardDownload { .. } => Vec::new(),
             #[cfg(feature = "yubihsm2")]
-            UserMapping::YubiHsmOnlyAdmin(_) => Vec::new(),
-            #[cfg(feature = "yubihsm2")]
-            UserMapping::SystemYubiHsmOperatorSigning { .. } => Vec::new(),
+            UserMapping::YubiHsmOnlyAdmin(_)
+            | UserMapping::SystemYubiHsm2Backup { .. }
+            | UserMapping::SystemYubiHsmOperatorSigning { .. } => Vec::new(),
         }
     }
 
@@ -1081,9 +1112,9 @@ impl UserMapping {
             | UserMapping::SystemOnlyShareUpload { .. }
             | UserMapping::SystemOnlyWireGuardDownload { .. } => Vec::new(),
             #[cfg(feature = "yubihsm2")]
-            UserMapping::YubiHsmOnlyAdmin(_) => Vec::new(),
-            #[cfg(feature = "yubihsm2")]
-            UserMapping::SystemYubiHsmOperatorSigning { .. } => Vec::new(),
+            UserMapping::YubiHsmOnlyAdmin(_)
+            | UserMapping::SystemYubiHsm2Backup { .. }
+            | UserMapping::SystemYubiHsmOperatorSigning { .. } => Vec::new(),
         }
     }
 
@@ -1100,7 +1131,8 @@ impl UserMapping {
             #[cfg(feature = "yubihsm2")]
             UserMapping::YubiHsmOnlyAdmin(_) => false,
             #[cfg(feature = "yubihsm2")]
-            UserMapping::SystemYubiHsmOperatorSigning { .. } => true,
+            UserMapping::SystemYubiHsm2Backup { .. }
+            | UserMapping::SystemYubiHsmOperatorSigning { .. } => true,
             UserMapping::SystemOnlyShareDownload { .. }
             | UserMapping::SystemOnlyShareUpload { .. }
             | UserMapping::SystemOnlyWireGuardDownload { .. }
@@ -1381,6 +1413,10 @@ impl ExtendedUserMapping {
                 UserMapping::YubiHsmOnlyAdmin(_) => {}
                 #[cfg(feature = "yubihsm2")]
                 UserMapping::SystemYubiHsmOperatorSigning {
+                    authentication_key_id,
+                    ..
+                }
+                | UserMapping::SystemYubiHsm2Backup {
                     authentication_key_id,
                     ..
                 } => credentials.push(Box::new(signstar_yubihsm2::Credentials::new(
@@ -3460,6 +3496,14 @@ mod tests {
         /// [`UserMapping::get_system_user`].
         #[rstest]
         #[case::admin(UserMapping::YubiHsmOnlyAdmin(1), None)]
+        #[case::backup(
+            UserMapping::SystemYubiHsm2Backup{
+                authentication_key_id: 1,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+                system_user: "backup".parse()?,
+            },
+            Some("backup".parse()?),
+        )]
         #[case::operator_signing(
             UserMapping::SystemYubiHsmOperatorSigning {
                 authentication_key_id: 1,
@@ -3492,6 +3536,24 @@ mod tests {
         #[rstest]
         #[case::admin_filter_default(UserMapping::YubiHsmOnlyAdmin(1), UserMappingFilter::default(), &[])]
         #[case::admin_filter_admin(UserMapping::YubiHsmOnlyAdmin(1), UserMappingFilter{backend_user_kind: BackendUserKind::Admin}, &["1"])]
+        #[case::backup_filter_default(
+            UserMapping::SystemYubiHsm2Backup{
+                authentication_key_id: 1,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+                system_user: "backup".parse()?,
+            },
+            UserMappingFilter::default(),
+            &["1"]
+        )]
+        #[case::backup_filter_admin(
+            UserMapping::SystemYubiHsm2Backup{
+                authentication_key_id: 1,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+                system_user: "backup".parse()?,
+            },
+            UserMappingFilter{ backend_user_kind: BackendUserKind::Admin },
+            &[]
+        )]
         #[case::operator_filter_default(
             UserMapping::SystemYubiHsmOperatorSigning {
                 backend_key_id: 1,
@@ -3556,6 +3618,24 @@ mod tests {
             UserMappingFilter{backend_user_kind: BackendUserKind::Admin},
             1
         )]
+        #[case::backup_filter_default(
+            UserMapping::SystemYubiHsm2Backup{
+                authentication_key_id: 1,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+                system_user: "backup".parse()?,
+            },
+            UserMappingFilter::default(),
+            1
+        )]
+        #[case::backup_filter_admin(
+            UserMapping::SystemYubiHsm2Backup{
+                authentication_key_id: 1,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+                system_user: "backup".parse()?,
+            },
+            UserMappingFilter{ backend_user_kind: BackendUserKind::Admin },
+            0
+        )]
         #[case::operator_filter_default(
             UserMapping::SystemYubiHsmOperatorSigning {
                 backend_key_id: 1,
@@ -3614,6 +3694,13 @@ mod tests {
         /// [`UserMapping::get_nethsm_users`].
         #[rstest]
         #[case::admin(UserMapping::YubiHsmOnlyAdmin(1))]
+        #[case::backup(
+            UserMapping::SystemYubiHsm2Backup{
+                authentication_key_id: 1,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+                system_user: "backup".parse()?,
+             }
+        )]
         #[case::operator_signing(
             UserMapping::SystemYubiHsmOperatorSigning {
                 authentication_key_id: 1,
@@ -3642,6 +3729,13 @@ mod tests {
         /// [`UserMapping::get_nethsm_users_and_roles`].
         #[rstest]
         #[case::admin(UserMapping::YubiHsmOnlyAdmin(1))]
+        #[case::backup(
+            UserMapping::SystemYubiHsm2Backup{
+                authentication_key_id: 1,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+                system_user: "backup".parse()?,
+             }
+        )]
         #[case::operator_signing(
             UserMapping::SystemYubiHsmOperatorSigning {
                 authentication_key_id: 1,
@@ -3670,6 +3764,14 @@ mod tests {
         /// [`UserMapping::get_nethsm_user_key_and_tag`].
         #[rstest]
         #[case::admin(UserMapping::YubiHsmOnlyAdmin(1), FilterUserKeys::All)]
+        #[case::backup(
+            UserMapping::SystemYubiHsm2Backup{
+                authentication_key_id: 1,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+                system_user: "backup".parse()?,
+             },
+            FilterUserKeys::All,
+        )]
         #[case::operator_signing(
             UserMapping::SystemYubiHsmOperatorSigning {
                 authentication_key_id: 1,
@@ -3702,6 +3804,13 @@ mod tests {
         /// [`UserMapping::get_nethsm_user_role_and_tags`].
         #[rstest]
         #[case::admin(UserMapping::YubiHsmOnlyAdmin(1))]
+        #[case::backup(
+            UserMapping::SystemYubiHsm2Backup{
+                authentication_key_id: 1,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+                system_user: "backup".parse()?,
+             }
+        )]
         #[case::operator_signing(
             UserMapping::SystemYubiHsmOperatorSigning {
                 authentication_key_id: 1,
@@ -3730,6 +3839,14 @@ mod tests {
         /// [`UserMapping::get_ssh_authorized_key`].
         #[rstest]
         #[case::admin(UserMapping::YubiHsmOnlyAdmin(1), None)]
+        #[case::backup(
+            UserMapping::SystemYubiHsm2Backup{
+                authentication_key_id: 1,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+                system_user: "backup".parse()?,
+             },
+            Some("ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?),
+        )]
         #[case::operator_signing(
             UserMapping::SystemYubiHsmOperatorSigning {
                 authentication_key_id: 1,
@@ -3762,6 +3879,22 @@ mod tests {
         #[rstest]
         #[case::admin_target_system_wide(UserMapping::YubiHsmOnlyAdmin(1), None)]
         #[case::admin_target_namespace(UserMapping::YubiHsmOnlyAdmin(1), Some("ns1".parse()?))]
+        #[case::backup_target_system_wide(
+            UserMapping::SystemYubiHsm2Backup{
+                authentication_key_id: 1,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+                system_user: "backup".parse()?,
+             },
+            None,
+        )]
+        #[case::backup_target_namespace(
+            UserMapping::SystemYubiHsm2Backup{
+                authentication_key_id: 1,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+                system_user: "backup".parse()?,
+             },
+            Some("ns1".parse()?),
+        )]
         #[case::operator_signing_target_system_wide(
             UserMapping::SystemYubiHsmOperatorSigning {
                 authentication_key_id: 1,
@@ -3814,6 +3947,22 @@ mod tests {
         #[rstest]
         #[case::admin_target_system_wide(UserMapping::YubiHsmOnlyAdmin(1), None)]
         #[case::admin_target_namespace(UserMapping::YubiHsmOnlyAdmin(1), Some("ns1".parse()?))]
+        #[case::backup_target_system_wide(
+            UserMapping::SystemYubiHsm2Backup{
+                authentication_key_id: 1,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+                system_user: "backup".parse()?,
+             },
+            None,
+        )]
+        #[case::backup_target_namespace(
+            UserMapping::SystemYubiHsm2Backup{
+                authentication_key_id: 1,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+                system_user: "backup".parse()?,
+             },
+            Some("ns1".parse()?),
+        )]
         #[case::operator_signing_target_system_wide(
             UserMapping::SystemYubiHsmOperatorSigning {
                 authentication_key_id: 1,
@@ -3865,6 +4014,13 @@ mod tests {
         /// [`UserMapping::get_nethsm_namespaces`].
         #[rstest]
         #[case::admin(UserMapping::YubiHsmOnlyAdmin(1))]
+        #[case::backup(
+            UserMapping::SystemYubiHsm2Backup{
+                authentication_key_id: 1,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+                system_user: "backup".parse()?,
+             },
+        )]
         #[case::operator_signing(
             UserMapping::SystemYubiHsmOperatorSigning {
                 authentication_key_id: 1,
@@ -3893,6 +4049,14 @@ mod tests {
         /// [`UserMapping::has_system_and_backend_user`].
         #[rstest]
         #[case::admin(UserMapping::YubiHsmOnlyAdmin(1), false)]
+        #[case::backup(
+            UserMapping::SystemYubiHsm2Backup{
+                authentication_key_id: 1,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+                system_user: "backup".parse()?,
+             },
+             true
+        )]
         #[case::operator_signing(
             UserMapping::SystemYubiHsmOperatorSigning {
                 authentication_key_id: 1,
