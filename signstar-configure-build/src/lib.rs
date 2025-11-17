@@ -259,6 +259,8 @@ impl TryFrom<&UserMapping> for SshForceCommand {
                 tag: _,
             } => Ok(Self::Sign),
             #[cfg(feature = "yubihsm2")]
+            UserMapping::SystemYubiHsmBackup { .. } => Ok(Self::DownloadBackup),
+            #[cfg(feature = "yubihsm2")]
             UserMapping::SystemYubiHsmOperatorSigning { .. } => Ok(Self::Sign),
             UserMapping::SystemOnlyShareDownload {
                 system_user: _,

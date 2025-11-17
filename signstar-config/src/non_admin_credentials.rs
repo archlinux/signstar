@@ -286,6 +286,8 @@ impl CredentialsLoading {
             #[cfg(feature = "yubihsm2")]
             UserMapping::YubiHsmOnlyAdmin { .. } => false,
             #[cfg(feature = "yubihsm2")]
+            UserMapping::SystemYubiHsmBackup { .. } => false,
+            #[cfg(feature = "yubihsm2")]
             UserMapping::SystemYubiHsmOperatorSigning { .. } => true,
         }
     }
