@@ -21,3 +21,8 @@ https://www.nitrokey.com/products/nethsm
 
 # Arch Linux is being DDoS'ed
 https://archlinux.org
+
+# Links behind cloudflare that are 500 if cloudflare is down
+https://opensource.org/
+https://git-scm.com/docs
+https://prometheus.io/
