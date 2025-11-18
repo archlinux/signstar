@@ -5,6 +5,7 @@ pub mod config;
 pub mod error;
 pub mod nethsm;
 pub mod non_admin_credentials;
+pub mod state;
 #[cfg(feature = "test-helpers")]
 pub mod test;
 pub mod utils;
