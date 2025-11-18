@@ -116,6 +116,25 @@ pub enum UserMapping {
         system_user: SystemUserId,
     },
 
+    /// A system user, with SSH access, mapped to a YubiHSM2 authentication key.
+    ///
+    /// # Note
+    ///
+    /// This variant implies, that the created user should have all [capabilities] for backup
+    /// related actions (i.e. "get-log-entries").
+    ///
+    /// [capabilities]: https://docs.yubico.com/hardware/yubihsm-2/hsm-2-user-guide/hsm2-core-concepts.html#capability-protocol-details
+    #[cfg(feature = "yubihsm2")]
+    #[serde(rename = "system_yubihsm2_metrics")]
+    SystemYubiHsm2Metrics {
+        /// The identifier of the authentication key used to create a session with the YubiHSM2.
+        authentication_key_id: u16,
+        /// The SSH public key used for connecting to the `system_user`.
+        ssh_authorized_key: AuthorizedKeyEntry,
+        /// The name of the system user.
+        system_user: SystemUserId,
+    },
+
     /// A system user, with SSH access, mapped to a NetHSM user in the
     /// Operator role with access to a single signing key.
     ///
@@ -172,6 +191,23 @@ pub enum UserMapping {
         /// The NetHSM users in the [`Metrics`][`UserRole::Metrics`] and
         /// [`operator`][`UserRole::Operator`] role.
         nethsm_users: NetHsmMetricsUsers,
+        /// The name of the system user.
+        system_user: SystemUserId,
+    },
+
+    /// A system user, _without_ SSH access, mapped to a YubiHSM2 authentication key.
+    ///
+    /// # Note
+    ///
+    /// This variant implies, that the created user should have all [capabilities] for reading logs
+    /// (i.e. "get-log-entries").
+    ///
+    /// [capabilities]: https://docs.yubico.com/hardware/yubihsm-2/hsm-2-user-guide/hsm2-core-concepts.html#capability-protocol-details
+    #[cfg(feature = "yubihsm2")]
+    #[serde(rename = "hermetic_system_yubihsm2_metrics")]
+    HermeticSystemYubiHsm2Metrics {
+        /// The identifier of the authentication key used to create a session with the YubiHSM2.
+        authentication_key_id: u16,
         /// The name of the system user.
         system_user: SystemUserId,
     },
@@ -318,7 +354,9 @@ impl UserMapping {
                 system_user,
                 ..
             }
-            | UserMapping::SystemYubiHsm2Backup { system_user, .. } => Some(system_user),
+            | UserMapping::SystemYubiHsm2Backup { system_user, .. }
+            | UserMapping::SystemYubiHsm2Metrics { system_user, .. }
+            | UserMapping::HermeticSystemYubiHsm2Metrics { system_user, .. } => Some(system_user),
         }
     }
 
@@ -398,6 +436,14 @@ impl UserMapping {
                 ..
             }
             | UserMapping::SystemYubiHsm2Backup {
+                authentication_key_id,
+                ..
+            }
+            | UserMapping::SystemYubiHsm2Metrics {
+                authentication_key_id,
+                ..
+            }
+            | UserMapping::HermeticSystemYubiHsm2Metrics {
                 authentication_key_id,
                 ..
             } => match filter.backend_user_kind {
@@ -511,6 +557,14 @@ impl UserMapping {
             | UserMapping::SystemYubiHsm2Backup {
                 authentication_key_id,
                 ..
+            }
+            | UserMapping::SystemYubiHsm2Metrics {
+                authentication_key_id,
+                ..
+            }
+            | UserMapping::HermeticSystemYubiHsm2Metrics {
+                authentication_key_id,
+                ..
             } => match filter.backend_user_kind {
                 BackendUserKind::Admin => Vec::new(),
                 BackendUserKind::NonAdmin => vec![Box::new(signstar_yubihsm2::Credentials::new(
@@ -558,6 +612,8 @@ impl UserMapping {
             #[cfg(feature = "yubihsm2")]
             UserMapping::YubiHsmOnlyAdmin(_)
             | UserMapping::SystemYubiHsm2Backup { .. }
+            | UserMapping::SystemYubiHsm2Metrics { .. }
+            | UserMapping::HermeticSystemYubiHsm2Metrics { .. }
             | UserMapping::SystemYubiHsmOperatorSigning { .. } => Vec::new(),
         }
     }
@@ -603,6 +659,8 @@ impl UserMapping {
             #[cfg(feature = "yubihsm2")]
             UserMapping::YubiHsmOnlyAdmin(_)
             | UserMapping::SystemYubiHsm2Backup { .. }
+            | UserMapping::SystemYubiHsm2Metrics { .. }
+            | UserMapping::HermeticSystemYubiHsm2Metrics { .. }
             | UserMapping::SystemYubiHsmOperatorSigning { .. } => Vec::new(),
         }
     }
@@ -682,6 +740,8 @@ impl UserMapping {
             #[cfg(feature = "yubihsm2")]
             UserMapping::YubiHsmOnlyAdmin(_)
             | UserMapping::SystemYubiHsm2Backup { .. }
+            | UserMapping::SystemYubiHsm2Metrics { .. }
+            | UserMapping::HermeticSystemYubiHsm2Metrics { .. }
             | UserMapping::SystemYubiHsmOperatorSigning { .. } => Vec::new(),
         }
     }
@@ -745,7 +805,8 @@ impl UserMapping {
                 ..
             } => Some(ssh_authorized_key),
             #[cfg(feature = "yubihsm2")]
-            UserMapping::YubiHsmOnlyAdmin(_) => None,
+            UserMapping::YubiHsmOnlyAdmin(_)
+            | UserMapping::HermeticSystemYubiHsm2Metrics { .. } => None,
             #[cfg(feature = "yubihsm2")]
             UserMapping::SystemYubiHsmOperatorSigning {
                 authentication_key_id: _,
@@ -756,6 +817,9 @@ impl UserMapping {
                 ssh_authorized_key,
             }
             | UserMapping::SystemYubiHsm2Backup {
+                ssh_authorized_key, ..
+            }
+            | UserMapping::SystemYubiHsm2Metrics {
                 ssh_authorized_key, ..
             } => Some(ssh_authorized_key),
         }
@@ -821,6 +885,8 @@ impl UserMapping {
             #[cfg(feature = "yubihsm2")]
             UserMapping::YubiHsmOnlyAdmin(_)
             | UserMapping::SystemYubiHsm2Backup { .. }
+            | UserMapping::SystemYubiHsm2Metrics { .. }
+            | UserMapping::HermeticSystemYubiHsm2Metrics { .. }
             | UserMapping::SystemYubiHsmOperatorSigning { .. } => Vec::new(),
         }
     }
@@ -895,6 +961,8 @@ impl UserMapping {
             #[cfg(feature = "yubihsm2")]
             UserMapping::YubiHsmOnlyAdmin(_)
             | UserMapping::SystemYubiHsm2Backup { .. }
+            | UserMapping::SystemYubiHsm2Metrics { .. }
+            | UserMapping::HermeticSystemYubiHsm2Metrics { .. }
             | UserMapping::SystemYubiHsmOperatorSigning { .. } => Vec::new(),
         }
     }
@@ -1046,6 +1114,8 @@ impl UserMapping {
             #[cfg(feature = "yubihsm2")]
             UserMapping::YubiHsmOnlyAdmin(_)
             | UserMapping::SystemYubiHsm2Backup { .. }
+            | UserMapping::SystemYubiHsm2Metrics { .. }
+            | UserMapping::HermeticSystemYubiHsm2Metrics { .. }
             | UserMapping::SystemYubiHsmOperatorSigning { .. } => Vec::new(),
         }
     }
@@ -1114,6 +1184,8 @@ impl UserMapping {
             #[cfg(feature = "yubihsm2")]
             UserMapping::YubiHsmOnlyAdmin(_)
             | UserMapping::SystemYubiHsm2Backup { .. }
+            | UserMapping::SystemYubiHsm2Metrics { .. }
+            | UserMapping::HermeticSystemYubiHsm2Metrics { .. }
             | UserMapping::SystemYubiHsmOperatorSigning { .. } => Vec::new(),
         }
     }
@@ -1132,6 +1204,8 @@ impl UserMapping {
             UserMapping::YubiHsmOnlyAdmin(_) => false,
             #[cfg(feature = "yubihsm2")]
             UserMapping::SystemYubiHsm2Backup { .. }
+            | UserMapping::SystemYubiHsm2Metrics { .. }
+            | UserMapping::HermeticSystemYubiHsm2Metrics { .. }
             | UserMapping::SystemYubiHsmOperatorSigning { .. } => true,
             UserMapping::SystemOnlyShareDownload { .. }
             | UserMapping::SystemOnlyShareUpload { .. }
@@ -1417,6 +1491,14 @@ impl ExtendedUserMapping {
                     ..
                 }
                 | UserMapping::SystemYubiHsm2Backup {
+                    authentication_key_id,
+                    ..
+                }
+                | UserMapping::SystemYubiHsm2Metrics {
+                    authentication_key_id,
+                    ..
+                }
+                | UserMapping::HermeticSystemYubiHsm2Metrics {
                     authentication_key_id,
                     ..
                 } => credentials.push(Box::new(signstar_yubihsm2::Credentials::new(
@@ -3504,6 +3586,21 @@ mod tests {
             },
             Some("backup".parse()?),
         )]
+        #[case::metrics(
+            UserMapping::SystemYubiHsm2Metrics {
+                authentication_key_id: 1,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+                system_user: "metrics".parse()?,
+            },
+            Some("metrics".parse()?),
+        )]
+        #[case::hermetic_metrics(
+            UserMapping::HermeticSystemYubiHsm2Metrics {
+                authentication_key_id: 1,
+                system_user: "metrics".parse()?,
+            },
+            Some("metrics".parse()?),
+        )]
         #[case::operator_signing(
             UserMapping::SystemYubiHsmOperatorSigning {
                 authentication_key_id: 1,
@@ -3550,6 +3647,40 @@ mod tests {
                 authentication_key_id: 1,
                 ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
                 system_user: "backup".parse()?,
+            },
+            UserMappingFilter{ backend_user_kind: BackendUserKind::Admin },
+            &[]
+        )]
+        #[case::metrics_filter_default(
+            UserMapping::SystemYubiHsm2Metrics {
+                authentication_key_id: 1,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+                system_user: "metrics".parse()?,
+            },
+            UserMappingFilter::default(),
+            &["1"]
+        )]
+        #[case::metrics_filter_admin(
+            UserMapping::SystemYubiHsm2Metrics {
+                authentication_key_id: 1,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+                system_user: "metrics".parse()?,
+            },
+            UserMappingFilter{ backend_user_kind: BackendUserKind::Admin },
+            &[]
+        )]
+        #[case::hermetic_metrics_filter_default(
+            UserMapping::HermeticSystemYubiHsm2Metrics {
+                authentication_key_id: 1,
+                system_user: "metrics".parse()?,
+            },
+            UserMappingFilter::default(),
+            &["1"]
+        )]
+        #[case::hermetic_metrics_filter_admin(
+            UserMapping::HermeticSystemYubiHsm2Metrics {
+                authentication_key_id: 1,
+                system_user: "metrics".parse()?,
             },
             UserMappingFilter{ backend_user_kind: BackendUserKind::Admin },
             &[]
@@ -3636,6 +3767,40 @@ mod tests {
             UserMappingFilter{ backend_user_kind: BackendUserKind::Admin },
             0
         )]
+        #[case::metrics_filter_default(
+            UserMapping::SystemYubiHsm2Metrics {
+                authentication_key_id: 1,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+                system_user: "metrics".parse()?,
+            },
+            UserMappingFilter::default(),
+            1
+        )]
+        #[case::metrics_filter_admin(
+            UserMapping::SystemYubiHsm2Metrics {
+                authentication_key_id: 1,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+                system_user: "metrics".parse()?,
+            },
+            UserMappingFilter{ backend_user_kind: BackendUserKind::Admin },
+            0
+        )]
+        #[case::hermetic_metrics_filter_default(
+            UserMapping::HermeticSystemYubiHsm2Metrics {
+                authentication_key_id: 1,
+                system_user: "metrics".parse()?,
+            },
+            UserMappingFilter::default(),
+            1
+        )]
+        #[case::hermetic_metrics_filter_admin(
+            UserMapping::HermeticSystemYubiHsm2Metrics {
+                authentication_key_id: 1,
+                system_user: "metrics".parse()?,
+            },
+            UserMappingFilter{ backend_user_kind: BackendUserKind::Admin },
+            0
+        )]
         #[case::operator_filter_default(
             UserMapping::SystemYubiHsmOperatorSigning {
                 backend_key_id: 1,
@@ -3701,6 +3866,19 @@ mod tests {
                 system_user: "backup".parse()?,
              }
         )]
+        #[case::metrics(
+            UserMapping::SystemYubiHsm2Metrics {
+                authentication_key_id: 1,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+                system_user: "metrics".parse()?,
+            },
+        )]
+        #[case::hermetic_metrics(
+            UserMapping::HermeticSystemYubiHsm2Metrics {
+                authentication_key_id: 1,
+                system_user: "metrics".parse()?,
+            },
+        )]
         #[case::operator_signing(
             UserMapping::SystemYubiHsmOperatorSigning {
                 authentication_key_id: 1,
@@ -3736,6 +3914,19 @@ mod tests {
                 system_user: "backup".parse()?,
              }
         )]
+        #[case::metrics(
+            UserMapping::SystemYubiHsm2Metrics {
+                authentication_key_id: 1,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+                system_user: "metrics".parse()?,
+            },
+        )]
+        #[case::hermetic_metrics(
+            UserMapping::HermeticSystemYubiHsm2Metrics {
+                authentication_key_id: 1,
+                system_user: "metrics".parse()?,
+            },
+        )]
         #[case::operator_signing(
             UserMapping::SystemYubiHsmOperatorSigning {
                 authentication_key_id: 1,
@@ -3770,6 +3961,21 @@ mod tests {
                 ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
                 system_user: "backup".parse()?,
              },
+            FilterUserKeys::All,
+        )]
+        #[case::metrics(
+            UserMapping::SystemYubiHsm2Metrics {
+                authentication_key_id: 1,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+                system_user: "metrics".parse()?,
+            },
+            FilterUserKeys::All,
+        )]
+        #[case::hermetic_metrics(
+            UserMapping::HermeticSystemYubiHsm2Metrics {
+                authentication_key_id: 1,
+                system_user: "metrics".parse()?,
+            },
             FilterUserKeys::All,
         )]
         #[case::operator_signing(
@@ -3811,6 +4017,19 @@ mod tests {
                 system_user: "backup".parse()?,
              }
         )]
+        #[case::metrics(
+            UserMapping::SystemYubiHsm2Metrics {
+                authentication_key_id: 1,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+                system_user: "metrics".parse()?,
+            },
+        )]
+        #[case::hermetic_metrics(
+            UserMapping::HermeticSystemYubiHsm2Metrics {
+                authentication_key_id: 1,
+                system_user: "metrics".parse()?,
+            },
+        )]
         #[case::operator_signing(
             UserMapping::SystemYubiHsmOperatorSigning {
                 authentication_key_id: 1,
@@ -3846,6 +4065,21 @@ mod tests {
                 system_user: "backup".parse()?,
              },
             Some("ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?),
+        )]
+        #[case::metrics(
+            UserMapping::SystemYubiHsm2Metrics {
+                authentication_key_id: 1,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+                system_user: "metrics".parse()?,
+            },
+            Some("ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?),
+        )]
+        #[case::hermetic_metrics(
+            UserMapping::HermeticSystemYubiHsm2Metrics {
+                authentication_key_id: 1,
+                system_user: "metrics".parse()?,
+            },
+            None,
         )]
         #[case::operator_signing(
             UserMapping::SystemYubiHsmOperatorSigning {
@@ -3893,6 +4127,36 @@ mod tests {
                 ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
                 system_user: "backup".parse()?,
              },
+            Some("ns1".parse()?),
+        )]
+        #[case::metrics_target_system_wide(
+            UserMapping::SystemYubiHsm2Metrics {
+                authentication_key_id: 1,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+                system_user: "metrics".parse()?,
+            },
+            None,
+        )]
+        #[case::metrics_target_namespace(
+            UserMapping::SystemYubiHsm2Metrics {
+                authentication_key_id: 1,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+                system_user: "metrics".parse()?,
+            },
+            Some("ns1".parse()?),
+        )]
+        #[case::hermetic_metrics_target_system_wide(
+            UserMapping::HermeticSystemYubiHsm2Metrics {
+                authentication_key_id: 1,
+                system_user: "metrics".parse()?,
+            },
+            None,
+        )]
+        #[case::hermetic_metrics_target_namespace(
+            UserMapping::HermeticSystemYubiHsm2Metrics {
+                authentication_key_id: 1,
+                system_user: "metrics".parse()?,
+            },
             Some("ns1".parse()?),
         )]
         #[case::operator_signing_target_system_wide(
@@ -3963,6 +4227,36 @@ mod tests {
              },
             Some("ns1".parse()?),
         )]
+        #[case::metrics_target_system_wide(
+            UserMapping::SystemYubiHsm2Metrics {
+                authentication_key_id: 1,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+                system_user: "metrics".parse()?,
+            },
+            None,
+        )]
+        #[case::metrics_target_namespace(
+            UserMapping::SystemYubiHsm2Metrics {
+                authentication_key_id: 1,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+                system_user: "metrics".parse()?,
+            },
+            Some("ns1".parse()?),
+        )]
+        #[case::hermetic_metrics_target_system_wide(
+            UserMapping::HermeticSystemYubiHsm2Metrics {
+                authentication_key_id: 1,
+                system_user: "metrics".parse()?,
+            },
+            None,
+        )]
+        #[case::hermetic_metrics_target_namespace(
+            UserMapping::HermeticSystemYubiHsm2Metrics {
+                authentication_key_id: 1,
+                system_user: "metrics".parse()?,
+            },
+            Some("ns1".parse()?),
+        )]
         #[case::operator_signing_target_system_wide(
             UserMapping::SystemYubiHsmOperatorSigning {
                 authentication_key_id: 1,
@@ -4021,6 +4315,19 @@ mod tests {
                 system_user: "backup".parse()?,
              },
         )]
+        #[case::metrics(
+            UserMapping::SystemYubiHsm2Metrics {
+                authentication_key_id: 1,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+                system_user: "metrics".parse()?,
+            },
+        )]
+        #[case::hermetic_metrics(
+            UserMapping::HermeticSystemYubiHsm2Metrics {
+                authentication_key_id: 1,
+                system_user: "metrics".parse()?,
+            },
+        )]
         #[case::operator_signing(
             UserMapping::SystemYubiHsmOperatorSigning {
                 authentication_key_id: 1,
@@ -4056,6 +4363,21 @@ mod tests {
                 system_user: "backup".parse()?,
              },
              true
+        )]
+        #[case::metrics(
+            UserMapping::SystemYubiHsm2Metrics {
+                authentication_key_id: 1,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
+                system_user: "metrics".parse()?,
+            },
+            true
+        )]
+        #[case::hermetic_metrics(
+            UserMapping::HermeticSystemYubiHsm2Metrics {
+                authentication_key_id: 1,
+                system_user: "metrics".parse()?,
+            },
+            true
         )]
         #[case::operator_signing(
             UserMapping::SystemYubiHsmOperatorSigning {
