@@ -3,10 +3,9 @@
 //! Based on a [`NetHsm`], [`NetHsmAdminCredentials`] and a [`SignstarConfig`] this module offers
 //! the ability to populate a [`NetHsm`] backend with the help of the [`NetHsmBackend`] struct.
 //!
-//! Using [`NetHsmBackend::sync`] all users and keys configured in [`SignstarConfig`]
+//! Using [`NetHsmBackend::sync`] all users and keys configured in a [`SignstarConfig`]
 //! are created and adapted to changes upon re-run.
-//! With the help of [`NetHsmBackend::state`] the current [`State`] of a [`NetHsm`] backend can
-//! be created and compared with e.g. the [`State`] representation of a [`SignstarConfig`].
+//! The state representation can be found in the [`nethsm::state`][`crate::nethsm::state`] module.
 //!
 //! # Note
 //!
@@ -33,16 +32,14 @@ use nethsm::{
 };
 use pgp::composed::{Deserializable, SignedPublicKey};
 
-use super::{Error, state::StateType};
+use super::Error;
 use crate::{
     FilterUserKeys,
-    KeyState,
     NetHsmAdminCredentials,
     SignstarConfig,
-    State,
     UserMapping,
-    UserState,
-    nethsm::state::KeyCertificateState,
+    config::state::{KeyCertificateState, KeyState, UserState},
+    state::StateType,
 };
 
 /// Creates all _R-Administrators_ on a [`NetHsm`].
@@ -582,7 +579,7 @@ fn add_system_wide_keys(
                     &key_id,
                     None,
                     KeySetupComparison {
-                        state_type: StateType::SignstarConfig,
+                        state_type: StateType::SignstarConfigNetHsm,
                         key_type: key_setup.key_type(),
                         key_mechanisms: HashSet::from_iter(key_setup.key_mechanisms().to_vec()),
                     },
@@ -710,7 +707,7 @@ fn add_namespaced_keys(
                     &key_id,
                     Some(namespace),
                     KeySetupComparison {
-                        state_type: StateType::SignstarConfig,
+                        state_type: StateType::SignstarConfigNetHsm,
                         key_type: key_setup.key_type(),
                         key_mechanisms: HashSet::from_iter(key_setup.key_mechanisms().to_vec()),
                     },
@@ -1060,200 +1057,6 @@ fn add_namespaced_openpgp_certificates(
     Ok(())
 }
 
-/// Retrieves the state for all users on a [`NetHsm`] backend.
-///
-/// # Note
-///
-/// Uses the `nethsm` with the [default
-/// _R-Administrator_][`NetHsmAdminCredentials::get_default_administrator`].
-///
-/// # Errors
-///
-/// Returns an error if
-///
-/// - using the credentials of the default *R-Administrator* fails,
-/// - retrieving all user names of the NetHSM backend fails,
-/// - retrieving information about a specific NetHSM user fails,
-/// - or retrieving the tags of an *Operator* user fails.
-pub(crate) fn get_user_states(
-    nethsm: &NetHsm,
-    admin_credentials: &NetHsmAdminCredentials,
-) -> Result<Vec<UserState>, crate::Error> {
-    // Use the default R-Administrator.
-    nethsm.use_credentials(&admin_credentials.get_default_administrator()?.name)?;
-
-    let mut users = Vec::new();
-    for user_id in nethsm.get_users()? {
-        let user_data = nethsm.get_user(&user_id)?;
-        let tags = if user_data.role == UserRole::Operator.into() {
-            nethsm.get_user_tags(&user_id)?
-        } else {
-            Vec::new()
-        };
-        users.push(UserState {
-            name: user_id,
-            role: user_data.role.into(),
-            tags,
-        });
-    }
-
-    Ok(users)
-}
-
-/// Retrieve the state of a key certificate.
-///
-/// Key certificates may be retrieved for system-wide keys or namespaced keys.
-/// Returns a [`KeyCertificateState`], which may also encode reasons for why state cannot be
-/// retrieved.
-///
-/// # Note
-///
-/// It is assumed that the current credentials for the `nethsm` provide access to the key
-/// certificate of key `key_id`.
-fn get_key_certificate_state(
-    nethsm: &NetHsm,
-    key_id: &KeyId,
-    namespace: Option<&NamespaceId>,
-) -> KeyCertificateState {
-    // Provide a dedicated string for log messages in case a namespace is used.
-    let namespace = if let Some(namespace) = namespace {
-        format!(" in namespace \"{namespace}\"")
-    } else {
-        "".to_string()
-    };
-
-    match nethsm.get_key_certificate(key_id) {
-        Ok(Some(key_cert)) => {
-            let public_key = match SignedPublicKey::from_reader_single(key_cert.as_slice()) {
-                Ok((public_key, _armor_header)) => public_key,
-                Err(error) => {
-                    let message = format!(
-                        "Unable to create OpenPGP certificate from key certificate of key \"{key_id}\"{namespace}:\n{error}"
-                    );
-                    debug!("{message}");
-                    return KeyCertificateState::NotAnOpenPgpCertificate { message };
-                }
-            };
-
-            match TryInto::<CryptographicKeyContext>::try_into(public_key) {
-                Ok(key_context) => KeyCertificateState::KeyContext(key_context),
-                Err(error) => {
-                    let message = format!(
-                        "Unable to convert OpenPGP certificate of key \"{key_id}\"{namespace} to key context:\n{error}"
-                    );
-                    debug!("{message}");
-                    KeyCertificateState::NotACryptographicKeyContext { message }
-                }
-            }
-        }
-        Ok(None) => KeyCertificateState::Empty,
-        Err(error) => {
-            let message = error.to_string();
-            debug!("{message}");
-            KeyCertificateState::Error { message }
-        }
-    }
-}
-
-/// Retrieves the state for all keys on a [`NetHsm`] backend.
-///
-/// Collects each key, their [`KeyType`] and list of [`KeyMechanisms`][`KeyMechanism`].
-/// Also attempts to derive a [`CryptographicKeyContext`] from the key certificate.
-///
-/// # Note
-///
-/// This function uses the `nethsm` with the [default
-/// _R-Administrator_][`NetHsmAdminCredentials::get_default_administrator`], but may switch to a
-/// namespace-specific _N-Administrator_ for individual operations.
-/// If this function succeeds, the `nethsm` is guaranteed to use the [default
-/// _R-Administrator_][`NetHsmAdminCredentials::get_default_administrator`] again.
-/// If this function fails, the `nethsm` may still use a namespace-specific _N-Administrator_.
-///
-///
-/// # Errors
-///
-/// Returns an error if
-///
-/// - using the default *R-Administrator* for authentication against the backend fails,
-/// - retrieving the names of all system-wide keys on the backend fails,
-/// - retrieving information on a specific system-wide key on the backend fails,
-/// - an *N-Administrator* in `admin_credentials` is not actually in a namespace,
-/// - using the credentials of an *N-Administrator* fails,
-/// - retrieving the names of all namespaced keys on the backend fails,
-/// - or retrieving information on a specific namespaced key on the backend fails.
-fn get_key_states(
-    nethsm: &NetHsm,
-    admin_credentials: &NetHsmAdminCredentials,
-) -> Result<Vec<KeyState>, crate::Error> {
-    // Use the default administrator
-    let default_admin = &admin_credentials.get_default_administrator()?.name;
-    nethsm.use_credentials(default_admin)?;
-
-    let mut keys = Vec::new();
-    // Get the state of system-wide keys.
-    for key_id in nethsm.get_keys(None)? {
-        let key = nethsm.get_key(&key_id)?;
-        let key_context = get_key_certificate_state(nethsm, &key_id, None);
-
-        keys.push(KeyState {
-            name: key_id,
-            namespace: None,
-            tags: key.restrictions.tags.unwrap_or_default(),
-            key_type: key
-                .r#type
-                .try_into()
-                .map_err(nethsm::Error::SignstarCryptoKey)?,
-            mechanisms: key.mechanisms.iter().map(KeyMechanism::from).collect(),
-            key_cert_state: key_context,
-        });
-    }
-
-    let mut seen_namespaces = HashSet::new();
-    // Get the state of namespaced keys.
-    for user_id in admin_credentials
-        .get_namespace_administrators()
-        .iter()
-        .map(|creds| creds.name.clone())
-    {
-        // Extract the namespace of the user and ensure that the namespace exists already.
-        let Some(namespace) = user_id.namespace() else {
-            return Err(Error::NamespaceUserNoNamespace {
-                user: user_id.clone(),
-            }
-            .into());
-        };
-
-        // Only extract key information for the namespace if we have not already looked at it.
-        if seen_namespaces.contains(namespace) {
-            continue;
-        }
-        seen_namespaces.insert(namespace.clone());
-
-        nethsm.use_credentials(&user_id)?;
-        for key_id in nethsm.get_keys(None)? {
-            let key = nethsm.get_key(&key_id)?;
-            let key_context = get_key_certificate_state(nethsm, &key_id, Some(namespace));
-
-            keys.push(KeyState {
-                name: key_id,
-                namespace: Some(namespace.clone()),
-                tags: key.restrictions.tags.unwrap_or_default(),
-                key_type: key
-                    .r#type
-                    .try_into()
-                    .map_err(nethsm::Error::SignstarCryptoKey)?,
-                mechanisms: key.mechanisms.iter().map(KeyMechanism::from).collect(),
-                key_cert_state: key_context,
-            });
-        }
-    }
-
-    // Always use the default *R-Administrator* again.
-    nethsm.use_credentials(default_admin)?;
-
-    Ok(keys)
-}
-
 /// A NetHSM backend that provides full control over its data.
 ///
 /// This backend allows full control over the data in a [`NetHsm`], to the extend that is configured
@@ -1378,7 +1181,121 @@ impl<'a, 'b> NetHsmBackend<'a, 'b> {
         })
     }
 
-    /// Creates a new [`State`] for the [`NetHsm`] backend.
+    /// Returns a reference to the tracked [`NetHsm`].
+    pub fn nethsm(&self) -> &NetHsm {
+        &self.nethsm
+    }
+
+    /// Unlocks a locked [`NetHsm`] backend.
+    pub(crate) fn unlock_nethsm(&self) -> Result<(), crate::Error> {
+        Ok(self.nethsm.unlock(Passphrase::new(
+            self.admin_credentials.get_unlock_passphrase().into(),
+        ))?)
+    }
+
+    /// Retrieves the state for all users on the [`NetHsm`] backend.
+    ///
+    /// # Note
+    ///
+    /// Uses the `nethsm` with the [default
+    /// _R-Administrator_][`NetHsmAdminCredentials::get_default_administrator`].
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if
+    ///
+    /// - using the credentials of the default *R-Administrator* fails,
+    /// - retrieving all user names of the NetHSM backend fails,
+    /// - retrieving information about a specific NetHSM user fails,
+    /// - or retrieving the tags of an *Operator* user fails.
+    pub(crate) fn user_states(&self) -> Result<Vec<UserState>, crate::Error> {
+        // Use the default R-Administrator.
+        self.nethsm
+            .use_credentials(&self.admin_credentials.get_default_administrator()?.name)?;
+
+        let users = {
+            let mut users: Vec<UserState> = Vec::new();
+
+            for user_id in self.nethsm.get_users()? {
+                let user_data = self.nethsm.get_user(&user_id)?;
+                let tags = if user_data.role == UserRole::Operator.into() {
+                    self.nethsm.get_user_tags(&user_id)?
+                } else {
+                    Vec::new()
+                };
+
+                users.push(UserState {
+                    name: user_id,
+                    role: user_data.role.into(),
+                    tags,
+                });
+            }
+
+            users
+        };
+
+        Ok(users)
+    }
+
+    /// Retrieves the state of a key certificate on the [`NetHsm`] backend.
+    ///
+    /// Key certificates may be retrieved for system-wide keys or namespaced keys.
+    /// Returns a [`KeyCertificateState`], which may also encode reasons for why state cannot be
+    /// retrieved.
+    ///
+    /// # Note
+    ///
+    /// It is assumed that the current credentials for the `nethsm` provide access to the key
+    /// certificate of key `key_id`.
+    fn key_certificate_state(
+        &self,
+        key_id: &KeyId,
+        namespace: Option<&NamespaceId>,
+    ) -> KeyCertificateState {
+        // Provide a dedicated string for log messages in case a namespace is used.
+        let namespace = if let Some(namespace) = namespace {
+            format!(" in namespace \"{namespace}\"")
+        } else {
+            "".to_string()
+        };
+
+        match self.nethsm.get_key_certificate(key_id) {
+            Ok(Some(key_cert)) => {
+                let public_key = match SignedPublicKey::from_reader_single(key_cert.as_slice()) {
+                    Ok((public_key, _armor_header)) => public_key,
+                    Err(error) => {
+                        let message = format!(
+                            "Unable to create OpenPGP certificate from key certificate of key \"{key_id}\"{namespace}:\n{error}"
+                        );
+                        debug!("{message}");
+                        return KeyCertificateState::NotAnOpenPgpCertificate { message };
+                    }
+                };
+
+                match TryInto::<CryptographicKeyContext>::try_into(public_key) {
+                    Ok(key_context) => KeyCertificateState::KeyContext(key_context),
+                    Err(error) => {
+                        let message = format!(
+                            "Unable to convert OpenPGP certificate of key \"{key_id}\"{namespace} to key context:\n{error}"
+                        );
+                        debug!("{message}");
+                        KeyCertificateState::NotACryptographicKeyContext { message }
+                    }
+                }
+            }
+            Ok(None) => KeyCertificateState::Empty,
+            Err(error) => {
+                let message = error.to_string();
+                debug!("{message}");
+                KeyCertificateState::Error { message }
+            }
+        }
+    }
+
+    /// Retrieves the state for all keys on the [`NetHsm`] backend.
+    ///
+    /// Collects each key, their [`KeyType`] and list of [`KeyMechanisms`][`KeyMechanism`].
+    /// Also attempts to derive a [`CryptographicKeyContext`] from the key certificate.
     ///
     /// # Note
     ///
@@ -1389,59 +1306,87 @@ impl<'a, 'b> NetHsmBackend<'a, 'b> {
     /// _R-Administrator_][`NetHsmAdminCredentials::get_default_administrator`] again.
     /// If this function fails, the `nethsm` may still use a namespace-specific _N-Administrator_.
     ///
+    ///
     /// # Errors
     ///
     /// Returns an error if
     ///
-    /// - retrieving the system state of the tracked [`NetHsm`] fails,
-    /// - unlocking a locked [`NetHsm`] backend fails,
-    /// - or retrieving the state of users or keys on the tracked [`NetHsm`] backend fails.
-    pub fn state(&self) -> Result<State, crate::Error> {
-        debug!(
-            "Retrieve state of the NetHSM backend at {}",
-            self.nethsm.get_url()
-        );
+    /// - using the default *R-Administrator* for authentication against the backend fails,
+    /// - retrieving the names of all system-wide keys on the backend fails,
+    /// - retrieving information on a specific system-wide key on the backend fails,
+    /// - an *N-Administrator* in `admin_credentials` is not actually in a namespace,
+    /// - using the credentials of an *N-Administrator* fails,
+    /// - retrieving the names of all namespaced keys on the backend fails,
+    /// - or retrieving information on a specific namespaced key on the backend fails.
+    pub(crate) fn key_states(&self) -> Result<Vec<KeyState>, crate::Error> {
+        // Use the default administrator
+        let default_admin = &self.admin_credentials.get_default_administrator()?.name;
+        self.nethsm.use_credentials(default_admin)?;
 
-        let (users, keys) = match self.nethsm.state()? {
-            SystemState::Unprovisioned => {
-                debug!(
-                    "Unprovisioned NetHSM backend detected at {}.\nSync should be run!",
-                    self.nethsm.get_url()
-                );
+        let mut keys = Vec::new();
+        // Get the state of system-wide keys.
+        for key_id in self.nethsm.get_keys(None)? {
+            let key = self.nethsm.get_key(&key_id)?;
+            let key_context = self.key_certificate_state(&key_id, None);
 
-                (Vec::new(), Vec::new())
+            keys.push(KeyState {
+                name: key_id,
+                namespace: None,
+                tags: key.restrictions.tags.unwrap_or_default(),
+                key_type: key
+                    .r#type
+                    .try_into()
+                    .map_err(nethsm::Error::SignstarCryptoKey)?,
+                mechanisms: key.mechanisms.iter().map(KeyMechanism::from).collect(),
+                key_cert_state: key_context,
+            });
+        }
+
+        let mut seen_namespaces = HashSet::new();
+        // Get the state of namespaced keys.
+        for user_id in self
+            .admin_credentials
+            .get_namespace_administrators()
+            .iter()
+            .map(|creds| creds.name.clone())
+        {
+            // Extract the namespace of the user and ensure that the namespace exists already.
+            let Some(namespace) = user_id.namespace() else {
+                return Err(Error::NamespaceUserNoNamespace {
+                    user: user_id.clone(),
+                }
+                .into());
+            };
+
+            // Only extract key information for the namespace if we have not already looked at it.
+            if seen_namespaces.contains(namespace) {
+                continue;
             }
-            SystemState::Locked => {
-                debug!(
-                    "Locked NetHSM backend detected at {}",
-                    self.nethsm.get_url()
-                );
+            seen_namespaces.insert(namespace.clone());
 
-                self.nethsm.unlock(Passphrase::new(
-                    self.admin_credentials.get_unlock_passphrase().into(),
-                ))?;
+            self.nethsm.use_credentials(&user_id)?;
+            for key_id in self.nethsm.get_keys(None)? {
+                let key = self.nethsm.get_key(&key_id)?;
+                let key_context = self.key_certificate_state(&key_id, Some(namespace));
 
-                let users = get_user_states(&self.nethsm, self.admin_credentials)?;
-                let keys = get_key_states(&self.nethsm, self.admin_credentials)?;
-                (users, keys)
+                keys.push(KeyState {
+                    name: key_id,
+                    namespace: Some(namespace.clone()),
+                    tags: key.restrictions.tags.unwrap_or_default(),
+                    key_type: key
+                        .r#type
+                        .try_into()
+                        .map_err(nethsm::Error::SignstarCryptoKey)?,
+                    mechanisms: key.mechanisms.iter().map(KeyMechanism::from).collect(),
+                    key_cert_state: key_context,
+                });
             }
-            SystemState::Operational => {
-                debug!(
-                    "Operational NetHSM backend detected at {}",
-                    self.nethsm.get_url()
-                );
+        }
 
-                let users = get_user_states(&self.nethsm, self.admin_credentials)?;
-                let keys = get_key_states(&self.nethsm, self.admin_credentials)?;
-                (users, keys)
-            }
-        };
+        // Always use the default *R-Administrator* again.
+        self.nethsm.use_credentials(default_admin)?;
 
-        Ok(State {
-            state_type: StateType::NetHsm,
-            users,
-            keys,
-        })
+        Ok(keys)
     }
 
     /// Syncs the state of a Signstar configuration with the backend using credentials for users in

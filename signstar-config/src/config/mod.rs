@@ -4,3 +4,4 @@ pub mod base;
 pub mod credentials;
 pub mod error;
 pub mod mapping;
+pub mod state;

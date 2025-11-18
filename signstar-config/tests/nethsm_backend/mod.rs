@@ -6,8 +6,10 @@ use rstest::rstest;
 use signstar_common::logging::setup_logging;
 use signstar_config::{
     NetHsmBackend,
-    State,
     UserMapping,
+    config::state::SignstarConfigNetHsmState,
+    nethsm::state::NetHsmState,
+    state::StateHandling,
     test::{admin_credentials, create_full_credentials, signstar_config},
 };
 use testresult::TestResult;
@@ -32,7 +34,7 @@ async fn sync_unprovisioned_backend(
     let url = container.url().await?;
     let signstar_config = signstar_config(config_data)?;
     // Derive the acclaimed NetHSM state from the Signstar config
-    let signstar_state = State::from(&signstar_config);
+    let signstar_state = SignstarConfigNetHsmState::from(&signstar_config);
     let user_mappings = signstar_config
         .iter_user_mappings()
         .cloned()
@@ -59,14 +61,16 @@ async fn sync_unprovisioned_backend(
     nethsm_backend.sync(&user_credentials)?;
 
     debug!("Retrieve state of NetHSM");
-    let nethsm_state = nethsm_backend.state()?;
+    let initial_nethsm_state = NetHsmState::try_from(&nethsm_backend)?;
+
     debug!("Compare state of NetHSM with that of the Signstar config");
-    nethsm_state.compare(&signstar_state)?;
+    initial_nethsm_state.compare(&signstar_state);
+
     debug!("Rerunning sync");
     nethsm_backend.sync(&user_credentials)?;
-    let nethsm_state = nethsm_backend.state()?;
+    let nethsm_state = NetHsmState::try_from(&nethsm_backend)?;
     debug!("Compare state of NetHSM with that of the Signstar config");
-    nethsm_state.compare(&signstar_state)?;
+    nethsm_state.compare(&signstar_state);
 
     Ok(())
 }
