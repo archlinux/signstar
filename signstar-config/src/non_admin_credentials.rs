@@ -288,6 +288,10 @@ impl CredentialsLoading {
                 false
             }
             #[cfg(feature = "yubihsm2")]
+            UserMapping::SystemYubiHsm2Metrics { .. } => false,
+            #[cfg(feature = "yubihsm2")]
+            UserMapping::HermeticSystemYubiHsm2Metrics { .. } => false,
+            #[cfg(feature = "yubihsm2")]
             UserMapping::SystemYubiHsmOperatorSigning { .. } => true,
         }
     }

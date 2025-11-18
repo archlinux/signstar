@@ -261,6 +261,16 @@ impl TryFrom<&UserMapping> for SshForceCommand {
             #[cfg(feature = "yubihsm2")]
             UserMapping::SystemYubiHsm2Backup { .. } => Ok(Self::DownloadBackup),
             #[cfg(feature = "yubihsm2")]
+            UserMapping::SystemYubiHsm2Metrics { .. } => Ok(Self::DownloadMetrics),
+            #[cfg(feature = "yubihsm2")]
+            UserMapping::HermeticSystemYubiHsm2Metrics {
+                authentication_key_id,
+                system_user,
+            } => Err(Error::NoForceCommandForMapping {
+                backend_users: vec![authentication_key_id.to_string()],
+                system_user: Some(system_user.to_string()),
+            }),
+            #[cfg(feature = "yubihsm2")]
             UserMapping::SystemYubiHsmOperatorSigning { .. } => Ok(Self::Sign),
             UserMapping::SystemOnlyShareDownload {
                 system_user: _,
