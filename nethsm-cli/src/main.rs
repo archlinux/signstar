@@ -840,8 +840,11 @@ fn run_command(cli: Cli) -> Result<(), Error> {
                         &cli.user,
                         &auth_passphrases,
                     )?;
-                let private_key = &read(command.tsk_file)?;
-                let (key_data, key_mechanism) = nethsm::tsk_to_private_key_import(private_key)?;
+                use nethsm::Deserializable as _;
+                let private_key = nethsm::SignedSecretKey::from_file(command.tsk_file)
+                    .map_err(nethsm::SignstarCryptoSignerError::Pgp)
+                    .map_err(nethsm::Error::SignstarCryptoSigner)?;
+                let (key_data, key_mechanism) = nethsm::tsk_to_private_key_import(&private_key)?;
 
                 let key_id = nethsm.import_key(
                     vec![key_mechanism],
