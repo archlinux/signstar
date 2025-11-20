@@ -6,14 +6,10 @@ use chrono::{DateTime, Utc};
 use digest::DynDigest;
 use ed25519_dalek::VerifyingKey;
 use log::{error, warn};
+// Publicly re-export `pgp` facilities, used in the API of `signstar_crypto::signer::openpgp`.
+pub use pgp::composed::{Deserializable, SignedSecretKey};
 use pgp::{
-    composed::{
-        ArmorOptions,
-        Deserializable as _,
-        DetachedSignature,
-        SignedPublicKey,
-        SignedSecretKey,
-    },
+    composed::{ArmorOptions, DetachedSignature, SignedPublicKey},
     crypto::{hash::HashAlgorithm, public_key::PublicKeyAlgorithm},
     packet::{
         Notation,
@@ -247,9 +243,8 @@ pub fn add_certificate(
 /// Returns an [`crate::key::Error::InvalidKeyLengthRsa`] if `key_data` is an RSA public key and is
 /// shorter than [`crate::key::base::MIN_RSA_BIT_LENGTH`].
 pub fn tsk_to_private_key_import(
-    key_data: &[u8],
+    key: &SignedSecretKey,
 ) -> Result<(PrivateKeyImport, KeyMechanism), Error> {
-    let key = SignedSecretKey::from_bytes(key_data)?;
     if !key.secret_subkeys.is_empty() {
         return Err(Error::OpenPgpTskContainsMultipleComponentKeys {
             fingerprint: key.fingerprint(),
@@ -606,8 +601,7 @@ impl RawPublicKey {
 ///
 /// - a secret key cannot be decoded from `key_data`,
 /// - or writing a serialized certificate into a vector fails.
-pub fn extract_certificate(key_data: &[u8]) -> Result<Vec<u8>, Error> {
-    let key = SignedSecretKey::from_bytes(key_data)?;
+pub fn extract_certificate(key: SignedSecretKey) -> Result<Vec<u8>, Error> {
     let public: SignedPublicKey = key.into();
     let mut buffer = vec![];
     public.to_writer(&mut buffer)?;
@@ -797,15 +791,13 @@ mod tests {
 
     #[test]
     fn private_key_import_ed25199_is_correctly_zero_padded() -> TestResult {
-        let mut key_data = vec![];
-        SignedSecretKey::from_armor_single(std::fs::File::open(
+        let key = SignedSecretKey::from_armor_single(std::fs::File::open(
             "tests/fixtures/ed25519-key-with-31-byte-private-key-scalar.asc",
         )?)?
-        .0
-        .to_writer(&mut key_data)?;
+        .0;
 
         let import: nethsm_sdk_rs::models::KeyPrivateData =
-            tsk_to_private_key_import(&key_data)?.0.into();
+            tsk_to_private_key_import(&key)?.0.into();
 
         let data = Base64::decode_vec(&import.data.unwrap())?;
 
@@ -819,15 +811,13 @@ mod tests {
 
     #[test]
     fn private_key_import_rsa_key_with_nonstandard_moduli_is_read_correctly() -> TestResult {
-        let mut key_data = vec![];
-        SignedSecretKey::from_armor_single(std::fs::File::open(
+        let key = SignedSecretKey::from_armor_single(std::fs::File::open(
             "tests/fixtures/rsa-key-with-modulus-e-257.asc",
         )?)?
-        .0
-        .to_writer(&mut key_data)?;
+        .0;
 
         let import: nethsm_sdk_rs::models::KeyPrivateData =
-            tsk_to_private_key_import(&key_data)?.0.into();
+            tsk_to_private_key_import(&key)?.0.into();
 
         let data = Base64::decode_vec(&import.public_exponent.unwrap())?;
 
@@ -933,7 +923,7 @@ mod tests {
         let rng = rsa::rand_core::OsRng;
 
         let key = params.generate(rng)?.sign(rng, &Default::default())?;
-        let actual_type = tsk_to_private_key_import(&key.to_bytes()?)?.0.key_type();
+        let actual_type = tsk_to_private_key_import(&key)?.0.key_type();
         assert_eq!(actual_type, expected_type);
 
         Ok(())
@@ -948,7 +938,7 @@ mod tests {
             .generate(rsa::rand_core::OsRng)?
             .sign(rsa::rand_core::OsRng, &Default::default())?;
 
-        assert!(tsk_to_private_key_import(&key.to_bytes()?).is_err());
+        assert!(tsk_to_private_key_import(&key).is_err());
 
         Ok(())
     }

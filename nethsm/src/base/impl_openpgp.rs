@@ -13,6 +13,7 @@ use crate::{
     OpenPgpKeyUsageFlags,
     OpenPgpUserId,
     OpenPgpVersion,
+    SignedSecretKey,
     Utc,
     base::utils::user_or_no_user_string,
     signer::NetHsmKey,
@@ -413,9 +414,8 @@ impl NetHsm {
 ///
 /// - a secret key cannot be decoded from `key_data`,
 /// - or writing a serialized certificate into a vector fails.
-pub fn extract_openpgp_certificate(key_data: &[u8]) -> Result<Vec<u8>, Error> {
-    signstar_crypto::signer::openpgp::extract_certificate(key_data)
-        .map_err(Error::SignstarCryptoSigner)
+pub fn extract_openpgp_certificate(key: SignedSecretKey) -> Result<Vec<u8>, Error> {
+    signstar_crypto::signer::openpgp::extract_certificate(key).map_err(Error::SignstarCryptoSigner)
 }
 
 /// Converts an OpenPGP Transferable Secret Key into [`PrivateKeyImport`] object.
@@ -428,8 +428,8 @@ pub fn extract_openpgp_certificate(key_data: &[u8]) -> Result<Vec<u8>, Error> {
 /// Returns an [`crate::Error::Key`] if `key_data` is an RSA public key and is shorter than
 /// [`signstar_crypto::key::MIN_RSA_BIT_LENGTH`].
 pub fn tsk_to_private_key_import(
-    key_data: &[u8],
+    key: &SignedSecretKey,
 ) -> Result<(PrivateKeyImport, KeyMechanism), Error> {
-    signstar_crypto::signer::openpgp::tsk_to_private_key_import(key_data)
+    signstar_crypto::signer::openpgp::tsk_to_private_key_import(key)
         .map_err(Error::SignstarCryptoSigner)
 }

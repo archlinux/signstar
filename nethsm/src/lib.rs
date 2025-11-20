@@ -48,6 +48,10 @@ pub use signstar_crypto::{
     },
     openpgp::{OpenPgpKeyUsageFlags, OpenPgpUserId, OpenPgpUserIdList, OpenPgpVersion},
     passphrase::Passphrase,
+    signer::{
+        error::Error as SignstarCryptoSignerError,
+        openpgp::{Deserializable, SignedSecretKey},
+    },
 };
 pub use tls::{
     ConnectionSecurity,
