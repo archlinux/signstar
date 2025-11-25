@@ -16,3 +16,5 @@ command = "mdbook-mermaid"
 
 [output.html]
 additional-js = ["mermaid-init.js", "mermaid.min.js"]
+git-repository-icon = "fas-code-fork"
+git-repository-url = "https://gitlab.archlinux.org/archlinux/signstar"
