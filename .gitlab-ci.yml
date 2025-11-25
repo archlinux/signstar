@@ -135,6 +135,7 @@ docs:
   extends: .default-rust
   script:
     - just docs
+    - just build-book
   stage: test
 
 integration-test:
