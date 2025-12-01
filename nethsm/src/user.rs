@@ -791,8 +791,12 @@ mod tests {
     fn system_wide_user_id_new_fails_on_user_id_with_namespace() -> TestResult {
         match SystemWideUserId::new("ns1~test".to_string()) {
             Err(Error::SystemWideUserIdWithNamespace(_)) => Ok(()),
-            Err(error) => Err(format!("Expected to fail with a Error::SystemWideUserIdWithNamespace but got a different error instead:\n{error}").into()),
-            Ok(user_id) =>Err(format!("Expected to fail with a Error::SystemWideUserIdWithNamespace but succeeded instead:\n{user_id}").into())
+            Err(error) => panic!(
+                "Expected to fail with a Error::SystemWideUserIdWithNamespace but got a different error instead:\n{error}"
+            ),
+            Ok(user_id) => panic!(
+                "Expected to fail with a Error::SystemWideUserIdWithNamespace but succeeded instead:\n{user_id}"
+            ),
         }
     }
 
@@ -800,9 +804,13 @@ mod tests {
     #[test]
     fn system_wide_user_id_new_fails_on_invalid_user_id() -> TestResult {
         match SystemWideUserId::new("test[]".to_string()) {
-            Err(Error::InvalidUserIds{..}) => Ok(()),
-            Err(error) => Err(format!("Expected to fail with a Error::InvalidUserIds but got a different error instead:\n{error}").into()),
-            Ok(user_id) =>Err(format!("Expected to fail with a Error::InvalidUserIds but succeeded instead:\n{user_id}").into())
+            Err(Error::InvalidUserIds { .. }) => Ok(()),
+            Err(error) => panic!(
+                "Expected to fail with a Error::InvalidUserIds but got a different error instead:\n{error}"
+            ),
+            Ok(user_id) => panic!(
+                "Expected to fail with a Error::InvalidUserIds but succeeded instead:\n{user_id}"
+            ),
         }
     }
 

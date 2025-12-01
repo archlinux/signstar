@@ -136,18 +136,13 @@ mod tests {
             Vec::new(),
         ) {
             Ok(creds) => {
-                return Err(format!(
-                    "Expected Error::AdministratorMissing but succeeded instead:\n{creds:?}"
-                )
-                .into());
+                panic!("Expected Error::AdministratorMissing but succeeded instead:\n{creds:?}")
             }
+
             Err(crate::Error::AdminSecretHandling(Error::AdministratorMissing)) => {}
-            Err(error) => {
-                return Err(format!(
-                    "Expected Error::AdministratorMissing but failed differently instead:\n{error}"
-                )
-                .into());
-            }
+            Err(error) => panic!(
+                "Expected Error::AdministratorMissing but failed differently instead:\n{error}"
+            ),
         }
 
         Ok(())
@@ -161,18 +156,12 @@ mod tests {
             vec![Credentials::new(1, Passphrase::new("pass".to_string()))],
         ) {
             Ok(creds) => {
-                return Err(format!(
-                    "Expected Error::PassphraseTooShort but succeeded instead:\n{creds:?}"
-                )
-                .into());
+                panic!("Expected Error::PassphraseTooShort but succeeded instead:\n{creds:?}")
             }
             Err(crate::Error::AdminSecretHandling(Error::PassphraseTooShort { .. })) => {}
-            Err(error) => {
-                return Err(format!(
-                    "Expected Error::PassphraseTooShort but failed differently instead:\n{error}"
-                )
-                .into());
-            }
+            Err(error) => panic!(
+                "Expected Error::PassphraseTooShort but failed differently instead:\n{error}"
+            ),
         }
 
         Ok(())
@@ -186,18 +175,12 @@ mod tests {
             vec![Credentials::new(1, Passphrase::new("password".to_string()))],
         ) {
             Ok(creds) => {
-                return Err(format!(
-                    "Expected Error::PassphraseTooShort but succeeded instead:\n{creds:?}"
-                )
-                .into());
+                panic!("Expected Error::PassphraseTooShort but succeeded instead:\n{creds:?}")
             }
             Err(crate::Error::AdminSecretHandling(Error::PassphraseTooShort { .. })) => {}
-            Err(error) => {
-                return Err(format!(
-                    "Expected Error::PassphraseTooShort but failed differently instead:\n{error}"
-                )
-                .into());
-            }
+            Err(error) => panic!(
+                "Expected Error::PassphraseTooShort but failed differently instead:\n{error}"
+            ),
         }
 
         Ok(())

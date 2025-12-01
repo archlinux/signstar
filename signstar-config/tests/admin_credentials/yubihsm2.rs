@@ -47,17 +47,11 @@ fn fail_to_load_on_path_not_a_file() -> TestResult {
             signstar_config::admin_credentials::Error::CredsFileNotAFile { .. },
         )) => {}
         Ok(creds) => {
-            return Err(format!(
-                "Should have failed with Error::CredsFileNotAFile but succeeded:\n{creds:?}"
-            )
-            .into());
+            panic!("Should have failed with Error::CredsFileNotAFile but succeeded:\n{creds:?}")
         }
-        Err(error) => {
-            return Err(format!(
-                "Should have failed with Error::CredsFileNotAFile but returned different error:\n{error}"
-            )
-            .into());
-        }
+        Err(error) => panic!(
+            "Should have failed with Error::CredsFileNotAFile but returned different error:\n{error}"
+        ),
     }
 
     Ok(())
@@ -71,17 +65,11 @@ fn fail_to_load_on_missing_file() -> TestResult {
             signstar_config::admin_credentials::Error::CredsFileMissing { .. },
         )) => {}
         Ok(creds) => {
-            return Err(format!(
-                "Should have failed with Error::CredsFileMissing but succeeded:\n{creds:?}"
-            )
-            .into());
+            panic!("Should have failed with Error::CredsFileMissing but succeeded:\n{creds:?}")
         }
-        Err(error) => {
-            return Err(format!(
-                "Should have failed with Error::CredsFileMissing but returned different error:\n{error}"
-            )
-            .into());
-        }
+        Err(error) => panic!(
+            "Should have failed with Error::CredsFileMissing but returned different error:\n{error}"
+        ),
     }
 
     Ok(())
