@@ -109,7 +109,7 @@ For a full list of individual contributors, refer to `git log --format="%an <%aE
 [`codespell`]: https://github.com/codespell-project/codespell
 [`just`]: https://github.com/casey/just
 [`git commit --signoff`]: https://git-scm.com/docs/git-commit#git-commit---signoff
-[`reuse`]: https://git.fsfe.org/reuse/tool
+[`reuse`]: https://reuse.software/
 [`release-plz`]: https://github.com/MarcoIeni/release-plz
 [`rustfmt`]: https://github.com/rust-lang/rustfmt
 [crates.io]: https://crates.io
