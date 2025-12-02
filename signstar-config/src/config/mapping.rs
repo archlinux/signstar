@@ -288,8 +288,8 @@ pub enum UserMapping {
     /// [authentication key ID]: https://docs.yubico.com/hardware/yubihsm-2/hsm-2-user-guide/hsm2-core-concepts.html#authentication-key-object
     /// [capabilities]: https://docs.yubico.com/hardware/yubihsm-2/hsm-2-user-guide/hsm2-core-concepts.html#capability-protocol-details
     #[cfg(feature = "yubihsm2")]
-    #[serde(rename = "yubihsm_only_admin")]
-    YubiHsmOnlyAdmin(u16),
+    #[serde(rename = "yubihsm2_only_admin")]
+    YubiHsm2OnlyAdmin(u16),
 }
 
 impl UserMapping {
@@ -344,7 +344,7 @@ impl UserMapping {
                 ssh_authorized_key: _,
             } => Some(system_user),
             #[cfg(feature = "yubihsm2")]
-            UserMapping::YubiHsmOnlyAdmin(_) => None,
+            UserMapping::YubiHsm2OnlyAdmin(_) => None,
             #[cfg(feature = "yubihsm2")]
             UserMapping::SystemYubiHsm2OperatorSigning { system_user, .. }
             | UserMapping::SystemYubiHsm2Backup { system_user, .. }
@@ -419,7 +419,7 @@ impl UserMapping {
             | UserMapping::SystemOnlyShareUpload { .. }
             | UserMapping::SystemOnlyWireGuardDownload { .. } => Vec::new(),
             #[cfg(feature = "yubihsm2")]
-            UserMapping::YubiHsmOnlyAdmin(admin) => match filter.backend_user_kind {
+            UserMapping::YubiHsm2OnlyAdmin(admin) => match filter.backend_user_kind {
                 BackendUserKind::Admin => vec![admin.to_string()],
                 BackendUserKind::NonAdmin => Vec::new(),
             },
@@ -535,7 +535,7 @@ impl UserMapping {
             | UserMapping::SystemOnlyShareUpload { .. }
             | UserMapping::SystemOnlyWireGuardDownload { .. } => Vec::new(),
             #[cfg(feature = "yubihsm2")]
-            UserMapping::YubiHsmOnlyAdmin(admin) => match filter.backend_user_kind {
+            UserMapping::YubiHsm2OnlyAdmin(admin) => match filter.backend_user_kind {
                 BackendUserKind::Admin => vec![Box::new(signstar_yubihsm2::Credentials::new(
                     *admin,
                     Passphrase::generate(None),
@@ -603,7 +603,7 @@ impl UserMapping {
             | UserMapping::SystemOnlyShareUpload { .. }
             | UserMapping::SystemOnlyWireGuardDownload { .. } => Vec::new(),
             #[cfg(feature = "yubihsm2")]
-            UserMapping::YubiHsmOnlyAdmin(_)
+            UserMapping::YubiHsm2OnlyAdmin(_)
             | UserMapping::SystemYubiHsm2Backup { .. }
             | UserMapping::SystemYubiHsm2Metrics { .. }
             | UserMapping::HermeticSystemYubiHsm2Metrics { .. }
@@ -650,7 +650,7 @@ impl UserMapping {
             | UserMapping::SystemOnlyShareUpload { .. }
             | UserMapping::SystemOnlyWireGuardDownload { .. } => Vec::new(),
             #[cfg(feature = "yubihsm2")]
-            UserMapping::YubiHsmOnlyAdmin(_)
+            UserMapping::YubiHsm2OnlyAdmin(_)
             | UserMapping::SystemYubiHsm2Backup { .. }
             | UserMapping::SystemYubiHsm2Metrics { .. }
             | UserMapping::HermeticSystemYubiHsm2Metrics { .. }
@@ -731,7 +731,7 @@ impl UserMapping {
             | UserMapping::SystemOnlyShareUpload { .. }
             | UserMapping::SystemOnlyWireGuardDownload { .. } => Vec::new(),
             #[cfg(feature = "yubihsm2")]
-            UserMapping::YubiHsmOnlyAdmin(_)
+            UserMapping::YubiHsm2OnlyAdmin(_)
             | UserMapping::SystemYubiHsm2Backup { .. }
             | UserMapping::SystemYubiHsm2Metrics { .. }
             | UserMapping::HermeticSystemYubiHsm2Metrics { .. }
@@ -798,7 +798,7 @@ impl UserMapping {
                 ..
             } => Some(ssh_authorized_key),
             #[cfg(feature = "yubihsm2")]
-            UserMapping::YubiHsmOnlyAdmin(_)
+            UserMapping::YubiHsm2OnlyAdmin(_)
             | UserMapping::HermeticSystemYubiHsm2Metrics { .. } => None,
             #[cfg(feature = "yubihsm2")]
             UserMapping::SystemYubiHsm2OperatorSigning {
@@ -871,7 +871,7 @@ impl UserMapping {
             | UserMapping::SystemOnlyShareUpload { .. }
             | UserMapping::SystemOnlyWireGuardDownload { .. } => Vec::new(),
             #[cfg(feature = "yubihsm2")]
-            UserMapping::YubiHsmOnlyAdmin(_)
+            UserMapping::YubiHsm2OnlyAdmin(_)
             | UserMapping::SystemYubiHsm2Backup { .. }
             | UserMapping::SystemYubiHsm2Metrics { .. }
             | UserMapping::HermeticSystemYubiHsm2Metrics { .. }
@@ -947,7 +947,7 @@ impl UserMapping {
             | UserMapping::SystemOnlyShareUpload { .. }
             | UserMapping::SystemOnlyWireGuardDownload { .. } => Vec::new(),
             #[cfg(feature = "yubihsm2")]
-            UserMapping::YubiHsmOnlyAdmin(_)
+            UserMapping::YubiHsm2OnlyAdmin(_)
             | UserMapping::SystemYubiHsm2Backup { .. }
             | UserMapping::SystemYubiHsm2Metrics { .. }
             | UserMapping::HermeticSystemYubiHsm2Metrics { .. }
@@ -1100,7 +1100,7 @@ impl UserMapping {
             | UserMapping::SystemOnlyShareUpload { .. }
             | UserMapping::SystemOnlyWireGuardDownload { .. } => Vec::new(),
             #[cfg(feature = "yubihsm2")]
-            UserMapping::YubiHsmOnlyAdmin(_)
+            UserMapping::YubiHsm2OnlyAdmin(_)
             | UserMapping::SystemYubiHsm2Backup { .. }
             | UserMapping::SystemYubiHsm2Metrics { .. }
             | UserMapping::HermeticSystemYubiHsm2Metrics { .. }
@@ -1170,7 +1170,7 @@ impl UserMapping {
             | UserMapping::SystemOnlyShareUpload { .. }
             | UserMapping::SystemOnlyWireGuardDownload { .. } => Vec::new(),
             #[cfg(feature = "yubihsm2")]
-            UserMapping::YubiHsmOnlyAdmin(_)
+            UserMapping::YubiHsm2OnlyAdmin(_)
             | UserMapping::SystemYubiHsm2Backup { .. }
             | UserMapping::SystemYubiHsm2Metrics { .. }
             | UserMapping::HermeticSystemYubiHsm2Metrics { .. }
@@ -1189,7 +1189,7 @@ impl UserMapping {
             | UserMapping::SystemNetHsmMetrics { .. }
             | UserMapping::SystemNetHsmBackup { .. } => true,
             #[cfg(feature = "yubihsm2")]
-            UserMapping::YubiHsmOnlyAdmin(_) => false,
+            UserMapping::YubiHsm2OnlyAdmin(_) => false,
             #[cfg(feature = "yubihsm2")]
             UserMapping::SystemYubiHsm2Backup { .. }
             | UserMapping::SystemYubiHsm2Metrics { .. }
@@ -1472,7 +1472,7 @@ impl ExtendedUserMapping {
                     )));
                 }
                 #[cfg(feature = "yubihsm2")]
-                UserMapping::YubiHsmOnlyAdmin(_) => {}
+                UserMapping::YubiHsm2OnlyAdmin(_) => {}
                 #[cfg(feature = "yubihsm2")]
                 UserMapping::SystemYubiHsm2OperatorSigning {
                     authentication_key_id,
@@ -3565,7 +3565,7 @@ mod tests {
         /// Ensures that YubiHSM2 specific [`UserMapping`] variants work with
         /// [`UserMapping::get_system_user`].
         #[rstest]
-        #[case::admin(UserMapping::YubiHsmOnlyAdmin(1), None)]
+        #[case::admin(UserMapping::YubiHsm2OnlyAdmin(1), None)]
         #[case::backup(
             UserMapping::SystemYubiHsm2Backup{
                 authentication_key_id: 1,
@@ -3619,8 +3619,8 @@ mod tests {
         /// Ensures that YubiHSM2 specific [`UserMapping`] variants work with
         /// [`UserMapping::backend_users`].
         #[rstest]
-        #[case::admin_filter_default(UserMapping::YubiHsmOnlyAdmin(1), UserMappingFilter::default(), &[])]
-        #[case::admin_filter_admin(UserMapping::YubiHsmOnlyAdmin(1), UserMappingFilter{backend_user_kind: BackendUserKind::Admin}, &["1"])]
+        #[case::admin_filter_default(UserMapping::YubiHsm2OnlyAdmin(1), UserMappingFilter::default(), &[])]
+        #[case::admin_filter_admin(UserMapping::YubiHsm2OnlyAdmin(1), UserMappingFilter{backend_user_kind: BackendUserKind::Admin}, &["1"])]
         #[case::backup_filter_default(
             UserMapping::SystemYubiHsm2Backup{
                 authentication_key_id: 1,
@@ -3728,12 +3728,12 @@ mod tests {
         /// [`UserMapping::backend_users_with_new_passphrase`].
         #[rstest]
         #[case::admin_filter_default(
-            UserMapping::YubiHsmOnlyAdmin(1),
+            UserMapping::YubiHsm2OnlyAdmin(1),
             UserMappingFilter::default(),
             0
         )]
         #[case::admin_filter_admin(
-            UserMapping::YubiHsmOnlyAdmin(1),
+            UserMapping::YubiHsm2OnlyAdmin(1),
             UserMappingFilter{backend_user_kind: BackendUserKind::Admin},
             1
         )]
@@ -3846,7 +3846,7 @@ mod tests {
         /// Ensures that YubiHSM2 specific [`UserMapping`] variants work with
         /// [`UserMapping::get_nethsm_users`].
         #[rstest]
-        #[case::admin(UserMapping::YubiHsmOnlyAdmin(1))]
+        #[case::admin(UserMapping::YubiHsm2OnlyAdmin(1))]
         #[case::backup(
             UserMapping::SystemYubiHsm2Backup{
                 authentication_key_id: 1,
@@ -3894,7 +3894,7 @@ mod tests {
         /// Ensures that YubiHSM2 specific [`UserMapping`] variants work with
         /// [`UserMapping::get_nethsm_users_and_roles`].
         #[rstest]
-        #[case::admin(UserMapping::YubiHsmOnlyAdmin(1))]
+        #[case::admin(UserMapping::YubiHsm2OnlyAdmin(1))]
         #[case::backup(
             UserMapping::SystemYubiHsm2Backup{
                 authentication_key_id: 1,
@@ -3942,7 +3942,7 @@ mod tests {
         /// Ensures that YubiHSM2 specific [`UserMapping`] variants work with
         /// [`UserMapping::get_nethsm_user_key_and_tag`].
         #[rstest]
-        #[case::admin(UserMapping::YubiHsmOnlyAdmin(1), FilterUserKeys::All)]
+        #[case::admin(UserMapping::YubiHsm2OnlyAdmin(1), FilterUserKeys::All)]
         #[case::backup(
             UserMapping::SystemYubiHsm2Backup{
                 authentication_key_id: 1,
@@ -3997,7 +3997,7 @@ mod tests {
         /// Ensures that YubiHSM2 specific [`UserMapping`] variants work with
         /// [`UserMapping::get_nethsm_user_role_and_tags`].
         #[rstest]
-        #[case::admin(UserMapping::YubiHsmOnlyAdmin(1))]
+        #[case::admin(UserMapping::YubiHsm2OnlyAdmin(1))]
         #[case::backup(
             UserMapping::SystemYubiHsm2Backup{
                 authentication_key_id: 1,
@@ -4045,7 +4045,7 @@ mod tests {
         /// Ensures that YubiHSM2 specific [`UserMapping`] variants work with
         /// [`UserMapping::get_ssh_authorized_key`].
         #[rstest]
-        #[case::admin(UserMapping::YubiHsmOnlyAdmin(1), None)]
+        #[case::admin(UserMapping::YubiHsm2OnlyAdmin(1), None)]
         #[case::backup(
             UserMapping::SystemYubiHsm2Backup{
                 authentication_key_id: 1,
@@ -4099,8 +4099,8 @@ mod tests {
         /// Ensures that YubiHSM2 specific [`UserMapping`] variants work with
         /// [`UserMapping::get_nethsm_key_ids`].
         #[rstest]
-        #[case::admin_target_system_wide(UserMapping::YubiHsmOnlyAdmin(1), None)]
-        #[case::admin_target_namespace(UserMapping::YubiHsmOnlyAdmin(1), Some("ns1".parse()?))]
+        #[case::admin_target_system_wide(UserMapping::YubiHsm2OnlyAdmin(1), None)]
+        #[case::admin_target_namespace(UserMapping::YubiHsm2OnlyAdmin(1), Some("ns1".parse()?))]
         #[case::backup_target_system_wide(
             UserMapping::SystemYubiHsm2Backup{
                 authentication_key_id: 1,
@@ -4197,8 +4197,8 @@ mod tests {
         /// Ensures that YubiHSM2 specific [`UserMapping`] variants work with
         /// [`UserMapping::get_nethsm_tags`].
         #[rstest]
-        #[case::admin_target_system_wide(UserMapping::YubiHsmOnlyAdmin(1), None)]
-        #[case::admin_target_namespace(UserMapping::YubiHsmOnlyAdmin(1), Some("ns1".parse()?))]
+        #[case::admin_target_system_wide(UserMapping::YubiHsm2OnlyAdmin(1), None)]
+        #[case::admin_target_namespace(UserMapping::YubiHsm2OnlyAdmin(1), Some("ns1".parse()?))]
         #[case::backup_target_system_wide(
             UserMapping::SystemYubiHsm2Backup{
                 authentication_key_id: 1,
@@ -4295,7 +4295,7 @@ mod tests {
         /// Ensures that YubiHSM2 specific [`UserMapping`] variants work with
         /// [`UserMapping::get_nethsm_namespaces`].
         #[rstest]
-        #[case::admin(UserMapping::YubiHsmOnlyAdmin(1))]
+        #[case::admin(UserMapping::YubiHsm2OnlyAdmin(1))]
         #[case::backup(
             UserMapping::SystemYubiHsm2Backup{
                 authentication_key_id: 1,
@@ -4343,7 +4343,7 @@ mod tests {
         /// Ensures that YubiHSM2 specific [`UserMapping`] variants work with
         /// [`UserMapping::has_system_and_backend_user`].
         #[rstest]
-        #[case::admin(UserMapping::YubiHsmOnlyAdmin(1), false)]
+        #[case::admin(UserMapping::YubiHsm2OnlyAdmin(1), false)]
         #[case::backup(
             UserMapping::SystemYubiHsm2Backup{
                 authentication_key_id: 1,
