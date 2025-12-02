@@ -284,7 +284,7 @@ impl CredentialsLoading {
             | UserMapping::SystemOnlyWireGuardDownload { .. } => false,
             UserMapping::SystemNetHsmOperatorSigning { .. } => true,
             #[cfg(feature = "yubihsm2")]
-            UserMapping::YubiHsmOnlyAdmin { .. }
+            UserMapping::YubiHsm2OnlyAdmin { .. }
             | UserMapping::SystemYubiHsm2Backup { .. }
             | UserMapping::SystemYubiHsm2Metrics { .. }
             | UserMapping::HermeticSystemYubiHsm2Metrics { .. } => false,
