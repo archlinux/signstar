@@ -11,20 +11,20 @@ nethsm_only_admin = "admin" # this should not be necessary
 
 [[users]]
 
-[users.system_yubihsm_operator_signing]
+[users.system_yubihsm2_operator_signing]
 authentication_key_id = 2
 backend_key_domain = 1
 backend_key_id = 201
 ssh_authorized_key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAN54Gd1jMz+yNDjBRwX1SnOtWuUsVF64RJIeYJ8DI7b user@host"
 system_user = "sshoperator1"
 
-[users.system_yubihsm_operator_signing.backend_key_setup]
+[users.system_yubihsm2_operator_signing.backend_key_setup]
 key_id = "key1"
 key_mechanisms = ["EdDsaSignature"]
 key_type = "Curve25519"
 signature_type = "EdDsa"
 
-[users.system_yubihsm_operator_signing.backend_key_setup.key_context.openpgp]
+[users.system_yubihsm2_operator_signing.backend_key_setup.key_context.openpgp]
 user_ids = ["Foobar McFooface <foobar@mcfooface.org>"]
 version = "4"
 

@@ -284,15 +284,12 @@ impl CredentialsLoading {
             | UserMapping::SystemOnlyWireGuardDownload { .. } => false,
             UserMapping::SystemNetHsmOperatorSigning { .. } => true,
             #[cfg(feature = "yubihsm2")]
-            UserMapping::YubiHsmOnlyAdmin { .. } | UserMapping::SystemYubiHsm2Backup { .. } => {
-                false
-            }
+            UserMapping::YubiHsmOnlyAdmin { .. }
+            | UserMapping::SystemYubiHsm2Backup { .. }
+            | UserMapping::SystemYubiHsm2Metrics { .. }
+            | UserMapping::HermeticSystemYubiHsm2Metrics { .. } => false,
             #[cfg(feature = "yubihsm2")]
-            UserMapping::SystemYubiHsm2Metrics { .. } => false,
-            #[cfg(feature = "yubihsm2")]
-            UserMapping::HermeticSystemYubiHsm2Metrics { .. } => false,
-            #[cfg(feature = "yubihsm2")]
-            UserMapping::SystemYubiHsmOperatorSigning { .. } => true,
+            UserMapping::SystemYubiHsm2OperatorSigning { .. } => true,
         }
     }
 

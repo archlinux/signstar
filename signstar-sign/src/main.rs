@@ -102,7 +102,7 @@ fn load_signer() -> Result<Box<dyn RawSigningKey>, Error> {
     };
 
     #[cfg(feature = "yubihsm2")]
-    let yubihsm_key_ids = if let UserMapping::SystemYubiHsmOperatorSigning {
+    let yubihsm_key_ids = if let UserMapping::SystemYubiHsm2OperatorSigning {
         authentication_key_id,
         backend_key_id,
         ..
