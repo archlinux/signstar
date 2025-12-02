@@ -167,8 +167,8 @@ pub enum UserMapping {
     ///
     /// [capabilities]: https://docs.yubico.com/hardware/yubihsm-2/hsm-2-user-guide/hsm2-core-concepts.html#capability-protocol-details
     #[cfg(feature = "yubihsm2")]
-    #[serde(rename = "system_yubihsm_operator_signing")]
-    SystemYubiHsmOperatorSigning {
+    #[serde(rename = "system_yubihsm2_operator_signing")]
+    SystemYubiHsm2OperatorSigning {
         /// The identifier of the authentication key used to create a session with the YubiHSM2.
         authentication_key_id: u16,
         /// The setup of a YubiHSM2 key.
@@ -346,14 +346,7 @@ impl UserMapping {
             #[cfg(feature = "yubihsm2")]
             UserMapping::YubiHsmOnlyAdmin(_) => None,
             #[cfg(feature = "yubihsm2")]
-            UserMapping::SystemYubiHsmOperatorSigning {
-                authentication_key_id: _,
-                backend_key_setup: _,
-                backend_key_id: _,
-                backend_key_domain: _,
-                system_user,
-                ..
-            }
+            UserMapping::SystemYubiHsm2OperatorSigning { system_user, .. }
             | UserMapping::SystemYubiHsm2Backup { system_user, .. }
             | UserMapping::SystemYubiHsm2Metrics { system_user, .. }
             | UserMapping::HermeticSystemYubiHsm2Metrics { system_user, .. } => Some(system_user),
@@ -431,7 +424,7 @@ impl UserMapping {
                 BackendUserKind::NonAdmin => Vec::new(),
             },
             #[cfg(feature = "yubihsm2")]
-            UserMapping::SystemYubiHsmOperatorSigning {
+            UserMapping::SystemYubiHsm2OperatorSigning {
                 authentication_key_id,
                 ..
             }
@@ -550,7 +543,7 @@ impl UserMapping {
                 BackendUserKind::NonAdmin => Vec::new(),
             },
             #[cfg(feature = "yubihsm2")]
-            UserMapping::SystemYubiHsmOperatorSigning {
+            UserMapping::SystemYubiHsm2OperatorSigning {
                 authentication_key_id,
                 ..
             }
@@ -614,7 +607,7 @@ impl UserMapping {
             | UserMapping::SystemYubiHsm2Backup { .. }
             | UserMapping::SystemYubiHsm2Metrics { .. }
             | UserMapping::HermeticSystemYubiHsm2Metrics { .. }
-            | UserMapping::SystemYubiHsmOperatorSigning { .. } => Vec::new(),
+            | UserMapping::SystemYubiHsm2OperatorSigning { .. } => Vec::new(),
         }
     }
 
@@ -661,7 +654,7 @@ impl UserMapping {
             | UserMapping::SystemYubiHsm2Backup { .. }
             | UserMapping::SystemYubiHsm2Metrics { .. }
             | UserMapping::HermeticSystemYubiHsm2Metrics { .. }
-            | UserMapping::SystemYubiHsmOperatorSigning { .. } => Vec::new(),
+            | UserMapping::SystemYubiHsm2OperatorSigning { .. } => Vec::new(),
         }
     }
 
@@ -742,7 +735,7 @@ impl UserMapping {
             | UserMapping::SystemYubiHsm2Backup { .. }
             | UserMapping::SystemYubiHsm2Metrics { .. }
             | UserMapping::HermeticSystemYubiHsm2Metrics { .. }
-            | UserMapping::SystemYubiHsmOperatorSigning { .. } => Vec::new(),
+            | UserMapping::SystemYubiHsm2OperatorSigning { .. } => Vec::new(),
         }
     }
 
@@ -808,13 +801,8 @@ impl UserMapping {
             UserMapping::YubiHsmOnlyAdmin(_)
             | UserMapping::HermeticSystemYubiHsm2Metrics { .. } => None,
             #[cfg(feature = "yubihsm2")]
-            UserMapping::SystemYubiHsmOperatorSigning {
-                authentication_key_id: _,
-                backend_key_setup: _,
-                backend_key_id: _,
-                backend_key_domain: _,
-                system_user: _,
-                ssh_authorized_key,
+            UserMapping::SystemYubiHsm2OperatorSigning {
+                ssh_authorized_key, ..
             }
             | UserMapping::SystemYubiHsm2Backup {
                 ssh_authorized_key, ..
@@ -887,7 +875,7 @@ impl UserMapping {
             | UserMapping::SystemYubiHsm2Backup { .. }
             | UserMapping::SystemYubiHsm2Metrics { .. }
             | UserMapping::HermeticSystemYubiHsm2Metrics { .. }
-            | UserMapping::SystemYubiHsmOperatorSigning { .. } => Vec::new(),
+            | UserMapping::SystemYubiHsm2OperatorSigning { .. } => Vec::new(),
         }
     }
 
@@ -963,7 +951,7 @@ impl UserMapping {
             | UserMapping::SystemYubiHsm2Backup { .. }
             | UserMapping::SystemYubiHsm2Metrics { .. }
             | UserMapping::HermeticSystemYubiHsm2Metrics { .. }
-            | UserMapping::SystemYubiHsmOperatorSigning { .. } => Vec::new(),
+            | UserMapping::SystemYubiHsm2OperatorSigning { .. } => Vec::new(),
         }
     }
 
@@ -1116,7 +1104,7 @@ impl UserMapping {
             | UserMapping::SystemYubiHsm2Backup { .. }
             | UserMapping::SystemYubiHsm2Metrics { .. }
             | UserMapping::HermeticSystemYubiHsm2Metrics { .. }
-            | UserMapping::SystemYubiHsmOperatorSigning { .. } => Vec::new(),
+            | UserMapping::SystemYubiHsm2OperatorSigning { .. } => Vec::new(),
         }
     }
 
@@ -1186,7 +1174,7 @@ impl UserMapping {
             | UserMapping::SystemYubiHsm2Backup { .. }
             | UserMapping::SystemYubiHsm2Metrics { .. }
             | UserMapping::HermeticSystemYubiHsm2Metrics { .. }
-            | UserMapping::SystemYubiHsmOperatorSigning { .. } => Vec::new(),
+            | UserMapping::SystemYubiHsm2OperatorSigning { .. } => Vec::new(),
         }
     }
 
@@ -1206,7 +1194,7 @@ impl UserMapping {
             UserMapping::SystemYubiHsm2Backup { .. }
             | UserMapping::SystemYubiHsm2Metrics { .. }
             | UserMapping::HermeticSystemYubiHsm2Metrics { .. }
-            | UserMapping::SystemYubiHsmOperatorSigning { .. } => true,
+            | UserMapping::SystemYubiHsm2OperatorSigning { .. } => true,
             UserMapping::SystemOnlyShareDownload { .. }
             | UserMapping::SystemOnlyShareUpload { .. }
             | UserMapping::SystemOnlyWireGuardDownload { .. }
@@ -1486,7 +1474,7 @@ impl ExtendedUserMapping {
                 #[cfg(feature = "yubihsm2")]
                 UserMapping::YubiHsmOnlyAdmin(_) => {}
                 #[cfg(feature = "yubihsm2")]
-                UserMapping::SystemYubiHsmOperatorSigning {
+                UserMapping::SystemYubiHsm2OperatorSigning {
                     authentication_key_id,
                     ..
                 }
@@ -3602,7 +3590,7 @@ mod tests {
             Some("metrics".parse()?),
         )]
         #[case::operator_signing(
-            UserMapping::SystemYubiHsmOperatorSigning {
+            UserMapping::SystemYubiHsm2OperatorSigning {
                 authentication_key_id: 1,
                 backend_key_setup: SigningKeySetup::new(
                     "Curve25519".parse()?,
@@ -3686,7 +3674,7 @@ mod tests {
             &[]
         )]
         #[case::operator_filter_default(
-            UserMapping::SystemYubiHsmOperatorSigning {
+            UserMapping::SystemYubiHsm2OperatorSigning {
                 backend_key_id: 1,
                 backend_key_setup: SigningKeySetup::new(
                     "Curve25519".parse()?,
@@ -3707,7 +3695,7 @@ mod tests {
             &["1"]
         )]
         #[case::operator_filter_admin(
-            UserMapping::SystemYubiHsmOperatorSigning {
+            UserMapping::SystemYubiHsm2OperatorSigning {
                 backend_key_id: 1,
                 backend_key_setup: SigningKeySetup::new(
                     "Curve25519".parse()?,
@@ -3802,7 +3790,7 @@ mod tests {
             0
         )]
         #[case::operator_filter_default(
-            UserMapping::SystemYubiHsmOperatorSigning {
+            UserMapping::SystemYubiHsm2OperatorSigning {
                 backend_key_id: 1,
                 backend_key_setup: SigningKeySetup::new(
                     "Curve25519".parse()?,
@@ -3823,7 +3811,7 @@ mod tests {
             1
         )]
         #[case::operator_filter_admin(
-            UserMapping::SystemYubiHsmOperatorSigning {
+            UserMapping::SystemYubiHsm2OperatorSigning {
                 backend_key_id: 1,
                 backend_key_setup: SigningKeySetup::new(
                     "Curve25519".parse()?,
@@ -3880,7 +3868,7 @@ mod tests {
             },
         )]
         #[case::operator_signing(
-            UserMapping::SystemYubiHsmOperatorSigning {
+            UserMapping::SystemYubiHsm2OperatorSigning {
                 authentication_key_id: 1,
                 backend_key_setup: SigningKeySetup::new(
                     "Curve25519".parse()?,
@@ -3928,7 +3916,7 @@ mod tests {
             },
         )]
         #[case::operator_signing(
-            UserMapping::SystemYubiHsmOperatorSigning {
+            UserMapping::SystemYubiHsm2OperatorSigning {
                 authentication_key_id: 1,
                 backend_key_setup: SigningKeySetup::new(
                     "Curve25519".parse()?,
@@ -3979,7 +3967,7 @@ mod tests {
             FilterUserKeys::All,
         )]
         #[case::operator_signing(
-            UserMapping::SystemYubiHsmOperatorSigning {
+            UserMapping::SystemYubiHsm2OperatorSigning {
                 authentication_key_id: 1,
                 backend_key_setup: SigningKeySetup::new(
                     "Curve25519".parse()?,
@@ -4031,7 +4019,7 @@ mod tests {
             },
         )]
         #[case::operator_signing(
-            UserMapping::SystemYubiHsmOperatorSigning {
+            UserMapping::SystemYubiHsm2OperatorSigning {
                 authentication_key_id: 1,
                 backend_key_setup: SigningKeySetup::new(
                     "Curve25519".parse()?,
@@ -4082,7 +4070,7 @@ mod tests {
             None,
         )]
         #[case::operator_signing(
-            UserMapping::SystemYubiHsmOperatorSigning {
+            UserMapping::SystemYubiHsm2OperatorSigning {
                 authentication_key_id: 1,
                 backend_key_setup: SigningKeySetup::new(
                     "Curve25519".parse()?,
@@ -4160,7 +4148,7 @@ mod tests {
             Some("ns1".parse()?),
         )]
         #[case::operator_signing_target_system_wide(
-            UserMapping::SystemYubiHsmOperatorSigning {
+            UserMapping::SystemYubiHsm2OperatorSigning {
                 authentication_key_id: 1,
                 backend_key_setup: SigningKeySetup::new(
                     "Curve25519".parse()?,
@@ -4179,7 +4167,7 @@ mod tests {
             None,
         )]
         #[case::operator_signing_target_namespace(
-            UserMapping::SystemYubiHsmOperatorSigning {
+            UserMapping::SystemYubiHsm2OperatorSigning {
                 authentication_key_id: 1,
                 backend_key_setup: SigningKeySetup::new(
                     "Curve25519".parse()?,
@@ -4258,7 +4246,7 @@ mod tests {
             Some("ns1".parse()?),
         )]
         #[case::operator_signing_target_system_wide(
-            UserMapping::SystemYubiHsmOperatorSigning {
+            UserMapping::SystemYubiHsm2OperatorSigning {
                 authentication_key_id: 1,
                 backend_key_setup: SigningKeySetup::new(
                     "Curve25519".parse()?,
@@ -4277,7 +4265,7 @@ mod tests {
             None,
         )]
         #[case::operator_signing_target_namespace(
-            UserMapping::SystemYubiHsmOperatorSigning {
+            UserMapping::SystemYubiHsm2OperatorSigning {
                 authentication_key_id: 1,
                 backend_key_setup: SigningKeySetup::new(
                     "Curve25519".parse()?,
@@ -4329,7 +4317,7 @@ mod tests {
             },
         )]
         #[case::operator_signing(
-            UserMapping::SystemYubiHsmOperatorSigning {
+            UserMapping::SystemYubiHsm2OperatorSigning {
                 authentication_key_id: 1,
                 backend_key_setup: SigningKeySetup::new(
                     "Curve25519".parse()?,
@@ -4380,7 +4368,7 @@ mod tests {
             true
         )]
         #[case::operator_signing(
-            UserMapping::SystemYubiHsmOperatorSigning {
+            UserMapping::SystemYubiHsm2OperatorSigning {
                 authentication_key_id: 1,
                 backend_key_setup: SigningKeySetup::new(
                     "Curve25519".parse()?,
