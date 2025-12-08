@@ -1,7 +1,7 @@
 //! Integration tests for [`signstar_config::nethsm::backend`] (against a NetHSM container).
 
 use log::{LevelFilter, debug};
-use nethsm::{Connection, NetHsm, UserId, test::create_container};
+use nethsm::{Connection, NetHsm, SystemState, UserId, test::create_container};
 use rstest::rstest;
 use signstar_common::logging::setup_logging;
 use signstar_config::{
@@ -47,18 +47,21 @@ async fn sync_unprovisioned_backend(
     let user_credentials = create_full_credentials(users.as_slice());
 
     debug!("Creating NetHsmBackend");
-    let nethsm_backend = NetHsmBackend::new(
-        NetHsm::new(
-            Connection::new(url.clone(), nethsm::ConnectionSecurity::Unsafe),
-            None,
-            None,
-            None,
-        )?,
-        &admin_credentials,
-        &signstar_config,
+    let nethsm = NetHsm::new(
+        Connection::new(url.clone(), nethsm::ConnectionSecurity::Unsafe),
+        None,
+        None,
+        None,
     )?;
+    assert_eq!(nethsm.state()?, SystemState::Unprovisioned);
+
+    let nethsm_backend = NetHsmBackend::new(nethsm, &admin_credentials, &signstar_config)?;
     debug!("Running sync");
     nethsm_backend.sync(&user_credentials)?;
+    assert_eq!(nethsm_backend.nethsm().state()?, SystemState::Operational);
+
+    nethsm_backend.nethsm().lock()?;
+    assert_eq!(nethsm_backend.nethsm().state()?, SystemState::Locked);
 
     debug!("Retrieve state of NetHSM");
     let initial_nethsm_state = NetHsmState::try_from(&nethsm_backend)?;
@@ -71,6 +74,7 @@ async fn sync_unprovisioned_backend(
     let nethsm_state = NetHsmState::try_from(&nethsm_backend)?;
     debug!("Compare state of NetHSM with that of the Signstar config");
     nethsm_state.compare(&signstar_state);
+    assert_eq!(nethsm_backend.nethsm().state()?, SystemState::Operational);
 
     Ok(())
 }
