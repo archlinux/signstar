@@ -415,7 +415,7 @@ test-readme project:
     }
 
     stop_container() {
-        if podman container exists "$container_id" > /dev/null; then
+        if [[ -n "$container_id" ]] && podman container exists "$container_id" > /dev/null; then
             # NOTE: Due to podman's state handling the container may just not be entirely gone when checking for its existence.
             #       Relying on the status code of `podman container stop` would lead to flaky behavior, as sometimes the container is already gone when trying to stop it.
             set +e
