@@ -14,3 +14,6 @@ max_cache_age = "2d"
 
 # only check 15 URLs at a time
 max_concurrency = 15
+
+# we need a root dir for relative /rustdoc/ links to be processed at all
+root_dir = "."
