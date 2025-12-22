@@ -194,6 +194,8 @@ build-image:
     - vm
 
 build-test-image:
+  # NOTE: This fails because of pacman issue which is already merged, see: https://gitlab.archlinux.org/pacman/pacman/-/merge_requests/328
+  allow_failure: true
   extends: .default
   dependencies: []
   script:
