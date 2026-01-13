@@ -83,7 +83,11 @@ pub enum UserMapping {
         system_user: SystemUserId,
     },
 
-    /// A system user, with SSH access, mapped to a YubiHSM2 authentication key.
+    /// A mapping used for the creation of YubiHSM2 backups.
+    ///
+    /// Maps a system user, with SSH access, to a YubiHSM2 authentication and wrapping key.
+    /// This mapping is used for the purpose of creating backups of all keys (including
+    /// authentication keys) and non-key material (e.g. OpenPGP certificates) of a YubiHSM2.
     ///
     /// # Note
     ///
@@ -96,6 +100,11 @@ pub enum UserMapping {
     SystemYubiHsm2Backup {
         /// The identifier of the authentication key used to create a session with the YubiHSM2.
         authentication_key_id: u16,
+        /// The identifier of the wrapping key in the YubiHSM2 backend.
+        ///
+        /// This identifies the encryption key used for wrapping backups of all keys of the
+        /// YubiHSM2.
+        wrapping_key_id: u16,
         /// The SSH public key used for connecting to the `system_user`.
         ssh_authorized_key: AuthorizedKeyEntry,
         /// The name of the system user.
@@ -3569,6 +3578,7 @@ mod tests {
         #[case::backup(
             UserMapping::SystemYubiHsm2Backup{
                 authentication_key_id: 1,
+                wrapping_key_id: 2,
                 ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
                 system_user: "backup".parse()?,
             },
@@ -3624,6 +3634,7 @@ mod tests {
         #[case::backup_filter_default(
             UserMapping::SystemYubiHsm2Backup{
                 authentication_key_id: 1,
+                wrapping_key_id: 2,
                 ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
                 system_user: "backup".parse()?,
             },
@@ -3633,6 +3644,7 @@ mod tests {
         #[case::backup_filter_admin(
             UserMapping::SystemYubiHsm2Backup{
                 authentication_key_id: 1,
+                wrapping_key_id: 2,
                 ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
                 system_user: "backup".parse()?,
             },
@@ -3740,6 +3752,7 @@ mod tests {
         #[case::backup_filter_default(
             UserMapping::SystemYubiHsm2Backup{
                 authentication_key_id: 1,
+                wrapping_key_id: 2,
                 ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
                 system_user: "backup".parse()?,
             },
@@ -3749,6 +3762,7 @@ mod tests {
         #[case::backup_filter_admin(
             UserMapping::SystemYubiHsm2Backup{
                 authentication_key_id: 1,
+                wrapping_key_id: 2,
                 ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
                 system_user: "backup".parse()?,
             },
@@ -3850,6 +3864,7 @@ mod tests {
         #[case::backup(
             UserMapping::SystemYubiHsm2Backup{
                 authentication_key_id: 1,
+                wrapping_key_id: 2,
                 ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
                 system_user: "backup".parse()?,
              }
@@ -3898,6 +3913,7 @@ mod tests {
         #[case::backup(
             UserMapping::SystemYubiHsm2Backup{
                 authentication_key_id: 1,
+                wrapping_key_id: 2,
                 ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
                 system_user: "backup".parse()?,
              }
@@ -3946,6 +3962,7 @@ mod tests {
         #[case::backup(
             UserMapping::SystemYubiHsm2Backup{
                 authentication_key_id: 1,
+                wrapping_key_id: 2,
                 ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
                 system_user: "backup".parse()?,
              },
@@ -4001,6 +4018,7 @@ mod tests {
         #[case::backup(
             UserMapping::SystemYubiHsm2Backup{
                 authentication_key_id: 1,
+                wrapping_key_id: 2,
                 ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
                 system_user: "backup".parse()?,
              }
@@ -4049,6 +4067,7 @@ mod tests {
         #[case::backup(
             UserMapping::SystemYubiHsm2Backup{
                 authentication_key_id: 1,
+                wrapping_key_id: 2,
                 ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
                 system_user: "backup".parse()?,
              },
@@ -4104,6 +4123,7 @@ mod tests {
         #[case::backup_target_system_wide(
             UserMapping::SystemYubiHsm2Backup{
                 authentication_key_id: 1,
+                wrapping_key_id: 2,
                 ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
                 system_user: "backup".parse()?,
              },
@@ -4112,6 +4132,7 @@ mod tests {
         #[case::backup_target_namespace(
             UserMapping::SystemYubiHsm2Backup{
                 authentication_key_id: 1,
+                wrapping_key_id: 2,
                 ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
                 system_user: "backup".parse()?,
              },
@@ -4202,6 +4223,7 @@ mod tests {
         #[case::backup_target_system_wide(
             UserMapping::SystemYubiHsm2Backup{
                 authentication_key_id: 1,
+                wrapping_key_id: 2,
                 ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
                 system_user: "backup".parse()?,
              },
@@ -4210,6 +4232,7 @@ mod tests {
         #[case::backup_target_namespace(
             UserMapping::SystemYubiHsm2Backup{
                 authentication_key_id: 1,
+                wrapping_key_id: 2,
                 ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
                 system_user: "backup".parse()?,
              },
@@ -4299,6 +4322,7 @@ mod tests {
         #[case::backup(
             UserMapping::SystemYubiHsm2Backup{
                 authentication_key_id: 1,
+                wrapping_key_id: 2,
                 ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
                 system_user: "backup".parse()?,
              },
@@ -4347,6 +4371,7 @@ mod tests {
         #[case::backup(
             UserMapping::SystemYubiHsm2Backup{
                 authentication_key_id: 1,
+                wrapping_key_id: 2,
                 ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3NyNfSqtDxdnWwSVzulZi0k7Lyjw3vBEG+U8y6KsuW user@host".parse()?,
                 system_user: "backup".parse()?,
              },
