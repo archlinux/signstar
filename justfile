@@ -277,7 +277,7 @@ docs:
 
     # NOTE: nethsm-cli's executable documentation shadows the nethsm documentation (because of cargo bug: https://github.com/rust-lang/cargo/issues/6313)
     for name in "${workspace_members[@]}"; do
-        RUSTDOCFLAGS='-D warnings' cargo doc --document-private-items --no-deps --package "$name"
+        RUSTDOCFLAGS='-D warnings' cargo doc --document-private-items --no-deps --all-features --package "$name"
         case "$name" in
             nethsm)
                 mv "$target_dir/doc/nethsm" "$target_dir/doc/nethsm.tmp"
