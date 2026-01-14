@@ -20,7 +20,7 @@ serde_repr = { version = "0.1.20", optional = true }
 signstar-common = { workspace = true, features = ["logging"] }
 signstar-crypto.workspace = true
 thiserror.workspace = true
-yubihsm = { version = "0.42.1", features = ["mockhsm", "usb"] }
+yubihsm = { version = "0.42.1", features = ["usb"] }
 
 [dev-dependencies]
 rstest.workspace = true

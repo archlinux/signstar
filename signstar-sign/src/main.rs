@@ -138,7 +138,10 @@ fn load_signer() -> Result<Box<dyn RawSigningKey>, Error> {
                 Credentials::new(authentication_key_id, credentials.passphrase().clone());
 
             Ok(Box::new(match &connection {
+                #[cfg(feature = "mockhsm")]
                 YubiHsmConnection::Mock => YubiHsm2SigningKey::mock(backend_key_id, &credentials)?,
+                #[cfg(not(feature = "mockhsm"))]
+                YubiHsmConnection::Mock => return Err(Error::UnsupportedParameters),
                 YubiHsmConnection::Usb { serial_number } => {
                     YubiHsm2SigningKey::new_with_serial_number(
                         *serial_number,
