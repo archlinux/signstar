@@ -1,28 +1,10 @@
 //! Signing data with YubiHSM.
 
-use std::time::SystemTime;
-
-use signstar_crypto::{
-    openpgp::{OpenPgpKeyUsageFlags, OpenPgpUserId, OpenPgpVersion},
-    signer::{
-        error::Error as SignerError,
-        openpgp::add_certificate,
-        traits::{RawPublicKey, RawSigningKey},
-    },
-    traits::UserWithPassphrase as _,
+use signstar_crypto::signer::{
+    error::Error as SignerError,
+    traits::{RawPublicKey, RawSigningKey},
 };
-use yubihsm::{
-    Capability,
-    Connector,
-    Credentials as YubiCredentials,
-    Domain,
-    UsbConfig,
-    asymmetric::Algorithm,
-    authentication,
-    client::Client,
-    object::Id,
-    opaque,
-};
+use yubihsm::{Connector, UsbConfig, asymmetric::Algorithm, client::Client, object::Id};
 
 use crate::{Credentials, Error};
 
@@ -47,7 +29,26 @@ impl YubiHsm2SigningKey {
     /// # Panics
     ///
     /// This function panics if certificate generation fails.
+    #[cfg(feature = "mockhsm")]
     pub fn mock(key_id: u16, credentials: &Credentials) -> Result<Self, Error> {
+        use std::time::SystemTime;
+
+        use signstar_crypto::{
+            openpgp::{OpenPgpKeyUsageFlags, OpenPgpUserId, OpenPgpVersion},
+            signer::openpgp::add_certificate,
+            traits::UserWithPassphrase as _,
+        };
+        use yubihsm::{
+            Capability,
+            Connector,
+            Credentials as YubiCredentials,
+            Domain,
+            asymmetric::Algorithm,
+            authentication,
+            client::Client,
+            opaque,
+        };
+
         let connector = Connector::mockhsm();
         let client =
             Client::open(connector, Default::default(), true).map_err(|source| Error::Client {

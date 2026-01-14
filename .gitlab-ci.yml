@@ -145,7 +145,7 @@ integration-test:
     - chown -R testuser:testuser .
     - WORKDIR="$(pwd)" runuser -w CI,WORKDIR,SIGNSTAR_COVERAGE -l testuser -c 'env && cd "$WORKDIR" && just install-rust-dev-tools'
     - WORKDIR="$(pwd)" runuser -w CI,WORKDIR,SIGNSTAR_COVERAGE -l testuser -c 'env && cd "$WORKDIR" && just nethsm-integration-tests'
-    - WORKDIR="$(pwd)" runuser -w CI,WORKDIR,SIGNSTAR_COVERAGE -l testuser -c 'env && cd "$WORKDIR" && just containerized-integration-tests --features yubihsm2'
+    - WORKDIR="$(pwd)" runuser -w CI,WORKDIR,SIGNSTAR_COVERAGE -l testuser -c 'env && cd "$WORKDIR" && just containerized-integration-tests --features yubihsm2,mockhsm'
     - WORKDIR="$(pwd)" runuser -w CI,WORKDIR,SIGNSTAR_COVERAGE -l testuser -c 'env && cd "$WORKDIR" && just create-coverage-report doc integration-test-coverage'
   stage: test
   timeout: 20m

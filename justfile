@@ -397,13 +397,24 @@ test-readme project:
     just ensure-command cargo mold podman tangler
 
     install_executables() {
-        printf "Installing executables of %s...\n" "{{ project }}"
         case "$project" in
             nethsm-cli)
+                printf "Installing executables of signstar-request-signature\n"
                 cargo install --locked --path signstar-request-signature
+                printf "Installing executables of %s...\n" "{{ project }}"
+                cargo install --locked --all-features --path {{ project }}
+            ;;
+            signstar-yubihsm2)
+                # we need --debug because of mockhsm of signstar-yubihsm which fails to compile
+                # in release builds :(
+                printf "Installing debug executables of %s...\n" "{{ project }}"
+                cargo install --locked --debug --all-features --path {{ project }}
+            ;;
+            *)
+                printf "Installing executables of %s...\n" "{{ project }}"
+                cargo install --locked --all-features --path {{ project }}
             ;;
         esac
-        cargo install --locked --path {{ project }}
     }
 
     create_container() {
