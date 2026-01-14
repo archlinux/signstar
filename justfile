@@ -461,6 +461,7 @@ test-readmes:
     just test-readme nethsm-cli
     just test-readme signstar-configure-build
     just test-readme signstar-request-signature
+    just test-readme signstar-yubihsm2
 
 # Runs checks and tests before a commit.
 [private]
