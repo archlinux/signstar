@@ -485,7 +485,7 @@ pub fn create_system_users(config: &SignstarConfig) -> Result<(), Error> {
                     source,
                 })?;
                 buffer
-                    .write_all(authorized_key.as_ref().as_bytes())
+                    .write_all(authorized_key.to_string().as_bytes())
                     .map_err(|source| Error::WriteAuthorizedKeys {
                         user: user.clone(),
                         source,
