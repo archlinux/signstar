@@ -97,7 +97,7 @@ pub enum NamespaceSupport {
 /// [`delete_namespace`][`crate::NetHsm::delete_namespace`].
 ///
 /// [namespace]: https://docs.nitrokey.com/nethsm/administration#namespaces
-#[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
 pub struct NamespaceId(String);
 
 impl NamespaceId {
