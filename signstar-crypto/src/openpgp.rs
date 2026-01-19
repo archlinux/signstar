@@ -194,6 +194,18 @@ impl Display for OpenPgpUserIdType {
     }
 }
 
+impl PartialOrd for OpenPgpUserIdType {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for OpenPgpUserIdType {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.to_string().cmp(&other.to_string())
+    }
+}
+
 /// A basic representation of a User ID for OpenPGP
 ///
 /// While [OpenPGP User IDs] are loosely defined to be UTF-8 strings, they do not enforce
