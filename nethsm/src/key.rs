@@ -43,7 +43,7 @@ pub enum Error {
 ///
 /// [key management]: https://docs.nitrokey.com/nethsm/operation#key-management
 /// [namespaces]: https://docs.nitrokey.com/nethsm/administration#namespaces
-#[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
 #[serde(into = "String", try_from = "String")]
 pub struct KeyId(String);
 
