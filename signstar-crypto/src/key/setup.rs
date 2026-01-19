@@ -21,6 +21,7 @@ use crate::key::{
 pub struct SigningKeySetup {
     key_type: KeyType,
     key_mechanisms: Vec<KeyMechanism>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     key_length: Option<u32>,
     signature_type: SignatureType,
     key_context: CryptographicKeyContext,
