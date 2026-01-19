@@ -218,7 +218,9 @@ impl Ord for OpenPgpUserIdType {
 /// As such, this type only allows a maximum length of 4096 bytes as middle ground.
 ///
 /// [OpenPGP User IDs]: https://www.rfc-editor.org/rfc/rfc9580.html#name-user-id-packet-type-id-13
-#[derive(Clone, Debug, serde::Deserialize, Eq, Hash, PartialEq, serde::Serialize)]
+#[derive(
+    Clone, Debug, serde::Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, serde::Serialize,
+)]
 #[serde(into = "String", try_from = "String")]
 pub struct OpenPgpUserId(OpenPgpUserIdType);
 
