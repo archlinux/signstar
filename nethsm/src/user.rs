@@ -433,7 +433,7 @@ impl TryFrom<String> for UserId {
 }
 
 /// A guaranteed to be system-wide [`NetHsm`][`crate::NetHsm`] user.
-#[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
 #[serde(into = "String", try_from = "String")]
 pub struct SystemWideUserId(UserId);
 
