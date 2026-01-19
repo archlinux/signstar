@@ -179,7 +179,7 @@ impl TryFrom<&str> for NamespaceId {
 /// the user part (e.g. `namespace1~user1`).
 ///
 /// [user management]: https://docs.nitrokey.com/nethsm/administration#user-management
-#[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
 #[serde(into = "String", try_from = "String")]
 pub enum UserId {
     /// A system-wide user
