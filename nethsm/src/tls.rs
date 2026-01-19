@@ -88,7 +88,7 @@ impl Display for HostCertificateFingerprints {
 }
 
 /// The security model chosen for a [`crate::NetHsm`]'s TLS connection
-#[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
 pub enum ConnectionSecurity {
     /// Always trust the TLS certificate associated with a host
     Unsafe,
