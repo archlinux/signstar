@@ -338,7 +338,7 @@ pub enum SignatureType {
 }
 
 /// The cryptographic context in which a key is used.
-#[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
 pub enum CryptographicKeyContext {
     /// A key is used in an OpenPGP context
     #[serde(rename = "openpgp")]
