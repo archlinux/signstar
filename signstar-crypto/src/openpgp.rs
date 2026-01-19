@@ -347,7 +347,9 @@ impl TryFrom<String> for OpenPgpUserId {
 /// A list of [`OpenPgpUserId`]
 ///
 /// The items of the list are guaranteed to be unique.
-#[derive(Clone, Debug, serde::Deserialize, Eq, Hash, PartialEq, serde::Serialize)]
+#[derive(
+    Clone, Debug, serde::Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, serde::Serialize,
+)]
 #[serde(into = "Vec<String>", try_from = "Vec<String>")]
 pub struct OpenPgpUserIdList(Vec<OpenPgpUserId>);
 
