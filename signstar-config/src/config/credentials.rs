@@ -161,6 +161,18 @@ impl std::hash::Hash for AuthorizedKeyEntry {
     }
 }
 
+impl Ord for AuthorizedKeyEntry {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.0.to_string().cmp(&other.0.to_string())
+    }
+}
+
+impl PartialOrd for AuthorizedKeyEntry {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use testresult::TestResult;
