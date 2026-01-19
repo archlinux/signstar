@@ -26,7 +26,7 @@ pub const DEFAULT_MAX_IDLE_CONNECTIONS: usize = 100;
 pub const DEFAULT_TIMEOUT_SECONDS: u64 = 10;
 
 /// The fingerprint of a TLS certificate (as hex)
-#[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
 pub struct CertFingerprint(
     #[serde(
         deserialize_with = "hex::serde::deserialize",
