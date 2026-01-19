@@ -59,7 +59,7 @@ impl From<Vec<u8>> for CertFingerprint {
 
 /// Certificate fingerprints to use for matching against a host's TLS
 /// certificate
-#[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
 pub struct HostCertificateFingerprints {
     /// An optional list of SHA-256 checksums
     sha256: Option<Vec<CertFingerprint>>,
