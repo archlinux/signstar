@@ -71,7 +71,7 @@ impl Display for Connection {
 /// * must use https
 /// * must have a host
 /// * must not contain a password, user or query
-#[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
 #[serde(try_from = "String")]
 pub struct Url(url::Url);
 
