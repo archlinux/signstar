@@ -1,7 +1,8 @@
 //! Utilities for signstar-config.
-use std::path::PathBuf;
+use std::{collections::HashSet, path::PathBuf};
 
 use nix::unistd::{User, geteuid};
+use serde::{Serialize, Serializer};
 use which::which;
 
 use crate::{ExtendedUserMapping, SystemUserId};
@@ -196,4 +197,17 @@ pub(crate) fn get_system_user_pair(
     };
 
     Ok((system_user.clone(), user))
+}
+
+/// Serializes a [`HashSet`] of `T` as an ordered [`Vec`] of `T`.
+pub(crate) fn ordered_set<S, T: Ord + Serialize>(
+    value: &HashSet<T>,
+    serializer: S,
+) -> Result<S::Ok, S::Error>
+where
+    S: Serializer,
+{
+    let mut ordered: Vec<_> = value.iter().collect();
+    ordered.sort();
+    ordered.serialize(serializer)
 }
