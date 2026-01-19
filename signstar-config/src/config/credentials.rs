@@ -14,7 +14,7 @@ use crate::SignstarConfig;
 ///
 /// The username may only contain characters in the set of alphanumeric ASCII characters and the
 /// `-`, or `_` character.
-#[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize, Zeroize)]
+#[derive(Clone, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize, Zeroize)]
 #[serde(into = "String", try_from = "String")]
 pub struct SystemUserId(String);
 
