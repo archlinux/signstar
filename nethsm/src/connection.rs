@@ -34,7 +34,7 @@ pub enum Error {
 /// The connection to a NetHSM device.
 ///
 /// Contains the [`Url`] and [`ConnectionSecurity`] for a [`NetHsm`] device.
-#[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
 pub struct Connection {
     pub(crate) url: Url,
     pub(crate) tls_security: ConnectionSecurity,
