@@ -59,10 +59,12 @@ pub enum Error {
     Deserialize,
     strum::Display,
     EnumIter,
+    Eq,
     Hash,
     IntoStaticStr,
-    Eq,
+    Ord,
     PartialEq,
+    PartialOrd,
     serde::Serialize,
 )]
 #[serde(into = "String", try_from = "String")]
