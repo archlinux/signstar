@@ -17,7 +17,7 @@ use crate::key::{
 ///
 /// This covers the type of key, its supported mechanisms, its optional length, its signature type
 /// and the context in which it is used.
-#[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
 pub struct SigningKeySetup {
     key_type: KeyType,
     key_mechanisms: Vec<KeyMechanism>,
