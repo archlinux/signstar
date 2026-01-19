@@ -185,6 +185,15 @@ enum OpenPgpUserIdType {
     Plain(String),
 }
 
+impl Display for OpenPgpUserIdType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Email(address) => write!(f, "{address}"),
+            Self::Plain(plain) => write!(f, "{plain}"),
+        }
+    }
+}
+
 /// A basic representation of a User ID for OpenPGP
 ///
 /// While [OpenPGP User IDs] are loosely defined to be UTF-8 strings, they do not enforce
