@@ -88,9 +88,9 @@ impl TryFrom<String> for SystemUserId {
 /// This type ensures compliance with SSH's [AuhtorizedKeysFile] format.
 ///
 /// [AuhtorizedKeysFile]: https://man.archlinux.org/man/sshd.8#AUTHORIZED_KEYS_FILE_FORMAT
-#[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize, Zeroize)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(into = "String", try_from = "String")]
-pub struct AuthorizedKeyEntry(String);
+pub struct AuthorizedKeyEntry(Entry);
 
 impl AuthorizedKeyEntry {
     /// Creates a new [`AuthorizedKeyEntry`]
@@ -106,7 +106,8 @@ impl AuthorizedKeyEntry {
     /// use signstar_config::AuthorizedKeyEntry;
     ///
     /// # fn main() -> testresult::TestResult {
-    /// AuthorizedKeyEntry::new("ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPkpXKiNhy39A3bZ1u19a5d4sFwYMBkWQyCbzgUfdKBm user@host".to_string())?;
+    /// let auth_key = AuthorizedKeyEntry::new("ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPkpXKiNhy39A3bZ1u19a5d4sFwYMBkWQyCbzgUfdKBm user@host".to_string())?;
+    /// assert_eq!("ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPkpXKiNhy39A3bZ1u19a5d4sFwYMBkWQyCbzgUfdKBm user@host", auth_key.to_string());
     ///
     /// // this fails because the empty string is not a valid AuthorizedKeyEntry
     /// assert!(AuthorizedKeyEntry::new("".to_string()).is_err());
@@ -114,23 +115,15 @@ impl AuthorizedKeyEntry {
     /// # }
     /// ```
     pub fn new(entry: String) -> Result<Self, crate::Error> {
-        if Entry::from_str(&entry).is_err() {
-            return Err(ConfigError::InvalidAuthorizedKeyEntry { entry }.into());
-        }
-
-        Ok(Self(entry))
-    }
-}
-
-impl AsRef<str> for AuthorizedKeyEntry {
-    fn as_ref(&self) -> &str {
-        &self.0
+        Ok(Self(Entry::from_str(&entry).map_err(|_source| {
+            ConfigError::InvalidAuthorizedKeyEntry { entry }
+        })?))
     }
 }
 
 impl Display for AuthorizedKeyEntry {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.0.fmt(f)
+        write!(f, "{}", self.0.to_string())
     }
 }
 
@@ -148,12 +141,9 @@ impl FromStr for AuthorizedKeyEntry {
     }
 }
 
-impl TryFrom<&AuthorizedKeyEntry> for Entry {
-    type Error = crate::Error;
-
-    fn try_from(value: &AuthorizedKeyEntry) -> Result<Self, crate::Error> {
-        Entry::from_str(&value.0)
-            .map_err(|source| crate::Error::Config(ConfigError::SshKey(source)))
+impl From<&AuthorizedKeyEntry> for Entry {
+    fn from(value: &AuthorizedKeyEntry) -> Self {
+        value.0.clone()
     }
 }
 
@@ -162,6 +152,12 @@ impl TryFrom<String> for AuthorizedKeyEntry {
 
     fn try_from(value: String) -> Result<Self, crate::Error> {
         Self::new(value)
+    }
+}
+
+impl std::hash::Hash for AuthorizedKeyEntry {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.0.to_string().hash(state);
     }
 }
 
@@ -182,11 +178,11 @@ mod tests {
     }
 
     #[test]
-    fn authorized_key_as_ref() -> TestResult {
+    fn authorized_key_to_string() -> TestResult {
         let entry = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPkpXKiNhy39A3bZ1u19a5d4sFwYMBkWQyCbzgUfdKBm user@host";
         let authorized_key = AuthorizedKeyEntry::new(entry.to_string())?;
 
-        assert_eq!(authorized_key.as_ref(), entry);
+        assert_eq!(authorized_key.to_string(), entry);
         Ok(())
     }
 }

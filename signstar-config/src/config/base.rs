@@ -883,9 +883,7 @@ impl SignstarConfig {
                 .flat_map(|mapping| mapping.get_ssh_authorized_key())
                 // we know a valid Entry can be created from AuthorizedKeyEntry, because its
                 // constructor ensures it, hence we discard Errors
-                .filter_map(|authorized_key| {
-                    ssh_key::authorized_keys::Entry::try_from(authorized_key).ok()
-                })
+                .map(ssh_key::authorized_keys::Entry::from)
             {
                 if !public_keys.insert(ssh_authorized_key.public_key().clone()) {
                     return Err(Error::DuplicateSshPublicKey {
@@ -915,9 +913,7 @@ impl SignstarConfig {
                 .flat_map(|mapping| mapping.get_ssh_authorized_key())
                 // we know a valid Entry can be created from AuthorizedKeyEntry, because its
                 // constructor ensures it, hence we discard Errors
-                .filter_map(|authorized_key| {
-                    ssh_key::authorized_keys::Entry::try_from(authorized_key).ok()
-                })
+                .map(ssh_key::authorized_keys::Entry::from)
             {
                 if !public_keys.insert(ssh_authorized_key.public_key().clone()) {
                     return Err(Error::DuplicateSshPublicKey {
