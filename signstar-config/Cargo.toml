@@ -10,6 +10,7 @@ repository.workspace = true
 version = "0.2.0"
 
 [dependencies]
+garde = { version = "0.22.1", features = ["derive"] }
 log.workspace = true
 nethsm.workspace = true
 nix.workspace = true
@@ -31,6 +32,7 @@ zeroize.workspace = true
 
 [dev-dependencies]
 change-user-run.workspace = true
+insta = "1.46.1"
 nethsm = { features = ["test-helpers"], workspace = true }
 rstest.workspace = true
 signstar-common = { workspace = true, features = ["logging"] }

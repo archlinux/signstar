@@ -1,0 +1,6 @@
+---
+source: signstar-config/src/nethsm/config.rs
+description: "Error message for NetHsmConfig::new with no backend connection"
+expression: error_msg
+---
+connections: contains no connections
