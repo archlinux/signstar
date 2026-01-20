@@ -26,9 +26,10 @@ pub use config::{
 };
 pub use error::{Error, ErrorExitCode};
 pub use nethsm::{
+    FilterUserKeys,
+    NetHsmMetricsUsers,
     admin_credentials::NetHsmAdminCredentials,
     backend::NetHsmBackend,
-    config::{FilterUserKeys, NetHsmMetricsUsers},
     error::Error as NetHsmBackendError,
 };
 pub use non_admin_credentials::{

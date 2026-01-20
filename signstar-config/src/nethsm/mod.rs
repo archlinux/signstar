@@ -2,8 +2,9 @@
 
 pub mod admin_credentials;
 pub mod backend;
-pub mod config;
+mod config;
 pub mod error;
 pub mod state;
 
+pub use config::{FilterUserKeys, NetHsmMetricsUsers};
 use error::Error;
