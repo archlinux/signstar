@@ -5,3 +5,20 @@ pub mod credentials;
 pub mod error;
 pub mod mapping;
 pub mod state;
+mod traits;
+
+pub use traits::{
+    BackendDomainFilter,
+    BackendKeyIdFilter,
+    BackendUserIdFilter,
+    BackendUserIdKind,
+    ConfigAuthorizedKeyEntries,
+    ConfigSystemUserIds,
+    Error as TraitsError,
+    MappingAuthorizedKeyEntry,
+    MappingBackendDomain,
+    MappingBackendKeyId,
+    MappingBackendUserIds,
+    MappingBackendUserSecrets,
+    MappingSystemUserId,
+};

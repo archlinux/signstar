@@ -118,6 +118,10 @@ pub enum Error {
     #[error("Handling of administrative credentials failed:\n{0}")]
     SignstarCommonAdminCreds(#[from] signstar_common::admin_credentials::Error),
 
+    /// A [`signstar_crypto::Error`] occurred.
+    #[error(transparent)]
+    SignstarCrypto(#[from] signstar_crypto::Error),
+
     /// Joining a thread returned an error.
     #[error("Thread error while {context}")]
     Thread {
@@ -152,6 +156,10 @@ pub enum Error {
         /// The error source.
         source: toml::ser::Error,
     },
+
+    /// An error occurred when using a trait.
+    #[error(transparent)]
+    Traits(#[from] crate::config::TraitsError),
 
     /// A UTF-8 error occurred when trying to convert a byte vector to a string.
     #[error("Converting contents of {path} to string failed while {context}:\n{source}")]
@@ -354,17 +362,23 @@ pub enum ErrorExitCode {
     /// [`Error::SignstarCommonAdminCreds`].
     SignstarCommonAdminCredsDirChangeOwner = 172,
 
+    /// Mapping for [`Error::SignstarCrypto`]
+    SignstarCrypto = 20,
+
     /// Mapping for [`Error::Thread`].
-    Thread = 20,
+    Thread = 21,
 
     /// Mapping for [`Error::TomlRead`].
-    TomlRead = 21,
+    TomlRead = 22,
 
     /// Mapping for [`Error::TomlWrite`].
-    TomlWrite = 22,
+    TomlWrite = 23,
+
+    /// Mapping for [`Error::Traits`].
+    Traits = 40,
 
     /// Mapping for [`Error::Utf8String`].
-    Utf8String = 23,
+    Utf8String = 24,
 
     /// Mapping for [`crate::utils::Error::ExecutableNotFound`] wrapped in [`Error::Utils`].
     UtilsExecutableNotFound = 190,
@@ -525,9 +539,11 @@ impl From<Error> for ErrorExitCode {
             Error::CommandNonZero { .. } => Self::CommandNonZero,
             Error::CommandWriteToStdin { .. } => Self::CommandWriteToStdin,
             Error::IoPath { .. } => Self::IoPath,
+            Error::SignstarCrypto { .. } => Self::SignstarCrypto,
             Error::Thread { .. } => Self::Thread,
             Error::TomlRead { .. } => Self::TomlRead,
             Error::TomlWrite { .. } => Self::TomlWrite,
+            Error::Traits { .. } => Self::Traits,
             Error::Utf8String { .. } => Self::Utf8String,
         }
     }
