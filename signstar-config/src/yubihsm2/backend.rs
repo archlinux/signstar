@@ -3,7 +3,7 @@
 use serde::{Deserialize, Serialize};
 
 /// A connection to the YubiHSM2 backend.
-#[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
 #[serde(rename_all = "lowercase")]
 pub enum YubiHsmConnection {
     /// Connection to a Mock HSM.
