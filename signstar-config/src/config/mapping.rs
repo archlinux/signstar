@@ -34,7 +34,7 @@ use crate::{
     SignstarConfig,
     SystemUserId,
     config::base::BackendConnection,
-    nethsm::config::{FilterUserKeys, NetHsmMetricsUsers},
+    nethsm::{FilterUserKeys, NetHsmMetricsUsers},
     utils::{
         fail_if_not_root,
         fail_if_root,
