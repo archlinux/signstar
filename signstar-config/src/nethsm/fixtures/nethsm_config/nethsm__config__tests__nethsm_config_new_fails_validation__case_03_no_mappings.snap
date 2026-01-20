@@ -1,0 +1,6 @@
+---
+source: signstar-config/src/nethsm/config.rs
+description: "Error message for NetHsmConfig::new with no user mappings"
+expression: error_msg
+---
+mappings: contains no user mappings

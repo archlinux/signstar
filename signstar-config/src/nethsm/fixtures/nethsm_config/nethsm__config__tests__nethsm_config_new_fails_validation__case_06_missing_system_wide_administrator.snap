@@ -1,0 +1,6 @@
+---
+source: signstar-config/src/nethsm/config.rs
+description: "Error message for NetHsmConfig::new with a system-wide administrator missing"
+expression: error_msg
+---
+mappings: contains no system-wide administrator user

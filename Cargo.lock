@@ -692,7 +692,7 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.106",
- "thiserror 2.0.15",
+ "thiserror 2.0.17",
 ]
 
 [[package]]
@@ -883,6 +883,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "castaway"
+version = "0.2.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dec551ab6e7578819132c713a93c022a05d60159dc86e7a7050223577484c55a"
+dependencies = [
+ "rustversion",
+]
+
+[[package]]
 name = "cbc"
 version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -962,7 +971,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7751546c3288bc5072e2301ec7cee8230657c6389cb905695f99ecbb716b43fd"
 dependencies = [
  "log",
- "thiserror 2.0.15",
+ "thiserror 2.0.17",
  "which 8.0.0",
 ]
 
@@ -1078,6 +1087,20 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b05b61dc5112cbb17e4b6cd61790d9845d13888356391624cbe7e41efeac1e75"
 
 [[package]]
+name = "compact_str"
+version = "0.8.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3b79c4069c6cad78e2e0cdfcbd26275770669fb39fd308a752dc110e83b9af32"
+dependencies = [
+ "castaway",
+ "cfg-if",
+ "itoa",
+ "rustversion",
+ "ryu",
+ "static_assertions",
+]
+
+[[package]]
 name = "concurrent-queue"
 version = "2.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1095,8 +1118,20 @@ dependencies = [
  "etcetera",
  "lazy_static",
  "serde",
- "thiserror 2.0.15",
+ "thiserror 2.0.17",
  "toml",
+]
+
+[[package]]
+name = "console"
+version = "0.15.11"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "054ccb5b10f9f2cbf51eb355ca1d05c2d279ce1804688d0db74b4733a5aeafd8"
+dependencies = [
+ "encode_unicode",
+ "libc",
+ "once_cell",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -1587,6 +1622,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "encode_unicode"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "34aa73646ffb006b8f5147f3dc182bd4bcb190227ce861fc4a4844bf8e3cb2c0"
+
+[[package]]
 name = "encoding_rs"
 version = "0.8.35"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1883,6 +1924,28 @@ dependencies = [
  "pin-project-lite",
  "pin-utils",
  "slab",
+]
+
+[[package]]
+name = "garde"
+version = "0.22.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3a74b56a4039a46e8c91cc9d84e8a7df4e1f8b24239ca57d1304b3263cb599b9"
+dependencies = [
+ "compact_str",
+ "garde_derive",
+ "smallvec",
+]
+
+[[package]]
+name = "garde_derive"
+version = "0.22.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7224c08ec489e2840af29ed882b47f7f6ac8f4ce15c275d9fc0d6d1b94578ae6"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.106",
 ]
 
 [[package]]
@@ -2492,6 +2555,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "insta"
+version = "1.46.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "248b42847813a1550dafd15296fd9748c651d0c32194559dbc05d804d54b21e8"
+dependencies = [
+ "console",
+ "once_cell",
+ "similar",
+ "tempfile",
+]
+
+[[package]]
 name = "internal-russh-forked-ssh-key"
 version = "0.6.11+upstream-0.6.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2938,7 +3013,7 @@ dependencies = [
  "strum",
  "testdir",
  "testresult",
- "thiserror 2.0.15",
+ "thiserror 2.0.17",
  "tokio",
  "ureq",
  "url",
@@ -2958,7 +3033,7 @@ dependencies = [
  "signstar-crypto",
  "testdir",
  "testresult",
- "thiserror 2.0.15",
+ "thiserror 2.0.17",
  "tokio",
 ]
 
@@ -2978,7 +3053,7 @@ dependencies = [
  "strum",
  "testdir",
  "testresult",
- "thiserror 2.0.15",
+ "thiserror 2.0.17",
 ]
 
 [[package]]
@@ -2994,7 +3069,7 @@ dependencies = [
  "serde",
  "testdir",
  "testresult",
- "thiserror 2.0.15",
+ "thiserror 2.0.17",
  "zeroize",
 ]
 
@@ -3854,7 +3929,7 @@ checksum = "a4e608c6638b9c18977b00b475ac1f28d14e84b27d8d42f70e0bf1e3dec127ac"
 dependencies = [
  "getrandom 0.2.16",
  "libredox",
- "thiserror 2.0.15",
+ "thiserror 2.0.17",
 ]
 
 [[package]]
@@ -4176,7 +4251,7 @@ dependencies = [
  "reqwest",
  "serde",
  "serde_json",
- "thiserror 2.0.15",
+ "thiserror 2.0.17",
  "tokio",
  "tracing",
  "typed-builder",
@@ -4624,7 +4699,7 @@ dependencies = [
  "log",
  "simplelog",
  "systemd-journal-logger",
- "thiserror 2.0.15",
+ "thiserror 2.0.17",
 ]
 
 [[package]]
@@ -4632,6 +4707,8 @@ name = "signstar-config"
 version = "0.2.0"
 dependencies = [
  "change-user-run",
+ "garde",
+ "insta",
  "log",
  "nethsm",
  "nix 0.31.1",
@@ -4648,7 +4725,7 @@ dependencies = [
  "tempfile",
  "testdir",
  "testresult",
- "thiserror 2.0.15",
+ "thiserror 2.0.17",
  "tokio",
  "toml",
  "which 8.0.0",
@@ -4665,7 +4742,7 @@ dependencies = [
  "signstar-config",
  "strum",
  "sysinfo 0.38.0",
- "thiserror 2.0.15",
+ "thiserror 2.0.17",
 ]
 
 [[package]]
@@ -4697,7 +4774,7 @@ dependencies = [
  "strum",
  "tempfile",
  "testresult",
- "thiserror 2.0.15",
+ "thiserror 2.0.17",
 ]
 
 [[package]]
@@ -4723,7 +4800,7 @@ dependencies = [
  "tempfile",
  "testdir",
  "testresult",
- "thiserror 2.0.15",
+ "thiserror 2.0.17",
  "tokio",
 ]
 
@@ -4750,7 +4827,7 @@ dependencies = [
  "signstar-yubihsm2",
  "tempfile",
  "testresult",
- "thiserror 2.0.15",
+ "thiserror 2.0.17",
  "tokio",
  "which 8.0.0",
 ]
@@ -4762,7 +4839,7 @@ dependencies = [
  "serde",
  "signstar-crypto",
  "testresult",
- "thiserror 2.0.15",
+ "thiserror 2.0.17",
  "yubihsm",
 ]
 
@@ -4929,6 +5006,12 @@ name = "stable_deref_trait"
 version = "1.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a8f112729512f8e442d81f95a8a7ddf2b7c6b8a1a6f509a95864142b30cab2d3"
+
+[[package]]
+name = "static_assertions"
+version = "1.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a2eb9349b6444b326872e140eb1cf5e7c522154d69e7a0ffb0fb81c06b37543f"
 
 [[package]]
 name = "stringmetrics"
@@ -5217,11 +5300,11 @@ dependencies = [
 
 [[package]]
 name = "thiserror"
-version = "2.0.15"
+version = "2.0.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "80d76d3f064b981389ecb4b6b7f45a0bf9fdac1d5b9204c7bd6714fecc302850"
+checksum = "f63587ca0f12b72a0600bcba1d40081f830876000bb46dd2337a3051618f4fc8"
 dependencies = [
- "thiserror-impl 2.0.15",
+ "thiserror-impl 2.0.17",
 ]
 
 [[package]]
@@ -5237,9 +5320,9 @@ dependencies = [
 
 [[package]]
 name = "thiserror-impl"
-version = "2.0.15"
+version = "2.0.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "44d29feb33e986b6ea906bd9c3559a856983f92371b3eaa5e83782a351623de0"
+checksum = "3ff15c8ecd7de3849db632e14d18d2571fa09dfc5ed93479bc4485c7a517c913"
 dependencies = [
  "proc-macro2",
  "quote",

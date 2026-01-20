@@ -1,0 +1,6 @@
+---
+source: signstar-config/src/nethsm/config.rs
+description: "Error message for NetHsmConfig::new with two duplicate namespaced backend user IDs"
+expression: error_msg
+---
+mappings: contains the duplicate backend user ID "ns1~signing1"
