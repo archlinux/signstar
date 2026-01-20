@@ -31,7 +31,7 @@ pub enum FilterUserKeys {
 /// This struct tracks a user that is intended for the use in the
 /// [`Metrics`][`nethsm::UserRole::Metrics`] role and a list of users, that are intended to be used
 /// in the [`Operator`][`nethsm::UserRole::Operator`] role.
-#[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
 pub struct NetHsmMetricsUsers {
     metrics_user: SystemWideUserId,
     operator_users: Vec<UserId>,
