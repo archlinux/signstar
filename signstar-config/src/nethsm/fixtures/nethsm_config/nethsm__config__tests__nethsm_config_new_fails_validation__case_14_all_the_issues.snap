@@ -1,0 +1,16 @@
+---
+source: signstar-config/src/nethsm/config.rs
+description: "Error message for NetHsmConfig::new with multiple validation issues (connections and mappings)"
+expression: error_msg
+---
+connections: contains the duplicate URL "https://nethsm1.example.org/"
+mappings: contains multiple issues:
+⤷ the duplicate system user ID "ns1-signing-user1"
+⤷ the duplicate SSH public keys "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOh96uFTnvX6P1ebbLxXFvy6sK7qFqlMHDOuJ0TmuXQQ", "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPDgwGfIRBAsOUuDEZw/uJQZSwOYr4sg2DAZpcc7MfOj"
+⤷ no system-wide administrator user
+⤷ the duplicate backend user IDs "ns1~signing1", "signing1"
+⤷ the duplicate system-wide key ID "signing1"
+⤷ the duplicate system-wide tag "signing1"
+⤷ the namespace "ns1" without an administrator user
+⤷ the duplicate "ns1" namespaced key ID "signing2"
+⤷ the duplicate "ns1" namespaced tag "signing1"

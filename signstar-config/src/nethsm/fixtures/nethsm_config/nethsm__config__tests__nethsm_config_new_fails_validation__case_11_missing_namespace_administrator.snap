@@ -1,0 +1,6 @@
+---
+source: signstar-config/src/nethsm/config.rs
+description: "Error message for NetHsmConfig::new with a missing namespace administrator"
+expression: error_msg
+---
+mappings: contains the namespace "ns1" without an administrator user
