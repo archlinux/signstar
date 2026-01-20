@@ -6,6 +6,7 @@ pub mod error;
 pub mod mapping;
 pub mod state;
 mod traits;
+mod utils;
 
 pub use traits::{
     BackendDomainFilter,
@@ -19,4 +20,11 @@ pub use traits::{
     MappingBackendKeyId,
     MappingBackendUserIds,
     MappingSystemUserId,
+};
+pub(crate) use utils::{
+    duplicate_authorized_keys,
+    duplicate_backend_user_ids,
+    duplicate_domains,
+    duplicate_key_ids,
+    duplicate_system_user_ids,
 };

@@ -6,5 +6,5 @@ mod config;
 pub mod error;
 pub mod state;
 
-pub use config::{FilterUserKeys, NetHsmMetricsUsers};
+pub use config::{FilterUserKeys, NetHsmConfig, NetHsmMetricsUsers, NetHsmUserMapping};
 use error::Error;

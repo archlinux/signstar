@@ -169,6 +169,18 @@ pub enum Error {
     /// A utility function returned an error.
     #[error("Utility function error: {0}")]
     Utils(#[from] crate::utils::Error),
+
+    /// A garde validation error occurred.
+    #[error("Validation error while {context}: {source}")]
+    Validation {
+        /// The context in which the error occurred.
+        ///
+        /// This is meant to complete the sentence "Validation error while ".
+        context: String,
+
+        /// The error source.
+        source: garde::Report,
+    },
 }
 
 /// Mapping for relevant [`Error`] variants to an [`ExitCode`].
@@ -366,6 +378,9 @@ pub enum ErrorExitCode {
     /// Mapping for [`Error::Utf8String`].
     Utf8String = 23,
 
+    /// Mapping for [`Error::Validation`].
+    Validation = 24,
+
     /// Mapping for [`crate::utils::Error::ExecutableNotFound`] wrapped in [`Error::Utils`].
     UtilsExecutableNotFound = 190,
 
@@ -529,6 +544,7 @@ impl From<Error> for ErrorExitCode {
             Error::TomlRead { .. } => Self::TomlRead,
             Error::TomlWrite { .. } => Self::TomlWrite,
             Error::Utf8String { .. } => Self::Utf8String,
+            Error::Validation { .. } => Self::Validation,
         }
     }
 }
