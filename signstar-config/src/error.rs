@@ -189,6 +189,11 @@ pub enum Error {
     /// A NetHSM configuration object error occurred.
     #[error("NetHSM configuration object error: {0}")]
     NetHsmConfig(#[from] crate::nethsm::NetHsmConfigError),
+
+    /// A YubiHSM2 configuration object error occurred.
+    #[cfg(feature = "yubihsm2")]
+    #[error("YubiHSM2 configuration object error: {0}")]
+    YubiHsm2Config(#[from] crate::yubihsm2::YubiHSM2ConfigError),
 }
 
 /// Mapping for relevant [`Error`] variants to an [`ExitCode`].
@@ -395,6 +400,10 @@ pub enum ErrorExitCode {
     /// Mapping for [`Error::NetHsmConfig`].
     NetHsmConfig = 26,
 
+    /// Mapping for [`Error::YubiHsm2Config`].
+    #[cfg(feature = "yubihsm2")]
+    YubiHsm2Config = 27,
+
     /// Mapping for [`crate::utils::Error::ExecutableNotFound`] wrapped in [`Error::Utils`].
     UtilsExecutableNotFound = 190,
 
@@ -561,6 +570,8 @@ impl From<Error> for ErrorExitCode {
             Error::Utf8String { .. } => Self::Utf8String,
             Error::Validation { .. } => Self::Validation,
             Error::NetHsmConfig { .. } => Self::NetHsmConfig,
+            #[cfg(feature = "yubihsm2")]
+            Error::YubiHsm2Config { .. } => Self::YubiHsm2Config,
         }
     }
 }
