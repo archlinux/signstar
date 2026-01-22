@@ -1,6 +1,7 @@
 //! Backend handling for YubiHSM2.
 
 use serde::{Deserialize, Serialize};
+use signstar_yubihsm2::yubihsm::SerialNumber;
 
 /// A connection to the YubiHSM2 backend.
 #[derive(Clone, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
@@ -18,6 +19,6 @@ pub enum YubiHsmConnection {
     /// Each YubiHSM2 is identified by a unique serial number.
     Usb {
         /// Serial number of the connected YubiHSM2.
-        serial_number: String,
+        serial_number: SerialNumber,
     },
 }
