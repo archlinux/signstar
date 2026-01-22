@@ -1,0 +1,6 @@
+---
+source: signstar-config/src/yubihsm2/config.rs
+description: "Error message for YubiHsm2Config::new with two duplicate SSH public keys as authorized keys"
+expression: error_msg
+---
+mappings: contains the duplicate SSH public key "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOh9BTe81DC6A0YZALsq9dWcyl6xjjqlxWPwlExTFgBt"
