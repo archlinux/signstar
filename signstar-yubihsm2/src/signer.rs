@@ -20,6 +20,7 @@ use yubihsm::{
     asymmetric::Algorithm,
     authentication,
     client::Client,
+    device::SerialNumber,
     object::Id,
     opaque,
 };
@@ -144,15 +145,12 @@ impl YubiHsm2SigningKey {
     /// If the communication with the device fails or the authentication data is incorrect this
     /// function will return an [`Error`].
     pub fn new_with_serial_number(
-        serial_number: &str,
+        serial_number: SerialNumber,
         key_id: u16,
         credentials: &Credentials,
     ) -> Result<Self, Error> {
         let connector = Connector::usb(&UsbConfig {
-            serial: Some(serial_number.parse().map_err(|source| Error::Device {
-                context: "parsing serial number",
-                source,
-            })?),
+            serial: Some(serial_number),
             timeout_ms: UsbConfig::DEFAULT_TIMEOUT_MILLIS,
         });
         let client =

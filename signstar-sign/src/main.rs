@@ -141,7 +141,7 @@ fn load_signer() -> Result<Box<dyn RawSigningKey>, Error> {
                 YubiHsmConnection::Mock => YubiHsm2SigningKey::mock(backend_key_id, &credentials)?,
                 YubiHsmConnection::Usb { serial_number } => {
                     YubiHsm2SigningKey::new_with_serial_number(
-                        serial_number,
+                        *serial_number,
                         backend_key_id,
                         &credentials,
                     )?
