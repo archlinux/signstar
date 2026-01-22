@@ -1,0 +1,6 @@
+---
+source: signstar-config/src/yubihsm2/config.rs
+description: "Error message for YubiHsm2Config::new with no connection"
+expression: error_msg
+---
+connections: contains no connections

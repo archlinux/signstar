@@ -1,0 +1,14 @@
+---
+source: signstar-config/src/yubihsm2/config.rs
+description: "Error message for YubiHsm2Config::new with multiple validation issues (connections and mappings)"
+expression: error_msg
+---
+connections: contains no connections
+mappings: contains multiple issues:
+⤷ the duplicate system user ID "backup-user"
+⤷ the duplicate SSH public key "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOh96uFTnvX6P1ebbLxXFvy6sK7qFqlMHDOuJ0TmuXQQ"
+⤷ no administrator user
+⤷ the duplicate backend user IDs "3", "5"
+⤷ the duplicate signing key ID "1"
+⤷ the duplicate wrapping key ID "1"
+⤷ the duplicate domain "1"

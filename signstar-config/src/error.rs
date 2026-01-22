@@ -181,6 +181,11 @@ pub enum Error {
         /// The error source.
         source: garde::Report,
     },
+
+    /// A YubiHSM2 configuration object error occurred.
+    #[cfg(feature = "yubihsm2")]
+    #[error("YubiHSM2 configuration object error: {0}")]
+    YubiHsm2Config(#[from] crate::yubihsm2::YubiHSM2ConfigError),
 }
 
 /// Mapping for relevant [`Error`] variants to an [`ExitCode`].
@@ -381,6 +386,10 @@ pub enum ErrorExitCode {
     /// Mapping for [`Error::Validation`].
     Validation = 24,
 
+    /// Mapping for [`Error::YubiHsm2Config`].
+    #[cfg(feature = "yubihsm2")]
+    YubiHsm2Config = 25,
+
     /// Mapping for [`crate::utils::Error::ExecutableNotFound`] wrapped in [`Error::Utils`].
     UtilsExecutableNotFound = 190,
 
@@ -545,6 +554,8 @@ impl From<Error> for ErrorExitCode {
             Error::TomlWrite { .. } => Self::TomlWrite,
             Error::Utf8String { .. } => Self::Utf8String,
             Error::Validation { .. } => Self::Validation,
+            #[cfg(feature = "yubihsm2")]
+            Error::YubiHsm2Config { .. } => Self::YubiHsm2Config,
         }
     }
 }
