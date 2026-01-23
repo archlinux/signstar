@@ -1,0 +1,6 @@
+---
+source: signstar-config/src/config/system.rs
+description: "Error message for SystemConfig::new with too few SSS shareholders"
+expression: error_msg
+---
+mappings: contains only 2 shareholders, but the SSS setup requires 3
