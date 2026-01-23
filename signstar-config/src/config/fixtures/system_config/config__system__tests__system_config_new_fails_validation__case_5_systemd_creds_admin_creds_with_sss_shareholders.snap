@@ -1,0 +1,6 @@
+---
+source: signstar-config/src/config/system.rs
+description: "Error message for SystemConfig::new with SSS shareholders but systemd-creds based admin credentials handling"
+expression: error_msg
+---
+mappings: contains 3 SSS shareholders, but the administrative secret handling is systemd-creds

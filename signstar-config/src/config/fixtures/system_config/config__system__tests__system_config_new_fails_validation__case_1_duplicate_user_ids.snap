@@ -1,0 +1,6 @@
+---
+source: signstar-config/src/config/system.rs
+description: "Error message for SystemConfig::new with duplicate system user IDs"
+expression: error_msg
+---
+mappings: contains the duplicate system user ID "share-holder1"

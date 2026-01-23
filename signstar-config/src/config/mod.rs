@@ -5,9 +5,16 @@ pub mod credentials;
 pub mod error;
 pub mod mapping;
 pub mod state;
+mod system;
 mod traits;
 mod utils;
 
+pub use system::{
+    AdministrativeSecretHandling,
+    NonAdministrativeSecretHandling,
+    SystemConfig,
+    SystemUserMapping,
+};
 pub use traits::{
     BackendDomainFilter,
     BackendKeyIdFilter,
