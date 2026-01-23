@@ -304,7 +304,7 @@ test *options:
         options+=(
             --locked
             --all
-            --features yubihsm2
+            --features "yubihsm2,mockhsm"
         )
     fi
 
