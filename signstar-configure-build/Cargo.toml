@@ -15,7 +15,7 @@ nix = { version = "0.30.0", features = ["user"] }
 signstar-common.workspace = true
 signstar-config.workspace = true
 strum.workspace = true
-sysinfo = "0.37.0"
+sysinfo = "0.38.0"
 thiserror.workspace = true
 
 [features]
