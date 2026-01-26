@@ -11,7 +11,7 @@ version = "0.3.0"
 
 [dependencies]
 clap = { workspace = true, features = ["cargo", "derive", "env"] }
-nix = { version = "0.30.0", features = ["user"] }
+nix = { version = "0.31.0", features = ["user"] }
 signstar-common.workspace = true
 signstar-config.workspace = true
 strum.workspace = true
