@@ -2,6 +2,7 @@
 
 use std::{fmt::Display, str::FromStr};
 
+use nix::unistd::User;
 use serde::{Deserialize, Serialize};
 use ssh_key::authorized_keys::Entry;
 use zeroize::Zeroize;
@@ -80,6 +81,14 @@ impl TryFrom<String> for SystemUserId {
 
     fn try_from(value: String) -> Result<Self, Self::Error> {
         Self::new(value)
+    }
+}
+
+impl TryFrom<User> for SystemUserId {
+    type Error = crate::Error;
+
+    fn try_from(value: User) -> Result<Self, Self::Error> {
+        Self::new(value.name)
     }
 }
 

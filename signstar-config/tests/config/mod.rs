@@ -1,6 +1,7 @@
 //! Integration tests for [`signstar_config::config`].
 use std::{fs::copy, path::PathBuf};
 
+use nix::unistd::{User, geteuid};
 use rstest::rstest;
 use signstar_common::config::{
     create_default_config_dir,
@@ -16,11 +17,23 @@ use signstar_common::config::{
     get_usr_local_override_config_file_path,
     get_usr_local_override_dir_path,
 };
-use signstar_config::{SignstarConfig, test::get_tmp_config};
+use signstar_config::{SignstarConfig, SystemUserId, test::get_tmp_config};
 use testresult::TestResult;
 
 /// Full configuration
 const SIGNSTAR_CONFIG_FULL: &[u8] = include_bytes!("../fixtures/signstar-config-full.toml");
+
+/// Ensure that [`SystemUserId`] can be created from the current Unix user ("root").
+#[cfg(target_os = "linux")]
+#[test]
+fn system_user_id_from_unix_user() -> TestResult {
+    let current_user = User::from_uid(geteuid())?.expect("root is a valid system user");
+    assert_eq!(
+        SystemUserId::new("root".to_string())?,
+        SystemUserId::try_from(current_user)?
+    );
+    Ok(())
+}
 
 #[rstest]
 #[case(get_default_config_dir_path())]
