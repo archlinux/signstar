@@ -23,7 +23,7 @@ sha1 = "0.10.6"
 sha2.workspace = true
 signstar-common = { features = ["logging"], workspace = true }
 thiserror.workspace = true
-tokio = { version = "1.41.1", features = ["full"] }
+tokio = { workspace = true, features = ["full"] }
 
 [dev-dependencies]
 base64 = "0.22.1"
