@@ -39,7 +39,7 @@ rcgen = "0.14.0"
 rstest.workspace = true
 signstar-common.workspace = true
 signstar-config = { workspace = true, features = ["test-helpers"] }
-tempfile = "3.19.1"
+tempfile.workspace = true
 testresult.workspace = true
 tokio = { workspace = true, features = ["macros", "rt"] }
 which = "8.0.0"

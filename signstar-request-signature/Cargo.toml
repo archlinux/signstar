@@ -30,7 +30,7 @@ base64 = "0.22.1"
 rsa = { workspace = true, features = ["sha1", "sha2"] }
 rstest.workspace = true
 ssh-agent-lib = "0.5.1"
-tempfile = "3.20.0"
+tempfile.workspace = true
 testdir.workspace = true
 testresult.workspace = true
 # old version of the sha2 crate used for backwards-compat tests
