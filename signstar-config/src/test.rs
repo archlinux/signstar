@@ -9,9 +9,10 @@ use std::{
 };
 
 use log::debug;
-use nethsm::{FullCredentials, Passphrase, UserId};
+use nethsm::{FullCredentials, UserId};
 use rand::{Rng, distributions::Alphanumeric, thread_rng};
 use signstar_common::config::get_default_config_file_path;
+use signstar_crypto::passphrase::Passphrase;
 use tempfile::NamedTempFile;
 use which::which;
 
