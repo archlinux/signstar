@@ -612,7 +612,6 @@ pub fn extract_certificate(key: SignedSecretKey) -> Result<Vec<u8>, Error> {
 mod tests {
     use std::time::SystemTime;
 
-    use base64ct::{Base64, Encoding as _};
     use ed25519_dalek::{Signer, SigningKey};
     use pgp::{
         composed::SecretKeyParamsBuilder,
@@ -789,42 +788,52 @@ mod tests {
         Ok(())
     }
 
-    #[test]
-    fn private_key_import_ed25199_is_correctly_zero_padded() -> TestResult {
-        let key = SignedSecretKey::from_armor_single(std::fs::File::open(
-            "tests/fixtures/ed25519-key-with-31-byte-private-key-scalar.asc",
-        )?)?
-        .0;
+    /// Tests specific to the NetHSM backend.
+    #[cfg(feature = "nethsm")]
+    mod nethsm {
+        use std::fs::File;
 
-        let import: nethsm_sdk_rs::models::KeyPrivateData =
-            tsk_to_private_key_import(&key)?.0.into();
+        use base64ct::{Base64, Encoding as _};
+        use nethsm_sdk_rs::models::KeyPrivateData;
 
-        let data = Base64::decode_vec(&import.data.unwrap())?;
+        use super::*;
 
-        // data needs to be zero-padded for NetHSM import even if the
-        // input is *not* zero-padded
-        assert_eq!(data.len(), 32);
-        assert_eq!(data[0], 0x00);
+        #[test]
+        fn private_key_import_ed25199_is_correctly_zero_padded() -> TestResult {
+            let key = SignedSecretKey::from_armor_single(File::open(
+                "tests/fixtures/ed25519-key-with-31-byte-private-key-scalar.asc",
+            )?)?
+            .0;
 
-        Ok(())
-    }
+            let import: KeyPrivateData = tsk_to_private_key_import(&key)?.0.into();
 
-    #[test]
-    fn private_key_import_rsa_key_with_nonstandard_moduli_is_read_correctly() -> TestResult {
-        let key = SignedSecretKey::from_armor_single(std::fs::File::open(
-            "tests/fixtures/rsa-key-with-modulus-e-257.asc",
-        )?)?
-        .0;
+            let data = Base64::decode_vec(&import.data.unwrap())?;
 
-        let import: nethsm_sdk_rs::models::KeyPrivateData =
-            tsk_to_private_key_import(&key)?.0.into();
+            // data needs to be zero-padded for NetHSM import even if the
+            // input is *not* zero-padded
+            assert_eq!(data.len(), 32);
+            assert_eq!(data[0], 0x00);
 
-        let data = Base64::decode_vec(&import.public_exponent.unwrap())?;
+            Ok(())
+        }
 
-        // this key used a non-standard modulus (e) of 257
-        assert_eq!(data, vec![0x01, 0x01]); // 257 in hex
+        #[test]
+        #[cfg(feature = "nethsm")]
+        fn private_key_import_rsa_key_with_nonstandard_moduli_is_read_correctly() -> TestResult {
+            let key = SignedSecretKey::from_armor_single(File::open(
+                "tests/fixtures/rsa-key-with-modulus-e-257.asc",
+            )?)?
+            .0;
 
-        Ok(())
+            let import: KeyPrivateData = tsk_to_private_key_import(&key)?.0.into();
+
+            let data = Base64::decode_vec(&import.public_exponent.unwrap())?;
+
+            // this key used a non-standard modulus (e) of 257
+            assert_eq!(data, vec![0x01, 0x01]); // 257 in hex
+
+            Ok(())
+        }
     }
 
     /// Software ed25519 key.
