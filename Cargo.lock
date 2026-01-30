@@ -4673,12 +4673,16 @@ name = "signstar-crypto"
 version = "0.1.0"
 dependencies = [
  "base64ct",
+ "change-user-run",
  "chrono",
+ "clap",
+ "clap-verbosity-flag",
  "digest 0.10.7",
  "ed25519-dalek",
  "email_address",
  "log",
  "nethsm-sdk-rs",
+ "nix 0.31.1",
  "p256",
  "p384",
  "p521",
@@ -4689,7 +4693,9 @@ dependencies = [
  "secrecy 0.10.3",
  "serde",
  "sha2 0.11.0-rc.0",
+ "signstar-common",
  "strum",
+ "tempfile",
  "testresult",
  "thiserror 2.0.15",
 ]
