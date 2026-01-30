@@ -1,9 +1,11 @@
 //! Creation and loading of secrets from files.
 
+mod admin;
 mod common;
 mod error;
 mod non_admin;
 
+pub use admin::AdministrativeSecretHandling;
 pub use error::Error;
 pub use non_admin::{
     NonAdministrativeSecretHandling,

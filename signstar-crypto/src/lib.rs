@@ -11,4 +11,4 @@ pub mod test;
 pub mod traits;
 
 pub use error::Error;
-pub use secret_file::NonAdministrativeSecretHandling;
+pub use secret_file::{AdministrativeSecretHandling, NonAdministrativeSecretHandling};
