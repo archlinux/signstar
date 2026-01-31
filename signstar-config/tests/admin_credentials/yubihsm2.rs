@@ -13,10 +13,10 @@ use signstar_common::admin_credentials::{
 };
 use signstar_config::{
     AdminCredentials,
-    AdministrativeSecretHandling,
     test::write_machine_id,
     yubihsm2::admin_credentials::YubiHsm2AdminCredentials,
 };
+use signstar_crypto::AdministrativeSecretHandling;
 use signstar_yubihsm2::Credentials;
 use testresult::TestResult;
 
@@ -101,7 +101,7 @@ fn store_to_and_load_from_default_location(
             config_path
         }
         AdministrativeSecretHandling::SystemdCreds => get_systemd_creds_credentials_file(),
-        AdministrativeSecretHandling::ShamirsSecretSharing => {
+        AdministrativeSecretHandling::ShamirsSecretSharing { .. } => {
             unimplemented!("SSS is not yet supported")
         }
     };

@@ -112,11 +112,6 @@ pub enum Error {
     #[error("NetHSM backend error:\n{0}")]
     NetHsmBackend(#[from] crate::NetHsmBackendError),
 
-    /// An error specific to non-administrative secret handling.
-    #[cfg(feature = "nethsm")]
-    #[error("Error with non-administrative secret handling:\n{0}")]
-    NonAdminSecretHandling(#[from] crate::non_admin_credentials::Error),
-
     /// Low-level administrative credentials handling in signstar-common failed.
     #[error("Handling of administrative credentials failed:\n{0}")]
     SignstarCommonAdminCreds(#[from] signstar_common::admin_credentials::Error),
@@ -347,66 +342,6 @@ pub enum ErrorExitCode {
     #[cfg(feature = "nethsm")]
     NetHsmBackend = 19,
 
-    /// Mapping for [`crate::non_admin_credentials::Error::CredentialsLoading`] wrapped in
-    /// [`Error::NonAdminSecretHandling`].
-    #[cfg(feature = "nethsm")]
-    NonAdminCredentialsCredentialsLoading = 140,
-
-    /// Mapping for [`crate::non_admin_credentials::Error::CredentialsMissing`] wrapped in
-    /// [`Error::NonAdminSecretHandling`].
-    #[cfg(feature = "nethsm")]
-    NonAdminCredentialsCredentialsMissing = 141,
-
-    /// Mapping for [`crate::non_admin_credentials::Error::NoSystemUser`] wrapped in
-    /// [`Error::NonAdminSecretHandling`].
-    #[cfg(feature = "nethsm")]
-    NonAdminCredentialsNoSystemUser = 142,
-
-    /// Mapping for [`crate::non_admin_credentials::Error::NotSigningUser`] wrapped in
-    /// [`Error::NonAdminSecretHandling`].
-    #[cfg(feature = "nethsm")]
-    NonAdminCredentialsNotSigningUser = 143,
-
-    /// Mapping for [`crate::non_admin_credentials::Error::SecretsDirCreate`] wrapped in
-    /// [`Error::NonAdminSecretHandling`].
-    #[cfg(feature = "nethsm")]
-    NonAdminCredentialsSecretsDirCreate = 144,
-
-    /// Mapping for [`crate::non_admin_credentials::Error::SecretsFileCreate`] wrapped in
-    /// [`Error::NonAdminSecretHandling`].
-    #[cfg(feature = "nethsm")]
-    NonAdminCredentialsSecretsFileCreate = 145,
-
-    /// Mapping for [`crate::non_admin_credentials::Error::SecretsFileMetadata`] wrapped in
-    /// [`Error::NonAdminSecretHandling`].
-    #[cfg(feature = "nethsm")]
-    NonAdminCredentialsSecretsFileMetadata = 146,
-
-    /// Mapping for [`crate::non_admin_credentials::Error::SecretsFileMissing`] wrapped in
-    /// [`Error::NonAdminSecretHandling`].
-    #[cfg(feature = "nethsm")]
-    NonAdminCredentialsSecretsFileMissing = 147,
-
-    /// Mapping for [`crate::non_admin_credentials::Error::SecretsFileNotAFile`] wrapped in
-    /// [`Error::NonAdminSecretHandling`].
-    #[cfg(feature = "nethsm")]
-    NonAdminCredentialsSecretsFileNotAFile = 148,
-
-    /// Mapping for [`crate::non_admin_credentials::Error::SecretsFilePermissions`] wrapped in
-    /// [`Error::NonAdminSecretHandling`].
-    #[cfg(feature = "nethsm")]
-    NonAdminCredentialsSecretsFilePermissions = 149,
-
-    /// Mapping for [`crate::non_admin_credentials::Error::SecretsFileRead`] wrapped in
-    /// [`Error::NonAdminSecretHandling`].
-    #[cfg(feature = "nethsm")]
-    NonAdminCredentialsSecretsFileRead = 150,
-
-    /// Mapping for [`crate::non_admin_credentials::Error::SecretsFileWrite`] wrapped in
-    /// [`Error::NonAdminSecretHandling`].
-    #[cfg(feature = "nethsm")]
-    NonAdminCredentialsSecretsFileWrite = 151,
-
     /// Mapping for [`signstar_common::admin_credentials::Error::ApplyPermissions`] wrapped in
     /// [`Error::SignstarCommonAdminCreds`].
     SignstarCommonAdminCredsApplyPermissions = 170,
@@ -451,9 +386,6 @@ pub enum ErrorExitCode {
     /// Mapping for [`crate::utils::Error::ExecutableNotFound`] wrapped in [`Error::Utils`].
     UtilsExecutableNotFound = 190,
 
-    /// Mapping for [`crate::utils::Error::MappingSystemUserGet`] wrapped in [`Error::Utils`].
-    UtilsMappingSystemUserGet = 191,
-
     /// Mapping for [`crate::utils::Error::SystemUserData`] wrapped in [`Error::Utils`].
     UtilsSystemUserData = 192,
 
@@ -465,9 +397,6 @@ pub enum ErrorExitCode {
 
     /// Mapping for [`crate::utils::Error::SystemUserNotRoot`] wrapped in [`Error::Utils`].
     UtilsSystemUserNotRoot = 195,
-
-    /// Mapping for [`crate::utils::Error::SystemUserRoot`] wrapped in [`Error::Utils`].
-    UtilsSystemUserRoot = 196,
 }
 
 impl From<Error> for ErrorExitCode {
@@ -551,58 +480,6 @@ impl From<Error> for ErrorExitCode {
             // NetHSM backend related errors
             #[cfg(feature = "nethsm")]
             Error::NetHsmBackend(_) => Self::NetHsmBackend,
-            // non-admin credentials related errors and their exit codes
-            #[cfg(feature = "nethsm")]
-            Error::NonAdminSecretHandling(error) => match error {
-                #[cfg(feature = "nethsm")]
-                crate::non_admin_credentials::Error::CredentialsLoading { .. } => {
-                    Self::NonAdminCredentialsCredentialsLoading
-                }
-                #[cfg(feature = "nethsm")]
-                crate::non_admin_credentials::Error::CredentialsMissing { .. } => {
-                    Self::NonAdminCredentialsCredentialsMissing
-                }
-                #[cfg(feature = "nethsm")]
-                crate::non_admin_credentials::Error::NoSystemUser => {
-                    Self::NonAdminCredentialsNoSystemUser
-                }
-                #[cfg(feature = "nethsm")]
-                crate::non_admin_credentials::Error::NotSigningUser => {
-                    Self::NonAdminCredentialsNotSigningUser
-                }
-                #[cfg(feature = "nethsm")]
-                crate::non_admin_credentials::Error::SecretsDirCreate { .. } => {
-                    Self::NonAdminCredentialsSecretsDirCreate
-                }
-                #[cfg(feature = "nethsm")]
-                crate::non_admin_credentials::Error::SecretsFileCreate { .. } => {
-                    Self::NonAdminCredentialsSecretsFileCreate
-                }
-                #[cfg(feature = "nethsm")]
-                crate::non_admin_credentials::Error::SecretsFileMetadata { .. } => {
-                    Self::NonAdminCredentialsSecretsFileMetadata
-                }
-                #[cfg(feature = "nethsm")]
-                crate::non_admin_credentials::Error::SecretsFileMissing { .. } => {
-                    Self::NonAdminCredentialsSecretsFileMissing
-                }
-                #[cfg(feature = "nethsm")]
-                crate::non_admin_credentials::Error::SecretsFileNotAFile { .. } => {
-                    Self::NonAdminCredentialsSecretsFileNotAFile
-                }
-                #[cfg(feature = "nethsm")]
-                crate::non_admin_credentials::Error::SecretsFilePermissions { .. } => {
-                    Self::NonAdminCredentialsSecretsFilePermissions
-                }
-                #[cfg(feature = "nethsm")]
-                crate::non_admin_credentials::Error::SecretsFileRead { .. } => {
-                    Self::NonAdminCredentialsSecretsFileRead
-                }
-                #[cfg(feature = "nethsm")]
-                crate::non_admin_credentials::Error::SecretsFileWrite { .. } => {
-                    Self::NonAdminCredentialsSecretsFileWrite
-                }
-            },
             // signstar-common admin credentials related errors
             Error::SignstarCommonAdminCreds(error) => match error {
                 signstar_common::admin_credentials::Error::ApplyPermissions { .. } => {
@@ -618,12 +495,10 @@ impl From<Error> for ErrorExitCode {
             // utils related errors
             Error::Utils(error) => match error {
                 crate::utils::Error::ExecutableNotFound { .. } => Self::UtilsExecutableNotFound,
-                crate::utils::Error::MappingSystemUserGet(_) => Self::UtilsMappingSystemUserGet,
                 crate::utils::Error::SystemUserData { .. } => Self::UtilsSystemUserData,
                 crate::utils::Error::SystemUserLookup { .. } => Self::UtilsSystemUserLookup,
                 crate::utils::Error::SystemUserMismatch { .. } => Self::UtilsSystemUserMismatch,
                 crate::utils::Error::SystemUserNotRoot { .. } => Self::UtilsSystemUserNotRoot,
-                crate::utils::Error::SystemUserRoot => Self::UtilsSystemUserRoot,
             },
             // top-level errors and their exit codes
             Error::ApplyPermissions { .. } => Self::ApplyPermissions,

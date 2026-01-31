@@ -13,8 +13,8 @@ use signstar_config::{
         ConfigFileConfig,
         ConfigFileVariant,
         SystemPrepareConfig,
-        admin_credentials,
         create_full_credentials,
+        nethsm_admin_credentials,
     },
 };
 use testresult::TestResult;
@@ -48,7 +48,7 @@ async fn sync_unprovisioned_backend(
     };
     // Derive the acclaimed NetHSM state from the Signstar config
     let signstar_state = SignstarConfigNetHsmState::from(nethsm_config);
-    let admin_credentials = admin_credentials(creds_data)?;
+    let nethsm_admin_credentials = nethsm_admin_credentials(creds_data)?;
 
     let container = create_container().await?;
     let url = container.url().await?;
@@ -80,7 +80,7 @@ async fn sync_unprovisioned_backend(
     )?;
     assert_eq!(nethsm.state()?, SystemState::Unprovisioned);
 
-    let nethsm_backend = NetHsmBackend::new(nethsm, &admin_credentials, &signstar_config)?;
+    let nethsm_backend = NetHsmBackend::new(nethsm, &nethsm_admin_credentials, &signstar_config)?;
     debug!("Running sync");
     nethsm_backend.sync(&user_credentials)?;
     assert_eq!(nethsm_backend.nethsm().state()?, SystemState::Operational);

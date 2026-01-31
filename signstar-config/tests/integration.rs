@@ -78,7 +78,4 @@ pub mod admin_credentials;
 
 pub mod config;
 
-#[cfg(feature = "nethsm")]
-pub mod non_admin_credentials;
-
 pub mod usermapping;

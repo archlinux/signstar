@@ -9,10 +9,6 @@ name = "signstar-config"
 repository.workspace = true
 version = "0.2.0"
 
-[[example]]
-name = "get-nethsm-credentials"
-required-features = ["nethsm"]
-
 [dependencies]
 change-user-run = { workspace = true, optional = true }
 garde = { version = "0.22.1", features = ["derive"] }

@@ -15,10 +15,13 @@ Administrative credentials on a Signstar host describe all required secrets to u
 They can be used from plaintext and [`systemd-creds`] encrypted files.
 Functions for interacting with configurations in default locations must be called by root.
 
+#### NetHSM
+
 ```rust no_run
 # #[cfg(feature = "nethsm")]
 # mod impl_nethsm {
-use signstar_config::{AdminCredentials, AdministrativeSecretHandling, NetHsmAdminCredentials};
+use signstar_config::{AdminCredentials, NetHsmAdminCredentials};
+use signstar_crypto::AdministrativeSecretHandling;
 
 #     pub fn main() -> testresult::TestResult {
 // Load from plaintext file in default location
@@ -47,60 +50,88 @@ creds.store(AdministrativeSecretHandling::SystemdCreds)?;
 # use impl_none::main;
 ```
 
-### Creating secrets for non-administrative credentials
-
-Non-administrative credentials on a Signstar host provide access to non-administrative users on a NetHSM backend.
-They can be used in plaintext and [`systemd-creds`] encrypted files.
-
-Assuming, that a Signstar configuration is present on the host, it is possible to create secrets for each backend user assigned to any of the configured system users.
-Functions for the creation of secrets must be called by root.
+#### YubiHSM2
 
 ```rust no_run
-# #[cfg(feature = "nethsm")]
-# mod impl_nethsm {
-use signstar_common::config::get_default_config_file_path;
-use signstar_config::{
-    AdminCredentials,
-    AdministrativeSecretHandling,
-    NetHsmAdminCredentials,
-    ExtendedUserMapping,
-    SignstarConfig,
-};
+# #[cfg(feature = "yubihsm2")]
+# mod impl_yubihsm2 {
+use signstar_config::{AdminCredentials, yubihsm2::admin_credentials::YubiHsm2AdminCredentials};
+use signstar_crypto::AdministrativeSecretHandling;
 
 #     pub fn main() -> testresult::TestResult {
-// Load Signstar config from default location
-let config = SignstarConfig::new_from_file(
-    Some(&get_default_config_file_path()),
-)?;
+// Load from plaintext file in default location
+let creds = YubiHsm2AdminCredentials::load(AdministrativeSecretHandling::Plaintext)?;
 
-// Get extended user mappings for all users
-let creds_mapping: Vec<ExtendedUserMapping> = config.into();
+// Load from systemd-creds encrypted file in default location
+let creds = YubiHsm2AdminCredentials::load(AdministrativeSecretHandling::SystemdCreds)?;
 
-// Create secrets for each system user and their backend users
-for mapping in &creds_mapping {
-    mapping.create_secrets_dir()?;
-    mapping.create_non_administrative_secrets()?;
-}
+// Store in plaintext file in default location
+creds.store(AdministrativeSecretHandling::Plaintext)?;
+
+// Store in systemd-creds encrypted file in default location
+creds.store(AdministrativeSecretHandling::SystemdCreds)?;
 #         Ok(())
 #     }
 # }
-# #[cfg(not(feature = "nethsm"))]
+# #[cfg(not(feature = "yubihsm2"))]
 # mod impl_none {
 #     pub fn main() -> testresult::TestResult {
 #         Ok(())
 #     }
 # }
-# #[cfg(feature = "nethsm")]
-# use impl_nethsm::main;
-# #[cfg(not(feature = "nethsm"))]
+# #[cfg(feature = "yubihsm2")]
+# use impl_yubihsm2::main;
+# #[cfg(not(feature = "yubihsm2"))]
 # use impl_none::main;
 ```
+
+### Creating secrets for non-administrative credentials
+
+Non-administrative credentials on a Signstar host provide access to non-administrative users on a backend.
+They can be used in plaintext and [`systemd-creds`] encrypted files.
+
+Assuming, that a Signstar configuration is present on the host, it is possible to create secrets for each backend user assigned to any of the configured system users.
+Functions for the creation of secrets must be called by root.
 
 ---
 
 NOTE: For the creation of system users based on a Signstar config refer to [signstar-configure-build].
 
 ---
+
+```rust no_run
+# #[cfg(any(feature = "nethsm", feature = "yubihsm2"))]
+# mod impl_any {
+use signstar_config::{
+    config::{Config, UserBackendConnection, UserBackendConnectionFilter},
+};
+use signstar_crypto::AdministrativeSecretHandling;
+
+#     pub fn main() -> testresult::TestResult {
+// Load Signstar config from one of the default system locations.
+let config = Config::from_system_path()?;
+
+// Get the user backend connections for all non-administrative users.
+let user_backend_connections = config.user_backend_connections(UserBackendConnectionFilter::NonAdmin);
+
+// Create secrets for each system user and their backend users.
+for user_backend_connection in user_backend_connections.iter() {
+    user_backend_connection.create_non_admin_backend_user_secrets()?;
+}
+#         Ok(())
+#     }
+# }
+# #[cfg(not(any(feature = "nethsm", feature = "yubihsm2")))]
+# mod impl_none {
+#     pub fn main() -> testresult::TestResult {
+#         Ok(())
+#     }
+# }
+# #[cfg(any(feature = "nethsm", feature = "yubihsm2"))]
+# use impl_any::main;
+# #[cfg(not(any(feature = "nethsm", feature = "yubihsm2")))]
+# use impl_none::main;
+```
 
 ### Loading secrets for non-administrative users
 
@@ -109,28 +140,32 @@ The credentials for each NetHSM backend user can be loaded by each configured sy
 Functions for the loading of secrets must be called by the system user that is assigned that particular secret.
 
 ```rust no_run
-# #[cfg(feature = "nethsm")]
-# mod impl_nethsm {
-use signstar_config::CredentialsLoading;
+# #[cfg(any(feature = "nethsm", feature = "yubihsm2"))]
+# mod impl_any {
+use signstar_config::config::{Config, NonAdminBackendUserIdFilter, NonAdminBackendUserIdKind};
 
 #     pub fn main() -> testresult::TestResult {
-// Load all credentials for the current system user
-let credentials_loading = CredentialsLoading::from_system_user()?;
+// Load Signstar config from one of the default system locations.
+let config = Config::from_system_path()?;
+// Get the user backend connection for the Unix user named "test".
+let Some(user_backend_connection) = config.user_backend_connection(&"test".parse()?) else {
+  panic!("No Unix user of that name is configured for any of the available backends.")
+};
 
-// Assuming the current system user is a signing user, get the credentials for its assigned user in the NetHSM backend
-let credentials = credentials_loading.credentials_for_signing_user()?;
+// Assuming the selected Unix user is supposed to be used for signing, get the credentials for its assigned user in the backend.
+let credentials = user_backend_connection.load_non_admin_backend_user_secrets(NonAdminBackendUserIdFilter{ backend_user_id_kind: NonAdminBackendUserIdKind::Signing })?;
 #         Ok(())
 #     }
 # }
-# #[cfg(not(feature = "nethsm"))]
+# #[cfg(not(any(feature = "nethsm", feature = "yubihsm2")))]
 # mod impl_none {
 #     pub fn main() -> testresult::TestResult {
 #         Ok(())
 #     }
 # }
-# #[cfg(feature = "nethsm")]
-# use impl_nethsm::main;
-# #[cfg(not(feature = "nethsm"))]
+# #[cfg(any(feature = "nethsm", feature = "yubihsm2"))]
+# use impl_any::main;
+# #[cfg(not(any(feature = "nethsm", feature = "yubihsm2")))]
 # use impl_none::main;
 ```
 

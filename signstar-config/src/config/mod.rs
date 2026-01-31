@@ -1,11 +1,8 @@
 //! Configuration file handling for _Signstar hosts_.
 
-pub mod base;
 pub mod credentials;
 pub mod error;
 mod file;
-#[cfg(feature = "nethsm")]
-pub mod mapping;
 pub mod state;
 mod system;
 mod traits;

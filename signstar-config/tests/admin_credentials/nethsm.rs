@@ -11,10 +11,10 @@ use signstar_common::admin_credentials::{
 };
 use signstar_config::{
     AdminCredentials,
-    AdministrativeSecretHandling,
     NetHsmAdminCredentials,
     test::{get_tmp_config, write_machine_id},
 };
+use signstar_crypto::AdministrativeSecretHandling;
 use testresult::TestResult;
 
 /// Simple configuration
@@ -128,7 +128,7 @@ fn load_admin_creds_from_default_location(
             )?;
             creds.store(AdministrativeSecretHandling::SystemdCreds)?;
         }
-        AdministrativeSecretHandling::ShamirsSecretSharing => {
+        AdministrativeSecretHandling::ShamirsSecretSharing { .. } => {
             unimplemented!("Shamir's Secret Sharing is not yet implemented!");
         }
     }
@@ -164,7 +164,7 @@ fn store_admin_creds_to_default_location(
         AdministrativeSecretHandling::SystemdCreds => {
             assert!(get_systemd_creds_credentials_file().exists());
         }
-        AdministrativeSecretHandling::ShamirsSecretSharing => {
+        AdministrativeSecretHandling::ShamirsSecretSharing { .. } => {
             unimplemented!("Shamir's Secret Sharing is not yet implemented!");
         }
     }

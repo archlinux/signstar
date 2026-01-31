@@ -4,8 +4,6 @@ use std::path::PathBuf;
 use nix::unistd::{User, geteuid};
 use which::which;
 
-#[cfg(feature = "nethsm")]
-use crate::ExtendedUserMapping;
 use crate::SystemUserId;
 
 /// An error that may occur when using signstar-config utils.
@@ -19,10 +17,6 @@ pub enum Error {
         /// The source error.
         source: which::Error,
     },
-
-    /// An [`ExtendedUserMapping`] does not provide a system user.
-    #[error("The user mapping does not provide a system user:\n{0}")]
-    MappingSystemUserGet(String),
 
     /// There is no data about a system user.
     #[error("Data for system user {user} is missing")]
@@ -63,10 +57,6 @@ pub enum Error {
         /// The system user that is used instead of `root`.
         user: String,
     },
-
-    /// The current user is root, but should be an unprivileged user.
-    #[error("The command must not be run as root, but running as \"root\"")]
-    SystemUserRoot,
 }
 
 /// A name or uid of a system user on a host
@@ -109,21 +99,6 @@ pub(crate) fn fail_if_not_root(user: &User) -> Result<(), Error> {
     Ok(())
 }
 
-/// Fails if running as root.
-///
-/// Evaluates the effective user ID.
-///
-/// # Errors
-///
-/// Returns an error if the effective user ID is that of root.
-#[cfg(feature = "nethsm")]
-pub(crate) fn fail_if_root(user: &User) -> Result<(), Error> {
-    if user.uid.is_root() {
-        return Err(Error::SystemUserRoot);
-    }
-    Ok(())
-}
-
 /// Returns the [`User`] associated with the current process.
 ///
 /// Retrieves user data of the system based on the effective user ID of the current process.
@@ -146,59 +121,4 @@ pub(crate) fn get_current_system_user() -> Result<User, Error> {
         });
     };
     Ok(user)
-}
-
-/// Checks whether the current system user is the targeted user.
-///
-/// Compares two [`User`] instances and fails if they are not the same.
-///
-/// # Errors
-///
-/// Returns an error if the current system user is not the targeted user.
-#[cfg(feature = "nethsm")]
-pub(crate) fn match_current_system_user(
-    current_user: &User,
-    target_user: &User,
-) -> Result<(), Error> {
-    if current_user != target_user {
-        return Err(Error::SystemUserMismatch {
-            target_user: target_user.name.clone(),
-            current_user: current_user.name.clone(),
-        });
-    }
-    Ok(())
-}
-
-/// Returns a [`SystemUserId`] and matching Unix system [`User`] associated with it.
-///
-/// # Errors
-///
-/// Returns an error if
-/// - there is no [`SystemUserId`] in the mapping,
-/// - or no [`User`] data can be retrieved from a found [`SystemUserId`].
-#[cfg(feature = "nethsm")]
-pub(crate) fn get_system_user_pair(
-    mapping: &ExtendedUserMapping,
-) -> Result<(SystemUserId, User), Error> {
-    // retrieve the targeted system user from the mapping
-    let Some(system_user) = mapping.get_user_mapping().get_system_user() else {
-        return Err(Error::MappingSystemUserGet(format!(
-            "{:?}",
-            mapping.get_user_mapping()
-        )));
-    };
-
-    // retrieve the actual user data on the system
-    let Some(user) =
-        User::from_name(system_user.as_ref()).map_err(|source| Error::SystemUserLookup {
-            user: NameOrUid::Name(system_user.clone()),
-            source,
-        })?
-    else {
-        return Err(Error::SystemUserData {
-            user: NameOrUid::Name(system_user.clone()),
-        });
-    };
-
-    Ok((system_user.clone(), user))
 }

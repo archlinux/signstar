@@ -17,9 +17,9 @@ use log::debug;
 use nethsm::{FullCredentials, UserId};
 #[cfg(feature = "nethsm")]
 use rand::{Rng, distributions::Alphanumeric, thread_rng};
-#[cfg(feature = "nethsm")]
-use signstar_common::config::get_default_config_file_path;
 use signstar_common::system_user::get_home_base_dir_path;
+#[cfg(feature = "nethsm")]
+use signstar_crypto::AdministrativeSecretHandling;
 #[cfg(feature = "nethsm")]
 use signstar_crypto::passphrase::Passphrase;
 use tempfile::NamedTempFile;
@@ -27,14 +27,7 @@ use which::which;
 
 use crate::config::{Config, ConfigSystemUserIds};
 #[cfg(feature = "nethsm")]
-use crate::{
-    AdminCredentials,
-    AdministrativeSecretHandling,
-    ExtendedUserMapping,
-    NetHsmAdminCredentials,
-    SignstarConfig,
-};
-
+use crate::{AdminCredentials, NetHsmAdminCredentials};
 /// When any of the HSM backends is present.
 #[cfg(any(feature = "nethsm", feature = "yubihsm2"))]
 pub mod impl_any {
@@ -701,46 +694,6 @@ pub fn start_credentials_socket() -> Result<BackgroundProcess, Error> {
     })
 }
 
-/// Prepares a system for use with Signstar.
-///
-/// Prepares the following:
-///
-/// - Creates `/etc/machine-id`, which is needed for `systemd-creds` to function.
-/// - Reads Signstar configuration from data and writes to default config location.
-/// - Creates `/run/systemd/io.systemd.Credentials` by running `systemd-socket-activate` in the
-///   background
-///
-/// Returns the list of [`ExtendedUserMapping`]s derived from the Signstar configuration and the
-/// [`BackgroundProcess`] returned from [`start_credentials_socket`].
-///
-/// # Errors
-///
-/// Returns an error if
-///
-/// - [`write_machine_id`] fails,
-/// - a new [`SignstarConfig`] can not be created from `config_data`,
-/// - a [`SignstarConfig`] can not be saved to a system-wide location,
-/// - or [`start_credentials_socket`] fails.
-#[cfg(feature = "nethsm")]
-pub fn prepare_system_with_config(
-    config_data: &[u8],
-) -> Result<(Vec<ExtendedUserMapping>, BackgroundProcess), Error> {
-    write_machine_id()?;
-
-    // Read Signstar config from `config_data`
-    let config = SignstarConfig::new_from_file(Some(get_tmp_config(config_data)?.path()))?;
-
-    // Store Signstar config in default location
-    config.store(Some(&get_default_config_file_path()))?;
-
-    // Get extended user mappings for all users.
-    let creds_mapping: Vec<ExtendedUserMapping> = config.into();
-
-    // Return extended user mappings contained in Signstar config and the background process
-    // providing /run/systemd/io.systemd.Credentials
-    Ok((creds_mapping, start_credentials_socket()?))
-}
-
 /// Creates an [`AdminCredentials`] from config data.
 ///
 /// Accepts a byte slice containing configuration data.
@@ -752,29 +705,13 @@ pub fn prepare_system_with_config(
 /// - a temporary config file can not be created from `config_data`,
 /// - an [`AdminCredentials`] can not be created from the temporary config file.
 #[cfg(feature = "nethsm")]
-pub fn admin_credentials(config_data: &[u8]) -> Result<NetHsmAdminCredentials, Error> {
+pub fn nethsm_admin_credentials(config_data: &[u8]) -> Result<NetHsmAdminCredentials, Error> {
     let config_file = get_tmp_config(config_data)?;
     NetHsmAdminCredentials::load_from_file(
         config_file.path(),
         AdministrativeSecretHandling::Plaintext,
     )
     .map_err(Error::SignstarConfig)
-}
-
-/// Creates a [`SignstarConfig`] from config data.
-///
-/// Accepts a byte slice containing configuration data.
-///
-/// # Errors
-///
-/// Returns an error if
-///
-/// - a temporary config file can not be created from `config_data`,
-/// - a [`SignstarConfig`] can not be created from the temporary config file.
-#[cfg(feature = "nethsm")]
-pub fn signstar_config(config_data: &[u8]) -> Result<SignstarConfig, Error> {
-    SignstarConfig::new_from_file(Some(get_tmp_config(config_data)?.path()))
-        .map_err(Error::SignstarConfig)
 }
 
 /// Creates a list of [`FullCredentials`] for a list of [`UserId`]s.

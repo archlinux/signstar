@@ -17,11 +17,9 @@ use signstar_common::{
     },
     common::SECRET_FILE_MODE,
 };
+use signstar_crypto::AdministrativeSecretHandling;
 
-use crate::{
-    AdministrativeSecretHandling,
-    utils::{fail_if_not_root, get_command, get_current_system_user},
-};
+use crate::utils::{fail_if_not_root, get_command, get_current_system_user};
 
 /// An error that may occur when handling administrative credentials for a backend.
 #[derive(Debug, thiserror::Error)]
@@ -109,7 +107,7 @@ pub trait AdminCredentials: DeserializeOwned + Serialize {
             match secrets_handling {
                 AdministrativeSecretHandling::Plaintext => get_plaintext_credentials_file(),
                 AdministrativeSecretHandling::SystemdCreds => get_systemd_creds_credentials_file(),
-                AdministrativeSecretHandling::ShamirsSecretSharing => {
+                AdministrativeSecretHandling::ShamirsSecretSharing { .. } => {
                     unimplemented!("Shamir's Secret Sharing is not yet supported")
                 }
             },
@@ -202,7 +200,7 @@ pub trait AdminCredentials: DeserializeOwned + Serialize {
                     source: Box::new(source),
                 })?
             }
-            AdministrativeSecretHandling::ShamirsSecretSharing => {
+            AdministrativeSecretHandling::ShamirsSecretSharing { .. } => {
                 unimplemented!("Shamir's Secret Sharing is not yet supported")
             }
         };
@@ -311,7 +309,7 @@ pub trait AdminCredentials: DeserializeOwned + Serialize {
                     }
                     (command_output.stdout, get_systemd_creds_credentials_file())
                 }
-                AdministrativeSecretHandling::ShamirsSecretSharing => {
+                AdministrativeSecretHandling::ShamirsSecretSharing { .. } => {
                     unimplemented!("Shamir's Secret Sharing is not yet supported")
                 }
             }
