@@ -10,15 +10,19 @@ use std::process::ExitCode;
 
 use clap::{Parser, ValueEnum};
 use log::LevelFilter;
+#[cfg(any(feature = "nethsm", feature = "yubihsm2"))]
+use signstar_config::AuthorizedKeyEntry;
+#[cfg(feature = "nethsm")]
+use signstar_config::nethsm::{NetHsmMetricsUsers, NetHsmUserMapping};
 #[cfg(feature = "yubihsm2")]
 use signstar_config::yubihsm2::YubiHsm2UserMapping;
 use signstar_config::{
     SystemUserId,
     config::{MappingBackendUserSecrets, NonAdminBackendUserIdFilter, NonAdminBackendUserIdKind},
-    nethsm::{NetHsmMetricsUsers, NetHsmUserMapping},
 };
+use signstar_crypto::NonAdministrativeSecretHandling;
+#[cfg(any(feature = "nethsm", feature = "yubihsm2"))]
 use signstar_crypto::{
-    NonAdministrativeSecretHandling,
     key::{CryptographicKeyContext, KeyMechanism, KeyType, SignatureType, SigningKeySetup},
     openpgp::OpenPgpUserIdList,
 };
@@ -27,10 +31,6 @@ use simplelog::{ColorChoice, Config, TermLogger, TerminalMode};
 /// An error that may occur when using usermapping-system-user-info.
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
-    /// The dummy backend is encountered.
-    #[error("The dummy backend has no functionality.")]
-    Dummy,
-
     /// Expected a system user.
     #[error("Expected a system user.")]
     MissingSystemUser,
@@ -40,6 +40,7 @@ pub enum Error {
     NetHsmKey(#[from] nethsm::KeyError),
 
     /// A `nethsm::user::Error`.
+    #[cfg(feature = "nethsm")]
     #[error(transparent)]
     NetHsmUser(#[from] nethsm::UserError),
 
@@ -72,6 +73,7 @@ pub enum Error {
 #[derive(Clone, Copy, Debug, strum::Display, ValueEnum)]
 #[strum(serialize_all = "lowercase")]
 enum BackendKind {
+    #[cfg(feature = "nethsm")]
     NetHsm,
     #[cfg(feature = "yubihsm2")]
     YubiHsm2,
@@ -90,12 +92,25 @@ enum MappingKind {
 
 #[derive(Clone, Copy, Debug, strum::Display, ValueEnum)]
 #[strum(serialize_all = "lowercase")]
+#[cfg_attr(
+    any(
+        all(feature = "nethsm", not(feature = "yubihsm2")),
+        all(not(feature = "nethsm"), feature = "yubihsm2")
+    ),
+    expect(clippy::enum_variant_names)
+)]
 enum BackendMappingKind {
+    #[cfg(not(any(feature = "nethsm", feature = "yubihsm2")))]
     Dummy,
+    #[cfg(feature = "nethsm")]
     NethsmAdmin,
+    #[cfg(feature = "nethsm")]
     NethsmBackup,
+    #[cfg(feature = "nethsm")]
     NethsmHermeticMetrics,
+    #[cfg(feature = "nethsm")]
     NethsmMetrics,
+    #[cfg(feature = "nethsm")]
     NethsmSigning,
     #[cfg(feature = "yubihsm2")]
     Yubihsm2Admin,
@@ -184,6 +199,13 @@ fn init_logger() {
     }
 }
 
+/// Creates a dummy [`AuthorizedKeyEntry`].
+#[cfg(any(feature = "nethsm", feature = "yubihsm2"))]
+fn dummy_ssh_authorized_key() -> Result<AuthorizedKeyEntry, Error> {
+    Ok("ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPDgwGfIRBAsOUuDEZw/uJQZSwOYr4sg2DAZpcc7MfOj user@host"
+        .parse()?)
+}
+
 /// Creates the requested user mapping implementation.
 ///
 /// Creation is based on [`BackendMappingKind`] and an optional [`SystemUserId`].
@@ -197,56 +219,63 @@ fn create_mapping(
     backend_mapping_kind: BackendMappingKind,
     system_user: Option<SystemUserId>,
 ) -> Result<Box<dyn MappingBackendUserSecrets>, Error> {
-    let ssh_authorized_key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPDgwGfIRBAsOUuDEZw/uJQZSwOYr4sg2DAZpcc7MfOj user@host".parse()?;
-
-    Ok(match backend_mapping_kind {
-        BackendMappingKind::Dummy => return Err(Error::Dummy),
+    match backend_mapping_kind {
+        #[cfg(not(any(feature = "nethsm", feature = "yubihsm2")))]
+        BackendMappingKind::Dummy => {
+            let _unused = system_user;
+            unimplemented!("There is no dummy backend")
+        }
+        #[cfg(feature = "nethsm")]
         BackendMappingKind::NethsmAdmin => {
             if let Some(system_user) = system_user {
                 return Err(Error::UnexpectedSystemUser { system_user });
             }
-            Box::new(NetHsmUserMapping::Admin("admin".parse()?))
+            Ok(Box::new(NetHsmUserMapping::Admin("admin".parse()?)))
         }
+        #[cfg(feature = "nethsm")]
         BackendMappingKind::NethsmBackup => {
             let Some(system_user) = system_user else {
                 return Err(Error::MissingSystemUser);
             };
-            Box::new(NetHsmUserMapping::Backup {
+            Ok(Box::new(NetHsmUserMapping::Backup {
                 backend_user: "backup".parse()?,
-                ssh_authorized_key,
+                ssh_authorized_key: dummy_ssh_authorized_key()?,
                 system_user,
-            })
+            }))
         }
+        #[cfg(feature = "nethsm")]
         BackendMappingKind::NethsmHermeticMetrics => {
             let Some(system_user) = system_user else {
                 return Err(Error::MissingSystemUser);
             };
-            Box::new(NetHsmUserMapping::HermeticMetrics {
+            Ok(Box::new(NetHsmUserMapping::HermeticMetrics {
                 backend_users: NetHsmMetricsUsers::new(
                     "metrics".parse()?,
                     vec!["observer".parse()?],
                 )?,
                 system_user,
-            })
+            }))
         }
+        #[cfg(feature = "nethsm")]
         BackendMappingKind::NethsmMetrics => {
             let Some(system_user) = system_user else {
                 return Err(Error::MissingSystemUser);
             };
-            Box::new(NetHsmUserMapping::Metrics {
+            Ok(Box::new(NetHsmUserMapping::Metrics {
                 backend_users: NetHsmMetricsUsers::new(
                     "metrics".parse()?,
                     vec!["observer".parse()?],
                 )?,
-                ssh_authorized_key,
+                ssh_authorized_key: dummy_ssh_authorized_key()?,
                 system_user,
-            })
+            }))
         }
+        #[cfg(feature = "nethsm")]
         BackendMappingKind::NethsmSigning => {
             let Some(system_user) = system_user else {
                 return Err(Error::MissingSystemUser);
             };
-            Box::new(NetHsmUserMapping::Signing {
+            Ok(Box::new(NetHsmUserMapping::Signing {
                 backend_user: "signing".parse()?,
                 signing_key_id: "key1".parse()?,
                 key_setup: SigningKeySetup::new(
@@ -261,59 +290,59 @@ fn create_mapping(
                         version: "v4".parse()?,
                     },
                 )?,
-                ssh_authorized_key,
+                ssh_authorized_key: dummy_ssh_authorized_key()?,
                 system_user,
                 tag: "tag1".to_string(),
-            })
+            }))
         }
         #[cfg(feature = "yubihsm2")]
         BackendMappingKind::Yubihsm2Admin => {
             if let Some(system_user) = system_user {
                 return Err(Error::UnexpectedSystemUser { system_user });
             }
-            Box::new(YubiHsm2UserMapping::Admin {
+            Ok(Box::new(YubiHsm2UserMapping::Admin {
                 authentication_key_id: "1".parse()?,
-            })
+            }))
         }
         #[cfg(feature = "yubihsm2")]
         BackendMappingKind::Yubihsm2AuditLog => {
             let Some(system_user) = system_user else {
                 return Err(Error::MissingSystemUser);
             };
-            Box::new(YubiHsm2UserMapping::AuditLog {
+            Ok(Box::new(YubiHsm2UserMapping::AuditLog {
                 authentication_key_id: "1".parse()?,
-                ssh_authorized_key,
+                ssh_authorized_key: dummy_ssh_authorized_key()?,
                 system_user,
-            })
+            }))
         }
         #[cfg(feature = "yubihsm2")]
         BackendMappingKind::Yubihsm2Backup => {
             let Some(system_user) = system_user else {
                 return Err(Error::MissingSystemUser);
             };
-            Box::new(YubiHsm2UserMapping::Backup {
+            Ok(Box::new(YubiHsm2UserMapping::Backup {
                 authentication_key_id: "1".parse()?,
                 wrapping_key_id: "1".parse()?,
-                ssh_authorized_key,
+                ssh_authorized_key: dummy_ssh_authorized_key()?,
                 system_user,
-            })
+            }))
         }
         #[cfg(feature = "yubihsm2")]
         BackendMappingKind::Yubihsm2HermeticAuditLog => {
             let Some(system_user) = system_user else {
                 return Err(Error::MissingSystemUser);
             };
-            Box::new(YubiHsm2UserMapping::HermeticAuditLog {
+            Ok(Box::new(YubiHsm2UserMapping::HermeticAuditLog {
                 authentication_key_id: "1".parse()?,
                 system_user,
-            })
+            }))
         }
         #[cfg(feature = "yubihsm2")]
         BackendMappingKind::Yubihsm2Signing => {
             let Some(system_user) = system_user else {
                 return Err(Error::MissingSystemUser);
             };
-            Box::new(YubiHsm2UserMapping::Signing {
+            Ok(Box::new(YubiHsm2UserMapping::Signing {
                 authentication_key_id: "1".parse()?,
                 key_setup: SigningKeySetup::new(
                     KeyType::Curve25519,
@@ -329,11 +358,11 @@ fn create_mapping(
                 )?,
                 domain: signstar_yubihsm2::object::Domain::One,
                 signing_key_id: "1".parse()?,
-                ssh_authorized_key,
+                ssh_authorized_key: dummy_ssh_authorized_key()?,
                 system_user,
-            })
+            }))
         }
-    })
+    }
 }
 
 /// Runs the task for a specific user mapping implementation.

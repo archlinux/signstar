@@ -16,9 +16,11 @@ They can be used from plaintext and [`systemd-creds`] encrypted files.
 Functions for interacting with configurations in default locations must be called by root.
 
 ```rust no_run
+# #[cfg(feature = "nethsm")]
+# mod impl_nethsm {
 use signstar_config::{AdminCredentials, AdministrativeSecretHandling, NetHsmAdminCredentials};
 
-# fn main() -> testresult::TestResult {
+#     pub fn main() -> testresult::TestResult {
 // Load from plaintext file in default location
 let creds = NetHsmAdminCredentials::load(AdministrativeSecretHandling::Plaintext)?;
 
@@ -30,8 +32,19 @@ creds.store(AdministrativeSecretHandling::Plaintext)?;
 
 // Store in systemd-creds encrypted file in default location
 creds.store(AdministrativeSecretHandling::SystemdCreds)?;
-# Ok(())
+#         Ok(())
+#     }
 # }
+# #[cfg(not(feature = "nethsm"))]
+# mod impl_none {
+#     pub fn main() -> testresult::TestResult {
+#         Ok(())
+#     }
+# }
+# #[cfg(feature = "nethsm")]
+# use impl_nethsm::main;
+# #[cfg(not(feature = "nethsm"))]
+# use impl_none::main;
 ```
 
 ### Creating secrets for non-administrative credentials
@@ -43,6 +56,8 @@ Assuming, that a Signstar configuration is present on the host, it is possible t
 Functions for the creation of secrets must be called by root.
 
 ```rust no_run
+# #[cfg(feature = "nethsm")]
+# mod impl_nethsm {
 use signstar_common::config::get_default_config_file_path;
 use signstar_config::{
     AdminCredentials,
@@ -52,7 +67,7 @@ use signstar_config::{
     SignstarConfig,
 };
 
-# fn main() -> testresult::TestResult {
+#     pub fn main() -> testresult::TestResult {
 // Load Signstar config from default location
 let config = SignstarConfig::new_from_file(
     Some(&get_default_config_file_path()),
@@ -66,8 +81,19 @@ for mapping in &creds_mapping {
     mapping.create_secrets_dir()?;
     mapping.create_non_administrative_secrets()?;
 }
-# Ok(())
+#         Ok(())
+#     }
 # }
+# #[cfg(not(feature = "nethsm"))]
+# mod impl_none {
+#     pub fn main() -> testresult::TestResult {
+#         Ok(())
+#     }
+# }
+# #[cfg(feature = "nethsm")]
+# use impl_nethsm::main;
+# #[cfg(not(feature = "nethsm"))]
+# use impl_none::main;
 ```
 
 ---
@@ -83,16 +109,29 @@ The credentials for each NetHSM backend user can be loaded by each configured sy
 Functions for the loading of secrets must be called by the system user that is assigned that particular secret.
 
 ```rust no_run
+# #[cfg(feature = "nethsm")]
+# mod impl_nethsm {
 use signstar_config::CredentialsLoading;
 
-# fn main() -> testresult::TestResult {
+#     pub fn main() -> testresult::TestResult {
 // Load all credentials for the current system user
 let credentials_loading = CredentialsLoading::from_system_user()?;
 
 // Assuming the current system user is a signing user, get the credentials for its assigned user in the NetHSM backend
 let credentials = credentials_loading.credentials_for_signing_user()?;
-# Ok(())
+#         Ok(())
+#     }
 # }
+# #[cfg(not(feature = "nethsm"))]
+# mod impl_none {
+#     pub fn main() -> testresult::TestResult {
+#         Ok(())
+#     }
+# }
+# #[cfg(feature = "nethsm")]
+# use impl_nethsm::main;
+# #[cfg(not(feature = "nethsm"))]
+# use impl_none::main;
 ```
 
 ## Features

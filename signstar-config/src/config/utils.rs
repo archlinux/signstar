@@ -4,17 +4,17 @@ use std::collections::{BTreeSet, HashSet};
 
 use ssh_key::PublicKey;
 
+#[cfg(any(feature = "nethsm", feature = "yubihsm2"))]
 use crate::config::{
     BackendDomainFilter,
     BackendKeyIdFilter,
     BackendUserIdFilter,
     BackendUserIdKind,
-    MappingAuthorizedKeyEntry,
     MappingBackendDomain,
     MappingBackendKeyId,
     MappingBackendUserIds,
-    MappingSystemUserId,
 };
+use crate::config::{MappingAuthorizedKeyEntry, MappingSystemUserId};
 
 /// Collects all duplicate items from an [`Iterator`] of type `T`.
 fn collect_duplicates<'a, T>(data: impl Iterator<Item = &'a T>) -> Vec<&'a T>
@@ -104,6 +104,7 @@ pub(crate) fn duplicate_authorized_keys(
 /// Collects all duplicate backend user IDs.
 ///
 /// Accepts a set of [`MappingBackendUserIds`] implementations.
+#[cfg(any(feature = "nethsm", feature = "yubihsm2"))]
 pub(crate) fn duplicate_backend_user_ids(
     mappings: &BTreeSet<impl MappingBackendUserIds>,
 ) -> Option<String> {
@@ -138,6 +139,7 @@ pub(crate) fn duplicate_backend_user_ids(
 /// Allows passing in an implementation of [`BackendKeyIdFilter`] as filter.
 /// Optionally, a `key_type` can be passed in which is used to complete the sentence "the
 /// duplicate{key_type} key ID".
+#[cfg(any(feature = "nethsm", feature = "yubihsm2"))]
 pub(crate) fn duplicate_key_ids<T>(
     mappings: &BTreeSet<impl MappingBackendKeyId<T>>,
     filter: &T,
@@ -174,6 +176,7 @@ where
 /// Allows passing in an implementation of [`BackendDomainFilter`] as filter.
 /// Optionally, a `domain_context` and `domain_name` can be passed in which are used to complete the
 /// sentence "the duplicate{domain_context} {domain_name}".
+#[cfg(any(feature = "nethsm", feature = "yubihsm2"))]
 pub(crate) fn duplicate_domains<T>(
     mappings: &BTreeSet<impl MappingBackendDomain<T>>,
     filter: Option<&T>,

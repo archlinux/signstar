@@ -1,0 +1,7 @@
+---
+source: signstar-config/src/config/file/mod.rs
+description: "Configuration with system-wide, NetHSM and YubiHSM2 configuration has one duplicate system user in the backends"
+expression: error_message
+---
+Validation error while validating a configuration object: nethsm: contains the duplicate system user ID backup-user
+yubihsm2: contains the duplicate system user ID backup-user

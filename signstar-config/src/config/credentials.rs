@@ -1,4 +1,4 @@
-//! Credentials handling for [`SignstarConfig`].
+//! Credentials handling for Signstar configuration.
 
 use std::{fmt::Display, str::FromStr};
 
@@ -8,8 +8,6 @@ use ssh_key::authorized_keys::Entry;
 use zeroize::Zeroize;
 
 use crate::ConfigError;
-#[cfg(doc)]
-use crate::SignstarConfig;
 
 /// The name of a user on a Unix system
 ///

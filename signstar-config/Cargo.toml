@@ -9,15 +9,20 @@ name = "signstar-config"
 repository.workspace = true
 version = "0.2.0"
 
+[[example]]
+name = "get-nethsm-credentials"
+required-features = ["nethsm"]
+
 [dependencies]
 garde = { version = "0.22.1", features = ["derive"] }
 log.workspace = true
-nethsm.workspace = true
+nethsm = { workspace = true, optional = true }
 nix.workspace = true
 num_enum = "0.7.3"
 pgp.workspace = true
 rand.workspace = true
 serde.workspace = true
+serde-saphyr = "0.0.16"
 signstar-common.workspace = true
 signstar-crypto = { version = "0.1.0", path = "../signstar-crypto" }
 signstar-yubihsm2 = { version = "0.1.0", path = "../signstar-yubihsm2", optional = true }
@@ -44,11 +49,18 @@ testresult.workspace = true
 tokio.workspace = true
 
 [features]
-_containerized-integration-test = ["_integration-test", "test-helpers"]
+_containerized-integration-test = [
+    "_integration-test",
+    "nethsm",
+    "test-helpers",
+]
 _integration-test = ["test-helpers"]
-_nethsm-integration-test = ["_integration-test", "test-helpers"]
-default = []
-test-helpers = ["dep:tempfile", "dep:testresult"]
+_nethsm-integration-test = ["_integration-test", "nethsm", "test-helpers"]
+default = ["nethsm"]
+# Support for the NetHSM backend.
+nethsm = ["dep:nethsm"]
+test-helpers = ["dep:tempfile", "dep:testresult", "nethsm"]
+# Support for the YubiHSM2 backend.
 yubihsm2 = ["dep:signstar-yubihsm2"]
 
 [lints]

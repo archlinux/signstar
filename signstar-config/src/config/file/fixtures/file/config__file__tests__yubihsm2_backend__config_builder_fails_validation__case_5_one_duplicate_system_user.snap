@@ -1,0 +1,6 @@
+---
+source: signstar-config/src/config/file/mod.rs
+description: Configuration with system-wide and YubiHSM2 configuration has one duplicate system user
+expression: error_message
+---
+Validation error while validating a configuration object: system: contains the duplicate system user ID share-holder1

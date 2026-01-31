@@ -1,0 +1,8 @@
+---
+source: signstar-config/src/config/file/mod.rs
+description: Configuration with system-wide and YubiHSM2 configuration has one duplicate system user and one duplicate SSH public key
+expression: error_message
+---
+Validation error while validating a configuration object: system: contains multiple issues:
+⤷ the duplicate system user ID share-holder1
+⤷ the duplicate SSH public key "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILWqWyMCk5BdSl1c3KYoLEokKr7qNVPbI1IbBhgEBQj5"
