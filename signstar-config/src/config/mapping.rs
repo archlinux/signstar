@@ -321,6 +321,7 @@ impl UserMapping {
     /// # Ok(())
     /// # }
     /// ```
+    // NOTE: Replaced by implementations of `MappingSystemUserId::system_user_id`
     pub fn get_system_user(&self) -> Option<&SystemUserId> {
         match self {
             UserMapping::NetHsmOnlyAdmin(_) => None,
@@ -397,6 +398,7 @@ impl UserMapping {
     /// # Ok(())
     /// # }
     /// ```
+    // NOTE: Replaced by implementations of `MappingBackendUserIds::backend_user_ids`
     pub fn backend_users(&self, filter: UserMappingFilter) -> Vec<String> {
         match self {
             UserMapping::NetHsmOnlyAdmin(user_id) => match filter.backend_user_kind {
@@ -496,6 +498,8 @@ impl UserMapping {
     /// # Ok(())
     /// # }
     /// ```
+    // NOTE: Replaced by implementations of
+    // `MappingBackendUserIds::backend_users_with_new_passphrase`
     pub fn backend_users_with_new_passphrase(
         &self,
         filter: UserMappingFilter,
@@ -597,6 +601,8 @@ impl UserMapping {
     /// # Ok(())
     /// # }
     /// ```
+    // NOTE: Replaced with generic `MappingBackendUserIds::backend_user_ids` and specific
+    // `NetHsmUserMapping::nethsm_user_ids`
     pub fn get_nethsm_users(&self) -> Vec<UserId> {
         match self {
             UserMapping::SystemNetHsmBackup { nethsm_user, .. } => vec![nethsm_user.clone().into()],
@@ -640,6 +646,7 @@ impl UserMapping {
     /// # Ok(())
     /// # }
     /// ```
+    // NOTE: Is not used.
     pub fn get_nethsm_users_and_roles(&self) -> Vec<(UserId, UserRole)> {
         match self {
             UserMapping::SystemNetHsmBackup { nethsm_user, .. } => {
@@ -706,6 +713,7 @@ impl UserMapping {
     /// # Ok(())
     /// # }
     /// ```
+    // NOTE: Replaced by `NetHsmUserMapping::nethsm_user_data`
     pub fn get_nethsm_user_role_and_tags(&self) -> Vec<(UserId, UserRole, Vec<String>)> {
         match self {
             UserMapping::SystemNetHsmOperatorSigning {
@@ -771,6 +779,7 @@ impl UserMapping {
     /// # Ok(())
     /// # }
     /// ```
+    // NOTE: Replaced by `MappingAuthorizedKeyEntry::authorized_key_entry`
     pub fn get_ssh_authorized_key(&self) -> Option<&AuthorizedKeyEntry> {
         match self {
             UserMapping::NetHsmOnlyAdmin(_) | UserMapping::HermeticSystemNetHsmMetrics { .. } => {
@@ -859,6 +868,7 @@ impl UserMapping {
     /// # Ok(())
     /// # }
     /// ```
+    // NOTE: Only used in validation, replaced by `MappingBackendKeyId::backend_key_id`
     pub fn get_nethsm_key_ids(&self, namespace: Option<&NamespaceId>) -> Vec<KeyId> {
         match self {
             UserMapping::SystemNetHsmOperatorSigning {
@@ -932,6 +942,7 @@ impl UserMapping {
     /// # }
     /// ```
     /// [namespace]: https://docs.nitrokey.com/nethsm/administration#namespaces
+    // NOTE: Only used in validation, replaced by `MappingBackendDomain::backend_domain`
     pub fn get_nethsm_tags(&self, namespace: Option<&NamespaceId>) -> Vec<&str> {
         match self {
             UserMapping::SystemNetHsmOperatorSigning {
@@ -1031,6 +1042,7 @@ impl UserMapping {
     /// # Ok(())
     /// # }
     /// ```
+    // NOTE: Replaced by `NetHsmUserMapping::nethsm_user_key_data`
     pub fn get_nethsm_user_key_and_tag(
         &self,
         filter: FilterUserKeys,
@@ -1157,6 +1169,9 @@ impl UserMapping {
     /// # }
     /// ```
     /// [namespaces]: https://docs.nitrokey.com/nethsm/administration#namespaces
+    // NOTE: Generically replaced using `MappingBackendUserIds::backend_user_ids` with custom
+    // `BackendUserIdFilter` and `MappingBackendKeyId::backend_key_id` with custom
+    // `NetHsmBackendKeyIdFilter`
     pub fn get_nethsm_namespaces(&self) -> Vec<NamespaceId> {
         match self {
             UserMapping::NetHsmOnlyAdmin(nethsm_user)
@@ -1191,6 +1206,8 @@ impl UserMapping {
     ///
     /// Returns `true` if the `self` has at least one system and one HSM backend user, and `false`
     /// otherwise.
+    // NOTE: Replaced by `Config::user_backend_connections` with a
+    // `UserBackendConnectionFilter::NonAdmin`
     pub fn has_system_and_backend_user(&self) -> bool {
         match self {
             UserMapping::SystemNetHsmOperatorSigning { .. }
@@ -1304,21 +1321,25 @@ impl ExtendedUserMapping {
     }
 
     /// Returns the [`AdministrativeSecretHandling`].
+    // NOTE: Replaced by `UserBackendConnection::admin_secret_handling`
     pub fn get_admin_secret_handling(&self) -> AdministrativeSecretHandling {
         self.admin_secret_handling
     }
 
     /// Returns the [`BackendConnection`]s.
+    // NOTE: Replaced by destructuring the `UserBackendConnection` enum
     pub fn get_connections(&self) -> HashSet<BackendConnection> {
         self.connections.clone()
     }
 
     /// Returns the [`NonAdministrativeSecretHandling`].
+    // NOTE: Replaced by `UserBackendConnection::non_admin_secret_handling`
     pub fn get_non_admin_secret_handling(&self) -> NonAdministrativeSecretHandling {
         self.non_admin_secret_handling
     }
 
     /// Returns the [`UserMapping`].
+    // NOTE: Replaced by destructuring the `UserBackendConnection` enum
     pub fn get_user_mapping(&self) -> &UserMapping {
         &self.user_mapping
     }

@@ -725,6 +725,7 @@ impl SignstarConfig {
     /// Returns an [`ExtendedUserMapping`] for a system user of `name` if it exists.
     ///
     /// Returns [`None`] if no user of `name` can is found.
+    // NOTE: Replaced by `Config::user_backend_connection`
     #[cfg(feature = "nethsm")]
     pub fn get_extended_mapping_for_user(&self, name: &str) -> Option<ExtendedUserMapping> {
         for user_mapping in self.users.iter() {
