@@ -224,9 +224,22 @@ check-shell-code:
 
 # Checks the Rust source code using cargo-clippy.
 [group('check')]
-check-rust-code:
+check-rust-code *options:
+    #!/usr/bin/env bash
+
+    read -r -a options <<< "{{ options }}"
+
+    if (( ${#options[@]} == 0 )); then
+        options+=(
+            --locked
+            --all-features
+            --all-targets
+            --workspace
+        )
+    fi
+
     just ensure-command cargo cargo-clippy mold
-    cargo +stable clippy --all-features --all-targets --workspace -- -D warnings
+    cargo +stable clippy "${options[@]}" -- -D warnings
 
 # Checks a shell script using shellcheck.
 [group('check')]
