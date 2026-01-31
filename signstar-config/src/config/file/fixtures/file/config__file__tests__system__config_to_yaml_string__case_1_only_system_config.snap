@@ -1,0 +1,33 @@
+---
+source: signstar-config/src/config/file/mod.rs
+description: Configuration with system-wide configuration but no backend settings
+expression: config_str
+---
+system:
+  iteration: 1
+  admin_secret_handling:
+    shamirs-secret-sharing:
+      number_of_shares: 3
+      threshold: 2
+  non_admin_secret_handling: systemd-creds
+  mappings:
+    - share_holder:
+        system_user: share-holder1
+        ssh_authorized_key: >-
+          ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAN54Gd1jMz+yNDjBRwX1SnOtWuUsVF64RJIeYJ8DI7b
+          user@host
+    - share_holder:
+        system_user: share-holder2
+        ssh_authorized_key: >-
+          ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPDgwGfIRBAsOUuDEZw/uJQZSwOYr4sg2DAZpcc7MfOj
+          user@host
+    - share_holder:
+        system_user: share-holder3
+        ssh_authorized_key: >-
+          ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILWqWyMCk5BdSl1c3KYoLEokKr7qNVPbI1IbBhgEBQj5
+          user@host
+    - wire_guard_download:
+        system_user: wireguard-downloader
+        ssh_authorized_key: >-
+          ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOh9BTe81DC6A0YZALsq9dWcyl6xjjqlxWPwlExTFgBt
+          user@host

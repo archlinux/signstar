@@ -4,17 +4,17 @@ use std::collections::HashSet;
 
 use serde::{Serialize, Serializer};
 
+#[cfg(feature = "_hsm-backend")]
 use crate::config::{
     BackendDomainFilter,
     BackendKeyIdFilter,
     BackendUserIdFilter,
     BackendUserIdKind,
-    MappingAuthorizedKeyEntry,
     MappingBackendDomain,
     MappingBackendKeyId,
     MappingBackendUserIds,
-    MappingSystemUserId,
 };
+use crate::config::{MappingAuthorizedKeyEntry, MappingSystemUserId};
 
 /// Serializes a [`HashSet`] of `T` as an ordered [`Vec`] of `T`.
 pub(crate) fn ordered_set<S, T: Ord + Serialize>(
@@ -107,6 +107,7 @@ pub(crate) fn duplicate_authorized_keys(
 /// Collects all duplicate backend user IDs.
 ///
 /// Accepts a set of [`MappingBackendUserIds`] implementations.
+#[cfg(feature = "_hsm-backend")]
 pub(crate) fn duplicate_backend_user_ids(
     mappings: &HashSet<impl MappingBackendUserIds>,
 ) -> Option<String> {
@@ -143,6 +144,7 @@ pub(crate) fn duplicate_backend_user_ids(
 /// Allows passing in an implementation of [`BackendKeyIdFilter`] as filter.
 /// Optionally, a `key_type` can be passed in which is used to complete the sentence "the
 /// duplicate{key_type} key ID".
+#[cfg(feature = "_hsm-backend")]
 pub(crate) fn duplicate_key_ids<T>(
     mappings: &HashSet<impl MappingBackendKeyId<T>>,
     filter: &T,
@@ -184,6 +186,7 @@ where
 /// Allows passing in an implementation of [`BackendDomainFilter`] as filter.
 /// Optionally, a `domain_context` and `domain_name` can be passed in which are used to complete the
 /// sentence "the duplicate{domain_context} {domain_name}".
+#[cfg(feature = "_hsm-backend")]
 pub(crate) fn duplicate_domains<T>(
     mappings: &HashSet<impl MappingBackendDomain<T>>,
     filter: Option<&T>,

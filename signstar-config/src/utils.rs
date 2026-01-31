@@ -4,7 +4,9 @@ use std::path::PathBuf;
 use nix::unistd::{User, geteuid};
 use which::which;
 
-use crate::{ExtendedUserMapping, SystemUserId};
+#[cfg(feature = "nethsm")]
+use crate::ExtendedUserMapping;
+use crate::SystemUserId;
 
 /// An error that may occur when using signstar-config utils.
 #[derive(Debug, thiserror::Error)]
@@ -114,6 +116,7 @@ pub(crate) fn fail_if_not_root(user: &User) -> Result<(), Error> {
 /// # Errors
 ///
 /// Returns an error if the effective user ID is that of root.
+#[cfg(feature = "nethsm")]
 pub(crate) fn fail_if_root(user: &User) -> Result<(), Error> {
     if user.uid.is_root() {
         return Err(Error::SystemUserRoot);
@@ -152,6 +155,7 @@ pub(crate) fn get_current_system_user() -> Result<User, Error> {
 /// # Errors
 ///
 /// Returns an error if the current system user is not the targeted user.
+#[cfg(feature = "nethsm")]
 pub(crate) fn match_current_system_user(
     current_user: &User,
     target_user: &User,
@@ -172,6 +176,7 @@ pub(crate) fn match_current_system_user(
 /// Returns an error if
 /// - there is no [`SystemUserId`] in the mapping,
 /// - or no [`User`] data can be retrieved from a found [`SystemUserId`].
+#[cfg(feature = "nethsm")]
 pub(crate) fn get_system_user_pair(
     mapping: &ExtendedUserMapping,
 ) -> Result<(SystemUserId, User), Error> {

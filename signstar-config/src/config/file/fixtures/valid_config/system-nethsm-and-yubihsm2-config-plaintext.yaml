@@ -1,0 +1,91 @@
+system:
+  iteration: 1
+  admin_secret_handling: plaintext
+  non_admin_secret_handling: systemd-creds
+  mappings:
+    - wire_guard_download:
+        system_user: wireguard-downloader
+        ssh_authorized_key: >-
+          ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOh9BTe81DC6A0YZALsq9dWcyl6xjjqlxWPwlExTFgBt
+          user@host
+nethsm:
+  connections:
+    - url: https://nethsm1.example.org/
+      tls_security: Unsafe
+    - url: https://nethsm2.example.org/
+      tls_security: Unsafe
+  mappings:
+    - admin: admin
+    - backup:
+        backend_user: backup
+        ssh_authorized_key: >-
+          ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINrIYA+bfMBThUP5lKbMFEHiytmcCPhpkGrB/85n0mAN
+          user@host
+        system_user: nethsm-backup-user
+    - metrics:
+        backend_users:
+          metrics_user: metrics
+          operator_users:
+            - keymetrics
+        ssh_authorized_key: >-
+          ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPkpXKiNhy39A3bZ1u19a5d4sFwYMBkWQyCbzgUfdKBm
+          user@host
+        system_user: nethsm-metrics-user
+    - signing:
+        backend_user: signing
+        signing_key_id: signing1
+        key_setup:
+          key_type: Curve25519
+          key_mechanisms:
+            - EdDsaSignature
+          signature_type: EdDsa
+          key_context:
+            openpgp:
+              user_ids:
+                - Foobar McFooface <foobar@mcfooface.org>
+              version: "4"
+        ssh_authorized_key: >-
+          ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOh96uFTnvX6P1ebbLxXFvy6sK7qFqlMHDOuJ0TmuXQQ
+          user@host
+        system_user: nethsm-signing-user1
+        tag: signing1
+yubihsm2:
+  connections:
+    - usb:
+        serial_number: 12345678
+    - usb:
+        serial_number: 87654321
+  mappings:
+    - admin:
+        authentication_key_id: 1
+    - audit_log:
+        authentication_key_id: 3
+        ssh_authorized_key: >-
+          ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHxR0Oc+SWXkEvvZPitc6NvjvykgiKc9iauRI7tLYvcp
+          user@host
+        system_user: yubihsm2-metrics-user
+    - backup:
+        authentication_key_id: 2
+        wrapping_key_id: 2
+        ssh_authorized_key: >-
+          ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIETxhCqeZhfzFLfH0KFyw3u/w/dkRBUrft8tQm7DEVzY
+          user@host
+        system_user: yubihsm2-backup-user
+    - signing:
+        authentication_key_id: 4
+        key_setup:
+          key_type: Curve25519
+          key_mechanisms:
+            - EdDsaSignature
+          signature_type: EdDsa
+          key_context:
+            openpgp:
+              user_ids:
+                - Foobar McFooface <foobar@mcfooface.org>
+              version: "4"
+        domain: 1
+        signing_key_id: 1
+        ssh_authorized_key: >-
+          ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIClIXZdx0aDOPcIQA+6Qx68cwSUgGTL3TWzDSX3qUEOQ
+          user@host
+        system_user: yubihsm2-signing1

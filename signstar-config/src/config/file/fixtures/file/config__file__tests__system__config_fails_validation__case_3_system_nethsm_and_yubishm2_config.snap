@@ -1,0 +1,11 @@
+---
+source: signstar-config/src/config/file/mod.rs
+description: "Configuration with system-wide, NetHSM and YubiHSM2 configuration"
+expression: error_message
+---
+Validation error while validating a configuration object: nethsm: contains multiple issues:
+⤷ the duplicate system user IDs backup-user, metrics-user, signing-user
+⤷ the duplicate SSH public keys "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIClIXZdx0aDOPcIQA+6Qx68cwSUgGTL3TWzDSX3qUEOQ", "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIETxhCqeZhfzFLfH0KFyw3u/w/dkRBUrft8tQm7DEVzY", "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHxR0Oc+SWXkEvvZPitc6NvjvykgiKc9iauRI7tLYvcp"
+yubihsm2: contains multiple issues:
+⤷ the duplicate system user IDs backup-user, metrics-user, signing-user
+⤷ the duplicate SSH public keys "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIClIXZdx0aDOPcIQA+6Qx68cwSUgGTL3TWzDSX3qUEOQ", "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIETxhCqeZhfzFLfH0KFyw3u/w/dkRBUrft8tQm7DEVzY", "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHxR0Oc+SWXkEvvZPitc6NvjvykgiKc9iauRI7tLYvcp"

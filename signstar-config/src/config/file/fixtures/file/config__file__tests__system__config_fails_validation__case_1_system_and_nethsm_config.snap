@@ -1,0 +1,8 @@
+---
+source: signstar-config/src/config/file/mod.rs
+description: Configuration with system-wide and NetHSM configuration has duplicate system users and SSH public keys
+expression: error_message
+---
+Validation error while validating a configuration object: system: contains multiple issues:
+⤷ the duplicate system user IDs share-holder1, signing-user
+⤷ the duplicate SSH public keys "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAN54Gd1jMz+yNDjBRwX1SnOtWuUsVF64RJIeYJ8DI7b", "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILWqWyMCk5BdSl1c3KYoLEokKr7qNVPbI1IbBhgEBQj5", "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPDgwGfIRBAsOUuDEZw/uJQZSwOYr4sg2DAZpcc7MfOj"

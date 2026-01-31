@@ -1,9 +1,10 @@
 //! Configuration objects for system users and functionality.
 
-use std::{collections::HashSet, num::NonZeroUsize};
+use std::collections::HashSet;
 
 use garde::Validate;
 use serde::{Deserialize, Serialize};
+use signstar_crypto::{AdministrativeSecretHandling, NonAdministrativeSecretHandling};
 
 use crate::{
     AuthorizedKeyEntry,
@@ -18,126 +19,6 @@ use crate::{
         ordered_set,
     },
 };
-
-/// The default number of shares for [Shamir's Secret Sharing] (SSS).
-///
-/// [Shamir's Secret Sharing]: https://en.wikipedia.org/wiki/Shamir%27s_secret_sharing
-const SSS_DEFAULT_NUMBER_OF_SHARES: NonZeroUsize =
-    NonZeroUsize::new(6).expect("6 is larger than 0");
-/// The default number of shares required for decrypting secrets encrypted using [Shamir's Secret
-/// Sharing] (SSS).
-///
-/// [Shamir's Secret Sharing]: https://en.wikipedia.org/wiki/Shamir%27s_secret_sharing
-const SSS_DEFAULT_THRESHOLD: NonZeroUsize = NonZeroUsize::new(3).expect("3 is larger than 0");
-
-/// The handling of administrative secrets.
-///
-/// Administrative secrets may be handled in different ways (e.g. persistent or non-persistent).
-#[derive(Clone, Copy, Debug, Deserialize, Eq, Ord, PartialEq, PartialOrd, Serialize)]
-#[serde(rename_all = "kebab-case")]
-pub enum AdministrativeSecretHandling {
-    /// The administrative secrets are handled in a plaintext file in a non-volatile directory.
-    ///
-    /// ## Warning
-    ///
-    /// This variant should only be used in non-production test setups, as it implies the
-    /// persistence of unencrypted administrative secrets on a file system.
-    Plaintext,
-
-    /// The administrative secrets are handled in a file encrypted using [systemd-creds] in a
-    /// non-volatile directory.
-    ///
-    /// ## Warning
-    ///
-    /// This variant should only be used in non-production test setups, as it implies the
-    /// persistence of (host-specific) encrypted administrative secrets on a file system, that
-    /// could be extracted if the host is compromised.
-    ///
-    /// [systemd-creds]: https://man.archlinux.org/man/systemd-creds.1
-    SystemdCreds,
-
-    /// The administrative secrets are handled using [Shamir's Secret Sharing] (SSS).
-    ///
-    /// This variant is the default for production use, as the administrative secrets are only ever
-    /// exposed on a volatile filesystem for the time of their use.
-    /// The secrets are only made available to the system as shares of a shared secret, split using
-    /// SSS.
-    /// This way no holder of a share is aware of the administrative secrets and the system only
-    /// for as long as it needs to use the administrative secrets.
-    ///
-    /// [Shamir's Secret Sharing]: https://en.wikipedia.org/wiki/Shamir%27s_secret_sharing
-    ShamirsSecretSharing {
-        /// The number of shares used to encrypt the shared secret.
-        number_of_shares: NonZeroUsize,
-
-        /// The number of shares (see `number_of_shares`) required to decrypt the shared secret.
-        threshold: NonZeroUsize,
-    },
-}
-
-impl Default for AdministrativeSecretHandling {
-    fn default() -> Self {
-        Self::ShamirsSecretSharing {
-            number_of_shares: SSS_DEFAULT_NUMBER_OF_SHARES,
-            threshold: SSS_DEFAULT_THRESHOLD,
-        }
-    }
-}
-
-/// The handling of non-administrative secrets.
-///
-/// Non-administrative secrets represent passphrases for (non-administrator) HSM users and may be
-/// handled in different ways (e.g. encrypted or not encrypted).
-#[derive(
-    Clone,
-    Copy,
-    Debug,
-    Default,
-    Deserialize,
-    strum::Display,
-    strum::EnumString,
-    Eq,
-    Ord,
-    PartialEq,
-    PartialOrd,
-    Serialize,
-)]
-#[serde(rename_all = "kebab-case")]
-#[strum(serialize_all = "kebab-case")]
-pub enum NonAdministrativeSecretHandling {
-    /// Each non-administrative secret is handled in a plaintext file in a non-volatile
-    /// directory.
-    ///
-    /// ## Warning
-    ///
-    /// This variant should only be used in non-production test setups, as it implies the
-    /// persistence of unencrypted non-administrative secrets on a file system.
-    Plaintext,
-
-    /// Each non-administrative secret is encrypted for a specific system user using
-    /// [systemd-creds] and the resulting files are stored in a non-volatile directory.
-    ///
-    /// ## Note
-    ///
-    /// Although secrets are stored as encrypted strings in dedicated files, they may be extracted
-    /// under certain circumstances:
-    ///
-    /// - the root account is compromised
-    ///   - decrypts and exfiltrates _all_ secrets
-    ///   - the secret is not encrypted using a [TPM] and the file
-    ///     `/var/lib/systemd/credential.secret` as well as _any_ encrypted secret is exfiltrated
-    /// - a specific user is compromised, decrypts and exfiltrates its own secret
-    ///
-    /// It is therefore crucial to follow common best-practices:
-    ///
-    /// - rely on a [TPM] for encrypting secrets, so that files become host-specific
-    /// - heavily guard access to all users, especially root
-    ///
-    /// [systemd-creds]: https://man.archlinux.org/man/systemd-creds.1
-    /// [TPM]: https://en.wikipedia.org/wiki/Trusted_Platform_Module
-    #[default]
-    SystemdCreds,
-}
 
 /// Mappings for system users.
 ///
@@ -381,7 +262,7 @@ impl ConfigSystemUserIds for SystemConfig {
 
 #[cfg(test)]
 mod tests {
-    use std::thread::current;
+    use std::{num::NonZeroUsize, thread::current};
 
     use insta::{assert_snapshot, with_settings};
     use rstest::rstest;

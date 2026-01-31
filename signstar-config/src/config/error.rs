@@ -1,5 +1,6 @@
 //! Error handling for [`SignstarConfig`] and related components.
 
+#[cfg(feature = "nethsm")]
 use nethsm::{KeyId, NamespaceId, SystemWideUserId, UserId};
 use signstar_common::config::get_config_file_paths;
 
@@ -17,6 +18,7 @@ pub enum Error {
     ConfigIsMissing,
 
     /// Duplicate NetHSM user names
+    #[cfg(feature = "nethsm")]
     #[error("The NetHSM user ID {nethsm_user_id} is used more than once!")]
     DuplicateNetHsmUserId {
         /// The name of a NetHSM user that is used more than once.
@@ -31,6 +33,7 @@ pub enum Error {
     },
 
     /// Duplicate key ID
+    #[cfg(feature = "nethsm")]
     #[error(
         "The key ID \"{key_id}\" ({}) is used more than once",
         if let Some(namespace) = namespace {
@@ -54,6 +57,7 @@ pub enum Error {
     },
 
     /// A tag for a user/key is used more than once.
+    #[cfg(feature = "nethsm")]
     #[error(
         "The tag {tag} ({}) is used more than once",
         if let Some(namespace) = namespace {
@@ -85,6 +89,7 @@ pub enum Error {
 
     /// A [`UserId`] is used both for a user in the [`Metrics`][`nethsm::UserRole::Metrics`] and
     /// [`Operator`][`nethsm::UserRole::Operator`] role.
+    #[cfg(feature = "nethsm")]
     #[error("The NetHsm user {metrics_user} is both in the Metrics and Operator role!")]
     MetricsAlsoOperator {
         /// The system-wide User ID of a NetHSM user that is both in the
@@ -95,6 +100,7 @@ pub enum Error {
 
     /// A user in the Administrator role is missing system-wide (_R-Administrator_) or in one or
     /// more namespaces (_N-Administrator_).
+    #[cfg(feature = "nethsm")]
     #[error(
         "No user in the Administrator role exists ({})",
         if let Some(namespaces) = namespaces {
@@ -138,10 +144,33 @@ pub enum Error {
     },
 
     /// User data is invalid
+    #[cfg(feature = "nethsm")]
     #[error("User data invalid: {0}")]
     User(#[from] nethsm::UserError),
 
     /// An SSH key error
     #[error("SSH key error: {0}")]
     SshKey(#[from] ssh_key::Error),
+
+    /// An error occurred while deserializing an object as a YAML string.
+    #[error("YAML deserialization error while {context}:\n{source}")]
+    YamlDeserialize {
+        /// The context in which the error occurred.
+        ///
+        /// This is meant to complete the sentence "YAML deserialization error while ".
+        context: String,
+        /// The error source.
+        source: serde_saphyr::Error,
+    },
+
+    /// An error occurred while serializing an object as a YAML string.
+    #[error("YAML serialization error while {context}:\n{source}")]
+    YamlSerialize {
+        /// The context in which the error occurred.
+        ///
+        /// This is meant to complete the sentence "YAML serialization error while ".
+        context: &'static str,
+        /// The error source.
+        source: serde_saphyr::ser_error::Error,
+    },
 }

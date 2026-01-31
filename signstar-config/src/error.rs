@@ -101,16 +101,19 @@ pub enum Error {
     },
 
     /// A NetHSM error.
+    #[cfg(feature = "nethsm")]
     #[error("NetHSM error:\n{0}")]
     NetHsm(#[from] nethsm::Error),
 
     /// A NetHSM backend error
     ///
     /// This variant is used when actions for a NetHSM backend fail.
+    #[cfg(feature = "nethsm")]
     #[error("NetHSM backend error:\n{0}")]
     NetHsmBackend(#[from] crate::NetHsmBackendError),
 
     /// An error specific to non-administrative secret handling.
+    #[cfg(feature = "nethsm")]
     #[error("Error with non-administrative secret handling:\n{0}")]
     NonAdminSecretHandling(#[from] crate::non_admin_credentials::Error),
 
@@ -187,6 +190,7 @@ pub enum Error {
     },
 
     /// A NetHSM configuration object error occurred.
+    #[cfg(feature = "nethsm")]
     #[error("NetHSM configuration object error: {0}")]
     NetHsmConfig(#[from] crate::nethsm::NetHsmConfigError),
 
@@ -254,6 +258,7 @@ pub enum ErrorExitCode {
 
     /// Mapping for [`crate::ConfigError::DuplicateNetHsmUserId`] wrapped in
     /// [`Error::Config`].
+    #[cfg(feature = "nethsm")]
     ConfigDuplicateNetHsmUserId = 121,
 
     /// Mapping for [`crate::ConfigError::DuplicateSshPublicKey`] wrapped in
@@ -261,6 +266,7 @@ pub enum ErrorExitCode {
     ConfigDuplicateSshPublicKey = 122,
 
     /// Mapping for [`crate::ConfigError::DuplicateKeyId`] wrapped in [`Error::Config`].
+    #[cfg(feature = "nethsm")]
     ConfigDuplicateKeyId = 123,
 
     /// Mapping for [`crate::ConfigError::DuplicateSystemUserId`] wrapped in
@@ -268,6 +274,7 @@ pub enum ErrorExitCode {
     ConfigDuplicateSystemUserId = 124,
 
     /// Mapping for [`crate::ConfigError::DuplicateTag`] wrapped in [`Error::Config`].
+    #[cfg(feature = "nethsm")]
     ConfigDuplicateTag = 125,
 
     /// Mapping for [`crate::ConfigError::InvalidSystemUserName`] wrapped in
@@ -280,10 +287,12 @@ pub enum ErrorExitCode {
 
     /// Mapping for [`crate::ConfigError::MetricsAlsoOperator`] wrapped in
     /// [`Error::Config`].
+    #[cfg(feature = "nethsm")]
     ConfigMetricsAlsoOperator = 128,
 
     /// Mapping for [`crate::ConfigError::MissingAdministrator`] wrapped in
     /// [`Error::Config`].
+    #[cfg(feature = "nethsm")]
     ConfigMissingAdministrator = 129,
 
     /// Mapping for [`crate::ConfigError::MissingShareDownloadSystemUser`] wrapped in
@@ -308,63 +317,84 @@ pub enum ErrorExitCode {
     ConfigSshKey = 135,
 
     /// Mapping for [`crate::ConfigError::User`] wrapped in [`Error::Config`].
+    #[cfg(feature = "nethsm")]
     ConfigUser = 136,
+
+    /// Mapping for [`crate::ConfigError::YamlDeserialize`] wrapped in [`Error::Config`].
+    ConfigYamlDeserialize = 137,
+
+    /// Mapping for [`crate::ConfigError::YamlSerialize`] wrapped in [`Error::Config`].
+    ConfigYamlSerialize = 138,
 
     /// Mapping for [`crate::Error::NetHsm`].
     IoPath = 17,
 
     /// Mapping for [`crate::Error::NetHsm`].
+    #[cfg(feature = "nethsm")]
     NetHsm = 18,
 
     /// Mapping for [`crate::Error::NetHsmBackend`].
+    #[cfg(feature = "nethsm")]
     NetHsmBackend = 19,
 
     /// Mapping for [`crate::non_admin_credentials::Error::CredentialsLoading`] wrapped in
     /// [`Error::NonAdminSecretHandling`].
+    #[cfg(feature = "nethsm")]
     NonAdminCredentialsCredentialsLoading = 140,
 
     /// Mapping for [`crate::non_admin_credentials::Error::CredentialsMissing`] wrapped in
     /// [`Error::NonAdminSecretHandling`].
+    #[cfg(feature = "nethsm")]
     NonAdminCredentialsCredentialsMissing = 141,
 
     /// Mapping for [`crate::non_admin_credentials::Error::NoSystemUser`] wrapped in
     /// [`Error::NonAdminSecretHandling`].
+    #[cfg(feature = "nethsm")]
     NonAdminCredentialsNoSystemUser = 142,
 
     /// Mapping for [`crate::non_admin_credentials::Error::NotSigningUser`] wrapped in
     /// [`Error::NonAdminSecretHandling`].
+    #[cfg(feature = "nethsm")]
     NonAdminCredentialsNotSigningUser = 143,
 
     /// Mapping for [`crate::non_admin_credentials::Error::SecretsDirCreate`] wrapped in
     /// [`Error::NonAdminSecretHandling`].
+    #[cfg(feature = "nethsm")]
     NonAdminCredentialsSecretsDirCreate = 144,
 
     /// Mapping for [`crate::non_admin_credentials::Error::SecretsFileCreate`] wrapped in
     /// [`Error::NonAdminSecretHandling`].
+    #[cfg(feature = "nethsm")]
     NonAdminCredentialsSecretsFileCreate = 145,
 
     /// Mapping for [`crate::non_admin_credentials::Error::SecretsFileMetadata`] wrapped in
     /// [`Error::NonAdminSecretHandling`].
+    #[cfg(feature = "nethsm")]
     NonAdminCredentialsSecretsFileMetadata = 146,
 
     /// Mapping for [`crate::non_admin_credentials::Error::SecretsFileMissing`] wrapped in
     /// [`Error::NonAdminSecretHandling`].
+    #[cfg(feature = "nethsm")]
     NonAdminCredentialsSecretsFileMissing = 147,
 
     /// Mapping for [`crate::non_admin_credentials::Error::SecretsFileNotAFile`] wrapped in
     /// [`Error::NonAdminSecretHandling`].
+    #[cfg(feature = "nethsm")]
     NonAdminCredentialsSecretsFileNotAFile = 148,
 
     /// Mapping for [`crate::non_admin_credentials::Error::SecretsFilePermissions`] wrapped in
     /// [`Error::NonAdminSecretHandling`].
+    #[cfg(feature = "nethsm")]
     NonAdminCredentialsSecretsFilePermissions = 149,
 
     /// Mapping for [`crate::non_admin_credentials::Error::SecretsFileRead`] wrapped in
     /// [`Error::NonAdminSecretHandling`].
+    #[cfg(feature = "nethsm")]
     NonAdminCredentialsSecretsFileRead = 150,
 
     /// Mapping for [`crate::non_admin_credentials::Error::SecretsFileWrite`] wrapped in
     /// [`Error::NonAdminSecretHandling`].
+    #[cfg(feature = "nethsm")]
     NonAdminCredentialsSecretsFileWrite = 151,
 
     /// Mapping for [`signstar_common::admin_credentials::Error::ApplyPermissions`] wrapped in
@@ -398,6 +428,7 @@ pub enum ErrorExitCode {
     Validation = 25,
 
     /// Mapping for [`Error::NetHsmConfig`].
+    #[cfg(feature = "nethsm")]
     NetHsmConfig = 26,
 
     /// Mapping for [`Error::YubiHsm2Config`].
@@ -456,16 +487,19 @@ impl From<Error> for ErrorExitCode {
             // config related errors
             Error::Config(error) => match error {
                 crate::ConfigError::ConfigIsMissing => Self::ConfigConfigMissing,
+                #[cfg(feature = "nethsm")]
                 crate::ConfigError::DuplicateNetHsmUserId { .. } => {
                     Self::ConfigDuplicateNetHsmUserId
                 }
                 crate::ConfigError::DuplicateSshPublicKey { .. } => {
                     Self::ConfigDuplicateSshPublicKey
                 }
+                #[cfg(feature = "nethsm")]
                 crate::ConfigError::DuplicateKeyId { .. } => Self::ConfigDuplicateKeyId,
                 crate::ConfigError::DuplicateSystemUserId { .. } => {
                     Self::ConfigDuplicateSystemUserId
                 }
+                #[cfg(feature = "nethsm")]
                 crate::ConfigError::DuplicateTag { .. } => Self::ConfigDuplicateTag,
                 crate::ConfigError::InvalidSystemUserName { .. } => {
                     Self::ConfigInvalidSystemUserName
@@ -473,7 +507,9 @@ impl From<Error> for ErrorExitCode {
                 crate::ConfigError::InvalidAuthorizedKeyEntry { .. } => {
                     Self::ConfigInvalidAuthorizedKeyEntry
                 }
+                #[cfg(feature = "nethsm")]
                 crate::ConfigError::MetricsAlsoOperator { .. } => Self::ConfigMetricsAlsoOperator,
+                #[cfg(feature = "nethsm")]
                 crate::ConfigError::MissingAdministrator { .. } => Self::ConfigMissingAdministrator,
                 crate::ConfigError::MissingShareDownloadSystemUser => {
                     Self::ConfigMissingShareDownloadSystemUser
@@ -487,47 +523,65 @@ impl From<Error> for ErrorExitCode {
                 }
                 crate::ConfigError::NoSssButShareUsers { .. } => Self::ConfigNoSssButShareUsers,
                 crate::ConfigError::SshKey(_) => Self::ConfigSshKey,
+                #[cfg(feature = "nethsm")]
                 crate::ConfigError::User(_) => Self::ConfigUser,
+                crate::ConfigError::YamlDeserialize { .. } => Self::ConfigYamlDeserialize,
+                crate::ConfigError::YamlSerialize { .. } => Self::ConfigYamlSerialize,
             },
             // NetHSM related errors
+            #[cfg(feature = "nethsm")]
             Error::NetHsm(_) => Self::NetHsm,
             // NetHSM backend related errors
+            #[cfg(feature = "nethsm")]
             Error::NetHsmBackend(_) => Self::NetHsmBackend,
             // non-admin credentials related errors and their exit codes
+            #[cfg(feature = "nethsm")]
             Error::NonAdminSecretHandling(error) => match error {
+                #[cfg(feature = "nethsm")]
                 crate::non_admin_credentials::Error::CredentialsLoading { .. } => {
                     Self::NonAdminCredentialsCredentialsLoading
                 }
+                #[cfg(feature = "nethsm")]
                 crate::non_admin_credentials::Error::CredentialsMissing { .. } => {
                     Self::NonAdminCredentialsCredentialsMissing
                 }
+                #[cfg(feature = "nethsm")]
                 crate::non_admin_credentials::Error::NoSystemUser => {
                     Self::NonAdminCredentialsNoSystemUser
                 }
+                #[cfg(feature = "nethsm")]
                 crate::non_admin_credentials::Error::NotSigningUser => {
                     Self::NonAdminCredentialsNotSigningUser
                 }
+                #[cfg(feature = "nethsm")]
                 crate::non_admin_credentials::Error::SecretsDirCreate { .. } => {
                     Self::NonAdminCredentialsSecretsDirCreate
                 }
+                #[cfg(feature = "nethsm")]
                 crate::non_admin_credentials::Error::SecretsFileCreate { .. } => {
                     Self::NonAdminCredentialsSecretsFileCreate
                 }
+                #[cfg(feature = "nethsm")]
                 crate::non_admin_credentials::Error::SecretsFileMetadata { .. } => {
                     Self::NonAdminCredentialsSecretsFileMetadata
                 }
+                #[cfg(feature = "nethsm")]
                 crate::non_admin_credentials::Error::SecretsFileMissing { .. } => {
                     Self::NonAdminCredentialsSecretsFileMissing
                 }
+                #[cfg(feature = "nethsm")]
                 crate::non_admin_credentials::Error::SecretsFileNotAFile { .. } => {
                     Self::NonAdminCredentialsSecretsFileNotAFile
                 }
+                #[cfg(feature = "nethsm")]
                 crate::non_admin_credentials::Error::SecretsFilePermissions { .. } => {
                     Self::NonAdminCredentialsSecretsFilePermissions
                 }
+                #[cfg(feature = "nethsm")]
                 crate::non_admin_credentials::Error::SecretsFileRead { .. } => {
                     Self::NonAdminCredentialsSecretsFileRead
                 }
+                #[cfg(feature = "nethsm")]
                 crate::non_admin_credentials::Error::SecretsFileWrite { .. } => {
                     Self::NonAdminCredentialsSecretsFileWrite
                 }
@@ -569,6 +623,7 @@ impl From<Error> for ErrorExitCode {
             Error::TomlWrite { .. } => Self::TomlWrite,
             Error::Utf8String { .. } => Self::Utf8String,
             Error::Validation { .. } => Self::Validation,
+            #[cfg(feature = "nethsm")]
             Error::NetHsmConfig { .. } => Self::NetHsmConfig,
             #[cfg(feature = "yubihsm2")]
             Error::YubiHsm2Config { .. } => Self::YubiHsm2Config,
