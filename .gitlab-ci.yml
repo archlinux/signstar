@@ -70,7 +70,10 @@ shell-code:
 rust-code:
   extends: .default-rust
   script:
-    - just check-rust-code
+    - just check-rust-code --locked --all-targets --workspace --no-default-features
+    - just check-rust-code --locked --all-targets --workspace --no-default-features --features nethsm
+    - just check-rust-code --locked --all-targets --workspace --no-default-features --features yubihsm2
+    - just check-rust-code --locked --all-targets --workspace --no-default-features --features mockhsm,nethsm,yubihsm2
   stage: check
   cache:
     key:
