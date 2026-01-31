@@ -115,7 +115,10 @@ links:
 test:
   extends: .default-rust
   script:
-    - just test
+    - just test --locked --all-targets --workspace --no-default-features
+    - just test --locked --all-targets --workspace --no-default-features --features nethsm
+    - just test --locked --all-targets --workspace --no-default-features --features yubihsm2
+    - just test --locked --all-targets --workspace --no-default-features --features mockhsm,nethsm,yubihsm2
     - just test-docs
     - just create-coverage-report doc unit-test-coverage
   stage: test
@@ -153,7 +156,10 @@ integration-test:
     - chown -R testuser:testuser .
     - WORKDIR="$(pwd)" runuser -w CI,WORKDIR,SIGNSTAR_COVERAGE -l testuser -c 'env && cd "$WORKDIR" && just install-rust-dev-tools'
     - WORKDIR="$(pwd)" runuser -w CI,WORKDIR,SIGNSTAR_COVERAGE -l testuser -c 'env && cd "$WORKDIR" && just nethsm-integration-tests'
-    - WORKDIR="$(pwd)" runuser -w CI,WORKDIR,SIGNSTAR_COVERAGE -l testuser -c 'env && cd "$WORKDIR" && just containerized-integration-tests --locked --features mockhsm,yubihsm2'
+    - WORKDIR="$(pwd)" runuser -w CI,WORKDIR,SIGNSTAR_COVERAGE -l testuser -c 'env && cd "$WORKDIR" && just containerized-integration-tests --locked --all-targets --workspace --no-default-features'
+    - WORKDIR="$(pwd)" runuser -w CI,WORKDIR,SIGNSTAR_COVERAGE -l testuser -c 'env && cd "$WORKDIR" && just containerized-integration-tests --locked --all-targets --workspace --no-default-features --features nethsm'
+    - WORKDIR="$(pwd)" runuser -w CI,WORKDIR,SIGNSTAR_COVERAGE -l testuser -c 'env && cd "$WORKDIR" && just containerized-integration-tests --locked --all-targets --workspace --no-default-features --features yubihsm2'
+    - WORKDIR="$(pwd)" runuser -w CI,WORKDIR,SIGNSTAR_COVERAGE -l testuser -c 'env && cd "$WORKDIR" && just containerized-integration-tests --locked --all-targets --workspace --no-default-features --features mockhsm,nethsm,yubihsm2'
     - WORKDIR="$(pwd)" runuser -w CI,WORKDIR,SIGNSTAR_COVERAGE -l testuser -c 'env && cd "$WORKDIR" && just create-coverage-report doc integration-test-coverage'
   stage: test
   timeout: 20m
