@@ -3,18 +3,16 @@
 pub mod base;
 pub mod credentials;
 pub mod error;
+mod file;
+#[cfg(feature = "nethsm")]
 pub mod mapping;
 pub mod state;
 mod system;
 mod traits;
 mod utils;
 
-pub use system::{
-    AdministrativeSecretHandling,
-    NonAdministrativeSecretHandling,
-    SystemConfig,
-    SystemUserMapping,
-};
+pub use file::{Config, ConfigBuilder, UserBackendConnection, UserBackendConnectionFilter};
+pub use system::{SystemConfig, SystemUserMapping};
 pub use traits::{
     BackendDomainFilter,
     BackendKeyIdFilter,
@@ -30,10 +28,6 @@ pub use traits::{
     MappingBackendUserSecrets,
     MappingSystemUserId,
 };
-pub(crate) use utils::{
-    duplicate_authorized_keys,
-    duplicate_backend_user_ids,
-    duplicate_domains,
-    duplicate_key_ids,
-    duplicate_system_user_ids,
-};
+pub(crate) use utils::{duplicate_authorized_keys, duplicate_system_user_ids};
+#[cfg(feature = "_hsm-backend")]
+pub(crate) use utils::{duplicate_backend_user_ids, duplicate_domains, duplicate_key_ids};

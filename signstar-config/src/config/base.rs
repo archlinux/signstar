@@ -1,5 +1,6 @@
 //! [`SignstarConfig`] for _Signstar hosts_.
 
+#[cfg(feature = "nethsm")]
 use std::{
     collections::HashSet,
     fs::{File, create_dir_all, read_to_string},
@@ -7,17 +8,18 @@ use std::{
     path::Path,
 };
 
+#[cfg(feature = "nethsm")]
 use nethsm::{Connection, NamespaceId};
 use serde::{Deserialize, Serialize};
+#[cfg(feature = "nethsm")]
 use signstar_common::config::{get_config_file, get_run_override_config_file_path};
 
-#[cfg(feature = "yubihsm2")]
+#[cfg(feature = "nethsm")]
+use crate::config::mapping::{ExtendedUserMapping, UserMapping};
+#[cfg(all(feature = "nethsm", feature = "yubihsm2"))]
 use crate::yubihsm2::backend::YubiHsmConnection;
-use crate::{
-    ConfigError as Error,
-    SystemUserId,
-    config::mapping::{ExtendedUserMapping, UserMapping},
-};
+#[cfg(feature = "nethsm")]
+use crate::{ConfigError as Error, SystemUserId};
 
 /// The handling of administrative secrets.
 ///
@@ -75,6 +77,7 @@ pub enum AdministrativeSecretHandling {
     PartialEq,
     Serialize,
 )]
+#[cfg(feature = "nethsm")]
 #[serde(rename_all = "kebab-case")]
 #[strum(serialize_all = "kebab-case")]
 pub enum NonAdministrativeSecretHandling {
@@ -113,6 +116,7 @@ pub enum NonAdministrativeSecretHandling {
 }
 
 /// A connection to an HSM backend.
+#[cfg(feature = "nethsm")]
 #[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 pub enum BackendConnection {
     /// The [`Connection`] for a NetHSM backend.
@@ -120,7 +124,7 @@ pub enum BackendConnection {
     NetHsm(Connection),
 
     /// The [`YubiHsmConnection`] for a YubiHSM2 backend.
-    #[cfg(feature = "yubihsm2")]
+    #[cfg(all(feature = "nethsm", feature = "yubihsm2"))]
     #[serde(rename = "yubihsm2")]
     YubiHsm2(YubiHsmConnection),
 }
@@ -352,6 +356,7 @@ pub enum BackendConnection {
 /// # Ok(())
 /// # }
 /// ```
+#[cfg(feature = "nethsm")]
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 pub struct SignstarConfig {
     iteration: u32,
@@ -361,6 +366,7 @@ pub struct SignstarConfig {
     users: HashSet<UserMapping>,
 }
 
+#[cfg(feature = "nethsm")]
 impl SignstarConfig {
     /// Creates a new [`SignstarConfig`] from an optional configuration file path.
     ///
@@ -719,6 +725,7 @@ impl SignstarConfig {
     /// Returns an [`ExtendedUserMapping`] for a system user of `name` if it exists.
     ///
     /// Returns [`None`] if no user of `name` can is found.
+    #[cfg(feature = "nethsm")]
     pub fn get_extended_mapping_for_user(&self, name: &str) -> Option<ExtendedUserMapping> {
         for user_mapping in self.users.iter() {
             if user_mapping
@@ -737,6 +744,7 @@ impl SignstarConfig {
     }
 
     /// Validates the components of the [`SignstarConfig`].
+    #[cfg(feature = "nethsm")]
     fn validate(&self) -> Result<(), crate::Error> {
         // ensure there are no duplicate system users
         {
@@ -1011,6 +1019,7 @@ impl SignstarConfig {
     }
 }
 
+#[cfg(feature = "nethsm")]
 #[cfg(test)]
 mod tests {
     use core::panic;

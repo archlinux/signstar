@@ -2,17 +2,17 @@
 
 use std::collections::{BTreeSet, HashSet};
 
+#[cfg(feature = "_hsm-backend")]
 use crate::config::{
     BackendDomainFilter,
     BackendKeyIdFilter,
     BackendUserIdFilter,
     BackendUserIdKind,
-    MappingAuthorizedKeyEntry,
     MappingBackendDomain,
     MappingBackendKeyId,
     MappingBackendUserIds,
-    MappingSystemUserId,
 };
+use crate::config::{MappingAuthorizedKeyEntry, MappingSystemUserId};
 
 /// Collects all duplicate system user IDs.
 ///
@@ -92,6 +92,7 @@ pub(crate) fn duplicate_authorized_keys(
 /// Collects all duplicate backend user IDs.
 ///
 /// Accepts a set of [`MappingBackendUserIds`] implementations.
+#[cfg(feature = "_hsm-backend")]
 pub(crate) fn duplicate_backend_user_ids(
     mappings: &BTreeSet<impl MappingBackendUserIds>,
 ) -> Option<String> {
@@ -128,6 +129,7 @@ pub(crate) fn duplicate_backend_user_ids(
 /// Allows passing in an implementation of [`BackendKeyIdFilter`] as filter.
 /// Optionally, a `key_type` can be passed in which is used to complete the sentence "the
 /// duplicate{key_type} key ID".
+#[cfg(feature = "_hsm-backend")]
 pub(crate) fn duplicate_key_ids<T>(
     mappings: &BTreeSet<impl MappingBackendKeyId<T>>,
     filter: &T,
@@ -169,6 +171,7 @@ where
 /// Allows passing in an implementation of [`BackendDomainFilter`] as filter.
 /// Optionally, a `domain_context` and `domain_name` can be passed in which are used to complete the
 /// sentence "the duplicate{domain_context} {domain_name}".
+#[cfg(feature = "_hsm-backend")]
 pub(crate) fn duplicate_domains<T>(
     mappings: &BTreeSet<impl MappingBackendDomain<T>>,
     filter: Option<&T>,

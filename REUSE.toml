@@ -16,6 +16,7 @@ SPDX-License-Identifier = "CC0-1.0"
 path = [
     "**.snap",
     "**.toml",
+    "**.yaml",
     "*.json",
     ".cargo/runner.sh",
     ".codespellrc",
