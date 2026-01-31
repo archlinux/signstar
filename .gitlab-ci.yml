@@ -107,7 +107,9 @@ links:
 test:
   extends: .default-rust
   script:
+    - just test --locked --no-default-features
     - just test
+    - just test --locked --no-default-features --features yubihsm2
     - just test-docs
     - just create-coverage-report doc unit-test-coverage
   stage: test
