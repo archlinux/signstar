@@ -12,7 +12,6 @@ version = "0.1.0"
 [dependencies]
 base64ct = { workspace = true, optional = true }
 change-user-run.workspace = true
-chrono = { workspace = true, features = ["alloc"] }
 digest = { version = "0.10.7", features = ["alloc"] }
 ed25519-dalek = { workspace = true, features = ["pem", "pkcs8"] }
 email_address = "0.2.9"

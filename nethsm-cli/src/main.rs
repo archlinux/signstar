@@ -4,8 +4,9 @@ use std::fs::{File, read, read_to_string};
 use std::io::{Write, stdout};
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
+use std::time::SystemTime;
 
-use chrono::Utc;
+use chrono::{DateTime, Utc};
 use clap::Parser;
 use cli::{
     Cli,
@@ -28,6 +29,7 @@ use nethsm::{
     Passphrase,
     PrivateKeyImport,
     SystemState,
+    Timestamp,
     UserId,
     UserRole,
 };
@@ -92,6 +94,10 @@ pub enum Error {
     /// Processing a signing request failed.
     #[error("Signing request processing error: {0}")]
     SigningRequest(String),
+
+    /// Given time cannot be represented in OpenPGP.
+    #[error("Given time cannot be represented in OpenPGP: {0}")]
+    InvalidTime(DateTime<Utc>),
 }
 
 struct FileOrStdout {
@@ -814,11 +820,15 @@ fn run_command(cli: Cli) -> Result<(), Error> {
                         &auth_passphrases.clone(),
                     )?;
 
+                let created_at = command.time.unwrap_or_else(Utc::now);
+                let created_at: SystemTime = created_at.into();
+                let created_at = Timestamp::try_from(created_at)
+                    .map_err(|_| Error::InvalidTime(command.time.unwrap_or_else(Utc::now)))?;
                 let cert = nethsm.create_openpgp_cert(
                     &command.key_id,
                     flags,
                     command.user_id,
-                    command.time.unwrap_or_else(Utc::now),
+                    created_at,
                     command.version.unwrap_or_default(),
                 )?;
 

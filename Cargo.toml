@@ -31,7 +31,7 @@ nix = { version = "0.31.0", features = ["user"] }
 p256 = "0.13.2"
 p384 = "0.13.1"
 p521 = "0.13.3"
-pgp = { version = "0.18", default-features = false }
+pgp = { version = "0.19", default-features = false }
 rand = "0.8.5"
 rsa = "0.9.7"
 # Upgrading rstest may mean the lint suppression in `nethsm/src/test.rs` could be removed

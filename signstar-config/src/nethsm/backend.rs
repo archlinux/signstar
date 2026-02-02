@@ -26,9 +26,9 @@ use nethsm::{
     OpenPgpKeyUsageFlags,
     Passphrase,
     SystemState,
+    Timestamp,
     UserId,
     UserRole,
-    Utc,
 };
 use pgp::composed::{Deserializable, SignedPublicKey};
 
@@ -871,7 +871,7 @@ fn add_system_wide_openpgp_certificates(
                     &key_id,
                     OpenPgpKeyUsageFlags::default(),
                     user_id.clone(),
-                    Utc::now(),
+                    Timestamp::now(),
                     *version,
                 )?;
 
@@ -1041,7 +1041,7 @@ fn add_namespaced_openpgp_certificates(
                     &key_id,
                     OpenPgpKeyUsageFlags::default(),
                     user_id.clone(),
-                    Utc::now(),
+                    Timestamp::now(),
                     *version,
                 )?;
 

@@ -50,7 +50,7 @@ pub use signstar_crypto::{
     passphrase::Passphrase,
     signer::{
         error::Error as SignstarCryptoSignerError,
-        openpgp::{Deserializable, SignedSecretKey},
+        openpgp::{Deserializable, SignedSecretKey, Timestamp},
     },
 };
 pub use tls::{

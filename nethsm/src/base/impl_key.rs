@@ -964,7 +964,6 @@ impl NetHsm {
     /// # Examples
     ///
     /// ```no_run
-    /// use std::time::SystemTime;
     /// use nethsm::{
     ///     Connection,
     ///     ConnectionSecurity,
@@ -975,6 +974,7 @@ impl NetHsm {
     ///     OpenPgpKeyUsageFlags,
     ///     OpenPgpVersion,
     ///     Passphrase,
+    ///     Timestamp,
     ///     UserRole,
     /// };
     ///
@@ -1015,7 +1015,7 @@ impl NetHsm {
     ///     &"signing1".parse()?,
     ///     OpenPgpKeyUsageFlags::default(),
     ///     "Test <test@example.org>".parse()?,
-    ///     SystemTime::now().into(),
+    ///     Timestamp::now(),
     ///     OpenPgpVersion::V4,
     /// )?;
     ///
@@ -1077,7 +1077,6 @@ impl NetHsm {
     /// # Examples
     ///
     /// ```no_run
-    /// use std::time::SystemTime;
     /// use nethsm::{
     ///     Connection,
     ///     ConnectionSecurity,
@@ -1088,6 +1087,7 @@ impl NetHsm {
     ///     OpenPgpKeyUsageFlags,
     ///     OpenPgpVersion,
     ///     Passphrase,
+    ///     Timestamp,
     ///     UserRole,
     /// };
     ///
@@ -1128,7 +1128,7 @@ impl NetHsm {
     ///     &"signing1".parse()?,
     ///     OpenPgpKeyUsageFlags::default(),
     ///     "Test <test@example.org>".parse()?,
-    ///     SystemTime::now().into(),
+    ///     Timestamp::now(),
     ///     OpenPgpVersion::V4,
     /// )?;
     /// // use the Administrator credentials to import the OpenPGP certificate as certificate for the key
@@ -1191,7 +1191,6 @@ impl NetHsm {
     /// # Examples
     ///
     /// ```no_run
-    /// use std::time::SystemTime;
     /// use nethsm::{
     ///     Connection,
     ///     ConnectionSecurity,
@@ -1202,6 +1201,7 @@ impl NetHsm {
     ///     OpenPgpKeyUsageFlags,
     ///     OpenPgpVersion,
     ///     Passphrase,
+    ///     Timestamp,
     ///     UserRole,
     /// };
     ///
@@ -1242,7 +1242,7 @@ impl NetHsm {
     ///     &"signing1".parse()?,
     ///     OpenPgpKeyUsageFlags::default(),
     ///     "Test <test@example.org>".parse()?,
-    ///     SystemTime::now().into(),
+    ///     Timestamp::now(),
     ///     OpenPgpVersion::V4,
     /// )?;
     /// // use the Administrator credentials to import the OpenPGP certificate as certificate for the key

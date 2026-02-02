@@ -1,12 +1,14 @@
 //! [`NetHsm`] implementation for OpenPGP functionality.
 
 use log::debug;
-use signstar_crypto::key::{KeyMechanism, PrivateKeyImport};
+use signstar_crypto::{
+    key::{KeyMechanism, PrivateKeyImport},
+    signer::openpgp::Timestamp,
+};
 
 #[cfg(doc)]
 use crate::{Credentials, SystemState, UserRole};
 use crate::{
-    DateTime,
     Error,
     KeyId,
     NetHsm,
@@ -14,7 +16,6 @@ use crate::{
     OpenPgpUserId,
     OpenPgpVersion,
     SignedSecretKey,
-    Utc,
     base::utils::user_or_no_user_string,
     signer::NetHsmKey,
 };
@@ -64,8 +65,6 @@ impl NetHsm {
     /// # Examples
     ///
     /// ```no_run
-    /// use std::time::SystemTime;
-    ///
     /// use nethsm::{
     ///     Connection,
     ///     ConnectionSecurity,
@@ -76,6 +75,7 @@ impl NetHsm {
     ///     OpenPgpKeyUsageFlags,
     ///     OpenPgpVersion,
     ///     Passphrase,
+    ///     Timestamp,
     ///     UserRole,
     /// };
     ///
@@ -119,7 +119,7 @@ impl NetHsm {
     ///             &"signing1".parse()?,
     ///             OpenPgpKeyUsageFlags::default(),
     ///             "Test <test@example.org>".parse()?,
-    ///             SystemTime::now().into(),
+    ///             Timestamp::now(),
     ///             OpenPgpVersion::V4,
     ///         )?
     ///         .is_empty()
@@ -140,11 +140,11 @@ impl NetHsm {
         key_id: &KeyId,
         flags: OpenPgpKeyUsageFlags,
         user_id: OpenPgpUserId,
-        created_at: DateTime<Utc>,
+        created_at: Timestamp,
         version: OpenPgpVersion,
     ) -> Result<Vec<u8>, Error> {
         debug!(
-            "Create an OpenPGP certificate (User ID: {user_id}; flags: {:?}; creation date: {created_at}; version: {version}) for key \"{key_id}\" on the NetHSM at {} using {}",
+            "Create an OpenPGP certificate (User ID: {user_id}; flags: {:?}; creation date: {created_at:?}; version: {version}) for key \"{key_id}\" on the NetHSM at {} using {}",
             flags.as_ref(),
             self.url.borrow(),
             user_or_no_user_string(self.current_credentials.borrow().as_ref()),
@@ -192,8 +192,6 @@ impl NetHsm {
     /// # Examples
     ///
     /// ```no_run
-    /// use std::time::SystemTime;
-    ///
     /// use nethsm::{
     ///     Connection,
     ///     ConnectionSecurity,
@@ -204,6 +202,7 @@ impl NetHsm {
     ///     OpenPgpKeyUsageFlags,
     ///     OpenPgpVersion,
     ///     Passphrase,
+    ///     Timestamp,
     ///     UserRole,
     /// };
     ///
@@ -244,7 +243,7 @@ impl NetHsm {
     ///     &"signing1".parse()?,
     ///     OpenPgpKeyUsageFlags::default(),
     ///     "Test <test@example.org>".parse()?,
-    ///     SystemTime::now().into(),
+    ///     Timestamp::now(),
     ///     OpenPgpVersion::V4,
     /// )?;
     /// // import the OpenPGP certificate as key certificate
@@ -310,8 +309,6 @@ impl NetHsm {
     /// # Examples
     ///
     /// ```no_run
-    /// use std::time::SystemTime;
-    ///
     /// use nethsm::{
     ///     Connection,
     ///     ConnectionSecurity,
@@ -322,6 +319,7 @@ impl NetHsm {
     ///     OpenPgpKeyUsageFlags,
     ///     OpenPgpVersion,
     ///     Passphrase,
+    ///     Timestamp,
     ///     UserRole,
     /// };
     /// use sha2::{Digest, Sha512};
@@ -363,7 +361,7 @@ impl NetHsm {
     ///     &"signing1".parse()?,
     ///     OpenPgpKeyUsageFlags::default(),
     ///     "Test <test@example.org>".parse()?,
-    ///     SystemTime::now().into(),
+    ///     Timestamp::now(),
     ///     OpenPgpVersion::V4,
     /// )?;
     /// // import the OpenPGP certificate as key certificate

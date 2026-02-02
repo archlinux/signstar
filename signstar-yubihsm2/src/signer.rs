@@ -1,12 +1,10 @@
 //! Signing data with YubiHSM.
 
-use std::time::SystemTime;
-
 use signstar_crypto::{
     openpgp::{OpenPgpKeyUsageFlags, OpenPgpUserId, OpenPgpVersion},
     signer::{
         error::Error as SignerError,
-        openpgp::add_certificate,
+        openpgp::{Timestamp, add_certificate},
         traits::{RawPublicKey, RawSigningKey},
     },
     traits::UserWithPassphrase as _,
@@ -109,7 +107,7 @@ impl YubiHsm2SigningKey {
             &signer,
             flags,
             OpenPgpUserId::new("Test".to_owned()).expect("static user ID to be valid"),
-            SystemTime::now().into(),
+            Timestamp::now(),
             OpenPgpVersion::V4,
         )
         .map_err(|source| Error::CertificateGeneration {
