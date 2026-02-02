@@ -13,7 +13,7 @@ use pgp::{
     packet::KeyFlags,
     types::{KeyVersion, SignedUser},
 };
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use strum::{EnumIter, IntoStaticStr};
 
 /// An error that may occur when working with OpenPGP data.
@@ -65,7 +65,7 @@ pub enum Error {
     Ord,
     PartialEq,
     PartialOrd,
-    serde::Serialize,
+    Serialize,
 )]
 #[serde(into = "String", try_from = "String")]
 pub enum OpenPgpVersion {
@@ -218,9 +218,7 @@ impl Ord for OpenPgpUserIdType {
 /// As such, this type only allows a maximum length of 4096 bytes as middle ground.
 ///
 /// [OpenPGP User IDs]: https://www.rfc-editor.org/rfc/rfc9580.html#name-user-id-packet-type-id-13
-#[derive(
-    Clone, Debug, serde::Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, serde::Serialize,
-)]
+#[derive(Clone, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
 #[serde(into = "String", try_from = "String")]
 pub struct OpenPgpUserId(OpenPgpUserIdType);
 
@@ -347,9 +345,7 @@ impl TryFrom<String> for OpenPgpUserId {
 /// A list of [`OpenPgpUserId`]
 ///
 /// The items of the list are guaranteed to be unique.
-#[derive(
-    Clone, Debug, serde::Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, serde::Serialize,
-)]
+#[derive(Clone, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
 #[serde(into = "Vec<String>", try_from = "Vec<String>")]
 pub struct OpenPgpUserIdList(Vec<OpenPgpUserId>);
 
