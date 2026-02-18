@@ -14,7 +14,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use sha2::Digest;
 pub use sha2::Sha512;
-use sha2::digest::crypto_common::hazmat::SerializableState;
+use sha2::digest::common::hazmat::{DeserializeStateError, SerializableState};
 
 pub mod cli;
 pub mod ssh;
@@ -39,7 +39,7 @@ pub enum Error {
 
     /// Deserialization of hasher's state failed.
     #[error("Deserialization of the hasher's state failed: {0}")]
-    HasherDeserialization(#[from] sha2::digest::crypto_common::hazmat::DeserializeStateError),
+    HasherDeserialization(#[from] DeserializeStateError),
 
     /// Request deserialization failed.
     #[error("Could not deserialize request: {0}")]
@@ -406,7 +406,7 @@ mod tests {
             101, 120, 116, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         ];
 
         assert_eq!(result, expected_state);
