@@ -2673,7 +2673,7 @@ system_user = "ssh-share-up"
             buffer.write_all(config_string.as_bytes())?;
             config_file
         };
-        if let Err(Error::MissingAdministrator { .. }) = HermeticParallelConfig::new_from_file(
+        if let Err(Error::MissingAdministrator) = HermeticParallelConfig::new_from_file(
             ConfigSettings::new(
                 "test".to_string(),
                 ConfigInteractivity::NonInteractive,
