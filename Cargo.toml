@@ -72,7 +72,7 @@ edition = "2024"
 homepage = "https://gitlab.archlinux.org/archlinux/signstar"
 license = "Apache-2.0 OR MIT"
 repository = "https://gitlab.archlinux.org/archlinux/signstar"
-rust-version = "1.85.0"
+rust-version = "1.93.1"
 
 [profile.release]
 codegen-units = 1
