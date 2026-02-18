@@ -2,7 +2,6 @@
 
 use signstar_crypto::signer::{
     error::Error as SignerError,
-    openpgp::Timestamp,
     traits::{RawPublicKey, RawSigningKey},
 };
 use yubihsm::{
@@ -41,7 +40,7 @@ impl YubiHsm2SigningKey {
     pub fn mock(key_id: u16, credentials: &Credentials) -> Result<Self, Error> {
         use signstar_crypto::{
             openpgp::{OpenPgpKeyUsageFlags, OpenPgpUserId, OpenPgpVersion},
-            signer::openpgp::add_certificate,
+            signer::openpgp::{Timestamp, add_certificate},
             traits::UserWithPassphrase as _,
         };
         use yubihsm::{
