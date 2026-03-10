@@ -19,7 +19,7 @@ russh = { version = "0.58.0" }
 semver = { version = "1.0.23", features = ["serde"] }
 serde.workspace = true
 serde_json.workspace = true
-sha1 = "0.10.6"
+sha1.workspace = true
 sha2.workspace = true
 signstar-common = { features = ["logging"], workspace = true }
 thiserror.workspace = true

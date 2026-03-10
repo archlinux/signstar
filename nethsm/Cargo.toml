@@ -34,7 +34,7 @@ rustls = { version = "0.23.19" }
 rustls-native-certs = "0.8.1"
 serde.workspace = true
 serde_json.workspace = true
-sha1 = "0.10.6"
+sha1.workspace = true
 sha2.workspace = true
 signstar-crypto = { version = "0.1.0", path = "../signstar-crypto", features = [
     "nethsm",
