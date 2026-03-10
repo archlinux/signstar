@@ -1,5 +1,7 @@
 //! YubiHSM2 key metadata.
 
+use std::fmt::Display;
+
 use serde::{Deserialize, Serialize};
 use serde_repr::{Deserialize_repr, Serialize_repr};
 
@@ -46,6 +48,33 @@ pub enum Domain {
     Fifteen = 15,
     /// Sixteenth domain.
     Sixteen = 16,
+}
+
+impl Display for Domain {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                Self::One => "1",
+                Self::Two => "2",
+                Self::Three => "3",
+                Self::Four => "4",
+                Self::Five => "5",
+                Self::Six => "6",
+                Self::Seven => "7",
+                Self::Eight => "8",
+                Self::Nine => "9",
+                Self::Ten => "10",
+                Self::Eleven => "11",
+                Self::Twelve => "12",
+                Self::Thirteen => "13",
+                Self::Fourteen => "14",
+                Self::Fifteen => "15",
+                Self::Sixteen => "16",
+            }
+        )
+    }
 }
 
 impl From<Domain> for yubihsm::Domain {
