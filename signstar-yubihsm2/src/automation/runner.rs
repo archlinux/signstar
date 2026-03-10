@@ -96,7 +96,7 @@ impl ScenarioRunner {
     pub fn new(connector: Connector, auth: Auth) -> Result<Self, Error> {
         let user = auth.user;
         let passphrase_file = auth.passphrase_file;
-        let credentials = Credentials::new(user, derive_key_from_file(passphrase_file)?);
+        let credentials = Credentials::new(user.into(), derive_key_from_file(passphrase_file)?);
         let client =
             Client::open(connector, credentials, true).map_err(|source| Error::Client {
                 context: "connecting to client for running a scenario",
@@ -205,7 +205,7 @@ impl ScenarioRunner {
             Command::SignEd25519 { key_id, data } => {
                 let sig = self
                     .client
-                    .sign_ed25519(*key_id, &data[..])
+                    .sign_ed25519(key_id.into(), &data[..])
                     .map_err(|source| Error::Client {
                         context: "signing with ed25519 key",
                         source,
@@ -245,7 +245,7 @@ impl ScenarioRunner {
             } => {
                 let wrapped = self
                     .client
-                    .export_wrapped(*wrap_key_id, object.object_type(), object.id().into())
+                    .export_wrapped(wrap_key_id.into(), object.object_type(), object.id().into())
                     .map_err(|source| Error::Client {
                         context: "exporting wrapped key",
                         source,
@@ -275,13 +275,13 @@ impl ScenarioRunner {
                     context: "reading the wrapped file",
                     source,
                 })?;
-                let imported =
-                    self.client
-                        .import_wrapped(*wrap_key_id, wrapped)
-                        .map_err(|source| Error::Client {
-                            context: "importing wrapped key",
-                            source,
-                        })?;
+                let imported = self
+                    .client
+                    .import_wrapped(wrap_key_id.into(), wrapped)
+                    .map_err(|source| Error::Client {
+                        context: "importing wrapped key",
+                        source,
+                    })?;
 
                 serialize_with_newline(writer, ObjectId::try_from(imported)?)?;
             }
@@ -289,7 +289,8 @@ impl ScenarioRunner {
                 user,
                 passphrase_file,
             }) => {
-                let credentials = Credentials::new(*user, derive_key_from_file(passphrase_file)?);
+                let credentials =
+                    Credentials::new(user.into(), derive_key_from_file(passphrase_file)?);
 
                 self.client = Client::open(self.client.connector().clone(), credentials, true)
                     .map_err(|source| Error::Client {
