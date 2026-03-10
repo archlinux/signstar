@@ -168,7 +168,7 @@ impl ScenarioRunner {
                 let key = derive_key_from_file(passphrase_file)?;
                 self.client
                     .put_authentication_key(
-                        *key_id,
+                        key_id.into(),
                         Default::default(),
                         (*domain).into(),
                         caps.into(),
@@ -191,7 +191,7 @@ impl ScenarioRunner {
             } => {
                 self.client
                     .generate_asymmetric_key(
-                        *key_id,
+                        key_id.into(),
                         Default::default(),
                         (*domain).into(),
                         caps.into(),
@@ -225,7 +225,7 @@ impl ScenarioRunner {
                 let key = derive_key_from_file(passphrase_file)?;
                 self.client
                     .put_wrap_key(
-                        *key_id,
+                        key_id.into(),
                         Default::default(),
                         (*domain).into(),
                         caps.into(),

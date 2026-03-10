@@ -5,7 +5,7 @@ use std::fmt::Display;
 use serde::{Deserialize, Serialize};
 use serde_repr::{Deserialize_repr, Serialize_repr};
 
-use crate::object::Capabilities;
+use crate::object::{Capabilities, Id};
 
 /// YubiHSM2 object domain.
 ///
@@ -107,7 +107,7 @@ impl From<Domain> for yubihsm::Domain {
 #[derive(Debug, Deserialize, Serialize)]
 pub struct KeyInfo {
     /// Inner identifier used to track the key on the YubiHSM2.
-    pub key_id: u16,
+    pub key_id: Id,
 
     /// Key domain.
     ///
