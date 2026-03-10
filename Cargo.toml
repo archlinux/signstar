@@ -39,6 +39,7 @@ rstest = "0.26.0"
 rustainers = "0.15"
 serde = { version = "1.0.215", features = ["derive"] }
 serde_json = "1.0.145"
+sha1 = "0.10.6"
 # Updating this dependency directly here is breaking change in signstar-request-signature.
 # To do it in a non-breaking way the library needs to support the old version too.
 # Cargo.toml allows using two incompatible versions of the library:
