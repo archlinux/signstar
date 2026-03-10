@@ -11,6 +11,11 @@ coverage := env("SIGNSTAR_COVERAGE", "false")
 
 output_dir := "output"
 
+# Image tag of NetHSM test container to use
+# Ideally it should always be the same value that `just get-latest-nethsm-release-short-commit` prints
+
+nethsm_image_tag := "3e45f2f3"
+
 # Lists all available recipes.
 [private]
 @default:
@@ -362,6 +367,7 @@ test-readme project:
 
     readonly project="{{ project }}"
     readonly cargo_home="${CARGO_HOME:-$HOME/.cargo}"
+    readonly nethsm_image_tag="{{ nethsm_image_tag }}"
     container_id=""
     # Use Arch Linux's container registry when running in CI (indicated by the presence of the `CI` environment variable).
     if [[ -z "${CI+x}" ]]; then
@@ -402,7 +408,7 @@ test-readme project:
         ;;
         *)
             podman_create_options+=(
-                "docker.io/nitrokey/nethsm:$NETHSM_IMAGE_TAG"
+                "docker.io/nitrokey/nethsm:$nethsm_image_tag"
             )
         ;;
     esac
