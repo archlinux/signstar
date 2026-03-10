@@ -245,7 +245,7 @@ impl ScenarioRunner {
             } => {
                 let wrapped = self
                     .client
-                    .export_wrapped(*wrap_key_id, object.object_type(), object.id())
+                    .export_wrapped(*wrap_key_id, object.object_type(), object.id().into())
                     .map_err(|source| Error::Client {
                         context: "exporting wrapped key",
                         source,
@@ -283,7 +283,7 @@ impl ScenarioRunner {
                             source,
                         })?;
 
-                serialize_with_newline(writer, ObjectId::from(imported))?;
+                serialize_with_newline(writer, ObjectId::try_from(imported)?)?;
             }
             Command::Auth(Auth {
                 user,
@@ -299,7 +299,7 @@ impl ScenarioRunner {
             }
             Command::Delete(object) => {
                 self.client
-                    .delete_object(object.id(), object.object_type())
+                    .delete_object(object.id().into(), object.object_type())
                     .map_err(|source| Error::Client {
                         context: "deleting object",
                         source,
@@ -308,7 +308,7 @@ impl ScenarioRunner {
             Command::GetInfo(object) => {
                 let info = self
                     .client
-                    .get_object_info(object.id(), object.object_type())
+                    .get_object_info(object.id().into(), object.object_type())
                     .map_err(|source| Error::Client {
                         context: "getting object info",
                         source,
