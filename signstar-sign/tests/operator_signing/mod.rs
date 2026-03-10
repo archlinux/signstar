@@ -106,7 +106,7 @@ async fn sign_data(_req: HttpRequest) -> impl Responder {
 #[rstest]
 #[case::plain(SIGNSTAR_CONFIG_PLAINTEXT)]
 #[case::full(SIGNSTAR_CONFIG_FULL)]
-#[cfg_attr(feature = "yubihsm2", case::yubi(crate::utils::SIGNSTAR_CONFIG_YUBI))]
+#[cfg_attr(feature = "mockhsm", case::yubi(crate::utils::SIGNSTAR_CONFIG_YUBI))]
 #[tokio::test]
 async fn load_credentials_for_user(#[case] config_data: &[u8]) -> TestResult {
     setup_logging(LevelFilter::Info)?;

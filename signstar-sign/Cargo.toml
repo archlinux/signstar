@@ -25,7 +25,7 @@ thiserror.workspace = true
 [features]
 _containerized-integration-test = []
 default = []
-mockhsm = ["signstar-yubihsm2/mockhsm"]
+mockhsm = ["signstar-yubihsm2/mockhsm", "yubihsm2"]
 yubihsm2 = ["signstar-config/yubihsm2"]
 
 [dev-dependencies]
