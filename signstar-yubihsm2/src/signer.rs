@@ -4,16 +4,9 @@ use signstar_crypto::signer::{
     error::Error as SignerError,
     traits::{RawPublicKey, RawSigningKey},
 };
-use yubihsm::{
-    Connector,
-    UsbConfig,
-    asymmetric::Algorithm,
-    client::Client,
-    device::SerialNumber,
-    object::Id,
-};
+use yubihsm::{Connector, UsbConfig, asymmetric::Algorithm, client::Client, device::SerialNumber};
 
-use crate::{Credentials, Error};
+use crate::{Credentials, Error, object::Id};
 
 /// A signing key stored in the YubiHSM.
 pub struct YubiHsm2SigningKey {
@@ -37,7 +30,7 @@ impl YubiHsm2SigningKey {
     ///
     /// This function panics if certificate generation fails.
     #[cfg(feature = "mockhsm")]
-    pub fn mock(key_id: u16, credentials: &Credentials) -> Result<Self, Error> {
+    pub fn mock(key_id: Id, credentials: &Credentials) -> Result<Self, Error> {
         use signstar_crypto::{
             openpgp::{OpenPgpKeyUsageFlags, OpenPgpUserId, OpenPgpVersion},
             signer::openpgp::{Timestamp, add_certificate},
@@ -66,7 +59,7 @@ impl YubiHsm2SigningKey {
         let domain = Domain::DOM1;
         client
             .put_authentication_key(
-                credentials.id,
+                credentials.id.into(),
                 Default::default(),
                 domain,
                 Capability::empty(),
@@ -81,7 +74,7 @@ impl YubiHsm2SigningKey {
 
         let client = Client::open(
             client.connector().clone(),
-            YubiCredentials::new(credentials.id, auth_key),
+            YubiCredentials::new(credentials.id.into(), auth_key),
             true,
         )
         .map_err(|source| Error::Client {
@@ -91,7 +84,7 @@ impl YubiHsm2SigningKey {
 
         client
             .generate_asymmetric_key(
-                key_id,
+                key_id.into(),
                 Default::default(),
                 domain,
                 Capability::SIGN_EDDSA,
@@ -125,7 +118,7 @@ impl YubiHsm2SigningKey {
         signer
             .yubihsm
             .put_opaque(
-                key_id,
+                key_id.into(),
                 Default::default(),
                 domain,
                 Capability::empty(),
@@ -151,7 +144,7 @@ impl YubiHsm2SigningKey {
     /// function will return an [`Error`].
     pub fn new_with_serial_number(
         serial_number: SerialNumber,
-        key_id: u16,
+        key_id: Id,
         credentials: &Credentials,
     ) -> Result<Self, Error> {
         let connector = Connector::usb(&UsbConfig {
@@ -196,7 +189,7 @@ impl RawSigningKey for YubiHsm2SigningKey {
     fn sign(&self, digest: &[u8]) -> Result<Vec<Vec<u8>>, SignerError> {
         let sig = self
             .yubihsm
-            .sign_ed25519(self.key_id, digest)
+            .sign_ed25519(self.key_id.into(), digest)
             .map_err(|e| SignerError::Hsm {
                 context: "calling yubihsm::sign_ed25519",
                 source: Box::new(e),
@@ -216,12 +209,12 @@ impl RawSigningKey for YubiHsm2SigningKey {
     /// [`SignerError::Hsm`], which wraps the client-specific HSM error
     /// in its `source` field.
     fn certificate(&self) -> Result<Option<Vec<u8>>, SignerError> {
-        Ok(Some(self.yubihsm.get_opaque(self.key_id).map_err(|e| {
-            SignerError::Hsm {
+        Ok(Some(self.yubihsm.get_opaque(self.key_id.into()).map_err(
+            |e| SignerError::Hsm {
                 context: "retrieving the certificate for a signing key held in a YubiHSM2",
                 source: Box::new(e),
-            }
-        })?))
+            },
+        )?))
     }
 
     /// Returns raw public parts of this signing key.
@@ -237,7 +230,7 @@ impl RawSigningKey for YubiHsm2SigningKey {
     fn public(&self) -> Result<RawPublicKey, SignerError> {
         let pk = self
             .yubihsm
-            .get_public_key(self.key_id)
+            .get_public_key(self.key_id.into())
             .map_err(|e| SignerError::Hsm {
                 context: "retrieving the public key for a signing key held in a YubiHSM2",
                 source: Box::new(e),
