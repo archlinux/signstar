@@ -87,4 +87,8 @@ pub enum Error {
         /// The error source.
         source: std::io::Error,
     },
+
+    /// A YubiHSM2 object error occurred.
+    #[error(transparent)]
+    Object(#[from] crate::object::Error),
 }
