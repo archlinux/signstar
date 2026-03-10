@@ -122,7 +122,10 @@ mod tests {
         let _creds = YubiHsm2AdminCredentials::new(
             1,
             Passphrase::new("backup-passphrase".to_string()),
-            vec![Credentials::new(1, Passphrase::new("password".to_string()))],
+            vec![Credentials::new(
+                "1".parse()?,
+                Passphrase::new("password".to_string()),
+            )],
         )?;
 
         Ok(())
@@ -153,7 +156,10 @@ mod tests {
         match YubiHsm2AdminCredentials::new(
             1,
             Passphrase::new("backup-passphrase".to_string()),
-            vec![Credentials::new(1, Passphrase::new("pass".to_string()))],
+            vec![Credentials::new(
+                "1".parse()?,
+                Passphrase::new("pass".to_string()),
+            )],
         ) {
             Ok(creds) => {
                 panic!("Expected Error::PassphraseTooShort but succeeded instead:\n{creds:?}")
@@ -172,7 +178,10 @@ mod tests {
         match YubiHsm2AdminCredentials::new(
             1,
             Passphrase::new("backup".to_string()),
-            vec![Credentials::new(1, Passphrase::new("password".to_string()))],
+            vec![Credentials::new(
+                "1".parse()?,
+                Passphrase::new("password".to_string()),
+            )],
         ) {
             Ok(creds) => {
                 panic!("Expected Error::PassphraseTooShort but succeeded instead:\n{creds:?}")

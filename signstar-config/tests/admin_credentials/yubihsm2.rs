@@ -29,8 +29,8 @@ fn default_creds() -> TestResult<YubiHsm2AdminCredentials> {
         1,
         "backup-passphrase".parse()?,
         vec![
-            Credentials::new(1, "admin-passphrase".parse()?),
-            Credentials::new(2, "other-admin-passphrase".parse()?),
+            Credentials::new("1".parse()?, "admin-passphrase".parse()?),
+            Credentials::new("2".parse()?, "other-admin-passphrase".parse()?),
         ],
     )?)
 }

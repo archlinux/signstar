@@ -2,6 +2,8 @@
 
 use signstar_crypto::{passphrase::Passphrase, traits::UserWithPassphrase};
 
+use crate::object::Id;
+
 /// Credentials for a YubiHSM2 device.
 ///
 /// Credentials are mapped to the authentication key ID and the passphrase used as key derivation
@@ -9,7 +11,7 @@ use signstar_crypto::{passphrase::Passphrase, traits::UserWithPassphrase};
 #[derive(Clone, Debug)]
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct Credentials {
-    pub(crate) id: u16,
+    pub(crate) id: Id,
     passphrase: Passphrase,
 }
 
@@ -23,11 +25,11 @@ impl Credentials {
     /// use signstar_yubihsm2::Credentials;
     ///
     /// # fn main() -> testresult::TestResult {
-    /// let creds = Credentials::new(1, "this-is-a-passphrase".parse()?);
+    /// let creds = Credentials::new("1".parse()?, "this-is-a-passphrase".parse()?);
     /// # Ok(())
     /// # }
     /// ```
-    pub fn new(id: u16, passphrase: Passphrase) -> Self {
+    pub fn new(id: Id, passphrase: Passphrase) -> Self {
         Self { id, passphrase }
     }
 }
@@ -44,21 +46,28 @@ impl UserWithPassphrase for Credentials {
 
 impl From<&Credentials> for yubihsm::Credentials {
     fn from(value: &Credentials) -> Self {
-        Self::from_password(value.id, value.passphrase.expose_borrowed().as_bytes())
+        Self::from_password(
+            value.id.into(),
+            value.passphrase.expose_borrowed().as_bytes(),
+        )
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use testresult::TestResult;
+
     use super::*;
 
     #[test]
-    fn credentials_user_with_passphrase() {
-        let credentials = Credentials::new(1, Passphrase::generate(None));
+    fn credentials_user_with_passphrase() -> TestResult {
+        let credentials = Credentials::new("1".parse()?, Passphrase::generate(None));
         assert_eq!(credentials.user(), "1");
         assert_eq!(
             credentials.passphrase().expose_borrowed().len(),
             Passphrase::DEFAULT_LENGTH
         );
+
+        Ok(())
     }
 }
