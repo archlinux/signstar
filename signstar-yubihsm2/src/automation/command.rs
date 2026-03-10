@@ -5,13 +5,13 @@ use std::path::PathBuf;
 use serde::{Deserialize, Serialize};
 use yubihsm::command::Code;
 
-use crate::{object::Capabilities, object::KeyInfo, object::ObjectId};
+use crate::object::{Capabilities, Id, KeyInfo, ObjectId};
 
 /// Authentication data: login and a location of the passphrase file.
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Auth {
     /// The identifier of the authentication key to use.
-    pub user: u16,
+    pub user: Id,
 
     /// The file containing passphrase of the authenticating user.
     pub passphrase_file: PathBuf,
@@ -111,7 +111,7 @@ pub enum Command {
     /// Signs data using provided `ed25519` key.
     SignEd25519 {
         /// The key to be used for signing.
-        key_id: u16,
+        key_id: Id,
 
         /// Raw data blob which should be signed.
         data: Vec<u8>,
@@ -137,7 +137,7 @@ pub enum Command {
     /// Export object under wrap (encrypted).
     ExportWrapped {
         /// Wrapping key which should encrypt the exported object.
-        wrap_key_id: u16,
+        wrap_key_id: Id,
 
         /// Object that will be exported.
         #[serde(flatten)]
@@ -150,7 +150,7 @@ pub enum Command {
     /// Imports objects under wrap (encrypted).
     ImportWrapped {
         /// Wrapping key which would decrypt the imported object.
-        wrap_key_id: u16,
+        wrap_key_id: Id,
 
         /// Input file which contains the imported object encrypted with the wrapping key.
         wrapped_file: PathBuf,
