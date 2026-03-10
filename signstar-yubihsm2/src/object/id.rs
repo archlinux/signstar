@@ -135,30 +135,30 @@ impl From<Id> for u16 {
 #[serde(tag = "object_type", content = "object_id", rename_all = "kebab-case")]
 pub enum ObjectId {
     /// Asymmetric key used for data signing.
-    AsymmetricKey(u16),
+    AsymmetricKey(Id),
 
     /// Authentication key used for authentication.
-    AuthenticationKey(u16),
+    AuthenticationKey(Id),
 
     /// Wrapping key used for exporting other objects under wrap.
-    WrappingKey(u16),
+    WrappingKey(Id),
 
     /// Opaque byte arrays which hold implementation-defined data, e.g. an OpenPGP certificate.
-    Opaque(u16),
+    Opaque(Id),
 
     /// HMAC-signing key.
-    Hmac(u16),
+    Hmac(Id),
 
     /// SSH certificate template.
-    Template(u16),
+    Template(Id),
 
     /// One-Time-Password AEAD key.
-    Otp(u16),
+    Otp(Id),
 }
 
 impl ObjectId {
     /// Returns the raw identifier of the YubiHSM2 object.
-    pub fn id(&self) -> u16 {
+    pub fn id(&self) -> Id {
         match self {
             ObjectId::AsymmetricKey(id) => *id,
             ObjectId::AuthenticationKey(id) => *id,
@@ -184,17 +184,21 @@ impl ObjectId {
     }
 }
 
-impl From<Handle> for ObjectId {
-    fn from(value: Handle) -> Self {
-        match value.object_type {
-            Type::Opaque => ObjectId::Opaque(value.object_id),
-            Type::AuthenticationKey => ObjectId::AuthenticationKey(value.object_id),
-            Type::AsymmetricKey => ObjectId::AsymmetricKey(value.object_id),
-            Type::WrapKey => ObjectId::WrappingKey(value.object_id),
-            Type::HmacKey => ObjectId::Hmac(value.object_id),
-            Type::Template => ObjectId::Template(value.object_id),
-            Type::OtpAeadKey => ObjectId::Otp(value.object_id),
-        }
+impl TryFrom<Handle> for ObjectId {
+    type Error = crate::Error;
+
+    fn try_from(value: Handle) -> Result<Self, Self::Error> {
+        let id = Id::try_from(value.object_id)?;
+
+        Ok(match value.object_type {
+            Type::Opaque => ObjectId::Opaque(id),
+            Type::AuthenticationKey => ObjectId::AuthenticationKey(id),
+            Type::AsymmetricKey => ObjectId::AsymmetricKey(id),
+            Type::WrapKey => ObjectId::WrappingKey(id),
+            Type::HmacKey => ObjectId::Hmac(id),
+            Type::Template => ObjectId::Template(id),
+            Type::OtpAeadKey => ObjectId::Otp(id),
+        })
     }
 }
 
