@@ -9,7 +9,7 @@ use crate::object::Capabilities;
 ///
 /// Objects can belong to one or many domains on the YubiHSM2.
 /// See [Core Concepts - Domains](https://docs.yubico.com/hardware/yubihsm-2/hsm-2-user-guide/hsm2-core-concepts.html#domains) for more details.
-#[derive(Clone, Copy, Debug, Deserialize_repr, PartialEq, Serialize_repr)]
+#[derive(Clone, Copy, Debug, Deserialize_repr, Eq, PartialEq, Serialize_repr)]
 #[repr(u8)]
 pub enum Domain {
     /// First domain.
