@@ -1,10 +1,10 @@
 # yaml-language-server: $schema=https://gitlab.com/gitlab-org/gitlab/-/raw/master/app/assets/javascripts/editor/schema/ci.json
 variables:
   CACHE_COMPRESSION_FORMAT: tarzstd
-  RUST_BACKTRACE: full
   CARGO_HOME: $CI_PROJECT_DIR/.cargo-home
   # enable timestamps in logs: https://docs.gitlab.com/ci/jobs/job_logs/#job-log-timestamps
   FF_TIMESTAMPS: true
+  RUST_BACKTRACE: full
   SIGNSTAR_COVERAGE: true
 
 stages:
@@ -15,65 +15,113 @@ stages:
   - report
   - pages
 
-# default setup running on default branch and in MRs
+# Prepares system, installs `just` and runs on default branch and in MRs.
 .default:
   image: registry.archlinux.org/archlinux/archlinux-docker:base-master
   before_script:
     - pacman-key --init
-    - pacman -Sy --needed --noconfirm archlinux-keyring
-    - source .env && pacman -Syu --needed --noconfirm $PACMAN_PACKAGES
+    - pacman -Sy --needed --noconfirm archlinux-keyring just
   interruptible: true
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
 
-# default setup with Rust tools running on default branch and in MRs
-.default-rust:
+# Installs Rust tools as 'root'.
+.default-with-rust:
   extends: .default
   before_script:
     - pacman-key --init
-    - pacman -Sy --needed --noconfirm archlinux-keyring
-    - source .env && pacman -Syu --needed --noconfirm $PACMAN_PACKAGES
+    - pacman -Sy --needed --noconfirm archlinux-keyring just
+    - just --justfile .gitlab/justfile section-start "install-alpm-packages" "Install ALPM package set 'rust-dev'"
+    - just install-alpm-package-set rust-dev
+    - just --justfile .gitlab/justfile section-end "install-alpm-packages"
+    - just --justfile .gitlab/justfile section-start "install-rust-dev-tools" "Install Rust development tools"
     - just install-rust-dev-tools
+    - just --justfile .gitlab/justfile section-end "install-rust-dev-tools"
+
+# Installs Rust tools as 'testuser'.
+.default-with-rust-and-testuser:
+  extends: .default
+  before_script:
+    - pacman-key --init
+    - pacman -Sy --needed --noconfirm archlinux-keyring just
+    - just --justfile .gitlab/justfile section-start "install-alpm-packages" "Install ALPM package set 'rust-dev'"
+    - just install-alpm-package-set rust-dev
+    - just --justfile .gitlab/justfile section-end "install-alpm-packages"
+    - just --justfile .gitlab/justfile section-start "create-testuser" "Create 'testuser'"
+    - useradd -m testuser
+    - chown -R testuser:testuser .
+    - just --justfile .gitlab/justfile section-end "create-testuser"
+    - just --justfile .gitlab/justfile section-start "install-rust-dev-tools" "Install Rust development tools as 'testuser'"
+    - WORKDIR="$(pwd)" runuser -w WORKDIR -l testuser -c 'env && cd "$WORKDIR" && just install-rust-dev-tools'
+    - just --justfile .gitlab/justfile section-end "install-rust-dev-tools"
 
 commits:
   extends: .default
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
   script:
+    - just --justfile .gitlab/justfile section-start "install-alpm-packages" "Install ALPM package set 'commits'"
+    - just install-alpm-package-set commits
+    - just --justfile .gitlab/justfile section-end "install-alpm-packages"
     # fetch the default branch as we need it for comparison
     - git fetch origin $CI_DEFAULT_BRANCH
     # setup a dummy user as `cog verify` needs that
     - git config --local user.name "Foobar McFooface"
     - git config --local user.email "foobar@mcfooface.com"
+    - just --justfile .gitlab/justfile section-start "check-commits" "Check commits"
     - just check-commits
-  rules:
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - just --justfile .gitlab/justfile section-end "check-commits"
   stage: check
 
 spelling:
   extends: .default
   script:
+    - just --justfile .gitlab/justfile section-start "install-alpm-packages" "Install ALPM package set 'spelling'"
+    - just install-alpm-package-set spelling
+    - just --justfile .gitlab/justfile section-end "install-alpm-packages"
+    - just --justfile .gitlab/justfile section-start "check-spelling" "Check spelling in all files"
     - just check-spelling
+    - just --justfile .gitlab/justfile section-end "check-spelling"
   stage: check
 
 formatting:
-  extends: .default-rust
+  extends: .default-with-rust
   script:
+    - just --justfile .gitlab/justfile section-start "install-alpm-packages" "Install ALPM package set 'formatting'"
+    - just install-alpm-package-set formatting
+    - just --justfile .gitlab/justfile section-end "install-alpm-packages"
+    - just --justfile .gitlab/justfile section-start "check-formatting" "Check source file formatting"
     - just check-formatting
+    - just --justfile .gitlab/justfile section-end "check-formatting"
   stage: check
 
 shell-code:
   extends: .default
   script:
+    - just --justfile .gitlab/justfile section-start "install-alpm-packages" "Install ALPM package set 'shell'"
+    - just install-alpm-package-set shell
+    - just --justfile .gitlab/justfile section-end "install-alpm-packages"
+    - just --justfile .gitlab/justfile section-start "check-shell-code" "Check shell code"
     - just check-shell-code
+    - just --justfile .gitlab/justfile section-end "check-shell-code"
   stage: check
 
 rust-code:
-  extends: .default-rust
+  extends: .default-with-rust
   script:
+    - just --justfile .gitlab/justfile section-start "check-rust-code-no-features" "Check Rust code with no features"
     - just check-rust-code --locked --all-targets --workspace --no-default-features
+    - just --justfile .gitlab/justfile section-end "check-rust-code-no-features"
+    - just --justfile .gitlab/justfile section-start "check-rust-code-nethsm-feature" "Check Rust code with nethsm feature"
     - just check-rust-code --locked --all-targets --workspace --no-default-features --features nethsm
+    - just --justfile .gitlab/justfile section-end "check-rust-code-nethsm-feature"
+    - just --justfile .gitlab/justfile section-start "check-rust-code-yubihsm2-feature" "Check Rust code with yubihsm2 feature"
     - just check-rust-code --locked --all-targets --workspace --no-default-features --features yubihsm2
+    - just --justfile .gitlab/justfile section-end "check-rust-code-yubihsm2-feature"
+    - just --justfile .gitlab/justfile section-start "check-rust-code-mockhsm-nethsm-yubihsm2-features" "Check Rust code with mockhsm,nethsm,yubihsm2 features"
     - just check-rust-code --locked --all-targets --workspace --no-default-features --features mockhsm,nethsm,yubihsm2
+    - just --justfile .gitlab/justfile section-end "check-rust-code-mockhsm-nethsm-yubihsm2-features"
   stage: check
   cache:
     key:
@@ -84,27 +132,47 @@ rust-code:
     policy: pull-push
 
 unused-deps:
-  extends: .default-rust
+  extends: .default-with-rust
   script:
+    - just --justfile .gitlab/justfile section-start "install-alpm-packages" "Install ALPM package set 'unused'"
+    - just install-alpm-package-set unused
+    - just --justfile .gitlab/justfile section-end "install-alpm-packages"
+    - just --justfile .gitlab/justfile section-start "check-unused-deps" "Check for unused Rust dependencies"
     - just check-unused-deps
+    - just --justfile .gitlab/justfile section-end "check-unused-deps"
   stage: check
 
 dependencies:
-  extends: .default-rust
+  extends: .default-with-rust
   script:
+    - just --justfile .gitlab/justfile section-start "install-alpm-packages" "Install ALPM package set 'dependencies'"
+    - just install-alpm-package-set dependencies
+    - just --justfile .gitlab/justfile section-end "install-alpm-packages"
+    - just --justfile .gitlab/justfile section-start "check-dependencies" "Check Rust dependencies"
     - just check-dependencies
+    - just --justfile .gitlab/justfile section-end "check-dependencies"
   stage: check
 
 licenses:
   extends: .default
   script:
+    - just --justfile .gitlab/justfile section-start "install-alpm-packages" "Install ALPM package set 'licenses'"
+    - just install-alpm-package-set licenses
+    - just --justfile .gitlab/justfile section-end "install-alpm-packages"
+    - just --justfile .gitlab/justfile section-start "check-licenses" "Check licenses"
     - just check-licenses
+    - just --justfile .gitlab/justfile section-end "check-licenses"
   stage: check
 
 links:
   extends: .default
   script:
+    - just --justfile .gitlab/justfile section-start "install-alpm-packages" "Install ALPM package set 'links'"
+    - just install-alpm-package-set links
+    - just --justfile .gitlab/justfile section-end "install-alpm-packages"
+    - just --justfile .gitlab/justfile section-start "check-links" "Check links in all files"
     - just check-links
+    - just --justfile .gitlab/justfile section-end "check-links"
   stage: check
   retry:
     max: 1
@@ -116,15 +184,17 @@ links:
     policy: pull-push
 
 test:
-  extends: .default-rust
-  script:
-    - just test --locked --all-targets --workspace --no-default-features
-    - just test --locked --all-targets --workspace --no-default-features --features nethsm
-    - just test --locked --all-targets --workspace --no-default-features --features yubihsm2
-    - just test --locked --all-targets --workspace --no-default-features --features mockhsm,nethsm,yubihsm2
-    - just test-docs
-    - just create-coverage-report doc unit-test-coverage
-  stage: test
+  artifacts:
+    reports:
+      # Unit test reports
+      # See: https://gitlab.archlinux.org/help/ci/testing/unit_test_reports#how-to-set-it-up
+      junit: target/nextest/default/junit.xml
+      coverage_report:
+        coverage_format: cobertura
+        path: target/llvm-cov/cobertura-coverage.xml
+      # Expose the code coverage as a GitLab metric.
+      # This allows us to easily spot changes in the overall coverage.
+      metrics: target/llvm-cov/coverage-metrics.txt
   cache:
     key:
       files:
@@ -133,42 +203,49 @@ test:
       - .cargo-home
     policy: pull-push
   coverage: "/Test-coverage: ([0-9.]*)%/"
-  artifacts:
-    reports:
-      # Unit test reports
-      # See: https://gitlab.archlinux.org/help/ci/testing/unit_test_reports#how-to-set-it-up
-      junit: target/nextest/default/junit.xml
-      coverage_report:
-        coverage_format: cobertura
-        path: target/llvm-cov/cobertura-coverage.xml
-      # Expose the code coverage as a GitLab metric.
-      # This allows us to easily spot changes in the overall coverage.
-      metrics: target/llvm-cov/coverage-metrics.txt
+  extends: .default-with-rust
+  script:
+    - just --justfile .gitlab/justfile section-start "install-alpm-packages" "Install ALPM package set 'coverage'"
+    - just install-alpm-package-set coverage
+    - just --justfile .gitlab/justfile section-end "install-alpm-packages"
+    - just --justfile .gitlab/justfile section-start "test-no-features" "Run unit tests without default features"
+    - just test --locked --all-targets --workspace --no-default-features
+    - just --justfile .gitlab/justfile section-end "test-no-features"
+    - just --justfile .gitlab/justfile section-start "test-nethsm-feature" "Run unit tests with nethsm feature"
+    - just test --locked --all-targets --workspace --no-default-features --features nethsm
+    - just --justfile .gitlab/justfile section-end "test-nethsm-feature"
+    - just --justfile .gitlab/justfile section-start "test-yubihsm2-feature" "Run unit tests with yubihsm2 feature"
+    - just test --locked --all-targets --workspace --no-default-features --features yubihsm2
+    - just --justfile .gitlab/justfile section-end "test-yubihsm2-feature"
+    - just --justfile .gitlab/justfile section-start "test-mockhsm-nethsm-yubihsm2-features" "Run unit tests with mockhsm,nethsm,yubihsm2 feature"
+    - just test --locked --all-targets --workspace --no-default-features --features mockhsm,nethsm,yubihsm2
+    - just --justfile .gitlab/justfile section-end "test-mockhsm-nethsm-yubihsm2-features"
+    - just --justfile .gitlab/justfile section-start "test-docs" "Run doc tests"
+    - just test-docs
+    - just --justfile .gitlab/justfile section-end "test-docs"
+    - just --justfile .gitlab/justfile section-start "create-coverage-report" "Create coverage report"
+    - just create-coverage-report doc unit-test-coverage
+    - just --justfile .gitlab/justfile section-end "create-coverage-report"
+  stage: test
 
 docs:
-  extends: .default-rust
+  extends: .default-with-rust
   script:
+    - just --justfile .gitlab/justfile section-start "install-alpm-packages" "Install ALPM package set 'docs'"
+    - just install-alpm-package-set docs
+    - just --justfile .gitlab/justfile section-end "install-alpm-packages"
+    - just --justfile .gitlab/justfile section-start "docs" "Build Rust API documentation"
     - just docs
+    - just --justfile .gitlab/justfile section-end "docs"
+    - just --justfile .gitlab/justfile section-start "install-alpm-packages" "Install ALPM package set 'book'"
+    - just install-alpm-package-set book
+    - just --justfile .gitlab/justfile section-end "install-alpm-packages"
+    - just --justfile .gitlab/justfile section-start "build-book" "Build project documentation"
     - just build-book
+    - just --justfile .gitlab/justfile section-end "build-book"
   stage: test
 
 integration-test:
-  extends: .default
-  script:
-    - useradd -m testuser
-    - chown -R testuser:testuser .
-    - WORKDIR="$(pwd)" runuser -w CI,WORKDIR,SIGNSTAR_COVERAGE -l testuser -c 'env && cd "$WORKDIR" && just install-rust-dev-tools'
-    - WORKDIR="$(pwd)" runuser -w CI,WORKDIR,SIGNSTAR_COVERAGE -l testuser -c 'env && cd "$WORKDIR" && just nethsm-integration-tests'
-    - WORKDIR="$(pwd)" runuser -w CI,WORKDIR,SIGNSTAR_COVERAGE -l testuser -c 'env && cd "$WORKDIR" && just containerized-integration-tests --locked --all-targets --workspace --no-default-features'
-    - WORKDIR="$(pwd)" runuser -w CI,WORKDIR,SIGNSTAR_COVERAGE -l testuser -c 'env && cd "$WORKDIR" && just containerized-integration-tests --locked --all-targets --workspace --no-default-features --features nethsm'
-    - WORKDIR="$(pwd)" runuser -w CI,WORKDIR,SIGNSTAR_COVERAGE -l testuser -c 'env && cd "$WORKDIR" && just containerized-integration-tests --locked --all-targets --workspace --no-default-features --features yubihsm2'
-    - WORKDIR="$(pwd)" runuser -w CI,WORKDIR,SIGNSTAR_COVERAGE -l testuser -c 'env && cd "$WORKDIR" && just containerized-integration-tests --locked --all-targets --workspace --no-default-features --features mockhsm,nethsm,yubihsm2'
-    - WORKDIR="$(pwd)" runuser -w CI,WORKDIR,SIGNSTAR_COVERAGE -l testuser -c 'env && cd "$WORKDIR" && just create-coverage-report doc integration-test-coverage'
-  stage: test
-  timeout: 20m
-  tags:
-    - vm
-  coverage: "/Test-coverage: ([0-9.]*)%/"
   artifacts:
     reports:
       # Unit test reports
@@ -180,13 +257,44 @@ integration-test:
       # Expose the code coverage as a GitLab metric.
       # This allows us to easily spot changes in the overall coverage.
       metrics: target/llvm-cov/coverage-metrics.txt
+  coverage: "/Test-coverage: ([0-9.]*)%/"
+  extends: .default-with-rust-and-testuser
+  script:
+    - just --justfile .gitlab/justfile section-start "install-alpm-packages" "Install ALPM package set 'containerized'"
+    - just install-alpm-package-set containerized
+    - just --justfile .gitlab/justfile section-end "install-alpm-packages"
+    - just --justfile .gitlab/justfile section-start "integration-test-nethsm" "Run integration tests against a NetHSM container as 'testuser'"
+    - WORKDIR="$(pwd)" runuser -w CI,WORKDIR,SIGNSTAR_COVERAGE -l testuser -c 'env && cd "$WORKDIR" && just nethsm-integration-tests'
+    - just --justfile .gitlab/justfile section-end "integration-test-nethsm"
+    - just --justfile .gitlab/justfile section-start "integration-test-containerized-no-features" "Run containerized integration tests as 'testuser' with no features"
+    - WORKDIR="$(pwd)" runuser -w CI,WORKDIR,SIGNSTAR_COVERAGE -l testuser -c 'env && cd "$WORKDIR" && just containerized-integration-tests --locked --all-targets --workspace --no-default-features'
+    - just --justfile .gitlab/justfile section-end "integration-test-containerized-no-features"
+    - just --justfile .gitlab/justfile section-start "integration-test-containerized-nethsm-feature" "Run containerized integration tests as 'testuser' with nethsm feature"
+    - WORKDIR="$(pwd)" runuser -w CI,WORKDIR,SIGNSTAR_COVERAGE -l testuser -c 'env && cd "$WORKDIR" && just containerized-integration-tests --locked --all-targets --workspace --no-default-features --features nethsm'
+    - just --justfile .gitlab/justfile section-end "integration-test-containerized-nethsm-feature"
+    - just --justfile .gitlab/justfile section-start "integration-test-containerized-yubihsm2-feature" "Run containerized integration tests as 'testuser' with yubihsm2 feature"
+    - WORKDIR="$(pwd)" runuser -w CI,WORKDIR,SIGNSTAR_COVERAGE -l testuser -c 'env && cd "$WORKDIR" && just containerized-integration-tests --locked --all-targets --workspace --no-default-features --features yubihsm2'
+    - just --justfile .gitlab/justfile section-end "integration-test-containerized-yubihsm2-feature"
+    - just --justfile .gitlab/justfile section-start "integration-test-containerized-mockhsm-nethsm-yubihsm2-features" "Run containerized integration tests as 'testuser' with yubihsm2 feature"
+    - WORKDIR="$(pwd)" runuser -w CI,WORKDIR,SIGNSTAR_COVERAGE -l testuser -c 'env && cd "$WORKDIR" && just containerized-integration-tests --locked --all-targets --workspace --no-default-features --features mockhsm,nethsm,yubihsm2'
+    - just --justfile .gitlab/justfile section-end "integration-test-containerized-mockhsm-nethsm-yubihsm2-features"
+    - just --justfile .gitlab/justfile section-start "create-coverage-report" "Create coverage report as 'testuser'"
+    - WORKDIR="$(pwd)" runuser -w CI,WORKDIR,SIGNSTAR_COVERAGE -l testuser -c 'env && cd "$WORKDIR" && just create-coverage-report doc integration-test-coverage'
+    - just --justfile .gitlab/justfile section-end "create-coverage-report"
+  stage: test
+  tags:
+    - vm
+  timeout: 20m
 
 test-readmes:
-  extends: .default
+  extends: .default-with-rust-and-testuser
   script:
-    - useradd -m testuser
-    - chown -R testuser:testuser .
-    - WORKDIR="$(pwd)" runuser -w CI,WORKDIR -l testuser -c 'env && cd "$WORKDIR" && just install-rust-dev-tools && just test-readmes'
+    - just --justfile .gitlab/justfile section-start "install-alpm-packages" "Install ALPM package set 'readmes'"
+    - just install-alpm-package-set readmes
+    - just --justfile .gitlab/justfile section-end "install-alpm-packages"
+    - just --justfile .gitlab/justfile section-start "test-readmes" "Run README tests as 'testuser'"
+    - WORKDIR="$(pwd)" runuser -w CI,WORKDIR -l testuser -c 'env && cd "$WORKDIR" && just test-readmes'
+    - just --justfile .gitlab/justfile section-end "test-readmes"
   stage: test
   tags:
     - vm
@@ -194,18 +302,26 @@ test-readmes:
 build-image:
   # NOTE: This fails until a new version of `signstar-configure-build` with support for `signstar_config::BackendConnection` is released and used.
   allow_failure: true
-  extends: .default
   dependencies: []
+  extends: .default
   script:
+    - just --justfile .gitlab/justfile section-start "install-alpm-packages" "Install ALPM package set 'signstar-os'"
+    - just install-alpm-package-set signstar-os
     # show the mkosi version
     - mkosi --version
+    - just --justfile .gitlab/justfile section-end "install-alpm-packages"
+    - just --justfile .gitlab/justfile section-start "create-testuser" "Create 'testuser'"
     - useradd -m testuser
     - chown -R testuser:testuser .
-    # prepare an ephemeral OpenPGP signing key
+    - just --justfile .gitlab/justfile section-end "create-testuser"
+    - just --justfile .gitlab/justfile section-start "create-openpgp-key" "Create ephemeral OpenPGP signing key"
     - export KEY="$(mktemp)"
     - rsop generate-key --signing-only test > "$KEY"
     - chown testuser:testuser "$KEY"
-    - WORKDIR="$(pwd)" runuser -w WORKDIR,KEY -l testuser -c 'cd "$WORKDIR" && just build-image "$KEY"'
+    - just --justfile .gitlab/justfile section-end "create-openpgp-key"
+    - just --justfile .gitlab/justfile section-start "build-image" "Build Signstar OS image as 'testuser'"
+    - WORKDIR="$(pwd)" runuser -w WORKDIR,KEY -l testuser -c 'env && cd "$WORKDIR" && just build-image "$KEY"'
+    - just --justfile .gitlab/justfile section-end "build-image"
   stage: signstaros
   tags:
     - vm
@@ -213,61 +329,65 @@ build-image:
 build-test-image:
   # NOTE: This fails because of pacman issue which is already merged, see: https://gitlab.archlinux.org/pacman/pacman/-/merge_requests/328
   allow_failure: true
-  extends: .default
+  extends: .default-with-rust-and-testuser
   dependencies: []
   script:
+    - just --justfile .gitlab/justfile section-start "install-alpm-packages" "Install ALPM package set 'signstar-os'"
+    - just install-alpm-package-set signstar-os
     # show the mkosi version
     - mkosi --version
-    - useradd -m testuser
-    - chown -R testuser:testuser .
-    # prepare an ephemeral OpenPGP signing key
+    - just --justfile .gitlab/justfile section-end "install-alpm-packages"
+    - just --justfile .gitlab/justfile section-start "create-openpgp-key" "Create ephemeral OpenPGP signing key"
     - export KEY="$(mktemp)"
     - rsop generate-key --signing-only test > "$KEY"
     - chown testuser:testuser "$KEY"
-    # install required Rust toolchain
-    - WORKDIR="$(pwd)" runuser -w WORKDIR -l testuser -c 'cd "$WORKDIR" && just install-rust-dev-tools'
-    - WORKDIR="$(pwd)" runuser -w WORKDIR,KEY -l testuser -c 'cd "$WORKDIR" && just build-test-image "$KEY"'
+    - just --justfile .gitlab/justfile section-end "create-openpgp-key"
+    - just --justfile .gitlab/justfile section-start "build-image" "Build Signstar OS test image as 'testuser'"
+    - WORKDIR="$(pwd)" runuser -w WORKDIR,KEY -l testuser -c 'env && cd "$WORKDIR" && just build-test-image "$KEY"'
+    - just --justfile .gitlab/justfile section-end "build-image"
   stage: signstaros
   tags:
     - vm
 
 crates_publish:
-  before_script:
-    - pacman-key --init
-    - pacman -Sy --needed --noconfirm archlinux-keyring
-    - source .env && pacman -Syu --needed --noconfirm $PACMAN_PACKAGES
-    - just install-rust-dev-tools
   dependencies: []
+  extends: .default-with-rust
   rules:
     - if: '$CARGO_REGISTRY_TOKEN && $CI_COMMIT_TAG && $CI_PROJECT_PATH == "archlinux/signstar"'
   script:
+    - just --justfile .gitlab/justfile section-start "install-alpm-packages" "Install ALPM package set 'publish'"
+    - just install-alpm-package-set publish
+    - just --justfile .gitlab/justfile section-end "install-alpm-packages"
+    - just --justfile .gitlab/justfile section-start "ci-publish" "Publish a crate on crates.io"
     - just ci-publish
+    - just --justfile .gitlab/justfile section-end "ci-publish"
   stage: publish
   tags:
     - secure
 
 issue-bot:
   dependencies: []
-  stage: report
   image: registry.gitlab.com/gitlab-org/distribution/issue-bot:latest
-  script: /issue-bot
   rules:
     - if: $CI_COMMIT_REF_NAME == $CI_DEFAULT_BRANCH
       when: on_failure
+  script: /issue-bot
+  stage: report
 
 pages:
-  before_script:
-    - pacman-key --init
-    - pacman -Sy --needed --noconfirm archlinux-keyring
-    - source .env && pacman -Syu --needed --noconfirm $PACMAN_PACKAGES
-    - just install-rust-dev-tools
-  dependencies: []
-  stage: pages
-  script:
-    - just build-book
   artifacts:
     paths:
       - output/docs
+  dependencies: []
+  extends: .default-with-rust
   publish: output/docs
   rules:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+  script:
+    - just --justfile .gitlab/justfile section-start "install-alpm-packages" "Install ALPM package set 'book'"
+    - just install-alpm-package-set book
+    - just --justfile .gitlab/justfile section-end "install-alpm-packages"
+    - just --justfile .gitlab/justfile section-start "build-book" "Build project documentation"
+    - just build-book
+    - just --justfile .gitlab/justfile section-end "build-book"
+  stage: pages
