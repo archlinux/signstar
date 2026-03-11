@@ -188,7 +188,7 @@ docs:
     #!/usr/bin/env bash
     set -euo pipefail
 
-    just ensure-command cargo mold
+    just ensure-command cargo
 
     readonly target_dir="${CARGO_TARGET_DIR:-$PWD/target}"
     mapfile -t workspace_members < <(just get-workspace-members 2>/dev/null)
@@ -349,7 +349,7 @@ check-rust-code *options:
         )
     fi
 
-    just ensure-command cargo cargo-clippy mold
+    just ensure-command cargo cargo-clippy
     cargo +stable clippy "${options[@]}" -- -D warnings
 
 # Checks for consistent sorting of rust derives
@@ -443,7 +443,7 @@ fix:
     #!/usr/bin/env bash
     set -euo pipefail
 
-    just ensure-command cargo-clippy codespell git mold rustup
+    just ensure-command cargo-clippy codespell git rustup
 
     if ! git diff-files --quiet ; then
         echo "Working tree has changes. Please stage them: git add ."
@@ -516,7 +516,7 @@ ci-publish:
     readonly crate="${tag//\/*/}"
     readonly version="${tag#*/}"
 
-    just ensure-command cargo mold
+    just ensure-command cargo
 
     if [[ -z "$tag" ]]; then
         printf "There is no tag!\n" >&2
@@ -742,12 +742,12 @@ test *options:
     fi
 
     if [[ "$coverage" == "true" ]]; then
-        just ensure-command cargo cargo-llvm-cov cargo-nextest mold
+        just ensure-command cargo cargo-llvm-cov cargo-nextest
         # Use the environment prepared by `cargo llvm-cov show-env`
         # shellcheck source=/dev/null
         source <(cargo llvm-cov show-env --export-prefix)
     else
-        just ensure-command cargo cargo-nextest mold
+        just ensure-command cargo cargo-nextest
     fi
 
     cargo nextest run "${options[@]}"
@@ -828,7 +828,7 @@ test-readme project:
         ;;
     esac
 
-    just ensure-command cargo mold podman tangler
+    just ensure-command cargo podman tangler
 
     install_executables() {
         case "$project" in
