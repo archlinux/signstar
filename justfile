@@ -122,6 +122,222 @@ get-workspace-member-version package:
 
     printf "$version\n"
 
+# Installs a `set` of ALPM packages.
+[private]
+install-alpm-package-set set:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    readonly set="{{ set }}"
+
+    # Sets of basic default packages for various targets.
+    #
+    # Overrides take place in the switch case, when adding packages to the (initially empty) `packages` array.
+    readonly build_book=(
+        cargo-depgraph
+        graphviz
+        mdbook
+        mdbook-mermaid
+    )
+    readonly check_commits=(
+        git
+        cocogitto
+        codespell
+        committed
+        ripgrep
+    )
+    readonly check_dependencies=(cargo-deny)
+    readonly check_licenses=(
+        git
+        reuse
+    )
+    readonly check_links=(lychee)
+    readonly check_shell=(
+        ripgrep
+        shellcheck
+        tangler
+    )
+    readonly check_spelling=(codespell)
+    readonly check_unused=(cargo-machete)
+    readonly dev=(
+        cargo-insta
+        miniserve
+        release-plz
+        watchexec
+    )
+    readonly docs=(
+        jq
+    )
+    readonly format=(
+        cargo-sort-derives
+        mado
+        taplo
+    )
+    readonly manpages=(
+        lowdown
+        rust-script
+    )
+    readonly publish=(
+        jq
+    )
+    readonly rust_dev=(
+        clang
+        lld
+        openssl
+        pkgconf
+        rustup
+    )
+    readonly signstar_os=(
+        acl
+        cpio
+        edk2-ovmf
+        erofs-utils
+        git
+        mkosi
+        mtools
+        openssl
+        pkgconf
+        qemu
+        rsop
+        sbsigntools
+        swtpm
+        systemd-ukify
+        zstd
+    )
+    readonly test=(
+        cargo-nextest
+    )
+    readonly test_containerized=(podman)
+    readonly test_coverage=(
+        cargo-llvm-cov
+        cargo-nextest
+        jq
+    )
+    readonly test_readmes=(
+        diffutils
+        jq
+        podman
+        rpacket
+        rsop
+        sequoia-sop
+        tangler
+    )
+
+    # Start with an empty set of packages and add to it in the below switch-case.
+    packages=()
+
+    case "$set" in
+        all)
+            packages+=(
+                "${build_book[@]}"
+                "${check_commits[@]}"
+                "${check_spelling[@]}"
+                "${check_shell[@]}"
+                "${check_unused[@]}"
+                "${check_dependencies[@]}"
+                "${check_licenses[@]}"
+                "${check_links[@]}"
+                "${dev[@]}"
+                "${docs[@]}"
+                "${format[@]}"
+                "${manpages[@]}"
+                "${publish[@]}"
+                "${rust_dev[@]}"
+                "${signstar_os[@]}"
+                "${test[@]}"
+                "${test_containerized[@]}"
+                "${test_coverage[@]}"
+                "${test_readmes[@]}"
+            )
+            ;;
+        book)
+            packages+=(
+                "${build_book[@]}"
+                "${docs[@]}"
+            )
+            ;;
+        commits)
+            packages+=("${check_commits[@]}")
+            ;;
+        containerized)
+            packages+=(
+                "${test_coverage[@]}"
+                "${test_containerized[@]}"
+            )
+            ;;
+        coverage)
+            packages+=("${test_coverage[@]}")
+            ;;
+        docs)
+            packages+=("${docs[@]}")
+            ;;
+        dependencies)
+            packages+=("${check_dependencies[@]}")
+            ;;
+        formatting)
+            packages+=("${format[@]}")
+            ;;
+        licenses)
+            packages+=("${check_licenses[@]}")
+            ;;
+        links)
+            packages+=("${check_links[@]}")
+            ;;
+        manpages)
+            packages+=("${manpages[@]}")
+            ;;
+        publish)
+            packages+=("${publish[@]}")
+            ;;
+        readmes)
+            packages+=("${test_readmes[@]}")
+            ;;
+        rust-dev)
+            packages+=(
+                "${rust_dev[@]}"
+            )
+            ;;
+        shell)
+            packages+=("${check_shell[@]}")
+            ;;
+        signstar-os)
+            packages+=("${signstar_os[@]}")
+            ;;
+        spelling)
+            packages+=("${check_spelling[@]}")
+            ;;
+        test)
+            packages+=("${test[@]}")
+            ;;
+        unused)
+            packages+=("${check_unused[@]}")
+            ;;
+        *)
+            printf 'Invalid package set %s' "$set" >&2
+            exit 1
+    esac
+
+    just ensure-command pacman run0
+
+    # Deduplicate using an associative array
+    declare -A unique_packages
+    for package in "${packages[@]}"; do
+        if [[ ! "${unique_packages[$package]+_}" ]]; then
+            unique_packages["$package"]=1
+        fi
+    done
+
+    # Use run0 when not root
+    command=()
+    if (( "$(id -u)" > 0 )); then
+        command+=(run0)
+    fi
+    command+=(
+        pacman -Su --needed --noconfirm
+    )
+
+    "${command[@]}" "${!unique_packages[@]}"
+
 # Checks if a string matches a workspace member exactly
 [private]
 is-workspace-member package:
@@ -369,6 +585,7 @@ check-shell-code:
     just check-shell-recipe check-unused-deps
     just check-shell-recipe ci-publish
     just check-shell-recipe 'generate shell_completions nethsm-cli'
+    just check-shell-recipe 'install-alpm-package-set all'
     just check-shell-recipe 'is-workspace-member nethsm'
     just check-shell-recipe 'release nethsm'
     just check-shell-recipe docs
@@ -475,8 +692,7 @@ get-latest-nethsm-release-short-commit:
 # Installs development packages using pacman
 [group('dev')]
 install-pacman-dev-packages:
-    # All packages are set in the `.env` file
-    run0 pacman -S --needed --noconfirm $PACMAN_PACKAGES
+    just install-alpm-package-set all
 
 # Installs all Rust tools required for development
 [group('dev')]
