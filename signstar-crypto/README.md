@@ -9,7 +9,11 @@ Common types and functionality for cryptography in Signstar.
 
 ## Features
 
-- `nethsm`: Enable integration required for use with a [NetHSM]
+- `_containerized-integration-test`: Integration tests that require a containerized test environment.
+  **NOTE**: Unless you are developing this crate, you will very likely not want to use this feature.
+- `_test-helpers`: Helpers used for integration test setups.
+  **NOTE**: Unless you are developing this crate, you will very likely not want to use this feature.
+- `nethsm`: Enable integration required for use with a [NetHSM].
 
 ## Contributing
 

@@ -54,7 +54,8 @@ for (key, value) in decryptor
 
 ## Features
 
-- `_nethsm-integration-test` enables tests that require `podman` for starting test dependencies in containers.
+- `_nethsm-integration-test`: Integration tests that require a containerized NetHSM test environment.
+  **NOTE**: Unless you are developing this crate, you will very likely not want to use this feature.
 
 ## Contributing
 

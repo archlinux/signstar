@@ -105,8 +105,10 @@ nethsm.use_credentials(&"user1".parse()?)?;
 
 ## Features
 
-- `test-helpers` enables the `signstar_config::test` module which provides utilities for test setups that are also useful for other crates.
-- `_nethsm-integration-test` enables tests that require `podman` for starting test dependencies in containers.
+- `_nethsm-integration-test`: Integration tests that require a containerized NetHSM test environment.
+  **NOTE**: Unless you are developing this crate, you will very likely not want to use this feature.
+- `test-helpers`: Enables the `signstar_config::test` module which provides utilities for test setups that may also be useful for other crates.
+  **NOTE**: Unless you are developing this crate or write NetHSM related integration tests in your own crate, you will very likely not want to use this feature.
 
 ## Contributing
 

@@ -9,7 +9,7 @@ Shared components and data types for Signstar tools and libraries
 
 ## Features
 
-- `logging` enables the `signstar_config::logging` module which provides utilities for logging.
+- `logging`: Enables the `signstar_config::logging` module which provides utilities for logging.
 
 ## Contributing
 
