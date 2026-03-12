@@ -1,9 +1,9 @@
 # Signstar YubiHSM2
 
-Integration for YubiHSM2 devices as Signstar backend.
+Integration for [YubiHSM2] devices as Signstar backend.
 
 This library contains a small, safe subset of primitives used by Signstar.
-For example: YubiHSM2 allows exporting raw secret keys while in Signstar we would always export them under wrap (encrypted).
+For example: [YubiHSM2] allows exporting raw secret keys while in Signstar we would always export them under wrap (encrypted).
 Additionally, this library provides strong types for expressing object capabilities and identity.
 
 To ease deployment and provisioning of a YubiHSM2 backend a command-line interface to execute deployment scenarios is included.
@@ -62,9 +62,11 @@ signstar-yubihsm scenario run "tests/scenarios/audit.json" | jq --compact-output
 
 ## Features
 
-- `cli` - enables command line interface for executing scenario files
-- `mockhsm` - allows running scenario files against an emulated YubiHSM2, due to [`yubihsm` crate limitation] this works only in debug builds
-- `serde` - serialization and deserialization of objects using `serde`
+- `cli`: Enables command line interface for executing scenario files
+- `mockhsm`: Test environment and integration using a virtual [YubiHSM2].
+  **NOTE**: Unless you are developing this crate, you will very likely not want to use this feature.
+  **WARNING**: This feature requires building in `debug` mode (see [signstar#288])!
+- `serde`: Serialization and deserialization of objects using `serde`.
 
 ## Contributing
 
@@ -78,5 +80,6 @@ Changes to this project - unless stated otherwise - automatically fall under the
 
 [Apache-2.0]: https://www.apache.org/licenses/LICENSE-2.0
 [MIT]: https://opensource.org/licenses/MIT
+[YubiHSM2]: https://www.yubico.com/de/product/yubihsm-2/
 [contributing guidelines]: ../CONTRIBUTING.md
-[`yubihsm` crate limitation]: https://gitlab.archlinux.org/archlinux/signstar/-/issues/288
+[signstar#288]: https://gitlab.archlinux.org/archlinux/signstar/-/work_items/288
