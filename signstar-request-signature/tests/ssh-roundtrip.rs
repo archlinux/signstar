@@ -17,8 +17,7 @@ use std::os::unix::net::UnixStream;
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use base64::Engine;
-use base64::prelude::BASE64_STANDARD;
+use base64ct::{Base64, Encoding as _};
 use log::{LevelFilter, debug, info};
 use russh::keys::ssh_encoding::Encode;
 use russh::keys::ssh_key::{PrivateKey, PublicKey, private::Ed25519Keypair};
@@ -117,7 +116,7 @@ async fn ssh_roundtrip() -> TestResult {
     agent_key.push(b' ');
     let mut key = vec![];
     ids[0].pubkey.encode(&mut key)?;
-    agent_key.extend(BASE64_STANDARD.encode(&key).as_bytes());
+    agent_key.extend(Base64::encode_string(&key).as_bytes());
     let agent_key = String::from_utf8_lossy(&agent_key);
 
     info!("Client's public key: {agent_key}");

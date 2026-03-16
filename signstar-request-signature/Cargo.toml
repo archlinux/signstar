@@ -26,7 +26,7 @@ thiserror.workspace = true
 tokio = { workspace = true, features = ["full"] }
 
 [dev-dependencies]
-base64 = "0.22.1"
+base64ct.workspace = true
 rsa = { workspace = true, features = ["sha1", "sha2"] }
 rstest.workspace = true
 ssh-agent-lib = "0.5.1"
