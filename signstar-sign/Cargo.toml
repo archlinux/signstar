@@ -30,7 +30,7 @@ yubihsm2 = ["signstar-config/yubihsm2"]
 
 [dev-dependencies]
 actix-web = { version = "4.10.2", features = ["openssl"] }
-base64 = "0.22.1"
+base64ct.workspace = true
 change-user-run.workspace = true
 httpmock = "0.8.0-alpha.1"
 log.workspace = true

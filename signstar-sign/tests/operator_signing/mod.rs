@@ -7,6 +7,7 @@ use std::os::unix::fs::chown;
 use std::path::{Path, PathBuf};
 use std::{fs::File, io::Write};
 
+use base64ct::{Base64, Encoding as _};
 use change_user_run::{CommandOutput, create_users, run_command_as_user};
 use log::{LevelFilter, debug};
 use pgp::composed::{Deserializable as _, DetachedSignature};
@@ -22,8 +23,6 @@ use crate::utils::{SIGNSTAR_CONFIG_FULL, SIGNSTAR_CONFIG_PLAINTEXT};
 
 const SIGNSTAR_SIGN_PAYLOAD: &str = "signstar-sign";
 use actix_web::{App, HttpRequest, HttpServer, Responder, get, post};
-use base64::Engine;
-use base64::prelude::BASE64_STANDARD;
 use openssl::ssl::{SslAcceptor, SslFiletype, SslMethod};
 use rcgen::{CertifiedKey, generate_simple_self_signed};
 
@@ -89,11 +88,11 @@ async fn get_key(_req: HttpRequest) -> impl Responder {
 
 #[get("//keys/key1/cert")]
 async fn get_cert(_req: HttpRequest) -> impl Responder {
-    BASE64_STANDARD
-        .decode(
+    Base64
+        ::decode_vec(
             r#"xjMEZ+VhSxYJKwYBBAHaRw8BAQdA2KONgN7kvXUBlnh5isobtDbLxBXQbsdohf87Df096mXNAS7CjwQQFggANwIZAQUCZ+VhSwIbAwgLCQgHCg0MCwUVCgkICwIWAgEnFiEEJ+rNVN734ABCNPFLpYLJVKxmFLEACgkQpYLJVKxmFLGh6QD/XdFJ7y52ag8H0DyBpCIRSFdl13BTT0bZf1d0TXIWIm8BAOO33aEXdEaxJBh7k60L6JxjATxWDKT+yMdXB76cD3QEzjgEZ+VhSxIKKwYBBAGXVQEFAQEHQPCHxYr7O6G09KDQ+gDVJCmHLaf5eH+LJ1BC6i1DBSRYAwEIB8J4BBgWCAAgBQJn5WFLAhsMFiEEJ+rNVN734ABCNPFLpYLJVKxmFLEACgkQpYLJVKxmFLFZ1QD/WDIyxKOxoOd/uI3GkWBlHl0BfI1ao9NvK5YcaOpQUycA/RC3vW9IwJIPPyegfDu96o9/GjB36O5QvttUHwLqY6oJ"#,
         )
-        .unwrap()
+        .expect("static base64 data to be valid")
 }
 
 #[post("//keys/key1/sign")]

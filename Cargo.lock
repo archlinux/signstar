@@ -4659,7 +4659,7 @@ name = "signstar-sign"
 version = "0.1.1"
 dependencies = [
  "actix-web",
- "base64 0.22.1",
+ "base64ct",
  "change-user-run",
  "clap",
  "clap-verbosity-flag",
