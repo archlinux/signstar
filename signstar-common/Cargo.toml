@@ -11,7 +11,7 @@ version = "0.1.2"
 
 [dependencies]
 log.workspace = true
-simplelog = { optional = true, version = "0.12.2" }
+simplelog = { optional = true, workspace = true }
 systemd-journal-logger = { optional = true, version = "2.2.1" }
 thiserror.workspace = true
 
