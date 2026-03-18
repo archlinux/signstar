@@ -10,17 +10,26 @@ use crate::TlsKeyType;
 pub enum Error {
     /// Elliptic curve TLS keys do not support providing a length
     #[error("Elliptic curve key ({tls_key_type}) does not support setting length")]
-    TlsKeyLengthUnsupported { tls_key_type: TlsKeyType },
+    TlsKeyLengthUnsupported {
+        /// The type of TLS key.
+        tls_key_type: TlsKeyType,
+    },
 
     /// RSA TLS key type requires setting a length
     #[error("Generating a key of type {tls_key_type} requires setting a length")]
-    TlsKeyLengthRequired { tls_key_type: TlsKeyType },
+    TlsKeyLengthRequired {
+        /// The type of TLS key.
+        tls_key_type: TlsKeyType,
+    },
 
     /// RSA TLS key is generated with unsafe key length (smaller than 2048)
     #[error(
         "RSA keys shorter than {MIN_RSA_BIT_LENGTH} are not supported. A key length of {key_length} is unsafe!"
     )]
-    InvalidTlsKeyLengthRsa { key_length: u32 },
+    InvalidTlsKeyLengthRsa {
+        /// The bit length of the RSA key.
+        key_length: u32,
+    },
 
     /// One or more [`KeyId`]s are not valid.
     #[error("Invalid Key ID{}: {}", if key_ids.len() == 1 {"s"} else { " "}, key_ids.join(", "))]
