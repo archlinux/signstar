@@ -32,10 +32,12 @@ zeroize.workspace = true
 
 [dev-dependencies]
 change-user-run.workspace = true
-insta = "1.46.1"
+clap.workspace = true
+insta = { version = "1.46.1", features = ["filters"] }
 nethsm = { features = ["test-helpers"], workspace = true }
 rstest.workspace = true
 signstar-common = { workspace = true, features = ["logging"] }
+simplelog.workspace = true
 tempfile.workspace = true
 testdir.workspace = true
 testresult.workspace = true

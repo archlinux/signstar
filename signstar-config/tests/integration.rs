@@ -1,4 +1,5 @@
 //! Integration tests for signstar-config modules.
+#![cfg(feature = "_containerized-integration-test")]
 
 use std::{
     env::var,
@@ -66,11 +67,10 @@ fn collect_coverage_files(path: impl AsRef<Path>) -> TestResult {
     Ok(())
 }
 
-#[cfg(feature = "_containerized-integration-test")]
 pub mod admin_credentials;
 
-#[cfg(feature = "_containerized-integration-test")]
 pub mod config;
 
-#[cfg(feature = "_containerized-integration-test")]
 pub mod non_admin_credentials;
+
+pub mod usermapping;

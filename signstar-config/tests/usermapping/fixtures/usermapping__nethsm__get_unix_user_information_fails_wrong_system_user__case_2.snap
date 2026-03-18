@@ -1,0 +1,7 @@
+---
+source: signstar-config/tests/usermapping/mod.rs
+description: "Calling Unix user != usermapping system user (CARGO_LLVM_COV=\"\" CARGO_LLVM_COV_SHOW_ENV=\"\" CARGO_LLVM_COV_TARGET_DIR=\"\" LLVM_PROFILE_FILE=\"/tmp/signstar-%p-%16m.profraw\" RUSTDOCFLAGS=\"\" RUSTFLAGS=\"\" \"/usr/sbin/runuser\" \"--user\" \"wrong-user\" \"--whitelist-environment=CARGO_LLVM_COV_TARGET_DIR,RUSTDOCFLAGS,CARGO_LLVM_COV_SHOW_ENV,RUSTFLAGS,LLVM_PROFILE_FILE,CARGO_LLVM_COV\" \"--\" \"/usr/local/bin/examples/usermapping-system-user-info\" \"nethsm-hermetic-metrics\" \"hermetic-metrics\" \"--current-user\")"
+expression: stderr
+---
+TIMESTAMP [DEBUG] (1) usermapping_system_user_info: Check whether the currently calling Unix user matches the system user Some(SystemUserId("hermetic-metrics"))
+Utility function error: The targeted system user hermetic-metrics is not the currently calling system user wrong-user.
