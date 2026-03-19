@@ -114,7 +114,7 @@ mod non_admin {
             stdout,
         } = run_command_as_user(
             PAYLOAD,
-            &[&secret_handling.to_string(), BACKEND_USER],
+            &[secret_handling.as_ref(), BACKEND_USER],
             None,
             ENV_LIST,
             Some(HashMap::from([(

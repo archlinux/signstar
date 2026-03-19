@@ -21,6 +21,7 @@ use signstar_common::{
         get_user_secrets_dir,
     },
 };
+use strum::{AsRefStr, EnumString};
 
 use crate::{
     passphrase::Passphrase,
@@ -32,13 +33,14 @@ use crate::{
 /// Non-administrative secrets represent passphrases for (non-administrator) HSM users and may be
 /// handled in different ways (e.g. encrypted or not encrypted).
 #[derive(
+    AsRefStr,
     Clone,
     Copy,
     Debug,
     Default,
     Deserialize,
     strum::Display,
-    strum::EnumString,
+    EnumString,
     Eq,
     Ord,
     PartialEq,
