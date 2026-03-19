@@ -7,11 +7,15 @@ use change_user_run::{CommandOutput, create_users, run_command_as_user};
 use insta::{assert_snapshot, with_settings};
 use log::LevelFilter;
 use rstest::rstest;
+use signstar_common::common::get_data_home;
 use signstar_common::{logging::setup_logging, system_user::get_home_base_dir_path};
+use signstar_config::test::{list_files_in_dir, start_credentials_socket, write_machine_id};
+use signstar_crypto::NonAdministrativeSecretHandling;
 use testresult::TestResult;
 
 use crate::{ENV_LIST, LLVM_PROFILE_FILE, collect_coverage_files};
 
+const NON_ADMIN_SECRETS_PAYLOAD: &str = "/usr/local/bin/examples/usermapping-non-admin-secrets";
 const PAYLOAD: &str = "/usr/local/bin/examples/usermapping-system-user-info";
 const SNAPSHOT_PATH: &str = "/test/tests/usermapping/fixtures/";
 
@@ -127,6 +131,180 @@ mod nethsm {
 
         Ok(())
     }
+
+    /// Creates and loads the secrets for non-administrative users of a user mapping.
+    #[rstest]
+    #[case::admin_plaintext("nethsm-admin", None, NonAdministrativeSecretHandling::Plaintext)]
+    #[case::backup_plaintext(
+        "nethsm-backup",
+        Some("backup"),
+        NonAdministrativeSecretHandling::Plaintext
+    )]
+    #[case::hermetic_metrics_plaintext(
+        "nethsm-hermetic-metrics",
+        Some("hermetic-metrics"),
+        NonAdministrativeSecretHandling::Plaintext
+    )]
+    #[case::metrics_plaintext(
+        "nethsm-metrics",
+        Some("metrics"),
+        NonAdministrativeSecretHandling::Plaintext
+    )]
+    #[case::signing_plaintext(
+        "nethsm-signing",
+        Some("signing"),
+        NonAdministrativeSecretHandling::Plaintext
+    )]
+    #[case::admin_systemd_creds(
+        "nethsm-admin",
+        None,
+        NonAdministrativeSecretHandling::SystemdCreds
+    )]
+    #[case::backup_systemd_creds(
+        "nethsm-backup",
+        Some("backup"),
+        NonAdministrativeSecretHandling::SystemdCreds
+    )]
+    #[case::hermetic_metrics_systemd_creds(
+        "nethsm-hermetic-metrics",
+        Some("hermetic-metrics"),
+        NonAdministrativeSecretHandling::SystemdCreds
+    )]
+    #[case::metrics_systemd_creds(
+        "nethsm-metrics",
+        Some("metrics"),
+        NonAdministrativeSecretHandling::SystemdCreds
+    )]
+    #[case::signing_systemd_creds(
+        "nethsm-signing",
+        Some("signing"),
+        NonAdministrativeSecretHandling::SystemdCreds
+    )]
+    fn create_and_load_non_admin_secrets_succeeds(
+        #[case] backend_kind: &str,
+        #[case] user: Option<&str>,
+        #[case] secret_handling: NonAdministrativeSecretHandling,
+    ) -> TestResult {
+        setup_logging(LevelFilter::Debug)?;
+
+        // Prepare the test environment.
+        write_machine_id()?;
+        let _socket = start_credentials_socket()?;
+        // Create unix user and its home
+        if let Some(user) = user {
+            create_users(&[user], Some(&get_home_base_dir_path()), None)?;
+        }
+
+        // Create secret files.
+        let create_options = {
+            let mut options = vec!["--backend-mapping-kind", backend_kind];
+            if let Some(user) = user {
+                options.push("--system-user");
+                options.push(user);
+            }
+            options.push("create");
+            options.push("--secret-handling");
+            options.push(secret_handling.as_ref());
+            options
+        };
+        let CommandOutput {
+            status,
+            command,
+            stderr,
+            stdout,
+            ..
+        } = run_command_as_user(
+            NON_ADMIN_SECRETS_PAYLOAD,
+            &create_options,
+            None,
+            ENV_LIST,
+            Some(HashMap::from([(
+                "LLVM_PROFILE_FILE".to_string(),
+                LLVM_PROFILE_FILE.to_string(),
+            )])),
+            "root",
+        )?;
+        let create_output = stdout;
+        eprintln!("{NON_ADMIN_SECRETS_PAYLOAD} stderr:\n{stderr}");
+
+        if !status.success() {
+            panic!(
+                "{}",
+                signstar_config::Error::CommandNonZero {
+                    command,
+                    exit_status: status,
+                    stderr,
+                }
+            );
+        }
+
+        // Collect coverage files for the creation of secrets.
+        collect_coverage_files("/tmp")?;
+
+        if user.is_some() {
+            // List all files and directories in the data home.
+            list_files_in_dir(get_data_home())?;
+        }
+
+        // Load secret files.
+        let load_options = {
+            let mut options = vec!["--backend-mapping-kind", backend_kind];
+            if let Some(user) = user {
+                options.push("--system-user");
+                options.push(user);
+            }
+            options.push("load");
+            options.push("--secret-handling");
+            options.push(secret_handling.as_ref());
+            options
+        };
+
+        let CommandOutput {
+            status,
+            command,
+            stderr,
+            stdout,
+            ..
+        } = run_command_as_user(
+            NON_ADMIN_SECRETS_PAYLOAD,
+            &load_options,
+            None,
+            ENV_LIST,
+            Some(HashMap::from([(
+                "LLVM_PROFILE_FILE".to_string(),
+                LLVM_PROFILE_FILE.to_string(),
+            )])),
+            user.unwrap_or("root"),
+        )?;
+
+        if !status.success() {
+            panic!(
+                "{}",
+                signstar_config::Error::CommandNonZero {
+                    command,
+                    exit_status: status,
+                    stderr,
+                }
+            );
+        }
+        let load_output = stdout;
+
+        assert_eq!(create_output, load_output);
+
+        with_settings!({
+            description => format!("Matching created and loaded passphrases for backend users ({command})"),
+            filters => vec![(r"([0-9A-Za-z]+){30}", "PASSPHRASE")],
+            snapshot_path => SNAPSHOT_PATH,
+            prepend_module_to_snapshot => false,
+        }, {
+            assert_snapshot!(current().name().expect("current thread should have a name").to_string().replace("::", "__"), load_output);
+        });
+
+        // Collect coverage files for the loading of secrets.
+        collect_coverage_files("/tmp")?;
+
+        Ok(())
+    }
 }
 
 #[cfg(feature = "yubihsm2")]
@@ -238,6 +416,179 @@ mod yubihsm2 {
             assert_snapshot!(current().name().expect("current thread should have a name").to_string().replace("::", "__"), stderr);
         });
 
+        collect_coverage_files("/tmp")?;
+
+        Ok(())
+    }
+
+    /// Creates and loads the secrets for non-administrative users of a user mapping.
+    #[rstest]
+    #[case::admin_plaintext("yubihsm2-admin", None, NonAdministrativeSecretHandling::Plaintext)]
+    #[case::backup(
+        "yubihsm2-backup",
+        Some("backup"),
+        NonAdministrativeSecretHandling::Plaintext
+    )]
+    #[case::hermetic_audit_log_plaintext(
+        "yubihsm2-hermetic-audit-log",
+        Some("hermetic-metrics"),
+        NonAdministrativeSecretHandling::Plaintext
+    )]
+    #[case::audit_log_plaintext(
+        "yubihsm2-audit-log",
+        Some("metrics"),
+        NonAdministrativeSecretHandling::Plaintext
+    )]
+    #[case::signing_plaintext(
+        "yubihsm2-signing",
+        Some("signing"),
+        NonAdministrativeSecretHandling::Plaintext
+    )]
+    #[case::admin_systemd_creds(
+        "yubihsm2-admin",
+        None,
+        NonAdministrativeSecretHandling::SystemdCreds
+    )]
+    #[case::backup_systemd_creds(
+        "yubihsm2-backup",
+        Some("backup"),
+        NonAdministrativeSecretHandling::SystemdCreds
+    )]
+    #[case::hermetic_audit_log_systemd_creds(
+        "yubihsm2-hermetic-audit-log",
+        Some("hermetic-metrics"),
+        NonAdministrativeSecretHandling::SystemdCreds
+    )]
+    #[case::audit_log_systemd_creds(
+        "yubihsm2-audit-log",
+        Some("metrics"),
+        NonAdministrativeSecretHandling::SystemdCreds
+    )]
+    #[case::signing_systemd_creds(
+        "yubihsm2-signing",
+        Some("signing"),
+        NonAdministrativeSecretHandling::SystemdCreds
+    )]
+    fn create_and_load_non_admin_secrets_succeeds(
+        #[case] backend_kind: &str,
+        #[case] system_user: Option<&str>,
+        #[case] secret_handling: NonAdministrativeSecretHandling,
+    ) -> TestResult {
+        setup_logging(LevelFilter::Debug)?;
+
+        // Prepare the test environment.
+        write_machine_id()?;
+        let _socket = start_credentials_socket()?;
+        // Create unix user and its home
+        if let Some(user) = system_user {
+            create_users(&[user], Some(&get_home_base_dir_path()), None)?;
+        }
+
+        // Create secret files.
+        let create_options = {
+            let mut options = vec!["--backend-mapping-kind", backend_kind];
+            if let Some(system_user) = system_user {
+                options.push("--system-user");
+                options.push(system_user);
+            }
+            options.push("create");
+            options.push("--secret-handling");
+            options.push(secret_handling.as_ref());
+            options
+        };
+        let CommandOutput {
+            status,
+            command,
+            stderr,
+            stdout,
+            ..
+        } = run_command_as_user(
+            NON_ADMIN_SECRETS_PAYLOAD,
+            &create_options,
+            None,
+            ENV_LIST,
+            Some(HashMap::from([(
+                "LLVM_PROFILE_FILE".to_string(),
+                LLVM_PROFILE_FILE.to_string(),
+            )])),
+            "root",
+        )?;
+        let create_output = stdout;
+        eprintln!("{NON_ADMIN_SECRETS_PAYLOAD} stderr:\n{stderr}");
+
+        if !status.success() {
+            panic!(
+                "{}",
+                signstar_config::Error::CommandNonZero {
+                    command,
+                    exit_status: status,
+                    stderr,
+                }
+            );
+        }
+
+        // Collect coverage files for the creation of secrets.
+        collect_coverage_files("/tmp")?;
+
+        if system_user.is_some() {
+            // List all files and directories in the data home.
+            list_files_in_dir(get_data_home())?;
+        }
+
+        // Load secret files.
+        let load_options = {
+            let mut options = vec!["--backend-mapping-kind", backend_kind];
+            if let Some(user) = system_user {
+                options.push("--system-user");
+                options.push(user);
+            }
+            options.push("load");
+            options.push("--secret-handling");
+            options.push(secret_handling.as_ref());
+            options
+        };
+        let CommandOutput {
+            status,
+            command,
+            stderr,
+            stdout,
+            ..
+        } = run_command_as_user(
+            NON_ADMIN_SECRETS_PAYLOAD,
+            &load_options,
+            None,
+            ENV_LIST,
+            Some(HashMap::from([(
+                "LLVM_PROFILE_FILE".to_string(),
+                LLVM_PROFILE_FILE.to_string(),
+            )])),
+            system_user.unwrap_or("root"),
+        )?;
+
+        if !status.success() {
+            panic!(
+                "{}",
+                signstar_config::Error::CommandNonZero {
+                    command,
+                    exit_status: status,
+                    stderr,
+                }
+            );
+        }
+        let load_output = stdout;
+
+        assert_eq!(create_output, load_output);
+
+        with_settings!({
+            description => format!("Matching created and loaded passphrases for backend users ({command})"),
+            filters => vec![(r"([0-9A-Za-z]+){30}", "PASSPHRASE")],
+            snapshot_path => SNAPSHOT_PATH,
+            prepend_module_to_snapshot => false,
+        }, {
+            assert_snapshot!(current().name().expect("current thread should have a name").to_string().replace("::", "__"), load_output);
+        });
+
+        // Collect coverage files for the loading of secrets.
         collect_coverage_files("/tmp")?;
 
         Ok(())
