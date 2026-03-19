@@ -237,7 +237,7 @@ impl<F: Fn(&[u8]) -> Vec<u8> + Send + Clone> server::Handler for Server<F> {
     ) -> Result<(), Self::Error> {
         let response = (self.f)(&self.received);
 
-        session.data(channel, response.into())?;
+        session.data(channel, response)?;
         session.exit_status_request(channel, 0)?;
         session.eof(channel)?;
         session.close(channel)?;
