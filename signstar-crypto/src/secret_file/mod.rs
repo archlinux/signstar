@@ -5,7 +5,11 @@ mod common;
 mod error;
 mod non_admin;
 
-pub use admin::AdministrativeSecretHandling;
+pub use admin::{
+    AdministrativeSecretHandling,
+    SSS_DEFAULT_NUMBER_OF_SHARES,
+    SSS_DEFAULT_THRESHOLD,
+};
 pub use error::Error;
 pub use non_admin::{
     NonAdministrativeSecretHandling,
