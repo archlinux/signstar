@@ -7,14 +7,14 @@ use serde::{Deserialize, Serialize};
 /// The default number of shares for [Shamir's Secret Sharing] (SSS).
 ///
 /// [Shamir's Secret Sharing]: https://en.wikipedia.org/wiki/Shamir%27s_secret_sharing
-const SSS_DEFAULT_NUMBER_OF_SHARES: NonZeroUsize =
+pub const SSS_DEFAULT_NUMBER_OF_SHARES: NonZeroUsize =
     NonZeroUsize::new(6).expect("6 is larger than 0");
 
 /// The default number of shares required for decrypting secrets encrypted using [Shamir's Secret
 /// Sharing] (SSS).
 ///
 /// [Shamir's Secret Sharing]: https://en.wikipedia.org/wiki/Shamir%27s_secret_sharing
-const SSS_DEFAULT_THRESHOLD: NonZeroUsize = NonZeroUsize::new(3).expect("3 is larger than 0");
+pub const SSS_DEFAULT_THRESHOLD: NonZeroUsize = NonZeroUsize::new(3).expect("3 is larger than 0");
 
 /// The handling of administrative secrets.
 ///
