@@ -701,6 +701,7 @@ install-rust-dev-tools:
     rustup component add clippy
     rustup toolchain install nightly
     rustup component add --toolchain nightly rustfmt llvm-tools-preview
+    rustup component add llvm-tools-preview
 
 # Serves the documentation book using miniserve
 [group('dev')]
