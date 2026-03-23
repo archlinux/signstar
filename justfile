@@ -840,7 +840,7 @@ containerized-integration-tests *options:
         just ensure-command bash cargo cargo-llvm-cov cargo-nextest jq podman
         # Use the environment prepared by `cargo llvm-cov show-env`
         # shellcheck source=/dev/null
-        source <(cargo llvm-cov show-env --export-prefix)
+        source <(cargo llvm-cov show-env --sh)
 
         cargo build --examples --bins
     else
@@ -876,7 +876,7 @@ create-coverage-report output_type="cobertura" mode="without-docs" metrics_name=
 
         # Use the environment prepared by `cargo llvm-cov show-env`
         # shellcheck source=/dev/null
-        source <(cargo "${cargo_options[@]}" llvm-cov show-env --export-prefix)
+        source <(cargo "${cargo_options[@]}" llvm-cov show-env --sh)
 
         # Create cobertura coverage report
         cargo "${cargo_options[@]}" llvm-cov report "${cargo_llvm_cov_options[@]}"
@@ -977,7 +977,7 @@ nethsm-integration-tests *options:
         just ensure-command bash cargo cargo-llvm-cov cargo-nextest jq podman
         # Containerized integration tests require examples and bins to be built
         # shellcheck source=/dev/null
-        source <(cargo llvm-cov show-env --export-prefix)
+        source <(cargo llvm-cov show-env --sh)
         cargo build --examples --bins
     else
         just ensure-command bash cargo cargo-nextest jq podman
@@ -1006,7 +1006,7 @@ test *options:
         just ensure-command cargo cargo-llvm-cov cargo-nextest
         # Use the environment prepared by `cargo llvm-cov show-env`
         # shellcheck source=/dev/null
-        source <(cargo llvm-cov show-env --export-prefix)
+        source <(cargo llvm-cov show-env --sh)
     else
         just ensure-command cargo cargo-nextest
     fi
@@ -1028,7 +1028,7 @@ test-docs *options:
         just ensure-command cargo cargo-llvm-cov
         # Use the environment prepared by `cargo llvm-cov show-env`
         # shellcheck source=/dev/null
-        source <(cargo "$toolchain" llvm-cov show-env --export-prefix)
+        source <(cargo "$toolchain" llvm-cov show-env --sh)
     else
         just ensure-command cargo
     fi
