@@ -851,65 +851,101 @@ containerized-integration-tests *options:
 When providing `with-docs` to the `mode` parameter, this also includes doc test coverage in the report (requires nightly).
 The `metrics_name` parameter can be used to override the metrics name in the `coverage-metrics.txt` file used by GitLab.')]
 [group('test')]
-create-coverage-report mode="without-docs" metrics_name="Test-coverage":
+create-coverage-report output_type="cobertura" mode="without-docs" metrics_name="Test-coverage":
     #!/usr/bin/env bash
     set -euo pipefail
 
     readonly metrics_name="{{ metrics_name }}"
     readonly mode="{{ mode }}"
+    readonly output_type="{{ output_type }}"
     target_dir="$(just get-cargo-target-dir)"
 
     just ensure-command cargo-llvm-cov cargo-nextest jq
 
-    mkdir --parents "$target_dir/llvm-cov/"
-
-    # Options for cargo
+    # Default options for cargo.
     cargo_options=(+stable)
+    cargo_llvm_cov_options=()
 
-    # The chosen reporting style (defaults to without doctest coverage)
-    reporting_style="without doctest coverage"
+    # Creates a coverage report.
+    create_report() {
+        printf "Creating %s report %s\n" "$output_type" "$reporting_style..."
 
-    # Options for creating cobertura coverage report with cargo-llvm-cov
-    cargo_llvm_cov_cobertura_options=(
-        --cobertura
-        --output-path "$target_dir/llvm-cov/cobertura-coverage.xml"
-    )
+        mkdir --parents "$target_dir/llvm-cov/"
 
-    # Options for creating coverage report summary with cargo-llvm-cov
-    cargo_llvm_cov_summary_options=(
-        --json
-        --summary-only
-    )
+        # Use the environment prepared by `cargo llvm-cov show-env`
+        # shellcheck source=/dev/null
+        source <(cargo "${cargo_options[@]}" llvm-cov show-env --export-prefix)
 
-    if [[ "$mode" == "with-docs" ]]; then
-        reporting_style="with doctest coverage"
-        # The support for doctest coverage is a nightly feature
-        cargo_options=(+nightly)
-        cargo_llvm_cov_cobertura_options+=(--doctests)
-        cargo_llvm_cov_summary_options+=(--doctests)
-    fi
+        # Create cobertura coverage report
+        cargo "${cargo_options[@]}" llvm-cov report "${cargo_llvm_cov_options[@]}"
+    }
 
-    printf "Creating report %s\n" "$reporting_style"
+    # Writes to '$CARGO_TARGET_DIR/llvm-cov/coverage-metrics.txt' for Gitlab CI metrics consumption.
+    # See also: https://docs.gitlab.com/ci/testing/metrics_reports/
+    #
+    # Running this function, it is assumed, that create_report has been run before.
+    create_metrics() {
+        printf 'Creating coverage metrics...\n'
 
-    # Use the environment prepared by `cargo llvm-cov show-env`
-    # shellcheck source=/dev/null
-    source <(cargo "${cargo_options[@]}" llvm-cov show-env --export-prefix)
+        # Get total coverage percentage from summary
+        percentage="$(cargo "${cargo_options[@]}" llvm-cov report "${cargo_llvm_cov_metrics_options[@]}" | jq '.data[0].totals.lines.percent')"
 
-    # Create cobertura coverage report
-    cargo "${cargo_options[@]}" llvm-cov report "${cargo_llvm_cov_cobertura_options[@]}"
+        # Trim percentage to 4 decimal places.
+        percentage="$(LC_NUMERIC=C printf "%.4f\n" "$percentage")"
 
-    printf "Calculating percentage...\n"
+        printf "%s %s\n" "$metrics_name" "$percentage" > "$target_dir/llvm-cov/coverage-metrics.txt"
+        printf "Test-coverage: %s%%\n" "$percentage"
+    }
 
-    # Get total coverage percentage from summary
-    percentage="$(cargo "${cargo_options[@]}" llvm-cov report "${cargo_llvm_cov_summary_options[@]}" | jq '.data[0].totals.lines.percent')"
+    case "$mode" in
+        'without-docs')
+            reporting_style="without doctest coverage"
+        ;;
+        'with-docs')
+            cargo_llvm_cov_options+=(--doctests)
+            cargo_llvm_cov_metrics_options+=(--doctests)
+            # The support for doctest coverage is a nightly feature.
+            cargo_options=(+nightly)
+            reporting_style="with doctest coverage"
+        ;;
+        *)
+        printf 'Unknown mode "%s"' "$output_type" >&2
+        exit 1
+        ;;
+    esac
 
-    # Trim percentage to 4 decimal places.
-    percentage="$(LC_NUMERIC=C printf "%.4f\n" "$percentage")"
+    case "$output_type" in
+        cobertura)
+            # Options for creating cobertura coverage report with cargo-llvm-cov
+            cargo_llvm_cov_options+=(
+                --cobertura
+                --output-path "$target_dir/llvm-cov/cobertura-coverage.xml"
+            )
+            # Options for creating coverage report summary with cargo-llvm-cov
+            cargo_llvm_cov_metrics_options+=(
+                --json
+                --summary-only
+            )
 
-    # Writes to target/coverage-metrics.txt for Gitlab CI metric consumption.
-    # https://docs.gitlab.com/ci/testing/metrics_reports/
-    printf "%s %s\n" "$metrics_name" "$percentage" > "$target_dir/llvm-cov/coverage-metrics.txt"
-    printf "Test-coverage: %s%%\n" "$percentage"
+            create_report
+            create_metrics
+        ;;
+        html)
+            # The support for HTML output is a nightly feature.
+            cargo_options=(+nightly)
+            # Options for creating HTML coverage report with cargo-llvm-cov.
+            cargo_llvm_cov_options+=(
+                --html
+            )
+
+            create_report
+            printf '%s\n' "$target_dir/llvm-cov/html/index.html"
+        ;;
+        *)
+        printf 'Unknown output type "%s"' "$output_type" >&2
+        exit 1
+        ;;
+    esac
 
 # Continuously run integration tests for a given number of rounds
 [group('test')]
