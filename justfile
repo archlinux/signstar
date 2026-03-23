@@ -458,6 +458,7 @@ generate kind pkg:
 
 # Runs all check recipes (except those for commit messages).
 [group('check')]
+[parallel]
 check: check-spelling check-formatting check-shell-code check-rust-code check-rust-derives check-unused-deps check-dependencies check-licenses check-links
 
 # Checks commit messages for correctness
