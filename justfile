@@ -72,6 +72,11 @@ add-hooks:
     EOL
     chmod +x .git/hooks/prepare-commit-msg
 
+# Shows the environment used by `cargo-llvm-cov`.
+[private]
+show_cargo_llvm_cov_env cargo_options='+stable':
+    cargo {{ cargo_options }} llvm-cov show-env --sh
+
 # Updates the local cargo index and displays which crates would be updated
 [private]
 dry-update:
@@ -838,9 +843,8 @@ containerized-integration-tests *options:
 
     if [[ "$coverage" == "true" ]]; then
         just ensure-command bash cargo cargo-llvm-cov cargo-nextest jq podman
-        # Use the environment prepared by `cargo llvm-cov show-env`
         # shellcheck source=/dev/null
-        source <(cargo llvm-cov show-env --sh)
+        source <(just show_cargo_llvm_cov_env)
 
         cargo build --examples --bins
     else
@@ -873,10 +877,8 @@ create-coverage-report output_type="cobertura" mode="without-docs" metrics_name=
         printf "Creating %s report %s\n" "$output_type" "$reporting_style..."
 
         mkdir --parents "$target_dir/llvm-cov/"
-
-        # Use the environment prepared by `cargo llvm-cov show-env`
         # shellcheck source=/dev/null
-        source <(cargo "${cargo_options[@]}" llvm-cov show-env --sh)
+        source <(just show_cargo_llvm_cov_env "${cargo_options[@]}")
 
         # Create cobertura coverage report
         cargo "${cargo_options[@]}" llvm-cov report "${cargo_llvm_cov_options[@]}"
@@ -975,9 +977,8 @@ nethsm-integration-tests *options:
 
     if [[ "$coverage" == "true" ]]; then
         just ensure-command bash cargo cargo-llvm-cov cargo-nextest jq podman
-        # Containerized integration tests require examples and bins to be built
         # shellcheck source=/dev/null
-        source <(cargo llvm-cov show-env --sh)
+        source <(just show_cargo_llvm_cov_env)
         cargo build --examples --bins
     else
         just ensure-command bash cargo cargo-nextest jq podman
@@ -1004,9 +1005,8 @@ test *options:
 
     if [[ "$coverage" == "true" ]]; then
         just ensure-command cargo cargo-llvm-cov cargo-nextest
-        # Use the environment prepared by `cargo llvm-cov show-env`
         # shellcheck source=/dev/null
-        source <(cargo llvm-cov show-env --sh)
+        source <(just show_cargo_llvm_cov_env)
     else
         just ensure-command cargo cargo-nextest
     fi
@@ -1026,9 +1026,8 @@ test-docs *options:
     if [[ "$coverage" == "true" ]]; then
         toolchain="+nightly"
         just ensure-command cargo cargo-llvm-cov
-        # Use the environment prepared by `cargo llvm-cov show-env`
         # shellcheck source=/dev/null
-        source <(cargo "$toolchain" llvm-cov show-env --sh)
+        source <(just show_cargo_llvm_cov_env "$toolchain")
     else
         just ensure-command cargo
     fi
