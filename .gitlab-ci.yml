@@ -224,7 +224,7 @@ test:
     - just test-docs
     - just --justfile .gitlab/justfile section-end "test-docs"
     - just --justfile .gitlab/justfile section-start "create-coverage-report" "Create coverage report"
-    - just create-coverage-report doc unit-test-coverage
+    - just create-coverage-report with-docs unit-test-coverage
     - just --justfile .gitlab/justfile section-end "create-coverage-report"
   stage: test
 
@@ -279,7 +279,7 @@ integration-test:
     - WORKDIR="$(pwd)" runuser -w CI,WORKDIR,SIGNSTAR_COVERAGE -l testuser -c 'env && cd "$WORKDIR" && just containerized-integration-tests --locked --all-targets --workspace --no-default-features --features mockhsm,nethsm,yubihsm2'
     - just --justfile .gitlab/justfile section-end "integration-test-containerized-mockhsm-nethsm-yubihsm2-features"
     - just --justfile .gitlab/justfile section-start "create-coverage-report" "Create coverage report as 'testuser'"
-    - WORKDIR="$(pwd)" runuser -w CI,WORKDIR,SIGNSTAR_COVERAGE -l testuser -c 'env && cd "$WORKDIR" && just create-coverage-report doc integration-test-coverage'
+    - WORKDIR="$(pwd)" runuser -w CI,WORKDIR,SIGNSTAR_COVERAGE -l testuser -c 'env && cd "$WORKDIR" && just create-coverage-report with-docs integration-test-coverage'
     - just --justfile .gitlab/justfile section-end "create-coverage-report"
   stage: test
   tags:
