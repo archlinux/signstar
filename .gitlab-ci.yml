@@ -103,6 +103,10 @@ links:
   script:
     - just check-links
   stage: check
+  retry:
+    max: 1
+    when: script_failure
+    exit_codes: 2
 
 test:
   extends: .default-rust
