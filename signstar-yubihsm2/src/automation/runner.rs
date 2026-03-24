@@ -185,7 +185,7 @@ impl ScenarioRunner {
                 info:
                     KeyInfo {
                         key_id,
-                        domain,
+                        domains,
                         caps,
                     },
                 delegated_caps,
@@ -196,7 +196,7 @@ impl ScenarioRunner {
                     .put_authentication_key(
                         key_id.into(),
                         Default::default(),
-                        (*domain).into(),
+                        domains.into(),
                         caps.into(),
                         delegated_caps.into(),
                         Default::default(),
@@ -211,7 +211,7 @@ impl ScenarioRunner {
                 info:
                     KeyInfo {
                         key_id,
-                        domain,
+                        domains,
                         caps,
                     },
             } => {
@@ -219,7 +219,7 @@ impl ScenarioRunner {
                     .generate_asymmetric_key(
                         key_id.into(),
                         Default::default(),
-                        (*domain).into(),
+                        domains.into(),
                         caps.into(),
                         yubihsm::asymmetric::Algorithm::Ed25519,
                     )
@@ -242,7 +242,7 @@ impl ScenarioRunner {
                 info:
                     KeyInfo {
                         key_id,
-                        domain,
+                        domains,
                         caps,
                     },
                 delegated_caps,
@@ -253,7 +253,7 @@ impl ScenarioRunner {
                     .put_wrap_key(
                         key_id.into(),
                         Default::default(),
-                        (*domain).into(),
+                        domains.into(),
                         caps.into(),
                         delegated_caps.into(),
                         wrap::Algorithm::Aes256Ccm,

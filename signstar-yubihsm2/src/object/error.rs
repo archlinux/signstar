@@ -14,4 +14,8 @@ pub enum Error {
         /// The invalid ID.
         id: String,
     },
+
+    /// Empty set of domains encountered.
+    #[error("Empty set of domains encountered")]
+    EmptySetOfDomains,
 }

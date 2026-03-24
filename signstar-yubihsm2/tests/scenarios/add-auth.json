@@ -7,7 +7,7 @@
         {
             "PutAuthKey": {
                 "key_id": 2,
-                "domain": 1,
+                "domains": [1],
                 "caps": [
                     "sign"
                 ],

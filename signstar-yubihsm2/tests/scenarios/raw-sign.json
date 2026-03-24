@@ -7,7 +7,7 @@
         {
             "PutAuthKey": {
                 "key_id": 4,
-                "domain": 1,
+                "domains": [1],
                 "caps": [
                     "sign"
                 ],
@@ -18,7 +18,7 @@
         {
             "GenerateKey": {
                 "key_id": 4,
-                "domain": 1,
+                "domains": [1],
                 "caps": [
                     "sign"
                 ]

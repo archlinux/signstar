@@ -16,7 +16,7 @@
         {
             "GenerateKey": {
                 "key_id": 7,
-                "domain": 1,
+                "domains": [1],
                 "caps": [
                     "sign",
                     "exportable"
