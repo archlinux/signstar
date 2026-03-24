@@ -8,7 +8,7 @@ Signstar contains several forms of tests, which behave differently depending on 
 
 They are regular Rust tests, either marked with the standard `#[test]` attribute or with a parametrization-capable `#[rstest]` using the [`rstest` crate].
 
-For convenience `just test` runs them all using `cargo nextest` for maximum parallelism.
+For convenience `just test-all` runs them all using `cargo nextest` for maximum parallelism (in all relevant feature permutations).
 
 ### Doc tests
 

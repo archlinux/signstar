@@ -210,10 +210,12 @@ install-alpm-package-set set:
         zstd
     )
     readonly test=(
+        cargo-hack
         cargo-nextest
     )
     readonly test_containerized=(podman)
     readonly test_coverage=(
+        cargo-hack
         cargo-llvm-cov
         cargo-nextest
         jq
@@ -1009,7 +1011,7 @@ nethsm-integration-tests *options:
 
     NETHSM_IMAGE_TAG="$nethsm_image_tag" cargo nextest run --features _nethsm-integration-test --filterset 'kind(test) and binary_id(/::nethsm$/)' "${options[@]}"
 
-# Runs all unit tests
+# Runs all unit tests with default features.
 [group('test')]
 test *options:
     #!/usr/bin/env bash
@@ -1035,6 +1037,25 @@ test *options:
     fi
 
     cargo nextest run "${options[@]}"
+
+# Runs all unit tests (in all relevant feature permutations) in succession.
+[group('test')]
+test-all:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    readonly coverage="{{ coverage }}"
+    commands=(cargo cargo-hack cargo-nextest)
+    if [[ "$coverage" == "true" ]]; then
+        commands+=(cargo-llvm-cov)
+        just ensure-command "${commands[@]}"
+        # shellcheck source=/dev/null
+        source <(just show_cargo_llvm_cov_env)
+    else
+        just ensure-command "${commands[@]}"
+    fi
+
+    cargo +stable hack --feature-powerset --exclude-features _containerized-integration-test,_nethsm-integration-test nextest run --locked --all-targets --no-tests warn
 
 # Runs all doc tests. Always implies the `--doc` option to `cargo test`.
 [group('test')]
