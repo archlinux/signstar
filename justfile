@@ -1013,7 +1013,7 @@ test *options:
 
     cargo nextest run "${options[@]}"
 
-# Runs all doc tests
+# Runs all doc tests. Always implies the `--doc` option to `cargo test`.
 [group('test')]
 test-docs *options:
     #!/usr/bin/env bash
@@ -1022,6 +1022,13 @@ test-docs *options:
     readonly coverage="{{ coverage }}"
     toolchain="+stable"
     read -r -a options <<< "{{ options }}"
+    # If no options are provided, run locked, with default features, across the workspace.
+    if (( ${#options[@]} == 0 )); then
+        options+=(
+            --locked
+            --workspace
+        )
+    fi
 
     if [[ "$coverage" == "true" ]]; then
         toolchain="+nightly"
@@ -1032,7 +1039,7 @@ test-docs *options:
         just ensure-command cargo
     fi
 
-    cargo "$toolchain" test --locked --doc "${options[@]}"
+    cargo "$toolchain" test --doc "${options[@]}"
 
 # Runs per project end-to-end tests found in a project README.md
 [group('test')]
