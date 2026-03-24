@@ -97,4 +97,8 @@ pub enum Error {
     /// A YubiHSM2 object error occurred.
     #[error(transparent)]
     Object(#[from] crate::object::Error),
+
+    /// A YubiHSM2 backup error occurred.
+    #[error(transparent)]
+    Backup(#[from] crate::backup::Error),
 }

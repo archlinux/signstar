@@ -8,4 +8,4 @@ mod key;
 pub use capability::{Capabilities, Capability};
 pub use error::Error;
 pub use id::{Id, ObjectId};
-pub use key::{Domain, KeyInfo};
+pub use key::{Domain, Domains, KeyInfo};

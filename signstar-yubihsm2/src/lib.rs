@@ -1,6 +1,7 @@
 #![doc = include_str!("../README.md")]
 
 pub mod automation;
+pub mod backup;
 mod connection;
 mod error;
 pub mod object;
