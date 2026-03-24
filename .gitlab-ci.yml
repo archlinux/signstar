@@ -107,6 +107,10 @@ links:
     max: 1
     when: script_failure
     exit_codes: 2
+  cache:
+    paths:
+      - .lycheecache
+    policy: pull-push
 
 test:
   extends: .default-rust
