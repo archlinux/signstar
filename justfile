@@ -846,7 +846,7 @@ containerized-integration-tests *options:
         # shellcheck source=/dev/null
         source <(just show_cargo_llvm_cov_env)
 
-        cargo build --examples --bins
+        cargo build --examples --bins --all-features
     else
         just ensure-command bash cargo cargo-nextest jq podman
     fi
