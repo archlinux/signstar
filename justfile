@@ -845,12 +845,11 @@ containerized-integration-tests *options:
         just ensure-command bash cargo cargo-llvm-cov cargo-nextest jq podman
         # shellcheck source=/dev/null
         source <(just show_cargo_llvm_cov_env)
-
-        cargo build --examples --bins --all-features
     else
         just ensure-command bash cargo cargo-nextest jq podman
     fi
 
+    cargo build --examples --bins --all-features
     cargo nextest run --features _containerized-integration-test "${options[@]}" --filterset 'kind(test)'
 
 [doc('Creates code coverage report for all projects from all available sources.
