@@ -5,7 +5,7 @@ variables:
   # enable timestamps in logs: https://docs.gitlab.com/ci/jobs/job_logs/#job-log-timestamps
   FF_TIMESTAMPS: true
   RUST_BACKTRACE: full
-  SIGNSTAR_COVERAGE: true
+  COVERAGE_REPORT: true
 
 stages:
   - check
@@ -264,22 +264,22 @@ integration-test:
     - just install-alpm-package-set containerized
     - just --justfile .gitlab/justfile section-end "install-alpm-packages"
     - just --justfile .gitlab/justfile section-start "integration-test-nethsm" "Run integration tests against a NetHSM container as 'testuser'"
-    - WORKDIR="$(pwd)" runuser -w CI,WORKDIR,SIGNSTAR_COVERAGE -l testuser -c 'env && cd "$WORKDIR" && just nethsm-integration-tests'
+    - WORKDIR="$(pwd)" runuser -w CI,COVERAGE_REPORT,WORKDIR -l testuser -c 'env && cd "$WORKDIR" && just nethsm-integration-tests'
     - just --justfile .gitlab/justfile section-end "integration-test-nethsm"
     - just --justfile .gitlab/justfile section-start "integration-test-containerized-no-features" "Run containerized integration tests as 'testuser' with no features"
-    - WORKDIR="$(pwd)" runuser -w CI,WORKDIR,SIGNSTAR_COVERAGE -l testuser -c 'env && cd "$WORKDIR" && just containerized-integration-tests --locked --all-targets --workspace --no-default-features'
+    - WORKDIR="$(pwd)" runuser -w CI,COVERAGE_REPORT,WORKDIR -l testuser -c 'env && cd "$WORKDIR" && just containerized-integration-tests --locked --all-targets --workspace --no-default-features'
     - just --justfile .gitlab/justfile section-end "integration-test-containerized-no-features"
     - just --justfile .gitlab/justfile section-start "integration-test-containerized-nethsm-feature" "Run containerized integration tests as 'testuser' with nethsm feature"
-    - WORKDIR="$(pwd)" runuser -w CI,WORKDIR,SIGNSTAR_COVERAGE -l testuser -c 'env && cd "$WORKDIR" && just containerized-integration-tests --locked --all-targets --workspace --no-default-features --features nethsm'
+    - WORKDIR="$(pwd)" runuser -w CI,COVERAGE_REPORT,WORKDIR -l testuser -c 'env && cd "$WORKDIR" && just containerized-integration-tests --locked --all-targets --workspace --no-default-features --features nethsm'
     - just --justfile .gitlab/justfile section-end "integration-test-containerized-nethsm-feature"
     - just --justfile .gitlab/justfile section-start "integration-test-containerized-yubihsm2-feature" "Run containerized integration tests as 'testuser' with yubihsm2 feature"
-    - WORKDIR="$(pwd)" runuser -w CI,WORKDIR,SIGNSTAR_COVERAGE -l testuser -c 'env && cd "$WORKDIR" && just containerized-integration-tests --locked --all-targets --workspace --no-default-features --features yubihsm2'
+    - WORKDIR="$(pwd)" runuser -w CI,COVERAGE_REPORT,WORKDIR -l testuser -c 'env && cd "$WORKDIR" && just containerized-integration-tests --locked --all-targets --workspace --no-default-features --features yubihsm2'
     - just --justfile .gitlab/justfile section-end "integration-test-containerized-yubihsm2-feature"
     - just --justfile .gitlab/justfile section-start "integration-test-containerized-mockhsm-nethsm-yubihsm2-features" "Run containerized integration tests as 'testuser' with yubihsm2 feature"
-    - WORKDIR="$(pwd)" runuser -w CI,WORKDIR,SIGNSTAR_COVERAGE -l testuser -c 'env && cd "$WORKDIR" && just containerized-integration-tests --locked --all-targets --workspace --no-default-features --features mockhsm,nethsm,yubihsm2'
+    - WORKDIR="$(pwd)" runuser -w CI,COVERAGE_REPORT,WORKDIR -l testuser -c 'env && cd "$WORKDIR" && just containerized-integration-tests --locked --all-targets --workspace --no-default-features --features mockhsm,nethsm,yubihsm2'
     - just --justfile .gitlab/justfile section-end "integration-test-containerized-mockhsm-nethsm-yubihsm2-features"
     - just --justfile .gitlab/justfile section-start "create-coverage-report" "Create coverage report as 'testuser'"
-    - WORKDIR="$(pwd)" runuser -w CI,WORKDIR,SIGNSTAR_COVERAGE -l testuser -c 'env && cd "$WORKDIR" && just create-coverage-report cobertura with-docs integration-test-coverage'
+    - WORKDIR="$(pwd)" runuser -w CI,COVERAGE_REPORT,WORKDIR -l testuser -c 'env && cd "$WORKDIR" && just create-coverage-report cobertura with-docs integration-test-coverage'
     - just --justfile .gitlab/justfile section-end "create-coverage-report"
   stage: test
   tags:

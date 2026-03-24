@@ -9,7 +9,7 @@ set dotenv-load := true
 #
 # Whether coverage reports should be generated when running tests.
 
-coverage := env("SIGNSTAR_COVERAGE", "false")
+coverage := env("COVERAGE_REPORT", "false")
 
 # The output directory for documentation artifacts
 

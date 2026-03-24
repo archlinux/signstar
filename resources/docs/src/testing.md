@@ -43,7 +43,7 @@ For convenience `just containerized-integration-tests` runs all containerized te
 
 ## Code coverage
 
-All tests (with the exception of doc tests due to a [`llvm-cov` limitation]) gather code coverage data if the `SIGNSTAR_COVERAGE` environment variable is set to `true`.
+All tests (with the exception of doc tests due to a [`llvm-cov` limitation]) gather code coverage data if the `COVERAGE_REPORT` environment variable is set to `true`.
 This is done automatically in CI and the coverage results are displayed inline in merge request diffs.
 The numeric values and changes with regards to the `main` branch are additionally displayed in the MR view.
 
