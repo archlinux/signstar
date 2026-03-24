@@ -852,6 +852,30 @@ containerized-integration-tests *options:
     cargo build --examples --bins --all-features
     cargo nextest run --features _containerized-integration-test "${options[@]}" --filterset 'kind(test)'
 
+# Runs the `containerized-integration-tests` recipe in all relevant feature permutations.
+[group('test')]
+containerized-integration-tests-all:
+    printf 'Run containerized integration tests for signstar-config without default features...\n'
+    just containerized-integration-tests --locked --no-default-features --package signstar-config
+    printf 'Run containerized integration tests for signstar-config with nethsm feature...\n'
+    just containerized-integration-tests --locked --no-default-features --package signstar-config --features nethsm
+    printf 'Run containerized integration tests for signstar-config with yubihsm2 feature...\n'
+    just containerized-integration-tests --locked --no-default-features --package signstar-config --features yubihsm2
+    printf 'Run containerized integration tests for signstar-config with nethsm,yubihsm2 feature...\n'
+    just containerized-integration-tests --locked --no-default-features --package signstar-config --features nethsm,yubihsm2
+    printf 'Run containerized integration tests for signstar-crypto without default features...\n'
+    just containerized-integration-tests --locked --no-default-features --package signstar-crypto
+    printf 'Run containerized integration tests for signstar-crypto with nethsm features...\n'
+    just containerized-integration-tests --locked --no-default-features --package signstar-crypto --features nethsm
+    printf 'Run containerized integration tests for signstar-sign without default features...\n'
+    just containerized-integration-tests --locked --no-default-features --package signstar-sign
+    printf 'Run containerized integration tests for signstar-sign with mockhsm feature...\n'
+    just containerized-integration-tests --locked --no-default-features --package signstar-sign --features mockhsm
+    printf 'Run containerized integration tests for signstar-sign with yubihsm2 feature...\n'
+    just containerized-integration-tests --locked --no-default-features --package signstar-sign --features yubihsm2
+    printf 'Run containerized integration tests for signstar-sign with mockhsm,yubihsm2 feature...\n'
+    just containerized-integration-tests --locked --no-default-features --package signstar-sign --features mockhsm,yubihsm2
+
 [doc('Creates code coverage report for all projects from all available sources.
 When providing `with-docs` to the `mode` parameter, this also includes doc test coverage in the report (requires nightly).
 The `metrics_name` parameter can be used to override the metrics name in the `coverage-metrics.txt` file used by GitLab.')]
