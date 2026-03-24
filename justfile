@@ -994,12 +994,12 @@ test *options:
 
     readonly coverage="{{ coverage }}"
     read -r -a options <<< "{{ options }}"
-    # If no options are provided, run all targets, locked.
+    # If no options are provided, run for all targets (except docs), locked, with default features, across the workspace.
     if (( ${#options[@]} == 0 )); then
         options+=(
+            --all-targets
             --locked
-            --all
-            --features "mockhsm"
+            --workspace
         )
     fi
 
