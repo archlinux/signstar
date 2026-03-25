@@ -1085,6 +1085,25 @@ test-docs *options:
 
     cargo "$toolchain" test --doc "${options[@]}"
 
+# Runs all doc tests (in all relevant feature permutations) in succession.
+[group('test')]
+test-docs-all:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    readonly coverage="{{ coverage }}"
+    toolchain="+stable"
+    if [[ "$coverage" == "true" ]]; then
+        toolchain="+nightly"
+        just ensure-command cargo cargo-llvm-cov
+        # shellcheck source=/dev/null
+        source <(just show_cargo_llvm_cov_env "$toolchain")
+    else
+        just ensure-command cargo
+    fi
+
+    cargo "$toolchain" hack --feature-powerset --exclude-features _containerized-integration-test,_nethsm-integration-test test --locked --doc
+
 # Runs per project end-to-end tests found in a project README.md
 [group('test')]
 test-readme project:
