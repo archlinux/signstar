@@ -1,22 +1,22 @@
 //! Scenario runner
 
-use std::{fmt::Debug, fs::read_to_string, io::Write, path::Path, time::Duration};
+use std::{fmt::Debug, fs::read_to_string, path::Path};
+#[cfg(feature = "serde")]
+use std::{io::Write, time::Duration};
 
+#[cfg(feature = "serde")]
 use log::info;
+#[cfg(feature = "serde")]
 use serde::Serialize;
 use signstar_crypto::passphrase::Passphrase;
-use yubihsm::{
-    Client,
-    Connector,
-    Credentials,
-    authentication,
-    ed25519::Signature,
-    wrap::{self, Message},
-};
+#[cfg(feature = "serde")]
+use yubihsm::wrap::{self, Message};
+use yubihsm::{Client, Connector, Credentials, authentication, ed25519::Signature};
 
+use crate::{Error, automation::Auth};
+#[cfg(feature = "serde")]
 use crate::{
-    Error,
-    automation::{Auth, Command},
+    automation::Command,
     object::{KeyInfo, ObjectId},
 };
 
@@ -37,7 +37,15 @@ fn derive_key_from_file(path: impl AsRef<Path>) -> Result<authentication::Key, E
 }
 
 /// Signature made using the ed25519 signing algorithm.
-#[derive(Debug, Serialize)]
+#[derive(Debug)]
+#[cfg_attr(feature = "serde", derive(Serialize))]
+#[cfg_attr(
+    any(
+        all(not(feature = "serde"), feature = "mockhsm"),
+        all(not(feature = "serde"), not(feature = "mockhsm"), not(feature = "cli"))
+    ),
+    allow(unused)
+)]
 struct Ed25519Signature {
     /// Raw bytes of the `R` component of the signature.
     r: Vec<u8>,
@@ -61,6 +69,7 @@ impl From<Signature> for Ed25519Signature {
 /// Returns an error if
 /// - serialization fails
 /// - writing to the `writer` fails
+#[cfg(feature = "serde")]
 fn serialize_with_newline(mut writer: &mut dyn Write, object: impl Serialize) -> Result<(), Error> {
     serde_json::to_writer(&mut writer, &object).map_err(|source| Error::Json {
         context: "serializing response",
@@ -75,6 +84,13 @@ fn serialize_with_newline(mut writer: &mut dyn Write, object: impl Serialize) ->
 
 /// Runs commands against a physical or in-memory YubiHSM2 token.
 pub struct ScenarioRunner {
+    #[cfg_attr(
+        any(
+            all(not(feature = "serde"), feature = "mockhsm"),
+            all(not(feature = "serde"), not(feature = "mockhsm"), not(feature = "cli"))
+        ),
+        allow(unused)
+    )]
     client: Client,
 }
 
@@ -115,6 +131,7 @@ impl ScenarioRunner {
     /// - executing the command fails
     ///
     /// [JSONL]: https://jsonlines.org/
+    #[cfg(feature = "serde")]
     pub fn run_steps(&mut self, steps: &[Command], writer: &mut dyn Write) -> Result<(), Error> {
         for command in steps.iter() {
             info!("Executing {command:?}");
@@ -136,6 +153,7 @@ impl ScenarioRunner {
     /// - reading or writing associated files fails
     ///
     /// [JSONL]: https://jsonlines.org/
+    #[cfg(feature = "serde")]
     fn run_command(&mut self, command: &Command, writer: &mut dyn Write) -> Result<(), Error> {
         match command {
             Command::Info => {
@@ -349,40 +367,59 @@ impl ScenarioRunner {
     }
 }
 
-#[cfg(all(test, feature = "mockhsm"))]
+#[cfg(test)]
 mod tests {
-    use std::path::PathBuf;
-    use std::{fs::File, io::stdout};
-
-    use rstest::rstest;
-    use testresult::TestResult;
 
     use super::*;
-    use crate::automation::Scenario;
-
-    fn run_scenario(scenario_file: impl AsRef<Path>) -> TestResult {
-        let scenario_file = scenario_file.as_ref();
-        eprintln!(
-            "Running scenario file {scenario_file}",
-            scenario_file = scenario_file.display()
-        );
-        let scenario: Scenario = serde_json::from_reader(File::open(scenario_file)?)?;
-        let mut runner = ScenarioRunner::new(Connector::mockhsm(), scenario.auth)?;
-        runner.run_steps(&scenario.steps, &mut stdout())?;
-        Ok(())
-    }
-
-    #[rstest]
-    fn scenario_test(#[files("tests/scenarios/*.json")] scenario_file: PathBuf) -> TestResult {
-        run_scenario(scenario_file)?;
-        Ok(())
-    }
 
     #[test]
-    fn wrapping_test() -> TestResult {
-        // these two need to run in order: first exporting to a file, then importing that file
-        run_scenario("tests/scenarios/wrapping/export-wrapped.json")?;
-        run_scenario("tests/scenarios/wrapping/import-wrapped.json")?;
-        Ok(())
+    fn ed25519_signature() {
+        let signature = Ed25519Signature {
+            r: vec![],
+            s: vec![],
+        };
+
+        println!("r: {:?}, s: {:?}", signature.r, signature.s);
+    }
+
+    #[cfg(all(feature = "mockhsm", feature = "serde"))]
+    mod scenario {
+        use std::path::PathBuf;
+        use std::{fs::File, io::stdout};
+
+        use rstest::rstest;
+        use testresult::TestResult;
+
+        use super::*;
+        use crate::automation::Scenario;
+
+        #[cfg(all(feature = "mockhsm", feature = "serde"))]
+        fn run_scenario(scenario_file: impl AsRef<Path>) -> TestResult {
+            let scenario_file = scenario_file.as_ref();
+            eprintln!(
+                "Running scenario file {scenario_file}",
+                scenario_file = scenario_file.display()
+            );
+            let scenario: Scenario = serde_json::from_reader(File::open(scenario_file)?)?;
+            let mut runner = ScenarioRunner::new(Connector::mockhsm(), scenario.auth)?;
+            runner.run_steps(&scenario.steps, &mut stdout())?;
+            Ok(())
+        }
+
+        #[cfg(all(feature = "mockhsm", feature = "serde"))]
+        #[rstest]
+        fn scenario_test(#[files("tests/scenarios/*.json")] scenario_file: PathBuf) -> TestResult {
+            run_scenario(scenario_file)?;
+            Ok(())
+        }
+
+        #[cfg(all(feature = "mockhsm", feature = "serde"))]
+        #[test]
+        fn wrapping_test() -> TestResult {
+            // these two need to run in order: first exporting to a file, then importing that file
+            run_scenario("tests/scenarios/wrapping/export-wrapped.json")?;
+            run_scenario("tests/scenarios/wrapping/import-wrapped.json")?;
+            Ok(())
+        }
     }
 }

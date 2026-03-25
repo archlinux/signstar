@@ -2,7 +2,9 @@
 
 use std::fmt::Display;
 
+#[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
+#[cfg(feature = "serde")]
 use serde_repr::{Deserialize_repr, Serialize_repr};
 
 use crate::object::{Capabilities, Id};
@@ -11,9 +13,8 @@ use crate::object::{Capabilities, Id};
 ///
 /// Objects can belong to one or many domains on the YubiHSM2.
 /// See [Core Concepts - Domains](https://docs.yubico.com/hardware/yubihsm-2/hsm-2-user-guide/hsm2-core-concepts.html#domains) for more details.
-#[derive(
-    Clone, Copy, Debug, Deserialize_repr, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize_repr,
-)]
+#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+#[cfg_attr(feature = "serde", derive(Deserialize_repr, Serialize_repr))]
 #[repr(u8)]
 pub enum Domain {
     /// First domain.
@@ -104,7 +105,8 @@ impl From<Domain> for yubihsm::Domain {
 ///
 /// This struct stores common parameters of keys regardless of their usage may describe
 /// authentication, wrapping and signing keys.
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug)]
+#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct KeyInfo {
     /// Inner identifier used to track the key on the YubiHSM2.
     pub key_id: Id,

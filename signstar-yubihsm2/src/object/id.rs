@@ -6,6 +6,7 @@ use std::{
     str::FromStr,
 };
 
+#[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 use yubihsm::object::{Handle, Type};
 
@@ -18,8 +19,9 @@ use yubihsm::object::{Handle, Type};
 /// Limits the allowed values to a maximum of `256`.
 ///
 /// [object-id]: https://docs.yubico.com/hardware/yubihsm-2/hsm-2-user-guide/hsm2-core-concepts.html#object-id
-#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
-#[serde(into = "u16", try_from = "NonZeroU16")]
+#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
+#[cfg_attr(feature = "serde", serde(into = "u16", try_from = "NonZeroU16"))]
 pub struct Id(NonZeroU16);
 
 impl Id {
@@ -131,8 +133,12 @@ impl From<Id> for u16 {
 /// The YubiHSM2 provides several different types of objects.
 /// Each object type serves as a namespace, which means that an object of a specific type is
 /// isolated from objects of a different type.
-#[derive(Debug, Deserialize, Serialize)]
-#[serde(tag = "object_type", content = "object_id", rename_all = "kebab-case")]
+#[derive(Debug)]
+#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
+#[cfg_attr(
+    feature = "serde",
+    serde(tag = "object_type", content = "object_id", rename_all = "kebab-case")
+)]
 pub enum ObjectId {
     /// Asymmetric key used for data signing.
     AsymmetricKey(Id),

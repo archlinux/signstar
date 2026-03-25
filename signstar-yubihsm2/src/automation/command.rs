@@ -2,13 +2,15 @@
 
 use std::path::PathBuf;
 
+#[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 use yubihsm::command::Code;
 
 use crate::object::{Capabilities, Id, KeyInfo, ObjectId};
 
 /// Authentication data: login and a location of the passphrase file.
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug)]
+#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct Auth {
     /// The identifier of the authentication key to use.
     pub user: Id,
@@ -18,8 +20,9 @@ pub struct Auth {
 }
 
 /// Indicates the setting of the auditing.
-#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
-#[serde(rename_all = "lowercase")]
+#[derive(Clone, Copy, Debug)]
+#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "lowercase"))]
 pub enum AuditOption {
     /// Auditing is enabled but can be disabled.
     On,
@@ -42,7 +45,8 @@ impl From<AuditOption> for yubihsm::AuditOption {
 }
 
 /// A single command that is atomically executed against a YubiHSM2.
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug)]
+#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub enum Command {
     /// Query the device state.
     Info,
@@ -90,7 +94,7 @@ pub enum Command {
     /// This command is used to append new authentication keys.
     PutAuthKey {
         /// The key identity and capabilities.
-        #[serde(flatten)]
+        #[cfg_attr(feature = "serde", serde(flatten))]
         info: KeyInfo,
 
         /// Additional delegated capabilities which would apply to objects that are created or
@@ -104,7 +108,7 @@ pub enum Command {
     /// Generates new `ed25519` signing key on the device.
     GenerateKey {
         /// The key identity and capabilities.
-        #[serde(flatten)]
+        #[cfg_attr(feature = "serde", serde(flatten))]
         info: KeyInfo,
     },
 
@@ -123,7 +127,7 @@ pub enum Command {
     /// objects.
     PutWrapKey {
         /// The key identity and capabilities.
-        #[serde(flatten)]
+        #[cfg_attr(feature = "serde", serde(flatten))]
         info: KeyInfo,
 
         /// Additional delegated capabilities which would apply to objects that are created or
@@ -140,7 +144,7 @@ pub enum Command {
         wrap_key_id: Id,
 
         /// Object that will be exported.
-        #[serde(flatten)]
+        #[cfg_attr(feature = "serde", serde(flatten))]
         object: ObjectId,
 
         /// Output file which will contain the exported object encrypted with the wrapping key.

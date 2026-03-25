@@ -2,11 +2,13 @@
 
 use std::{collections::HashSet, hash::Hash};
 
+#[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
 /// A capability of an object stored on a YubiHSM2.
-#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
-#[serde(rename_all = "kebab-case")]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "kebab-case"))]
 pub enum Capability {
     /// The key can sign data.
     Sign,
@@ -39,7 +41,8 @@ impl From<Capability> for yubihsm::Capability {
 }
 
 /// A set of capabilities of an object on a YubiHSM2.
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Debug, Eq, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct Capabilities(HashSet<Capability>);
 
 impl From<&Capabilities> for yubihsm::Capability {

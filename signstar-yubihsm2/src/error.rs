@@ -56,6 +56,7 @@ pub enum Error {
 
     /// An I/O error occurred for a file.
     #[error("JSON serialization error while {context}: {source}")]
+    #[cfg(feature = "serde")]
     Json {
         /// The context in which the error occurs.
         ///
@@ -87,6 +88,11 @@ pub enum Error {
         /// The error source.
         source: std::io::Error,
     },
+
+    /// Attempted to use functionality guarded by the "mockhsm" feature.
+    #[cfg(not(feature = "mockhsm"))]
+    #[error("The 'mockhsm' feature is not available")]
+    MockHsmUnavailable,
 
     /// A YubiHSM2 object error occurred.
     #[error(transparent)]

@@ -1,5 +1,6 @@
 //! Provisioning scenarios.
 
+#[cfg(feature = "serde")]
 use serde::Deserialize;
 
 use crate::automation::{Auth, Command};
@@ -10,8 +11,9 @@ use crate::automation::{Auth, Command};
 /// The set of commands to be executed is processed in a sequential manner.
 /// The additional [Auth] command may be used to re-authenticate as another user while executing the
 /// scenario.
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "PascalCase")]
+#[derive(Debug)]
+#[cfg_attr(feature = "serde", derive(Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "PascalCase"))]
 pub struct Scenario {
     /// Initial authentication data required to establish the connection to a YubiHSM2.
     pub auth: Auth,
