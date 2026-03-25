@@ -157,6 +157,9 @@ install-alpm-package-set set:
         reuse
     )
     readonly check_links=(lychee)
+    readonly check_rust=(
+        cargo-hack
+    )
     readonly check_shell=(
         ripgrep
         shellcheck
@@ -244,6 +247,7 @@ install-alpm-package-set set:
                 "${check_dependencies[@]}"
                 "${check_licenses[@]}"
                 "${check_links[@]}"
+                "${check_rust[@]}"
                 "${dev[@]}"
                 "${docs[@]}"
                 "${format[@]}"
@@ -298,6 +302,11 @@ install-alpm-package-set set:
             ;;
         readmes)
             packages+=("${test_readmes[@]}")
+            ;;
+        rust)
+            packages+=(
+                "${check_rust[@]}"
+            )
             ;;
         rust-dev)
             packages+=(
