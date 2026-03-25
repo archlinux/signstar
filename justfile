@@ -576,6 +576,12 @@ check-rust-code *options:
     just ensure-command cargo cargo-clippy
     cargo +stable clippy "${options[@]}" -- -D warnings
 
+# Checks the Rust source code using cargo-clippy (in all relevant feature permutations) in succession.
+[group('check')]
+check-rust-code-all:
+    just ensure-command cargo cargo-clippy cargo-hack
+    cargo +stable hack --feature-powerset clippy --all-targets --locked -- -D warnings
+
 # Checks for consistent sorting of rust derives
 [group('check')]
 check-rust-derives:
