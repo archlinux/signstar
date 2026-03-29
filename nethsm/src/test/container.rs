@@ -1,4 +1,5 @@
-use rust_dotenv::dotenv::DotEnv;
+use std::env::var;
+
 use rustainers::{
     ExposedPort,
     ImageName,
@@ -41,11 +42,7 @@ impl NetHsmImage {
 impl Default for NetHsmImage {
     fn default() -> Self {
         let mut image = ImageName::new(IMAGE_NAME);
-        image.set_tag(
-            DotEnv::new("")
-                .get_var("NETHSM_IMAGE_TAG".into())
-                .unwrap_or_else(|| "testing".into()),
-        );
+        image.set_tag(var("NETHSM_IMAGE_TAG").unwrap_or("testing".into()));
         Self {
             image,
             port: ExposedPort::new(DEFAULT_PORT),
