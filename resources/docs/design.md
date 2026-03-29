@@ -136,7 +136,7 @@ Match user wireguard-download
 ### Logs and metrics
 
 Syslogs of [NetHSM] devices are collected on the signing service host.
-Both the HSM syslogs and the host's own [systemd-journald] are consumed by [Promtail] and sent to a dedicated [Grafana Loki] logging host over a [WireGuard] tunnel.
+Both the HSM syslogs and the host's own [systemd-journald] are consumed by [Grafana Alloy] and sent to a dedicated [Grafana Loki] logging host over a [WireGuard] tunnel.
 
 ```mermaid
 ---
@@ -150,12 +150,12 @@ sequenceDiagram
     loop logs
         loop NetHSM syslog
             N ->> S: syslog to syslog-ng
-            S ->> S: syslog-ng to promtail
+            S ->> S: syslog-ng to Grafana Alloy
         end
         loop SignstarOS journal
-            S ->> S: journal to promtail
+            S ->> S: journal to Grafana Alloy
         end
-        S -->> L: Promtail send<br>(WireGuard)
+        S -->> L: Grafana Alloy send<br>(WireGuard)
     end
 ```
 
@@ -549,12 +549,12 @@ sequenceDiagram
     end
 ```
 
+[Grafana Alloy]: https://grafana.com/docs/grafana-cloud/send-data/alloy/
 [Grafana Loki]: https://grafana.com/docs/loki/latest/
 [NetHSM]: https://www.nitrokey.com/products/nethsm
 [OpenPGP signatures]: https://openpgp.dev/book/signatures.html
 [OpenPGP signing]: #openpgp
 [Prometheus]: https://prometheus.io/
-[Promtail]: https://grafana.com/docs/loki/latest/send-data/promtail/
 [Shamir's Secret Sharing]: https://en.wikipedia.org/wiki/Shamir%27s_secret_sharing
 [SignstarOS]: ../mkosi/signstar/README.md
 [SSS]: https://en.wikipedia.org/wiki/Shamir%27s_secret_sharing
