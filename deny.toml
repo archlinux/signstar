@@ -2,7 +2,6 @@
 ignore = [
     "RUSTSEC-2023-0050", # nethsm-sdk-rs uses unmaintained multipart until something else becomes available: https://github.com/Nitrokey/nethsm-sdk-rs/issues/29
     "RUSTSEC-2023-0071", # side-channel attacks are not relevant for our use-case (only used in tests)
-    "RUSTSEC-2026-0074", # we are using libcrux-sha3 for libcrux-ml-kem and are therefore not affected
 ]
 version = 2
 yanked = "deny"

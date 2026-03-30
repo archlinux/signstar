@@ -46,7 +46,7 @@ sha1 = "0.11.0"
 # old_sha2 = { package = "sha2", version = "=0.11.0-pre.1" }
 # Then adjust the tests in signstar-request-signature/src/lib.rs to additionally test
 # inputs that reference the "old_sha2".
-sha2 = "=0.11.0-rc.5"
+sha2 = "=0.11.0"
 signstar-common = { path = "signstar-common", version = "0.1.2" }
 signstar-config = { path = "signstar-config", version = "0.2.0" }
 signstar-crypto = { path = "signstar-crypto", version = "0.1.0" }
