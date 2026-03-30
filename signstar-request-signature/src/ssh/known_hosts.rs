@@ -1,5 +1,6 @@
 //! SSH `known_hosts` format utilities.
 
+use hmac::KeyInit as _;
 use log::{info, warn};
 use russh::keys::{
     PublicKey,
