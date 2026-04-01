@@ -769,7 +769,7 @@ fn validate_yubihsm2_config_mappings(
 ///
 /// Tracks a set of connections to a YubiHSM2 backend and user mappings that are present on each of
 /// them.
-#[derive(Clone, Debug, Default, Deserialize, Serialize, Validate)]
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize, Validate)]
 #[serde(rename_all = "snake_case")]
 pub struct YubiHsm2Config {
     /// A set of connections to YubiHSM2 backends.
