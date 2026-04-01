@@ -958,7 +958,7 @@ fn validate_nethsm_config_mappings(
 ///
 /// Tracks a set of connections to a NetHSM backend and user mappings that are present on each of
 /// them.
-#[derive(Clone, Debug, Default, Deserialize, Serialize, Validate)]
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize, Validate)]
 #[serde(rename_all = "snake_case")]
 pub struct NetHsmConfig {
     #[garde(custom(validate_nethsm_config_connections))]
