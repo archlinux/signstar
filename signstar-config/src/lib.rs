@@ -8,7 +8,7 @@ pub mod nethsm;
 #[cfg(feature = "nethsm")]
 pub mod non_admin_credentials;
 pub mod state;
-#[cfg(feature = "test-helpers")]
+#[cfg(feature = "_test-helpers")]
 pub mod test;
 pub mod utils;
 #[cfg(feature = "yubihsm2")]

@@ -56,9 +56,9 @@ tokio.workspace = true
 uuid.workspace = true
 
 [features]
-_nethsm-integration-test = ["test-helpers"]
+_nethsm-integration-test = ["_test-helpers"]
+_test-helpers = ["dep:rstest", "dep:rustainers", "dep:testresult", "dep:uuid"]
 default = []
-test-helpers = ["dep:rstest", "dep:rustainers", "dep:testresult", "dep:uuid"]
 
 [lints]
 workspace = true

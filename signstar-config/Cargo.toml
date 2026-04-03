@@ -39,7 +39,7 @@ zeroize.workspace = true
 change-user-run.workspace = true
 clap.workspace = true
 insta = { version = "1.46.1", features = ["filters"] }
-nethsm = { features = ["test-helpers"], workspace = true }
+nethsm = { features = ["_test-helpers"], workspace = true }
 rstest.workspace = true
 signstar-common = { workspace = true, features = ["logging"] }
 simplelog.workspace = true
@@ -49,12 +49,12 @@ testresult.workspace = true
 tokio.workspace = true
 
 [features]
-_containerized-integration-test = ["test-helpers"]
-_nethsm-integration-test = ["nethsm", "test-helpers"]
+_containerized-integration-test = ["_test-helpers"]
+_nethsm-integration-test = ["_test-helpers", "nethsm"]
+_test-helpers = ["dep:tempfile", "dep:testresult"]
 default = ["nethsm"]
 # Support for the NetHSM backend.
 nethsm = ["dep:nethsm"]
-test-helpers = ["dep:tempfile", "dep:testresult"]
 # Support for the YubiHSM2 backend.
 yubihsm2 = ["dep:signstar-yubihsm2"]
 

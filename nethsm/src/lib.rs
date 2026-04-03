@@ -6,7 +6,7 @@ mod error;
 mod key;
 mod nethsm_sdk;
 pub mod signer;
-#[cfg(feature = "test-helpers")]
+#[cfg(feature = "_test-helpers")]
 pub mod test;
 mod tls;
 mod user;

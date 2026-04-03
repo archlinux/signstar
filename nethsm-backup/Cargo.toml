@@ -17,7 +17,7 @@ signstar-crypto = { version = "0.1.0", path = "../signstar-crypto" }
 thiserror.workspace = true
 
 [dev-dependencies]
-nethsm = { features = ["test-helpers"], workspace = true }
+nethsm = { features = ["_test-helpers"], workspace = true }
 rstest.workspace = true
 rustainers.workspace = true
 testdir.workspace = true
