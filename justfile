@@ -1037,8 +1037,8 @@ nethsm-integration-tests *options:
         just ensure-command bash cargo cargo-nextest jq podman
     fi
 
-    cargo build --examples --bins --features nethsm
-    NETHSM_IMAGE_TAG="$nethsm_image_tag" cargo nextest run --features _nethsm-integration-test --filterset 'kind(test) and binary_id(/::nethsm$/)' "${options[@]}"
+    cargo +stable build --examples --bins --features nethsm
+    NETHSM_IMAGE_TAG="$nethsm_image_tag" cargo +stable nextest run --features _nethsm-integration-test --filterset 'kind(test) and binary_id(/::nethsm$/)' "${options[@]}"
 
 # Runs all unit tests with default features.
 [group('test')]
