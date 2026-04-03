@@ -136,8 +136,14 @@ let credentials = credentials_loading.credentials_for_signing_user()?;
 
 ## Features
 
-- `_test-helpers` enables the `signstar_config::test` module which provides utilities for test setups that are also useful for other crates.
-- `_containerized-integration-test` enables tests that require to be run in a separate, ephemeral container each.
+- `_containerized-integration-test`: Integration tests that require a containerized test environment.
+  **NOTE**: Unless you are developing this crate, you will very likely not want to use this feature.
+- `_nethsm-integration-test`: Integration tests that require a containerized NetHSM environment.
+  **NOTE**: Unless you are developing this crate, you will very likely not want to use this feature.
+- `_test-helpers`: Enables the `signstar_config::test` module which provides utilities for test setups that may also be useful for other crates.
+  **NOTE**: Unless you are developing this crate, you will very likely not want to use this feature.
+- `nethsm`: Enables support for the NetHSM backend.
+- `yubihsm2`: Enables support for the YubiHSM2 backend.
 
 ## Contributing
 
