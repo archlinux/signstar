@@ -83,7 +83,7 @@ done
 
 ## Features
 
-- `mockhsm`: Test environment using a virtual [YubiHSM2] (currently this feature merely implies the `yubihsm2` feature).
+- `_yubihsm2-mockhsm`: Test environment using a virtual [YubiHSM2] (currently this feature merely implies the `yubihsm2` feature).
   **NOTE**: Unless you are developing this crate, you will very likely not want to use this feature.
   **WARNING**: This feature requires building in `debug` mode (see [signstar#288])!
 - `yubihsm2`: For [YubiHSM2] support.

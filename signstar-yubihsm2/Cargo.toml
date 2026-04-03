@@ -27,9 +27,9 @@ rstest.workspace = true
 testresult.workspace = true
 
 [features]
+_yubihsm2-mockhsm = ["yubihsm/mockhsm"]
 cli = ["dep:clap", "serde"]
 default = ["serde"]
-mockhsm = ["yubihsm/mockhsm"]
 serde = ["dep:serde", "dep:serde_json", "dep:serde_repr"]
 
 [lints]

@@ -893,12 +893,12 @@ containerized-integration-tests-all:
     just containerized-integration-tests --locked --no-default-features --package signstar-crypto --features nethsm
     printf 'Run containerized integration tests for signstar-sign without default features...\n'
     just containerized-integration-tests --locked --no-default-features --package signstar-sign
-    printf 'Run containerized integration tests for signstar-sign with mockhsm feature...\n'
-    just containerized-integration-tests --locked --no-default-features --package signstar-sign --features mockhsm
+    printf 'Run containerized integration tests for signstar-sign with _yubihsm2-mockhsm feature...\n'
+    just containerized-integration-tests --locked --no-default-features --package signstar-sign --features _yubihsm2-mockhsm
     printf 'Run containerized integration tests for signstar-sign with yubihsm2 feature...\n'
     just containerized-integration-tests --locked --no-default-features --package signstar-sign --features yubihsm2
-    printf 'Run containerized integration tests for signstar-sign with mockhsm,yubihsm2 feature...\n'
-    just containerized-integration-tests --locked --no-default-features --package signstar-sign --features mockhsm,yubihsm2
+    printf 'Run containerized integration tests for signstar-sign with _yubihsm2-mockhsm,yubihsm2 feature...\n'
+    just containerized-integration-tests --locked --no-default-features --package signstar-sign --features _yubihsm2-mockhsm,yubihsm2
 
 [doc('Creates code coverage report for all projects from all available sources.
 When providing `with-docs` to the `mode` parameter, this also includes doc test coverage in the report (requires nightly).
@@ -1198,8 +1198,7 @@ test-readme project:
                 cargo install --locked --all-features --path {{ project }}
             ;;
             signstar-yubihsm2)
-                # we need --debug because of mockhsm of signstar-yubihsm which fails to compile
-                # in release builds :(
+                # We currently need `--debug` because of `yubihsm/mockhsm` (see https://gitlab.archlinux.org/archlinux/signstar/-/work_items/288)
                 printf "Installing debug executables of %s...\n" "{{ project }}"
                 cargo install --locked --debug --all-features --path {{ project }}
             ;;

@@ -29,7 +29,7 @@ impl YubiHsm2SigningKey {
     /// # Panics
     ///
     /// This function panics if certificate generation fails.
-    #[cfg(feature = "mockhsm")]
+    #[cfg(feature = "_yubihsm2-mockhsm")]
     pub fn mock(key_id: Id, credentials: &Credentials) -> Result<Self, Error> {
         use signstar_crypto::{
             openpgp::{OpenPgpKeyUsageFlags, OpenPgpUserId, OpenPgpVersion},

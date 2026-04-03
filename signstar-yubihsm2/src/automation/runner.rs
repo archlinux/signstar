@@ -41,8 +41,12 @@ fn derive_key_from_file(path: impl AsRef<Path>) -> Result<authentication::Key, E
 #[cfg_attr(feature = "serde", derive(Serialize))]
 #[cfg_attr(
     any(
-        all(not(feature = "serde"), feature = "mockhsm"),
-        all(not(feature = "serde"), not(feature = "mockhsm"), not(feature = "cli"))
+        all(not(feature = "serde"), feature = "_yubihsm2-mockhsm"),
+        all(
+            not(feature = "serde"),
+            not(feature = "_yubihsm2-mockhsm"),
+            not(feature = "cli")
+        )
     ),
     allow(unused)
 )]
@@ -86,8 +90,12 @@ fn serialize_with_newline(mut writer: &mut dyn Write, object: impl Serialize) ->
 pub struct ScenarioRunner {
     #[cfg_attr(
         any(
-            all(not(feature = "serde"), feature = "mockhsm"),
-            all(not(feature = "serde"), not(feature = "mockhsm"), not(feature = "cli"))
+            all(not(feature = "serde"), feature = "_yubihsm2-mockhsm"),
+            all(
+                not(feature = "serde"),
+                not(feature = "_yubihsm2-mockhsm"),
+                not(feature = "cli")
+            )
         ),
         allow(unused)
     )]
@@ -382,7 +390,7 @@ mod tests {
         println!("r: {:?}, s: {:?}", signature.r, signature.s);
     }
 
-    #[cfg(all(feature = "mockhsm", feature = "serde"))]
+    #[cfg(all(feature = "_yubihsm2-mockhsm", feature = "serde"))]
     mod scenario {
         use std::path::PathBuf;
         use std::{fs::File, io::stdout};
@@ -393,7 +401,7 @@ mod tests {
         use super::*;
         use crate::automation::Scenario;
 
-        #[cfg(all(feature = "mockhsm", feature = "serde"))]
+        #[cfg(all(feature = "_yubihsm2-mockhsm", feature = "serde"))]
         fn run_scenario(scenario_file: impl AsRef<Path>) -> TestResult {
             let scenario_file = scenario_file.as_ref();
             eprintln!(
@@ -406,14 +414,14 @@ mod tests {
             Ok(())
         }
 
-        #[cfg(all(feature = "mockhsm", feature = "serde"))]
+        #[cfg(all(feature = "_yubihsm2-mockhsm", feature = "serde"))]
         #[rstest]
         fn scenario_test(#[files("tests/scenarios/*.json")] scenario_file: PathBuf) -> TestResult {
             run_scenario(scenario_file)?;
             Ok(())
         }
 
-        #[cfg(all(feature = "mockhsm", feature = "serde"))]
+        #[cfg(all(feature = "_yubihsm2-mockhsm", feature = "serde"))]
         #[test]
         fn wrapping_test() -> TestResult {
             // these two need to run in order: first exporting to a file, then importing that file

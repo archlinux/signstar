@@ -62,10 +62,10 @@ signstar-yubihsm scenario run "tests/scenarios/audit.json" | jq --compact-output
 
 ## Features
 
-- `cli`: Enables command line interface for executing scenario files
-- `mockhsm`: Test environment and integration using a virtual [YubiHSM2].
+- `_yubihsm2-mockhsm`: Test environment and integration using a virtual [YubiHSM2].
   **NOTE**: Unless you are developing this crate, you will very likely not want to use this feature.
   **WARNING**: This feature requires building in `debug` mode (see [signstar#288])!
+- `cli`: Enables command line interface for executing scenario files
 - `serde`: Serialization and deserialization of objects using `serde`.
 
 ## Contributing

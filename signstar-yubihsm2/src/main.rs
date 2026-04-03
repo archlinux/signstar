@@ -1,7 +1,7 @@
 //! Command line interface for the provisioning of a YubiHSM2.
 
 /// Module for the behavior with default features enabled.
-#[cfg(not(feature = "mockhsm"))]
+#[cfg(not(feature = "_yubihsm2-mockhsm"))]
 mod impl_default {
     use super::*;
 
@@ -23,7 +23,7 @@ mod impl_default {
 }
 
 /// Module for the behavior with "mockhsm" feature enabled.
-#[cfg(feature = "mockhsm")]
+#[cfg(feature = "_yubihsm2-mockhsm")]
 mod impl_mockhsm {
     use super::*;
 
@@ -48,9 +48,9 @@ use std::{fs::File, io::stdout, path::PathBuf, process::ExitCode};
 
 use clap::{Parser, Subcommand};
 use clap_verbosity_flag::Verbosity;
-#[cfg(not(feature = "mockhsm"))]
+#[cfg(not(feature = "_yubihsm2-mockhsm"))]
 use impl_default::get_connector;
-#[cfg(feature = "mockhsm")]
+#[cfg(feature = "_yubihsm2-mockhsm")]
 use impl_mockhsm::get_connector;
 use log::error;
 use signstar_common::logging::setup_logging;

@@ -26,7 +26,7 @@ signstar-sign < ../signstar-request-signature/tests/sample-request.json | jq --r
 
 - `_containerized-integration-test`: Integration tests that require a containerized test environment.
   **NOTE**: Unless you are developing this crate, you will very likely not want to use this feature.
-- `mockhsm`: Test environment and integration using a virtual [YubiHSM2] (implies the `yubihsm2` feature).
+- `_yubihsm2-mockhsm`: Test environment and integration using a virtual [YubiHSM2] (implies the `yubihsm2` feature).
   **NOTE**: Unless you are developing this crate, you will very likely not want to use this feature.
   **WARNING**: This feature requires building in `debug` mode (see [signstar#288])!
 - `yubihsm2`: For [YubiHSM2] support.

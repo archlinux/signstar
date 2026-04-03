@@ -89,9 +89,9 @@ pub enum Error {
         source: std::io::Error,
     },
 
-    /// Attempted to use functionality guarded by the "mockhsm" feature.
-    #[cfg(not(feature = "mockhsm"))]
-    #[error("The 'mockhsm' feature is not available")]
+    /// Attempted to use functionality guarded by the "_yubihsm2-mockhsm" feature.
+    #[cfg(not(feature = "_yubihsm2-mockhsm"))]
+    #[error("The '_yubihsm2-mockhsm' feature is not available")]
     MockHsmUnavailable,
 
     /// A YubiHSM2 object error occurred.

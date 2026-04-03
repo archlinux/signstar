@@ -19,8 +19,8 @@ sysinfo = "0.38.0"
 thiserror.workspace = true
 
 [features]
+_yubihsm2-mockhsm = ["yubihsm2"]
 default = []
-mockhsm = ["yubihsm2"]
 yubihsm2 = ["signstar-config/yubihsm2"]
 
 [lints]
