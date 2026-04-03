@@ -1,26 +1,25 @@
 //! Integration tests for implementations of
 //! [`signstar_config::config::traits::MappingSystemUserId`].
 
-use std::{collections::HashMap, thread::current};
-
-use change_user_run::{CommandOutput, create_users, run_command_as_user};
-use insta::{assert_snapshot, with_settings};
-use log::LevelFilter;
-use rstest::rstest;
-use signstar_common::common::get_data_home;
-use signstar_common::{logging::setup_logging, system_user::get_home_base_dir_path};
-use signstar_config::test::{list_files_in_dir, start_credentials_socket, write_machine_id};
-use signstar_crypto::NonAdministrativeSecretHandling;
-use testresult::TestResult;
-
-use crate::{ENV_LIST, LLVM_PROFILE_FILE, collect_coverage_files};
-
-const NON_ADMIN_SECRETS_PAYLOAD: &str = "/usr/local/bin/examples/usermapping-non-admin-secrets";
-const PAYLOAD: &str = "/usr/local/bin/examples/usermapping-system-user-info";
-const SNAPSHOT_PATH: &str = "/test/tests/usermapping/fixtures/";
-
+#[cfg(feature = "nethsm")]
 mod nethsm {
-    use super::*;
+    use std::{collections::HashMap, thread::current};
+
+    use change_user_run::{CommandOutput, create_users, run_command_as_user};
+    use insta::{assert_snapshot, with_settings};
+    use log::LevelFilter;
+    use rstest::rstest;
+    use signstar_common::common::get_data_home;
+    use signstar_common::{logging::setup_logging, system_user::get_home_base_dir_path};
+    use signstar_config::test::{list_files_in_dir, start_credentials_socket, write_machine_id};
+    use signstar_crypto::NonAdministrativeSecretHandling;
+    use testresult::TestResult;
+
+    use crate::{ENV_LIST, LLVM_PROFILE_FILE, collect_coverage_files};
+
+    const NON_ADMIN_SECRETS_PAYLOAD: &str = "/usr/local/bin/examples/usermapping-non-admin-secrets";
+    const PAYLOAD: &str = "/usr/local/bin/examples/usermapping-system-user-info";
+    const SNAPSHOT_PATH: &str = "/test/tests/usermapping/fixtures/";
 
     /// Retrieve the Unix user information (if any) of a user mapping succeeds.
     #[rstest]
@@ -309,7 +308,23 @@ mod nethsm {
 
 #[cfg(feature = "yubihsm2")]
 mod yubihsm2 {
-    use super::*;
+    use std::{collections::HashMap, thread::current};
+
+    use change_user_run::{CommandOutput, create_users, run_command_as_user};
+    use insta::{assert_snapshot, with_settings};
+    use log::LevelFilter;
+    use rstest::rstest;
+    use signstar_common::common::get_data_home;
+    use signstar_common::{logging::setup_logging, system_user::get_home_base_dir_path};
+    use signstar_config::test::{list_files_in_dir, start_credentials_socket, write_machine_id};
+    use signstar_crypto::NonAdministrativeSecretHandling;
+    use testresult::TestResult;
+
+    use crate::{ENV_LIST, LLVM_PROFILE_FILE, collect_coverage_files};
+
+    const NON_ADMIN_SECRETS_PAYLOAD: &str = "/usr/local/bin/examples/usermapping-non-admin-secrets";
+    const PAYLOAD: &str = "/usr/local/bin/examples/usermapping-system-user-info";
+    const SNAPSHOT_PATH: &str = "/test/tests/usermapping/fixtures/";
 
     /// Retrieve the Unix user information (if any) of a user mapping succeeds.
     #[rstest]

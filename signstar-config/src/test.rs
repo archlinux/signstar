@@ -9,13 +9,18 @@ use std::{
 };
 
 use log::debug;
+#[cfg(feature = "nethsm")]
 use nethsm::{FullCredentials, UserId};
+#[cfg(feature = "nethsm")]
 use rand::{Rng, distributions::Alphanumeric, thread_rng};
+#[cfg(feature = "nethsm")]
 use signstar_common::config::get_default_config_file_path;
+#[cfg(feature = "nethsm")]
 use signstar_crypto::passphrase::Passphrase;
 use tempfile::NamedTempFile;
 use which::which;
 
+#[cfg(feature = "nethsm")]
 use crate::{
     AdminCredentials,
     AdministrativeSecretHandling,
@@ -312,6 +317,7 @@ pub fn start_credentials_socket() -> Result<BackgroundProcess, Error> {
 /// - a new [`SignstarConfig`] can not be created from `config_data`,
 /// - a [`SignstarConfig`] can not be saved to a system-wide location,
 /// - or [`start_credentials_socket`] fails.
+#[cfg(feature = "nethsm")]
 pub fn prepare_system_with_config(
     config_data: &[u8],
 ) -> Result<(Vec<ExtendedUserMapping>, BackgroundProcess), Error> {
@@ -341,6 +347,7 @@ pub fn prepare_system_with_config(
 ///
 /// - a temporary config file can not be created from `config_data`,
 /// - an [`AdminCredentials`] can not be created from the temporary config file.
+#[cfg(feature = "nethsm")]
 pub fn admin_credentials(config_data: &[u8]) -> Result<NetHsmAdminCredentials, Error> {
     let config_file = get_tmp_config(config_data)?;
     NetHsmAdminCredentials::load_from_file(
@@ -360,6 +367,7 @@ pub fn admin_credentials(config_data: &[u8]) -> Result<NetHsmAdminCredentials, E
 ///
 /// - a temporary config file can not be created from `config_data`,
 /// - a [`SignstarConfig`] can not be created from the temporary config file.
+#[cfg(feature = "nethsm")]
 pub fn signstar_config(config_data: &[u8]) -> Result<SignstarConfig, Error> {
     SignstarConfig::new_from_file(Some(get_tmp_config(config_data)?.path()))
         .map_err(Error::SignstarConfig)
@@ -369,6 +377,7 @@ pub fn signstar_config(config_data: &[u8]) -> Result<SignstarConfig, Error> {
 ///
 /// Creates a 30-char long alphanumeric passphrase for each [`UserId`] in `users` and then
 /// constructs a [`FullCredentials`].
+#[cfg(feature = "nethsm")]
 pub fn create_full_credentials(users: &[UserId]) -> Vec<FullCredentials> {
     /// Creates a passphrase
     fn create_passphrase() -> String {
