@@ -107,7 +107,7 @@ nethsm.use_credentials(&"user1".parse()?)?;
 
 - `_nethsm-integration-test`: Integration tests that require a containerized NetHSM test environment.
   **NOTE**: Unless you are developing this crate, you will very likely not want to use this feature.
-- `_test-helpers`: Enables the `signstar_config::test` module which provides utilities for test setups that may also be useful for other crates.
+- `_test-helpers`: Enables the `nethsm::test` module which provides utilities for test setups that may also be useful for other crates.
   **NOTE**: Unless you are developing this crate or write NetHSM related integration tests in your own crate, you will very likely not want to use this feature.
 
 ## Contributing
