@@ -874,7 +874,7 @@ containerized-integration-tests *options:
     fi
 
     cargo +stable build --examples --bins --all-features
-    cargo +stable nextest run --features _containerized-integration-test "${options[@]}" --filterset 'kind(test)'
+    cargo +stable nextest run --features _containerized-integration-test --filterset 'kind(test)' "${options[@]}"
 
 # Runs the `containerized-integration-tests` recipe in all relevant feature permutations.
 [group('test')]
