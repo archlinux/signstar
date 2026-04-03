@@ -1033,11 +1033,11 @@ nethsm-integration-tests *options:
         just ensure-command bash cargo cargo-llvm-cov cargo-nextest jq podman
         # shellcheck source=/dev/null
         source <(just show_cargo_llvm_cov_env)
-        cargo build --examples --bins --features nethsm
     else
         just ensure-command bash cargo cargo-nextest jq podman
     fi
 
+    cargo build --examples --bins --features nethsm
     NETHSM_IMAGE_TAG="$nethsm_image_tag" cargo nextest run --features _nethsm-integration-test --filterset 'kind(test) and binary_id(/::nethsm$/)' "${options[@]}"
 
 # Runs all unit tests with default features.
