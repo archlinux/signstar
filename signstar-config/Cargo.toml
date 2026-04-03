@@ -49,9 +49,8 @@ testresult.workspace = true
 tokio.workspace = true
 
 [features]
-_containerized-integration-test = ["_integration-test", "test-helpers"]
-_integration-test = ["test-helpers"]
-_nethsm-integration-test = ["_integration-test", "nethsm", "test-helpers"]
+_containerized-integration-test = ["test-helpers"]
+_nethsm-integration-test = ["nethsm", "test-helpers"]
 default = ["nethsm"]
 # Support for the NetHSM backend.
 nethsm = ["dep:nethsm"]
