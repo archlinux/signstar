@@ -1014,6 +1014,13 @@ nethsm-integration-tests *options:
     readonly cargo_target_dir="$(just get-cargo-target-dir)"
     readonly nethsm_image_tag="{{ nethsm_image_tag }}"
     read -r -a options <<< "{{ options }}"
+    # If no options are provided, run locked, with default features, across the workspace.
+    if (( ${#options[@]} == 0 )); then
+        options+=(
+            --locked
+            --workspace
+        )
+    fi
 
     if [[ "$coverage" == "true" ]]; then
         just ensure-command bash cargo cargo-llvm-cov cargo-nextest jq podman
