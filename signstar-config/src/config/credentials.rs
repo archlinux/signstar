@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 use ssh_key::authorized_keys::Entry;
 use zeroize::Zeroize;
 
-use crate::ConfigError;
+use crate::{ConfigError, utils::get_current_system_user};
 
 /// The name of a user on a Unix system
 ///
@@ -45,6 +45,20 @@ impl SystemUserId {
             return Err(ConfigError::InvalidSystemUserName { name: user }.into());
         }
         Ok(Self(user))
+    }
+
+    /// Creates a new [`SystemUserId`] from the currently calling Unix user.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if
+    ///
+    /// - the currently calling Unix user cannot be determined
+    /// - the String representation of the currently calling Unix user cannot be used to create a
+    ///   new [`SystemUserId`]
+    pub fn from_current_unix_user() -> Result<Self, crate::Error> {
+        let current_unix_user = get_current_system_user()?;
+        Self::try_from(current_unix_user)
     }
 }
 
