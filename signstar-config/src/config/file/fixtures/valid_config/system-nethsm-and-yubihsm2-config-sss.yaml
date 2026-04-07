@@ -28,9 +28,9 @@ system:
           user@host
 nethsm:
   connections:
-    - url: https://nethsm1.example.org/
+    - url: https://localhost:8080/
       tls_security: Unsafe
-    - url: https://nethsm2.example.org/
+    - url: https://localhost:8081/
       tls_security: Unsafe
   mappings:
     - admin: admin
@@ -40,6 +40,12 @@ nethsm:
           ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINrIYA+bfMBThUP5lKbMFEHiytmcCPhpkGrB/85n0mAN
           user@host
         system_user: nethsm-backup-user
+    - hermetic_metrics:
+        backend_users:
+          metrics_user: hermeticmetrics
+          operator_users:
+            - hermetickeymetrics
+        system_user: nethsm-hermetic-metrics-user
     - metrics:
         backend_users:
           metrics_user: metrics
@@ -77,20 +83,23 @@ yubihsm2:
     - admin:
         authentication_key_id: 1
     - audit_log:
-        authentication_key_id: 3
+        authentication_key_id: 2
         ssh_authorized_key: >-
           ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHxR0Oc+SWXkEvvZPitc6NvjvykgiKc9iauRI7tLYvcp
           user@host
         system_user: yubihsm2-metrics-user
     - backup:
-        authentication_key_id: 2
+        authentication_key_id: 3
         wrapping_key_id: 2
         ssh_authorized_key: >-
           ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIETxhCqeZhfzFLfH0KFyw3u/w/dkRBUrft8tQm7DEVzY
           user@host
         system_user: yubihsm2-backup-user
-    - signing:
+    - hermetic_audit_log:
         authentication_key_id: 4
+        system_user: yubihsm2-hermetic-metrics-user
+    - signing:
+        authentication_key_id: 5
         key_setup:
           key_type: Curve25519
           key_mechanisms:

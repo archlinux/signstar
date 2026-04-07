@@ -10,9 +10,9 @@ system:
           user@host
 nethsm:
   connections:
-    - url: https://nethsm1.example.org/
+    - url: https://localhost:8080/
       tls_security: Unsafe
-    - url: https://nethsm2.example.org/
+    - url: https://localhost:8081/
       tls_security: Unsafe
   mappings:
     - admin: admin
@@ -22,6 +22,12 @@ nethsm:
           ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINrIYA+bfMBThUP5lKbMFEHiytmcCPhpkGrB/85n0mAN
           user@host
         system_user: backup-user
+    - hermetic_metrics:
+        backend_users:
+          metrics_user: hermeticmetrics
+          operator_users:
+            - hermetickeymetrics
+        system_user: nethsm-hermetic-metrics-user
     - metrics:
         backend_users:
           metrics_user: metrics
