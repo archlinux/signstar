@@ -8,6 +8,7 @@ use std::path::Path;
 use std::time::SystemTime;
 use std::{collections::HashMap, path::PathBuf};
 
+use digest_io::IoWrapper;
 use rand::Rng;
 use semver::Version;
 use serde::{Deserialize, Serialize};
@@ -161,30 +162,6 @@ pub struct Required {
 
     /// Outputs of the signing procedure.
     pub output: SignatureRequestOutput,
-}
-
-/// Provides I/O adapter to [`sha2::Sha512`] object.
-struct IoWrapper(sha2::Sha512);
-
-impl std::io::Write for IoWrapper {
-    /// Updates the inner hasher and returns the number of bytes written.
-    ///
-    /// # Errors
-    ///
-    /// This function never fails.
-    fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
-        self.0.update(buf);
-        Ok(buf.len())
-    }
-
-    /// Does nothing.
-    ///
-    /// # Errors
-    ///
-    /// This function never fails.
-    fn flush(&mut self) -> std::io::Result<()> {
-        Ok(())
-    }
 }
 
 /// Signing request.
