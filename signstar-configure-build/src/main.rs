@@ -3,13 +3,12 @@
 use std::process::ExitCode;
 
 use clap::Parser;
-use signstar_config::SignstarConfig;
+use signstar_config::config::Config;
 use signstar_configure_build::{Error, cli::Cli, create_system_users, ensure_root};
 
 fn run_command(cli: Cli) -> Result<(), Error> {
     ensure_root()?;
-
-    let config = SignstarConfig::new_from_file(Some(cli.config.unwrap_or_default().as_ref()))?;
+    let config = Config::from_file_path(cli.config.unwrap_or_default().as_ref())?;
 
     create_system_users(&config)?;
 

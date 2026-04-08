@@ -1,31 +1,48 @@
 //! Integration tests for Signstar Sign.
 
-use std::collections::HashMap;
-use std::env::var;
-use std::fs::copy;
-use std::os::unix::fs::chown;
-use std::path::{Path, PathBuf};
-use std::{fs::File, io::Write};
+use std::{
+    collections::HashMap,
+    env::var,
+    fs::{File, copy},
+    io::{Cursor, Write},
+    os::unix::fs::chown,
+    path::{Path, PathBuf},
+};
 
+use actix_web::{App, HttpRequest, HttpServer, Responder, get, post};
 use base64ct::{Base64, Encoding as _};
-use change_user_run::{CommandOutput, create_users, run_command_as_user};
-use log::{LevelFilter, debug};
+use change_user_run::{CommandOutput, run_command_as_user};
+use log::{LevelFilter, debug, error, info};
+use openssl::ssl::{SslAcceptor, SslFiletype, SslMethod};
 use pgp::composed::{Deserializable as _, DetachedSignature};
 use pgp::packet::SignatureType;
+use rcgen::{CertifiedKey, generate_simple_self_signed};
 use rstest::rstest;
 use signstar_common::logging::setup_logging;
-use signstar_common::{common::get_data_home, system_user::get_home_base_dir_path};
-use signstar_config::test::{list_files_in_dir, prepare_system_with_config};
+#[cfg(any(feature = "nethsm", feature = "yubihsm2"))]
+use signstar_config::config::MappingSystemUserId;
+#[cfg(feature = "nethsm")]
+use signstar_config::nethsm::NetHsmUserMapping;
+#[cfg(feature = "yubihsm2")]
+use signstar_config::yubihsm2::YubiHsm2UserMapping;
+use signstar_config::{
+    config::{Config, UserBackendConnection, UserBackendConnectionFilter},
+    test::{
+        ConfigFileConfig,
+        ConfigFileLocation,
+        ConfigFileVariant,
+        SystemPrepareConfig,
+        SystemUserConfig,
+        list_files_in_dir,
+    },
+};
+use signstar_request_signature::Response;
 use tempfile::tempdir;
 use testresult::TestResult;
+use tokio::{spawn, task::yield_now};
 
-use crate::utils::{SIGNSTAR_CONFIG_FULL, SIGNSTAR_CONFIG_PLAINTEXT};
-
+/// The payload executable to run in tests.
 const SIGNSTAR_SIGN_PAYLOAD: &str = "signstar-sign";
-use actix_web::{App, HttpRequest, HttpServer, Responder, get, post};
-use openssl::ssl::{SslAcceptor, SslFiletype, SslMethod};
-use rcgen::{CertifiedKey, generate_simple_self_signed};
-
 /// Environment variables that are passed in to a command call as a different user.
 const ENV_LIST: &[&str] = &[
     "LLVM_PROFILE_FILE",
@@ -81,12 +98,12 @@ fn collect_coverage_files(path: impl AsRef<Path>) -> TestResult {
     Ok(())
 }
 
-#[get("//keys/key1")]
+#[get("//keys/signing1")]
 async fn get_key(_req: HttpRequest) -> impl Responder {
     r#"{"type":"Curve25519","mechanisms":[],"restrictions":{},"operations":1}"#
 }
 
-#[get("//keys/key1/cert")]
+#[get("//keys/signing1/cert")]
 async fn get_cert(_req: HttpRequest) -> impl Responder {
     Base64
         ::decode_vec(
@@ -95,135 +112,195 @@ async fn get_cert(_req: HttpRequest) -> impl Responder {
         .expect("static base64 data to be valid")
 }
 
-#[post("//keys/key1/sign")]
+#[post("//keys/signing1/sign")]
 async fn sign_data(_req: HttpRequest) -> impl Responder {
     r#"{"signature":"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=="}"#
 }
 
-/// Loading credentials for unprivileged system users succeeds.
+/// Runs the `signstar-sign` executable as a Unix user configured for signing.
 ///
-/// Tests integration with `systemd-creds` encrypted secrets and plaintext secrets.
+/// Presents a mocked API surface when used with a NetHSM as backend.
 #[rstest]
-#[case::plain(SIGNSTAR_CONFIG_PLAINTEXT)]
-#[case::full(SIGNSTAR_CONFIG_FULL)]
+#[cfg_attr(
+    feature = "nethsm",
+    case::nethsm_plain_admin(
+        SystemPrepareConfig{
+            machine_id: true,
+            credentials_socket: true,
+            signstar_config: ConfigFileConfig {
+                location: Some(ConfigFileLocation::default()),
+                variant: ConfigFileVariant::OnlyNetHsmBackendPlainAdmin,
+                system_user_config: Some(SystemUserConfig{ create_secrets: true })
+            },
+        }
+    )
+)]
 #[cfg_attr(
     feature = "_yubihsm2-mockhsm",
-    case::yubi(crate::utils::SIGNSTAR_CONFIG_YUBI)
+    case::yubihsm2_mockhsm_plain_admin(
+        SystemPrepareConfig{
+            machine_id: true,
+            credentials_socket: true,
+            signstar_config: ConfigFileConfig {
+                location: Some(ConfigFileLocation::default()),
+                variant: ConfigFileVariant::OnlyYubiHsm2MockHsmBackendPlainAdmin,
+                system_user_config: Some(SystemUserConfig{ create_secrets: true })
+            },
+        }
+    )
 )]
 #[tokio::test]
-async fn load_credentials_for_user(#[case] config_data: &[u8]) -> TestResult {
+async fn run_signstar_sign(#[case] prepare_config: SystemPrepareConfig) -> TestResult {
     setup_logging(LevelFilter::Info)?;
-    let CertifiedKey { cert, signing_key } = generate_simple_self_signed(vec!["localhost".into()])?;
+    let _credentials_socket = prepare_config.apply()?;
+    let config = Config::from_system_path()?;
 
-    let dir = tempdir()?.keep();
-    let key_file = dir.join("key.pem");
-    let cert_file = dir.join("cert.pem");
+    // Start a dummy web server to mock the interface used by the `signstar-sign` executable, if the
+    // NetHSM backend is used.
+    if matches!(
+        prepare_config.signstar_config,
+        ConfigFileConfig {
+            variant: ConfigFileVariant::OnlyNetHsmBackendPlainAdmin,
+            ..
+        } | ConfigFileConfig {
+            variant: ConfigFileVariant::OnlyNetHsmBackendSystemdCredsAdmin,
+            ..
+        } | ConfigFileConfig {
+            variant: ConfigFileVariant::OnlyNetHsmBackendSssAdmin,
+            ..
+        } | ConfigFileConfig {
+            variant: ConfigFileVariant::AllBackendsPlainAdmin,
+            ..
+        } | ConfigFileConfig {
+            variant: ConfigFileVariant::AllBackendsSystemdCredsAdmin,
+            ..
+        } | ConfigFileConfig {
+            variant: ConfigFileVariant::AllBackendsSssAdmin,
+            ..
+        }
+    ) {
+        let CertifiedKey { cert, signing_key } =
+            generate_simple_self_signed(vec!["localhost".into()])?;
 
-    File::create_new(&key_file)?.write_all(signing_key.serialize_pem().as_bytes())?;
-    File::create_new(&cert_file)?.write_all(cert.pem().as_bytes())?;
+        let dir = tempdir()?.keep();
+        let key_file = dir.join("key.pem");
+        let cert_file = dir.join("cert.pem");
 
-    tokio::spawn(async move {
-        let mut builder = SslAcceptor::mozilla_intermediate(SslMethod::tls()).unwrap();
-        builder
-            .set_private_key_file(&key_file, SslFiletype::PEM)
-            .unwrap();
-        builder.set_certificate_chain_file(&cert_file).unwrap();
+        File::create_new(&key_file)?.write_all(signing_key.serialize_pem().as_bytes())?;
+        File::create_new(&cert_file)?.write_all(cert.pem().as_bytes())?;
 
-        HttpServer::new(|| {
-            App::new()
-                .wrap(actix_web::middleware::Logger::default())
-                .service(get_cert)
-                .service(get_key)
-                .service(sign_data)
-        })
-        .bind_openssl("127.0.0.1:8080", builder)
-        .unwrap()
-        .run()
-        .await
-    });
+        spawn(async move {
+            let mut builder = SslAcceptor::mozilla_intermediate(SslMethod::tls()).unwrap();
+            builder
+                .set_private_key_file(&key_file, SslFiletype::PEM)
+                .unwrap();
+            builder.set_certificate_chain_file(&cert_file).unwrap();
 
-    // run the spawned task before we return from this function
-    // see: https://docs.rs/tokio/latest/tokio/task/index.html#yield_now
-    tokio::task::yield_now().await;
+            HttpServer::new(|| {
+                App::new()
+                    .wrap(actix_web::middleware::Logger::default())
+                    .service(get_cert)
+                    .service(get_key)
+                    .service(sign_data)
+            })
+            .bind_openssl("127.0.0.1:8080", builder)
+            .unwrap()
+            .run()
+            .await
+        });
 
-    let (creds_mapping, _credentials_socket) = prepare_system_with_config(config_data)?;
-    assert!(
-        !creds_mapping.is_empty(),
-        "must contain at least one mapping"
-    );
-    // Get all system users
-    let system_users = creds_mapping
-        .iter()
-        .filter_map(|mapping| {
-            mapping
-                .get_user_mapping()
-                .get_system_user()
-                .map(|user| user.to_string())
-        })
-        .collect::<Vec<String>>();
-    // Create all system users and their homes
-    create_users(
-        &system_users
-            .iter()
-            .map(|user| user.as_str())
-            .collect::<Vec<_>>(),
-        Some(&get_home_base_dir_path()),
-        None,
-    )?;
-    // Create secrets for each system user and their backend users
-    for mapping in &creds_mapping {
-        mapping.create_secrets_dir()?;
-        mapping.create_non_administrative_secrets()?;
-        eprintln!("Created credentials for {mapping:?}");
+        // run the spawned task before we return from this function
+        // see: https://docs.rs/tokio/latest/tokio/task/index.html#yield_now
+        yield_now().await;
     }
-    // List all files and directories in the data home.
-    list_files_in_dir(get_data_home())?;
 
     let mut tests_ran = 0;
 
-    // Retrieve backend credentials for each system user
-    for mapping in &creds_mapping {
-        if let Some(system_user_id) = mapping.get_user_mapping().get_system_user() {
-            let CommandOutput {
-                status,
-                stdout,
-                stderr,
-                ..
-            } = run_command_as_user(
-                SIGNSTAR_SIGN_PAYLOAD,
-                &[],
-                Some(include_bytes!(
-                    "../../../signstar-request-signature/tests/sample-request.json",
-                )),
-                ENV_LIST,
-                Some(HashMap::from([(
-                    "LLVM_PROFILE_FILE".to_string(),
-                    LLVM_PROFILE_FILE.to_string(),
-                )])),
-                system_user_id.as_ref(),
-            )?;
-            if !status.success() {
-                log::error!("Standard error: {stderr}");
+    // Run `signstar-sign`, only using users configured for signing.
+    for user_backend_connection in config
+        .user_backend_connections(UserBackendConnectionFilter::NonAdmin)
+        .iter()
+    {
+        let signing_user = {
+            match user_backend_connection {
+                #[cfg(feature = "nethsm")]
+                UserBackendConnection::NetHsm { mapping, .. } => match mapping {
+                    NetHsmUserMapping::Signing { backend_user, .. } => backend_user.to_string(),
+                    NetHsmUserMapping::Admin(..)
+                    | NetHsmUserMapping::Backup { .. }
+                    | NetHsmUserMapping::HermeticMetrics { .. }
+                    | NetHsmUserMapping::Metrics { .. } => {
+                        // If there is no signing user, there is nothing for us to do.
+                        debug!("Not a signing user, skipping...");
+                        continue;
+                    }
+                },
+                #[cfg(feature = "yubihsm2")]
+                UserBackendConnection::YubiHsm2 { mapping, .. } => match mapping {
+                    YubiHsm2UserMapping::Signing {
+                        authentication_key_id,
+                        ..
+                    } => authentication_key_id.to_string(),
+                    YubiHsm2UserMapping::Admin { .. }
+                    | YubiHsm2UserMapping::AuditLog { .. }
+                    | YubiHsm2UserMapping::Backup { .. }
+                    | YubiHsm2UserMapping::HermeticAuditLog { .. } => {
+                        // If there is no signing user, there is nothing for us to do.
+                        debug!("Not a signing user, skipping...");
+                        continue;
+                    }
+                },
             }
-            assert!(
-                status.success(),
-                "requires the command to exit successfully but got {status}"
-            );
-            log::info!("Raw signing response: {stdout}");
-            let response = signstar_request_signature::Response::from_reader(
-                std::io::Cursor::new(stdout.as_bytes()),
-            )?;
-            log::info!("Parsed signing response: {response:#?}");
-            assert_eq!(response.version.major, 1);
-            let mut sig = Vec::new();
-            response.signature_to_writer(&mut sig)?;
-            let sig = std::io::Cursor::new(sig);
-            let sig = DetachedSignature::from_armor_single(sig)?.0;
-            assert_eq!(Some(SignatureType::Binary), sig.signature.typ());
-            tests_ran += 1;
-        } else {
-            panic!("expected system user to be configured");
+        };
+        let system_user_id = {
+            let Some(system_user_id) = (match user_backend_connection {
+                #[cfg(feature = "nethsm")]
+                UserBackendConnection::NetHsm { mapping, .. } => mapping.system_user_id(),
+                #[cfg(feature = "yubihsm2")]
+                UserBackendConnection::YubiHsm2 { mapping, .. } => mapping.system_user_id(),
+            }) else {
+                // If there is no system user, there is nothing for us to do.
+                debug!("No system user configured for \"{signing_user}\".");
+                continue;
+            };
+            system_user_id
+        };
+
+        let CommandOutput {
+            status,
+            stdout,
+            stderr,
+            ..
+        } = run_command_as_user(
+            SIGNSTAR_SIGN_PAYLOAD,
+            &[],
+            Some(include_bytes!(
+                "../../../signstar-request-signature/tests/sample-request.json",
+            )),
+            ENV_LIST,
+            Some(HashMap::from([(
+                "LLVM_PROFILE_FILE".to_string(),
+                LLVM_PROFILE_FILE.to_string(),
+            )])),
+            system_user_id.as_ref(),
+        )?;
+        if !status.success() {
+            error!("Standard error: {stderr}");
         }
+        assert!(
+            status.success(),
+            "requires the command to exit successfully but got {status}"
+        );
+        info!("Raw signing response: {stdout}");
+        let response = Response::from_reader(Cursor::new(stdout.as_bytes()))?;
+        info!("Parsed signing response: {response:#?}");
+        assert_eq!(response.version.major, 1);
+        let mut sig = Vec::new();
+        response.signature_to_writer(&mut sig)?;
+        let sig = Cursor::new(sig);
+        let sig = DetachedSignature::from_armor_single(sig)?.0;
+        assert_eq!(Some(SignatureType::Binary), sig.signature.typ());
+        tests_ran += 1;
     }
 
     assert_ne!(tests_ran, 0, "expected to run at least one test");

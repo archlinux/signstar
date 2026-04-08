@@ -54,7 +54,7 @@ _containerized-integration-test = ["_test-helpers"]
 _nethsm-integration-test = ["_test-helpers", "nethsm"]
 _test-helpers = ["dep:change-user-run", "dep:tempfile", "dep:testresult"]
 _yubihsm2-mockhsm = ["signstar-yubihsm2/_yubihsm2-mockhsm", "yubihsm2"]
-default = ["nethsm"]
+default = []
 # Support for the NetHSM backend.
 nethsm = ["dep:nethsm"]
 # Support for the YubiHSM2 backend.

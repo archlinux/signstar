@@ -871,14 +871,10 @@ containerized-integration-tests-all:
     just containerized-integration-tests --locked --no-default-features --package signstar-crypto
     printf 'Run containerized integration tests for signstar-crypto with nethsm features...\n'
     just containerized-integration-tests --locked --no-default-features --package signstar-crypto --features nethsm
-    printf 'Run containerized integration tests for signstar-sign without default features...\n'
-    just containerized-integration-tests --locked --no-default-features --package signstar-sign
+    printf 'Run containerized integration tests for signstar-sign with nethsm feature...\n'
+    just containerized-integration-tests --locked --no-default-features --package signstar-sign --features nethsm
     printf 'Run containerized integration tests for signstar-sign with _yubihsm2-mockhsm feature...\n'
     just containerized-integration-tests --locked --no-default-features --package signstar-sign --features _yubihsm2-mockhsm
-    printf 'Run containerized integration tests for signstar-sign with yubihsm2 feature...\n'
-    just containerized-integration-tests --locked --no-default-features --package signstar-sign --features yubihsm2
-    printf 'Run containerized integration tests for signstar-sign with _yubihsm2-mockhsm,yubihsm2 feature...\n'
-    just containerized-integration-tests --locked --no-default-features --package signstar-sign --features _yubihsm2-mockhsm,yubihsm2
 
 [doc('Creates code coverage report for all projects from all available sources.
 When providing `with-docs` to the `mode` parameter, this also includes doc test coverage in the report (requires nightly).
@@ -1120,6 +1116,7 @@ test-readme project:
                 --tty
                 "--mount=type=bind,source=$cargo_home/bin,destination=/usr/local/bin,ro=true"
                 "--mount=type=bind,source=$project,destination=/mnt,ro=true"
+                "--mount=type=bind,source=signstar-config/src/config/file/fixtures/valid_config/system-nethsm-and-yubihsm2-config-sss.yaml,destination=/usr/share/signstar/config.yaml,ro=true"
                 --workdir=/mnt
                 "$arch_container"
                 sh -c 'pacman-key --init && pacman -Sy --needed --noconfirm archlinux-keyring && pacman -Syu --needed --noconfirm tangler && tangler bash < /mnt/README.md | bash -euxo pipefail -'

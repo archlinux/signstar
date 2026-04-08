@@ -3,34 +3,25 @@
 use std::process::ExitCode;
 
 use clap::Parser;
-use log::error;
-use nethsm::{NetHsm, signer::OwnedNetHsmKey};
-#[cfg(feature = "yubihsm2")]
-use signstar_config::yubihsm2::backend::YubiHsmConnection;
-use signstar_config::{
-    CredentialsLoading,
-    Error as ConfigError,
-    UserMapping,
-    config::base::BackendConnection,
-};
 use signstar_crypto::signer::{openpgp::sign_hasher_state, traits::RawSigningKey};
 use signstar_request_signature::{Request, Response, Sha512};
 use signstar_sign::cli::Cli;
-#[cfg(feature = "yubihsm2")]
-use signstar_yubihsm2::{Credentials, YubiHsm2SigningKey};
 
 /// Signstar signing error.
 #[derive(Debug, thiserror::Error)]
 enum Error {
-    /// Configuration does not contain key ID for the operator user.
-    #[error("No key ID set for the operator user")]
-    NoKeyId,
+    #[cfg(not(any(feature = "nethsm", feature = "yubihsm2")))]
+    /// No HSM backend support is compiled in.
+    #[error("No HSM backend support compiled in")]
+    NoBackend,
 
-    /// Loading configuration encountered errors.
-    #[error("Loading credentials encountered errors")]
-    HasUserIdErrors,
+    /// The configuration offers no connection for a backend.
+    #[cfg(any(feature = "nethsm", feature = "yubihsm2"))]
+    #[error("No connection set for the backend")]
+    NoConnection,
 
     /// No credentials found for current system user.
+    #[cfg(any(feature = "nethsm", feature = "yubihsm2"))]
     #[error("No credentials for the system user")]
     NoCredentials,
 
@@ -40,9 +31,10 @@ enum Error {
 
     /// Configuration error.
     #[error("Config error")]
-    Config(#[from] ConfigError),
+    Config(#[from] signstar_config::Error),
 
     /// NetHSM error.
+    #[cfg(feature = "nethsm")]
     #[error("NetHsm error")]
     NetHsm(#[from] nethsm::Error),
 
@@ -68,91 +60,151 @@ enum Error {
     YubiHsm(#[from] signstar_yubihsm2::Error),
 }
 
-/// Creates a new [`RawSigningKey`] implementation from the system's Signstar config and current
-/// user.
-///
-/// # Errors
-///
-/// Returns an error if configuration:
-/// - loading encounters errors
-/// - does not contain any key settings
-/// - does not contain valid connections
-/// - does not contain credentials with a passphrase
-fn load_signer() -> Result<Box<dyn RawSigningKey>, Error> {
-    let credentials_loading = CredentialsLoading::from_system_user()?;
-
-    if credentials_loading.has_userid_errors() {
-        error!(
-            "Credentials loading encountered errors: {:#?}",
-            credentials_loading.get_userid_errors()
-        );
-        return Err(Error::HasUserIdErrors);
-    }
-
-    if !credentials_loading.has_signing_user() {
-        return Err(Error::NoCredentials);
-    }
-
-    let key_id = if let UserMapping::SystemNetHsmOperatorSigning { key_id, .. } =
-        credentials_loading.get_mapping().get_user_mapping()
-    {
-        Ok(key_id.clone())
-    } else {
-        Err(Error::NoKeyId)
-    };
-
+#[cfg(any(feature = "nethsm", feature = "yubihsm2"))]
+mod impl_any {
+    #[cfg(feature = "nethsm")]
+    use nethsm::{NetHsm, signer::OwnedNetHsmKey};
+    use signstar_config::config::NonAdminBackendUserIdFilter;
+    #[cfg(any(feature = "nethsm", feature = "yubihsm2"))]
+    use signstar_config::config::UserBackendConnection;
+    #[cfg(feature = "nethsm")]
+    use signstar_config::nethsm::NetHsmUserMapping;
     #[cfg(feature = "yubihsm2")]
-    let yubihsm_key_ids = if let UserMapping::SystemYubiHsm2OperatorSigning {
-        authentication_key_id,
-        backend_key_id,
-        ..
-    } = credentials_loading.get_mapping().get_user_mapping()
-    {
-        Ok((*authentication_key_id, *backend_key_id))
-    } else {
-        Err(Error::NoKeyId)
+    use signstar_config::yubihsm2::YubiHsm2UserMapping;
+    use signstar_config::{
+        SystemUserId,
+        config::{Config, NonAdminBackendUserIdKind},
     };
+    #[cfg(feature = "yubihsm2")]
+    use signstar_yubihsm2::{Connection, Credentials, YubiHsm2SigningKey};
 
-    // Currently, this picks the first connection found.
-    // The Signstar setup assumes, that multiple backends are used in a round-robin fashion, but
-    // this is not yet implemented.
-    let Some(connection) = credentials_loading
-        .get_mapping()
-        .get_connections()
-        .into_iter()
-        .next()
-    else {
-        return Err(Error::NoCredentials);
-    };
+    use super::*;
 
-    let credentials = credentials_loading.credentials_for_signing_user()?;
-    match connection {
-        BackendConnection::NetHsm(connection) => Ok(Box::new(OwnedNetHsmKey::new(
-            NetHsm::new(connection, Some(credentials.try_into()?), None, None)?,
-            key_id?,
-        )?)),
-        #[cfg(feature = "yubihsm2")]
-        BackendConnection::YubiHsm2(connection) => {
-            let (authentication_key_id, backend_key_id) = yubihsm_key_ids?;
-            let credentials =
-                Credentials::new(authentication_key_id, credentials.passphrase().clone());
+    /// Creates a new [`RawSigningKey`] implementation from the system's Signstar config and current
+    /// user.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if configuration:
+    /// - loading encounters errors
+    /// - does not contain any key settings
+    /// - does not contain valid connections
+    /// - does not contain credentials with a passphrase
+    pub fn load_signer() -> Result<Box<dyn RawSigningKey>, Error> {
+        let current_system_user = SystemUserId::from_current_unix_user()?;
+        let config = Config::from_system_path()?;
+        let Some(user_backend_connection) = config.user_backend_connection(&current_system_user)
+        else {
+            return Err(Error::NoCredentials);
+        };
 
-            Ok(Box::new(match &connection {
-                #[cfg(feature = "_yubihsm2-mockhsm")]
-                YubiHsmConnection::Mock => YubiHsm2SigningKey::mock(backend_key_id, &credentials)?,
-                #[cfg(not(feature = "_yubihsm2-mockhsm"))]
-                YubiHsmConnection::Mock => return Err(Error::UnsupportedParameters),
-                YubiHsmConnection::Usb { serial_number } => {
-                    YubiHsm2SigningKey::new_with_serial_number(
-                        *serial_number,
-                        backend_key_id,
-                        &credentials,
-                    )?
+        // Load credentials for a signing user of the backend.
+        // Here, we _know_ that there always is at least one connection, and we take the first one.
+        let creds = user_backend_connection
+            .load_non_admin_backend_user_secrets(NonAdminBackendUserIdFilter {
+                backend_user_id_kind: NonAdminBackendUserIdKind::Signing,
+            })?
+            .ok_or(Error::NoCredentials)?
+            .remove(0);
+
+        match user_backend_connection {
+            #[cfg(feature = "nethsm")]
+            UserBackendConnection::NetHsm {
+                admin_secret_handling: _,
+                non_admin_secret_handling: _,
+                connections,
+                mapping,
+            } => match mapping {
+                NetHsmUserMapping::Signing {
+                    backend_user,
+                    signing_key_id,
+                    key_setup: _,
+                    ssh_authorized_key: _,
+                    system_user: _,
+                    tag: _,
+                } => {
+                    let connection = connections.first().cloned().ok_or(Error::NoConnection)?;
+
+                    Ok(Box::new(OwnedNetHsmKey::new(
+                        NetHsm::new(
+                            connection,
+                            Some(nethsm::Credentials::new(
+                                backend_user,
+                                Some(creds.passphrase().clone()),
+                            )),
+                            None,
+                            None,
+                        )?,
+                        signing_key_id,
+                    )?))
                 }
-            }))
+                NetHsmUserMapping::Admin(_)
+                | NetHsmUserMapping::Backup { .. }
+                | NetHsmUserMapping::HermeticMetrics { .. }
+                | NetHsmUserMapping::Metrics { .. } => Err(Error::NoCredentials),
+            },
+            #[cfg(feature = "yubihsm2")]
+            UserBackendConnection::YubiHsm2 {
+                admin_secret_handling: _,
+                non_admin_secret_handling: _,
+                connections,
+                mapping,
+            } => match mapping {
+                YubiHsm2UserMapping::Signing {
+                    authentication_key_id,
+                    key_setup: _,
+                    domain: _,
+                    signing_key_id,
+                    ssh_authorized_key: _,
+                    system_user: _,
+                } => {
+                    let connection = connections.first().cloned().ok_or(Error::NoConnection)?;
+                    match connection {
+                        #[cfg(feature = "_yubihsm2-mockhsm")]
+                        Connection::Mock => Ok(Box::new(YubiHsm2SigningKey::mock(
+                            signing_key_id,
+                            &Credentials::new(authentication_key_id, creds.passphrase().clone()),
+                        )?)),
+                        Connection::Usb { serial_number } => {
+                            Ok(Box::new(YubiHsm2SigningKey::new_with_serial_number(
+                                serial_number,
+                                signing_key_id,
+                                &Credentials::new(
+                                    authentication_key_id,
+                                    creds.passphrase().clone(),
+                                ),
+                            )?))
+                        }
+                    }
+                }
+                YubiHsm2UserMapping::Admin { .. }
+                | YubiHsm2UserMapping::Backup { .. }
+                | YubiHsm2UserMapping::AuditLog { .. }
+                | YubiHsm2UserMapping::HermeticAuditLog { .. } => Err(Error::NoCredentials),
+            },
         }
     }
 }
+
+#[cfg(not(any(feature = "nethsm", feature = "yubihsm2")))]
+mod impl_none {
+    use super::*;
+
+    /// Creates a new [`RawSigningKey`] implementation from the system's Signstar config and current
+    /// user.
+    ///
+    /// # Errors
+    ///
+    /// Always returns an error, because no HSM backend support is compiled in.
+    pub fn load_signer() -> Result<Box<dyn RawSigningKey>, Error> {
+        Err(Error::NoBackend)
+    }
+}
+
+#[cfg(any(feature = "nethsm", feature = "yubihsm2"))]
+use impl_any::load_signer;
+#[cfg(not(any(feature = "nethsm", feature = "yubihsm2")))]
+use impl_none::load_signer;
 
 /// Signs the signing request in `reader` and write the response to the `writer`.
 ///

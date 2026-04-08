@@ -14,19 +14,20 @@ version = "0.1.1"
 clap = { workspace = true, features = ["derive"] }
 clap-verbosity-flag.workspace = true
 log.workspace = true
-nethsm.workspace = true
+nethsm = { workspace = true, optional = true }
 signstar-common = { features = ["logging"], workspace = true }
 signstar-config.workspace = true
 signstar-crypto.workspace = true
 signstar-request-signature.workspace = true
-signstar-yubihsm2 = { path = "../signstar-yubihsm2", version = "0.1.0" }
+signstar-yubihsm2 = { path = "../signstar-yubihsm2", version = "0.1.0", optional = true }
 thiserror.workspace = true
 
 [features]
 _containerized-integration-test = []
 _yubihsm2-mockhsm = ["signstar-yubihsm2/_yubihsm2-mockhsm", "yubihsm2"]
 default = []
-yubihsm2 = ["signstar-config/yubihsm2"]
+nethsm = ["dep:nethsm", "signstar-config/nethsm"]
+yubihsm2 = ["dep:signstar-yubihsm2", "signstar-config/yubihsm2"]
 
 [dev-dependencies]
 actix-web = { version = "4.10.2", features = ["openssl"] }

@@ -13,13 +13,12 @@ The `signstar-configure-build` executable must be run as root.
 
 ## Configuration file
 
-By default `signstar-configure-build` relies on the configuration file `/usr/share/signstar/config.toml` and will fail if it is not found or not valid.
+By default `signstar-configure-build` relies on the configuration file `/usr/share/signstar/config.yaml` and will fail if it is not found or not valid.
 
-One of the following configuration files in the following order are used instead, if they exist:
+One of the following configuration files in increasing priority are used instead, if they exist:
 
-- `/usr/local/share/signstar/config.toml`
-- `/run/signstar/config.toml`
-- `/etc/signstar/config.toml`
+- `/run/signstar/config.yaml`
+- `/etc/signstar/config.yaml`
 
 Alternatively, `signstar-configure-build` can be provided with a custom configuration file location using the `--config`/ `-c` option.
 
@@ -35,14 +34,7 @@ Based on configured user mappings in the configuration file, `signstar-configure
 
 ## Examples
 
-<!--
-```bash
-mkdir -pv /usr/share/signstar/
-cp -v tests/fixtures/example.toml /usr/share/signstar/config.toml
-```
--->
-
-Assuming a valid configuration file (such as [example.toml]) in one of the default locations, the executable is called without any options:
+Assuming a valid configuration file in one of the understood configuration file locations, the executable is called without any options:
 
 ```bash
 signstar-configure-build
@@ -51,17 +43,20 @@ signstar-configure-build
 <!--
 ```bash
 remote_user_list=(
-  ssh-wireguard-down
-  ssh-metrics1
-  ns1-ssh-operator1
-  ssh-backup1
-  ns1-ssh-operator2
-  ssh-share-down
-  ssh-operator1
-  ssh-share-up
+  nethsm-backup-user
+  nethsm-metrics-user
+  nethsm-signing-user1
+  yubihsm2-metrics-user
+  yubihsm2-backup-user
+  yubihsm2-signing1
+  share-holder1
+  share-holder2
+  share-holder3
+  wireguard-downloader
 )
 local_user_list=(
-  local-metrics1
+  nethsm-hermetic-metrics-user
+  yubihsm2-hermetic-metrics-user
 )
 
 cat /etc/passwd
@@ -104,7 +99,6 @@ Changes to this project - unless stated otherwise - automatically fall under the
 [YubiHSM2]: https://www.yubico.com/de/product/yubihsm-2/
 [authorized_keys]: https://man.archlinux.org/man/sshd.8#AUTHORIZED_KEYS_FILE_FORMAT
 [contributing guidelines]: ../CONTRIBUTING.md
-[example.toml]: tests/fixtures/example.toml
 [signstar#288]: https://gitlab.archlinux.org/archlinux/signstar/-/work_items/288
 [sshd_config]: https://man.archlinux.org/man/sshd_config.5
 [tmpfiles.d]: https://man.archlinux.org/man/tmpfiles.d.5

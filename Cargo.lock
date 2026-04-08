@@ -4648,6 +4648,7 @@ name = "signstar-configure-build"
 version = "0.3.0"
 dependencies = [
  "clap",
+ "log",
  "nix",
  "signstar-common",
  "signstar-config",
