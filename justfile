@@ -568,22 +568,9 @@ check-links:
 
 # Checks the Rust source code using cargo-clippy.
 [group('check')]
-check-rust-code *options:
-    #!/usr/bin/env bash
-
-    read -r -a options <<< "{{ options }}"
-
-    if (( ${#options[@]} == 0 )); then
-        options+=(
-            --locked
-            --all-features
-            --all-targets
-            --workspace
-        )
-    fi
-
+check-rust-code *options='--all-features --all-targets --locked --workspace':
     just ensure-command cargo cargo-clippy
-    cargo +stable clippy "${options[@]}" -- -D warnings
+    cargo +stable clippy {{ options }} -- -D warnings
 
 # Checks the Rust source code using cargo-clippy (in all relevant feature permutations) in succession.
 [group('check')]
@@ -850,20 +837,13 @@ release package:
 
 # Runs the tests that are made available with the "_containerized-integration-test" feature of all configured projects in a separate container
 [group('test')]
-containerized-integration-tests *options:
+containerized-integration-tests *options='--locked --workspace':
     #!/usr/bin/env bash
     set -euo pipefail
 
     readonly coverage="{{ coverage }}"
     readonly cargo_target_dir="$(just get-cargo-target-dir)"
     read -r -a options <<< "{{ options }}"
-    # If no options are provided, run locked, with default features, across the workspace.
-    if (( ${#options[@]} == 0 )); then
-        options+=(
-            --locked
-            --workspace
-        )
-    fi
 
     if [[ "$coverage" == "true" ]]; then
         just ensure-command bash cargo cargo-llvm-cov cargo-nextest jq podman
@@ -1013,7 +993,7 @@ flaky test='just test-readme nethsm-cli' rounds='999999999999':
 
 # Runs the tests that are made available with the `_nethsm-integration-test` feature and for which the binary_id matches `::nethsm`
 [group('test')]
-nethsm-integration-tests *options:
+nethsm-integration-tests *options='--locked --workspace':
     #!/usr/bin/env bash
     set -euo pipefail
 
@@ -1021,13 +1001,6 @@ nethsm-integration-tests *options:
     readonly cargo_target_dir="$(just get-cargo-target-dir)"
     readonly nethsm_image_tag="{{ nethsm_image_tag }}"
     read -r -a options <<< "{{ options }}"
-    # If no options are provided, run locked, with default features, across the workspace.
-    if (( ${#options[@]} == 0 )); then
-        options+=(
-            --locked
-            --workspace
-        )
-    fi
 
     if [[ "$coverage" == "true" ]]; then
         just ensure-command bash cargo cargo-llvm-cov cargo-nextest jq podman
@@ -1042,20 +1015,12 @@ nethsm-integration-tests *options:
 
 # Runs all unit tests with default features.
 [group('test')]
-test *options:
+test *options='--all-targets --locked --workspace':
     #!/usr/bin/env bash
     set -euo pipefail
 
     readonly coverage="{{ coverage }}"
     read -r -a options <<< "{{ options }}"
-    # If no options are provided, run for all targets (except docs), locked, with default features, across the workspace.
-    if (( ${#options[@]} == 0 )); then
-        options+=(
-            --all-targets
-            --locked
-            --workspace
-        )
-    fi
 
     if [[ "$coverage" == "true" ]]; then
         just ensure-command cargo cargo-llvm-cov cargo-nextest
@@ -1088,20 +1053,13 @@ test-all:
 
 # Runs all doc tests. Always implies the `--doc` option to `cargo test`.
 [group('test')]
-test-docs *options:
+test-docs *options='--locked --workspace':
     #!/usr/bin/env bash
     set -euo pipefail
 
     readonly coverage="{{ coverage }}"
     toolchain="+stable"
     read -r -a options <<< "{{ options }}"
-    # If no options are provided, run locked, with default features, across the workspace.
-    if (( ${#options[@]} == 0 )); then
-        options+=(
-            --locked
-            --workspace
-        )
-    fi
 
     if [[ "$coverage" == "true" ]]; then
         toolchain="+nightly"
