@@ -1,11 +1,13 @@
 #![doc = include_str!("../README.md")]
 
 pub mod automation;
+mod connection;
 mod error;
 pub mod object;
 mod signer;
 mod user;
 
+pub use connection::Connection;
 pub use error::Error;
 pub use signer::YubiHsm2SigningKey;
 pub use user::Credentials;
