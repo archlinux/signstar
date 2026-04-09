@@ -24,6 +24,8 @@ use nethsm::Connection;
 use serde::{Deserialize, Serialize};
 #[cfg(any(feature = "nethsm", feature = "yubihsm2"))]
 use signstar_crypto::{AdministrativeSecretHandling, NonAdministrativeSecretHandling};
+#[cfg(feature = "yubihsm2")]
+use signstar_yubihsm2::Connection as YubiHsm2Connection;
 use strum::{AsRefStr, VariantNames};
 
 use crate::config::SystemConfig;
@@ -32,7 +34,7 @@ use crate::config::{ConfigAuthorizedKeyEntries, ConfigSystemUserIds};
 #[cfg(feature = "nethsm")]
 use crate::nethsm::{NetHsmConfig, NetHsmUserMapping};
 #[cfg(feature = "yubihsm2")]
-use crate::yubihsm2::{YubiHsm2Config, YubiHsm2UserMapping, backend::YubiHsmConnection};
+use crate::yubihsm2::{YubiHsm2Config, YubiHsm2UserMapping};
 
 /// Backend specific data for a user mapping.
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -71,7 +73,7 @@ pub enum UserBackendConnection {
         non_admin_secret_handling: NonAdministrativeSecretHandling,
 
         /// The available connections to the YubiHSM2 backend.
-        connections: BTreeSet<YubiHsmConnection>,
+        connections: BTreeSet<YubiHsm2Connection>,
 
         /// A specific YubiHSM2 user mapping.
         mapping: YubiHsm2UserMapping,
@@ -655,8 +657,8 @@ mod tests {
     fn default_yubihsm2_config() -> TestResult<YubiHsm2Config> {
         Ok(YubiHsm2Config::new(
             BTreeSet::from_iter([
-                YubiHsmConnection::Usb {serial_number: "0012345678".parse()? },
-                YubiHsmConnection::Usb {serial_number: "0087654321".parse()? },
+                YubiHsm2Connection::Usb {serial_number: "0012345678".parse()? },
+                YubiHsm2Connection::Usb {serial_number: "0087654321".parse()? },
             ]),
             BTreeSet::from_iter([
                 YubiHsm2UserMapping::Admin { authentication_key_id: "1".parse()? },
@@ -1505,8 +1507,8 @@ mod tests {
             "Configuration with system-wide and YubiHSM2 configuration has two duplicate system users and two duplicate SSH public keys",
             YubiHsm2Config::new(
                 BTreeSet::from_iter([
-                    YubiHsmConnection::Usb {serial_number: "0012345678".parse()? },
-                    YubiHsmConnection::Usb {serial_number: "0087654321".parse()? },
+                    YubiHsm2Connection::Usb {serial_number: "0012345678".parse()? },
+                    YubiHsm2Connection::Usb {serial_number: "0087654321".parse()? },
                 ]),
                 BTreeSet::from_iter([
                     YubiHsm2UserMapping::Admin { authentication_key_id: "1".parse()? },
@@ -1551,8 +1553,8 @@ mod tests {
             "Configuration with system-wide and YubiHSM2 configuration has one duplicate system user and two duplicate SSH public keys",
             YubiHsm2Config::new(
                 BTreeSet::from_iter([
-                    YubiHsmConnection::Usb {serial_number: "0012345678".parse()? },
-                    YubiHsmConnection::Usb {serial_number: "0087654321".parse()? },
+                    YubiHsm2Connection::Usb {serial_number: "0012345678".parse()? },
+                    YubiHsm2Connection::Usb {serial_number: "0087654321".parse()? },
                 ]),
                 BTreeSet::from_iter([
                     YubiHsm2UserMapping::Admin { authentication_key_id: "1".parse()? },
@@ -1597,8 +1599,8 @@ mod tests {
             "Configuration with system-wide and YubiHSM2 configuration has one duplicate system user and one duplicate SSH public key",
             YubiHsm2Config::new(
                 BTreeSet::from_iter([
-                    YubiHsmConnection::Usb {serial_number: "0012345678".parse()? },
-                    YubiHsmConnection::Usb {serial_number: "0087654321".parse()? },
+                    YubiHsm2Connection::Usb {serial_number: "0012345678".parse()? },
+                    YubiHsm2Connection::Usb {serial_number: "0087654321".parse()? },
                 ]),
                 BTreeSet::from_iter([
                     YubiHsm2UserMapping::Admin { authentication_key_id: "1".parse()? },
@@ -1643,8 +1645,8 @@ mod tests {
             "Configuration with system-wide and YubiHSM2 configuration has one duplicate SSH public key",
             YubiHsm2Config::new(
                 BTreeSet::from_iter([
-                    YubiHsmConnection::Usb {serial_number: "0012345678".parse()? },
-                    YubiHsmConnection::Usb {serial_number: "0087654321".parse()? },
+                    YubiHsm2Connection::Usb {serial_number: "0012345678".parse()? },
+                    YubiHsm2Connection::Usb {serial_number: "0087654321".parse()? },
                 ]),
                 BTreeSet::from_iter([
                     YubiHsm2UserMapping::Admin { authentication_key_id: "1".parse()? },
@@ -1689,8 +1691,8 @@ mod tests {
             "Configuration with system-wide and YubiHSM2 configuration has one duplicate system user",
             YubiHsm2Config::new(
                 BTreeSet::from_iter([
-                    YubiHsmConnection::Usb {serial_number: "0012345678".parse()? },
-                    YubiHsmConnection::Usb {serial_number: "0087654321".parse()? },
+                    YubiHsm2Connection::Usb {serial_number: "0012345678".parse()? },
+                    YubiHsm2Connection::Usb {serial_number: "0087654321".parse()? },
                 ]),
                 BTreeSet::from_iter([
                     YubiHsm2UserMapping::Admin { authentication_key_id: "1".parse()? },
@@ -1789,8 +1791,8 @@ mod tests {
                 },
                 non_admin_secret_handling: NonAdministrativeSecretHandling::SystemdCreds,
                 connections: BTreeSet::from_iter([
-                    YubiHsmConnection::Usb {serial_number: "0012345678".parse()? },
-                    YubiHsmConnection::Usb {serial_number: "0087654321".parse()? },
+                    YubiHsm2Connection::Usb {serial_number: "0012345678".parse()? },
+                    YubiHsm2Connection::Usb {serial_number: "0087654321".parse()? },
                 ]),
                 mapping: YubiHsm2UserMapping::Signing {
                     authentication_key_id: "5".parse()?,
@@ -1841,8 +1843,8 @@ mod tests {
                     },
                     non_admin_secret_handling: NonAdministrativeSecretHandling::SystemdCreds,
                     connections: BTreeSet::from_iter([
-                        YubiHsmConnection::Usb {serial_number: "0012345678".parse()? },
-                        YubiHsmConnection::Usb {serial_number: "0087654321".parse()? },
+                        YubiHsm2Connection::Usb {serial_number: "0012345678".parse()? },
+                        YubiHsm2Connection::Usb {serial_number: "0087654321".parse()? },
                     ]),
                     mapping: YubiHsm2UserMapping::Admin { authentication_key_id: "1".parse()? },
                 },
@@ -1853,8 +1855,8 @@ mod tests {
                     },
                     non_admin_secret_handling: NonAdministrativeSecretHandling::SystemdCreds,
                     connections: BTreeSet::from_iter([
-                        YubiHsmConnection::Usb {serial_number: "0012345678".parse()? },
-                        YubiHsmConnection::Usb {serial_number: "0087654321".parse()? },
+                        YubiHsm2Connection::Usb {serial_number: "0012345678".parse()? },
+                        YubiHsm2Connection::Usb {serial_number: "0087654321".parse()? },
                     ]),
                     mapping: YubiHsm2UserMapping::AuditLog {
                         authentication_key_id: "3".parse()?,
@@ -1869,8 +1871,8 @@ mod tests {
                     },
                     non_admin_secret_handling: NonAdministrativeSecretHandling::SystemdCreds,
                     connections: BTreeSet::from_iter([
-                        YubiHsmConnection::Usb {serial_number: "0012345678".parse()? },
-                        YubiHsmConnection::Usb {serial_number: "0087654321".parse()? },
+                        YubiHsm2Connection::Usb {serial_number: "0012345678".parse()? },
+                        YubiHsm2Connection::Usb {serial_number: "0087654321".parse()? },
                     ]),
                     mapping: YubiHsm2UserMapping::Backup{
                         authentication_key_id: "2".parse()?,
@@ -1886,8 +1888,8 @@ mod tests {
                     },
                     non_admin_secret_handling: NonAdministrativeSecretHandling::SystemdCreds,
                     connections: BTreeSet::from_iter([
-                        YubiHsmConnection::Usb {serial_number: "0012345678".parse()? },
-                        YubiHsmConnection::Usb {serial_number: "0087654321".parse()? },
+                        YubiHsm2Connection::Usb {serial_number: "0012345678".parse()? },
+                        YubiHsm2Connection::Usb {serial_number: "0087654321".parse()? },
                     ]),
                     mapping: YubiHsm2UserMapping::HermeticAuditLog {
                         authentication_key_id: "4".parse()?,
@@ -1901,8 +1903,8 @@ mod tests {
                     },
                     non_admin_secret_handling: NonAdministrativeSecretHandling::SystemdCreds,
                     connections: BTreeSet::from_iter([
-                        YubiHsmConnection::Usb {serial_number: "0012345678".parse()? },
-                        YubiHsmConnection::Usb {serial_number: "0087654321".parse()? },
+                        YubiHsm2Connection::Usb {serial_number: "0012345678".parse()? },
+                        YubiHsm2Connection::Usb {serial_number: "0087654321".parse()? },
                     ]),
                     mapping: YubiHsm2UserMapping::Signing {
                         authentication_key_id: "5".parse()?,
@@ -1936,8 +1938,8 @@ mod tests {
                     },
                     non_admin_secret_handling: NonAdministrativeSecretHandling::SystemdCreds,
                     connections: BTreeSet::from_iter([
-                        YubiHsmConnection::Usb {serial_number: "0012345678".parse()? },
-                        YubiHsmConnection::Usb {serial_number: "0087654321".parse()? },
+                        YubiHsm2Connection::Usb {serial_number: "0012345678".parse()? },
+                        YubiHsm2Connection::Usb {serial_number: "0087654321".parse()? },
                     ]),
                     mapping: YubiHsm2UserMapping::Admin { authentication_key_id: "1".parse()? },
                 },
@@ -1953,8 +1955,8 @@ mod tests {
                     },
                     non_admin_secret_handling: NonAdministrativeSecretHandling::SystemdCreds,
                     connections: BTreeSet::from_iter([
-                        YubiHsmConnection::Usb {serial_number: "0012345678".parse()? },
-                        YubiHsmConnection::Usb {serial_number: "0087654321".parse()? },
+                        YubiHsm2Connection::Usb {serial_number: "0012345678".parse()? },
+                        YubiHsm2Connection::Usb {serial_number: "0087654321".parse()? },
                     ]),
                     mapping: YubiHsm2UserMapping::AuditLog {
                         authentication_key_id: "3".parse()?,
@@ -1969,8 +1971,8 @@ mod tests {
                     },
                     non_admin_secret_handling: NonAdministrativeSecretHandling::SystemdCreds,
                     connections: BTreeSet::from_iter([
-                        YubiHsmConnection::Usb {serial_number: "0012345678".parse()? },
-                        YubiHsmConnection::Usb {serial_number: "0087654321".parse()? },
+                        YubiHsm2Connection::Usb {serial_number: "0012345678".parse()? },
+                        YubiHsm2Connection::Usb {serial_number: "0087654321".parse()? },
                     ]),
                     mapping: YubiHsm2UserMapping::Backup{
                         authentication_key_id: "2".parse()?,
@@ -1986,8 +1988,8 @@ mod tests {
                     },
                     non_admin_secret_handling: NonAdministrativeSecretHandling::SystemdCreds,
                     connections: BTreeSet::from_iter([
-                        YubiHsmConnection::Usb {serial_number: "0012345678".parse()? },
-                        YubiHsmConnection::Usb {serial_number: "0087654321".parse()? },
+                        YubiHsm2Connection::Usb {serial_number: "0012345678".parse()? },
+                        YubiHsm2Connection::Usb {serial_number: "0087654321".parse()? },
                     ]),
                     mapping: YubiHsm2UserMapping::HermeticAuditLog {
                         authentication_key_id: "4".parse()?,
@@ -2001,8 +2003,8 @@ mod tests {
                     },
                     non_admin_secret_handling: NonAdministrativeSecretHandling::SystemdCreds,
                     connections: BTreeSet::from_iter([
-                        YubiHsmConnection::Usb {serial_number: "0012345678".parse()? },
-                        YubiHsmConnection::Usb {serial_number: "0087654321".parse()? },
+                        YubiHsm2Connection::Usb {serial_number: "0012345678".parse()? },
+                        YubiHsm2Connection::Usb {serial_number: "0087654321".parse()? },
                     ]),
                     mapping: YubiHsm2UserMapping::Signing {
                         authentication_key_id: "5".parse()?,
@@ -2228,8 +2230,8 @@ mod tests {
             )?,
             YubiHsm2Config::new(
                 BTreeSet::from_iter([
-                    YubiHsmConnection::Usb {serial_number: "0012345678".parse()? },
-                    YubiHsmConnection::Usb {serial_number: "0087654321".parse()? },
+                    YubiHsm2Connection::Usb {serial_number: "0012345678".parse()? },
+                    YubiHsm2Connection::Usb {serial_number: "0087654321".parse()? },
                 ]),
                 BTreeSet::from_iter([
                     YubiHsm2UserMapping::Admin { authentication_key_id: "1".parse()? },
@@ -2315,8 +2317,8 @@ mod tests {
             )?,
             YubiHsm2Config::new(
                 BTreeSet::from_iter([
-                    YubiHsmConnection::Usb {serial_number: "0012345678".parse()? },
-                    YubiHsmConnection::Usb {serial_number: "0087654321".parse()? },
+                    YubiHsm2Connection::Usb {serial_number: "0012345678".parse()? },
+                    YubiHsm2Connection::Usb {serial_number: "0087654321".parse()? },
                 ]),
                 BTreeSet::from_iter([
                     YubiHsm2UserMapping::Admin { authentication_key_id: "1".parse()? },
@@ -2402,8 +2404,8 @@ mod tests {
             )?,
             YubiHsm2Config::new(
                 BTreeSet::from_iter([
-                    YubiHsmConnection::Usb {serial_number: "0012345678".parse()? },
-                    YubiHsmConnection::Usb {serial_number: "0087654321".parse()? },
+                    YubiHsm2Connection::Usb {serial_number: "0012345678".parse()? },
+                    YubiHsm2Connection::Usb {serial_number: "0087654321".parse()? },
                 ]),
                 BTreeSet::from_iter([
                     YubiHsm2UserMapping::Admin { authentication_key_id: "1".parse()? },
@@ -2516,8 +2518,8 @@ mod tests {
                 },
                 non_admin_secret_handling: NonAdministrativeSecretHandling::SystemdCreds,
                 connections: BTreeSet::from_iter([
-                    YubiHsmConnection::Usb {serial_number: "0012345678".parse()? },
-                    YubiHsmConnection::Usb {serial_number: "0087654321".parse()? },
+                    YubiHsm2Connection::Usb {serial_number: "0012345678".parse()? },
+                    YubiHsm2Connection::Usb {serial_number: "0087654321".parse()? },
                 ]),
                 mapping: YubiHsm2UserMapping::Signing {
                     authentication_key_id: "5".parse()?,
@@ -2657,8 +2659,8 @@ mod tests {
                     },
                     non_admin_secret_handling: NonAdministrativeSecretHandling::SystemdCreds,
                     connections: BTreeSet::from_iter([
-                        YubiHsmConnection::Usb {serial_number: "0012345678".parse()? },
-                        YubiHsmConnection::Usb {serial_number: "0087654321".parse()? },
+                        YubiHsm2Connection::Usb {serial_number: "0012345678".parse()? },
+                        YubiHsm2Connection::Usb {serial_number: "0087654321".parse()? },
                     ]),
                     mapping: YubiHsm2UserMapping::Admin { authentication_key_id: "1".parse()? },
                 },
@@ -2669,8 +2671,8 @@ mod tests {
                     },
                     non_admin_secret_handling: NonAdministrativeSecretHandling::SystemdCreds,
                     connections: BTreeSet::from_iter([
-                        YubiHsmConnection::Usb {serial_number: "0012345678".parse()? },
-                        YubiHsmConnection::Usb {serial_number: "0087654321".parse()? },
+                        YubiHsm2Connection::Usb {serial_number: "0012345678".parse()? },
+                        YubiHsm2Connection::Usb {serial_number: "0087654321".parse()? },
                     ]),
                     mapping: YubiHsm2UserMapping::AuditLog {
                         authentication_key_id: "3".parse()?,
@@ -2685,8 +2687,8 @@ mod tests {
                     },
                     non_admin_secret_handling: NonAdministrativeSecretHandling::SystemdCreds,
                     connections: BTreeSet::from_iter([
-                        YubiHsmConnection::Usb {serial_number: "0012345678".parse()? },
-                        YubiHsmConnection::Usb {serial_number: "0087654321".parse()? },
+                        YubiHsm2Connection::Usb {serial_number: "0012345678".parse()? },
+                        YubiHsm2Connection::Usb {serial_number: "0087654321".parse()? },
                     ]),
                     mapping: YubiHsm2UserMapping::Backup{
                         authentication_key_id: "2".parse()?,
@@ -2702,8 +2704,8 @@ mod tests {
                     },
                     non_admin_secret_handling: NonAdministrativeSecretHandling::SystemdCreds,
                     connections: BTreeSet::from_iter([
-                        YubiHsmConnection::Usb {serial_number: "0012345678".parse()? },
-                        YubiHsmConnection::Usb {serial_number: "0087654321".parse()? },
+                        YubiHsm2Connection::Usb {serial_number: "0012345678".parse()? },
+                        YubiHsm2Connection::Usb {serial_number: "0087654321".parse()? },
                     ]),
                     mapping: YubiHsm2UserMapping::HermeticAuditLog {
                         authentication_key_id: "4".parse()?,
@@ -2717,8 +2719,8 @@ mod tests {
                     },
                     non_admin_secret_handling: NonAdministrativeSecretHandling::SystemdCreds,
                     connections: BTreeSet::from_iter([
-                        YubiHsmConnection::Usb {serial_number: "0012345678".parse()? },
-                        YubiHsmConnection::Usb {serial_number: "0087654321".parse()? },
+                        YubiHsm2Connection::Usb {serial_number: "0012345678".parse()? },
+                        YubiHsm2Connection::Usb {serial_number: "0087654321".parse()? },
                     ]),
                     mapping: YubiHsm2UserMapping::Signing {
                         authentication_key_id: "5".parse()?,
@@ -2764,8 +2766,8 @@ mod tests {
                     },
                     non_admin_secret_handling: NonAdministrativeSecretHandling::SystemdCreds,
                     connections: BTreeSet::from_iter([
-                        YubiHsmConnection::Usb {serial_number: "0012345678".parse()? },
-                        YubiHsmConnection::Usb {serial_number: "0087654321".parse()? },
+                        YubiHsm2Connection::Usb {serial_number: "0012345678".parse()? },
+                        YubiHsm2Connection::Usb {serial_number: "0087654321".parse()? },
                     ]),
                     mapping: YubiHsm2UserMapping::Admin { authentication_key_id: "1".parse()? },
                 },
@@ -2858,8 +2860,8 @@ mod tests {
                     },
                     non_admin_secret_handling: NonAdministrativeSecretHandling::SystemdCreds,
                     connections: BTreeSet::from_iter([
-                        YubiHsmConnection::Usb {serial_number: "0012345678".parse()? },
-                        YubiHsmConnection::Usb {serial_number: "0087654321".parse()? },
+                        YubiHsm2Connection::Usb {serial_number: "0012345678".parse()? },
+                        YubiHsm2Connection::Usb {serial_number: "0087654321".parse()? },
                     ]),
                     mapping: YubiHsm2UserMapping::AuditLog {
                         authentication_key_id: "3".parse()?,
@@ -2874,8 +2876,8 @@ mod tests {
                     },
                     non_admin_secret_handling: NonAdministrativeSecretHandling::SystemdCreds,
                     connections: BTreeSet::from_iter([
-                        YubiHsmConnection::Usb {serial_number: "0012345678".parse()? },
-                        YubiHsmConnection::Usb {serial_number: "0087654321".parse()? },
+                        YubiHsm2Connection::Usb {serial_number: "0012345678".parse()? },
+                        YubiHsm2Connection::Usb {serial_number: "0087654321".parse()? },
                     ]),
                     mapping: YubiHsm2UserMapping::Backup{
                         authentication_key_id: "2".parse()?,
@@ -2891,8 +2893,8 @@ mod tests {
                     },
                     non_admin_secret_handling: NonAdministrativeSecretHandling::SystemdCreds,
                     connections: BTreeSet::from_iter([
-                        YubiHsmConnection::Usb {serial_number: "0012345678".parse()? },
-                        YubiHsmConnection::Usb {serial_number: "0087654321".parse()? },
+                        YubiHsm2Connection::Usb {serial_number: "0012345678".parse()? },
+                        YubiHsm2Connection::Usb {serial_number: "0087654321".parse()? },
                     ]),
                     mapping: YubiHsm2UserMapping::HermeticAuditLog {
                         authentication_key_id: "4".parse()?,
@@ -2906,8 +2908,8 @@ mod tests {
                     },
                     non_admin_secret_handling: NonAdministrativeSecretHandling::SystemdCreds,
                     connections: BTreeSet::from_iter([
-                        YubiHsmConnection::Usb {serial_number: "0012345678".parse()? },
-                        YubiHsmConnection::Usb {serial_number: "0087654321".parse()? },
+                        YubiHsm2Connection::Usb {serial_number: "0012345678".parse()? },
+                        YubiHsm2Connection::Usb {serial_number: "0087654321".parse()? },
                     ]),
                     mapping: YubiHsm2UserMapping::Signing {
                         authentication_key_id: "5".parse()?,

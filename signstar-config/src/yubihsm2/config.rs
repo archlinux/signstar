@@ -7,6 +7,7 @@ use garde::Validate;
 use serde::{Deserialize, Serialize};
 use signstar_crypto::{key::SigningKeySetup, passphrase::Passphrase, traits::UserWithPassphrase};
 use signstar_yubihsm2::{
+    Connection,
     Credentials,
     object::{Domain, Id},
 };
@@ -33,7 +34,6 @@ use crate::{
         duplicate_key_ids,
         duplicate_system_user_ids,
     },
-    yubihsm2::backend::YubiHsmConnection,
 };
 
 /// An error that may occur when using YubiHSM2 config objects.
@@ -626,7 +626,7 @@ impl MappingBackendKeyId<YubiHsm2BackendKeyIdFilter> for YubiHsm2UserMapping {
 
 impl MappingBackendUserSecrets for YubiHsm2UserMapping {}
 
-/// Validates a set of [`YubiHsmConnection`] objects.
+/// Validates a set of [`Connection`] objects.
 ///
 /// Ensures that `value` is not empty.
 ///
@@ -634,7 +634,7 @@ impl MappingBackendUserSecrets for YubiHsm2UserMapping {}
 ///
 /// Returns an error if `value` is empty.
 fn validate_yubihsm2_config_connections(
-    value: &BTreeSet<YubiHsmConnection>,
+    value: &BTreeSet<Connection>,
     _context: &(),
 ) -> garde::Result {
     if value.is_empty() {
@@ -774,7 +774,7 @@ fn validate_yubihsm2_config_mappings(
 pub struct YubiHsm2Config {
     /// A set of connections to YubiHSM2 backends.
     #[garde(custom(validate_yubihsm2_config_connections))]
-    connections: BTreeSet<YubiHsmConnection>,
+    connections: BTreeSet<Connection>,
 
     /// User mappings present in each YubiHSM2 backend.
     #[garde(custom(validate_yubihsm2_config_mappings))]
@@ -782,10 +782,10 @@ pub struct YubiHsm2Config {
 }
 
 impl YubiHsm2Config {
-    /// Creates a new [`YubiHsm2Config`] from a set of [`YubiHsmConnection`] and a set of
+    /// Creates a new [`YubiHsm2Config`] from a set of [`Connection`] and a set of
     /// [`YubiHsm2UserMapping`] items.
     pub fn new(
-        connections: BTreeSet<YubiHsmConnection>,
+        connections: BTreeSet<Connection>,
         mappings: BTreeSet<YubiHsm2UserMapping>,
     ) -> Result<Self, crate::Error> {
         let config = Self {
@@ -802,8 +802,8 @@ impl YubiHsm2Config {
         Ok(config)
     }
 
-    /// Returns a reference to the set of [`YubiHsmConnection`] objects.
-    pub fn connections(&self) -> &BTreeSet<YubiHsmConnection> {
+    /// Returns a reference to the set of [`Connection`] objects.
+    pub fn connections(&self) -> &BTreeSet<Connection> {
         &self.connections
     }
 
@@ -1837,12 +1837,12 @@ mod tests {
     }
 
     #[fixture]
-    fn yubihsm2_yubihsm_connections() -> TestResult<[YubiHsmConnection; 2]> {
+    fn yubihsm2_yubihsm_connections() -> TestResult<[Connection; 2]> {
         Ok([
-            YubiHsmConnection::Usb {
+            Connection::Usb {
                 serial_number: "0012345678".parse()?,
             },
-            YubiHsmConnection::Usb {
+            Connection::Usb {
                 serial_number: "0087654321".parse()?,
             },
         ])
@@ -1891,7 +1891,7 @@ mod tests {
 
     #[fixture]
     fn yubihsm2_config(
-        yubihsm2_yubihsm_connections: TestResult<[YubiHsmConnection; 2]>,
+        yubihsm2_yubihsm_connections: TestResult<[Connection; 2]>,
         yubihsm2_mappings: TestResult<[YubiHsm2UserMapping; 5]>,
     ) -> TestResult<YubiHsm2Config> {
         let yubihsm2_yubihsm_connections = yubihsm2_yubihsm_connections?;
@@ -1906,7 +1906,7 @@ mod tests {
 
     #[rstest]
     fn yubihsm2_config_connections(
-        yubihsm2_yubihsm_connections: TestResult<[YubiHsmConnection; 2]>,
+        yubihsm2_yubihsm_connections: TestResult<[Connection; 2]>,
         yubihsm2_config: TestResult<YubiHsm2Config>,
     ) -> TestResult {
         let yubihsm2_config = yubihsm2_config?;
@@ -2024,16 +2024,16 @@ mod tests {
     #[case::no_mappings(
         "Error message for YubiHsm2Config::new with no user mappings",
         BTreeSet::from_iter([
-            YubiHsmConnection::Usb {serial_number: "0012345678".parse()? },
-            YubiHsmConnection::Usb {serial_number: "0087654321".parse()? },
+            Connection::Usb {serial_number: "0012345678".parse()? },
+            Connection::Usb {serial_number: "0087654321".parse()? },
         ]),
         BTreeSet::new(),
     )]
     #[case::duplicate_system_user_ids(
         "Error message for YubiHsm2Config::new with two duplicate system user IDs",
         BTreeSet::from_iter([
-            YubiHsmConnection::Usb {serial_number: "0012345678".parse()? },
-            YubiHsmConnection::Usb {serial_number: "0087654321".parse()? },
+            Connection::Usb {serial_number: "0012345678".parse()? },
+            Connection::Usb {serial_number: "0087654321".parse()? },
         ]),
         BTreeSet::from_iter([
             YubiHsm2UserMapping::Admin { authentication_key_id: "1".parse()? },
@@ -2072,8 +2072,8 @@ mod tests {
     #[case::duplicate_ssh_public_keys(
         "Error message for YubiHsm2Config::new with two duplicate SSH public keys as authorized keys",
         BTreeSet::from_iter([
-            YubiHsmConnection::Usb {serial_number: "0012345678".parse()? },
-            YubiHsmConnection::Usb {serial_number: "0087654321".parse()? },
+            Connection::Usb {serial_number: "0012345678".parse()? },
+            Connection::Usb {serial_number: "0087654321".parse()? },
         ]),
         BTreeSet::from_iter([
             YubiHsm2UserMapping::Admin { authentication_key_id: "1".parse()? },
@@ -2112,8 +2112,8 @@ mod tests {
     #[case::no_administrator(
         "Error message for YubiHsm2Config::new with no administrator",
         BTreeSet::from_iter([
-            YubiHsmConnection::Usb {serial_number: "0012345678".parse()? },
-            YubiHsmConnection::Usb {serial_number: "0087654321".parse()? },
+            Connection::Usb {serial_number: "0012345678".parse()? },
+            Connection::Usb {serial_number: "0087654321".parse()? },
         ]),
         BTreeSet::from_iter([
             YubiHsm2UserMapping::Backup{
@@ -2151,8 +2151,8 @@ mod tests {
     #[case::duplicate_backend_user_ids(
         "Error message for YubiHsm2Config::new with two duplicate backend user IDs",
         BTreeSet::from_iter([
-            YubiHsmConnection::Usb {serial_number: "0012345678".parse()? },
-            YubiHsmConnection::Usb {serial_number: "0087654321".parse()? },
+            Connection::Usb {serial_number: "0012345678".parse()? },
+            Connection::Usb {serial_number: "0087654321".parse()? },
         ]),
         BTreeSet::from_iter([
             YubiHsm2UserMapping::Admin { authentication_key_id: "1".parse()? },
@@ -2191,8 +2191,8 @@ mod tests {
     #[case::duplicate_signing_key_ids(
         "Error message for YubiHsm2Config::new with two duplicate signing key IDs",
         BTreeSet::from_iter([
-            YubiHsmConnection::Usb {serial_number: "0012345678".parse()? },
-            YubiHsmConnection::Usb {serial_number: "0087654321".parse()? },
+            Connection::Usb {serial_number: "0012345678".parse()? },
+            Connection::Usb {serial_number: "0087654321".parse()? },
         ]),
         BTreeSet::from_iter([
             YubiHsm2UserMapping::Admin { authentication_key_id: "1".parse()? },
@@ -2250,8 +2250,8 @@ mod tests {
     #[case::duplicate_wrapping_key_ids(
         "Error message for YubiHsm2Config::new with two duplicate wrapping key IDs",
         BTreeSet::from_iter([
-            YubiHsmConnection::Usb {serial_number: "0012345678".parse()? },
-            YubiHsmConnection::Usb {serial_number: "0087654321".parse()? },
+            Connection::Usb {serial_number: "0012345678".parse()? },
+            Connection::Usb {serial_number: "0087654321".parse()? },
         ]),
         BTreeSet::from_iter([
             YubiHsm2UserMapping::Admin { authentication_key_id: "1".parse()? },
@@ -2296,8 +2296,8 @@ mod tests {
     #[case::duplicate_domains(
         "Error message for YubiHsm2Config::new with two duplicate domains",
         BTreeSet::from_iter([
-            YubiHsmConnection::Usb {serial_number: "0012345678".parse()? },
-            YubiHsmConnection::Usb {serial_number: "0087654321".parse()? },
+            Connection::Usb {serial_number: "0012345678".parse()? },
+            Connection::Usb {serial_number: "0087654321".parse()? },
         ]),
         BTreeSet::from_iter([
             YubiHsm2UserMapping::Admin { authentication_key_id: "1".parse()? },
@@ -2415,7 +2415,7 @@ mod tests {
     )]
     fn yubihsm2_config_new_fails_validation(
         #[case] description: &str,
-        #[case] connections: BTreeSet<YubiHsmConnection>,
+        #[case] connections: BTreeSet<Connection>,
         #[case] mappings: BTreeSet<YubiHsm2UserMapping>,
     ) -> TestResult {
         let error_msg = match YubiHsm2Config::new(connections, mappings) {
