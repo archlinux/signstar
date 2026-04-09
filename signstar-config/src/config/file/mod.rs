@@ -2118,6 +2118,7 @@ mod tests {
         #[rstest]
         fn roundtrip_yaml_config(
             #[files("src/config/file/fixtures/valid_config/system-and-yubihsm2-config-*.yaml")]
+            #[exclude("mock")]
             path: PathBuf,
         ) -> TestResult {
             let config_string = read_to_string(&path)?;

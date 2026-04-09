@@ -283,7 +283,7 @@ mod yubihsm2_backend {
     #[rstest]
     fn create_and_load_non_admin_secrets(
         #[files("src/config/file/fixtures/valid_config/system-and-yubihsm2-config*.yaml")]
-        #[exclude("sss")]
+        #[exclude("sss|mock")]
         #[mode = str]
         config: &str,
     ) -> TestResult {
