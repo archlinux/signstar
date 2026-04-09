@@ -12,7 +12,7 @@ version = "0.1.0"
 
 [dependencies]
 clap = { workspace = true, optional = true }
-clap-verbosity-flag.workspace = true
+clap-verbosity-flag = { workspace = true, optional = true }
 log.workspace = true
 serde = { workspace = true, features = ["derive"], optional = true }
 serde_json = { workspace = true, optional = true }
@@ -28,7 +28,7 @@ testresult.workspace = true
 
 [features]
 _yubihsm2-mockhsm = ["yubihsm/mockhsm"]
-cli = ["dep:clap", "serde"]
+cli = ["dep:clap", "dep:clap-verbosity-flag", "serde"]
 default = ["serde"]
 serde = ["dep:serde", "dep:serde_json", "dep:serde_repr"]
 
