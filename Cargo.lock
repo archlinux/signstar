@@ -2845,7 +2845,6 @@ dependencies = [
  "ed25519-dalek",
  "hex",
  "log",
- "md-5",
  "nethsm-sdk-rs",
  "p256",
  "p384",

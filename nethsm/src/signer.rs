@@ -291,8 +291,7 @@ fn prepare_digest_data_for_openpgp(
         // digest transformations.
         SignatureType::EdDsa | SignatureType::EcdsaP521 => digest.into(),
 
-        SignatureType::PssMd5
-        | SignatureType::PssSha1
+        SignatureType::PssSha1
         | SignatureType::PssSha224
         | SignatureType::PssSha256
         | SignatureType::PssSha384
@@ -350,8 +349,7 @@ fn raw_signature_to_mpis(sig_type: SignatureType, sig: &[u8]) -> Result<Vec<Vec<
             // RSA
             vec![sig.into()]
         }
-        SignatureType::PssMd5
-        | SignatureType::PssSha1
+        SignatureType::PssSha1
         | SignatureType::PssSha224
         | SignatureType::PssSha256
         | SignatureType::PssSha384

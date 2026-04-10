@@ -2,7 +2,6 @@
 
 use base64ct::{Base64, Encoding};
 use log::debug;
-use md5::{Digest as _, Md5};
 use nethsm_sdk_rs::{
     apis::default_api::{
         KeysPostBody,
@@ -66,9 +65,9 @@ impl NetHsm {
     ///   [`KeyMechanism::RsaDecryptionOaepSha1`], [`KeyMechanism::RsaDecryptionOaepSha224`],
     ///   [`KeyMechanism::RsaDecryptionOaepSha256`], [`KeyMechanism::RsaDecryptionOaepSha384`],
     ///   [`KeyMechanism::RsaDecryptionOaepSha512`], [`KeyMechanism::RsaSignaturePkcs1`],
-    ///   [`KeyMechanism::RsaSignaturePssMd5`], [`KeyMechanism::RsaSignaturePssSha1`],
-    ///   [`KeyMechanism::RsaSignaturePssSha224`], [`KeyMechanism::RsaSignaturePssSha256`],
-    ///   [`KeyMechanism::RsaSignaturePssSha384`] or [`KeyMechanism::RsaSignaturePssSha512`]
+    ///   [`KeyMechanism::RsaSignaturePssSha1`], [`KeyMechanism::RsaSignaturePssSha224`],
+    ///   [`KeyMechanism::RsaSignaturePssSha256`], [`KeyMechanism::RsaSignaturePssSha384`] or
+    ///   [`KeyMechanism::RsaSignaturePssSha512`]
     /// * [`KeyType::Curve25519`] requires [`KeyMechanism::EdDsaSignature`]
     /// * [`KeyType::EcP256`], [`KeyType::EcP384`] and [`KeyType::EcP521`] require
     ///   [`KeyMechanism::EcdsaSignature`]
@@ -240,9 +239,9 @@ impl NetHsm {
     ///   [`KeyMechanism::RsaDecryptionOaepSha1`], [`KeyMechanism::RsaDecryptionOaepSha224`],
     ///   [`KeyMechanism::RsaDecryptionOaepSha256`], [`KeyMechanism::RsaDecryptionOaepSha384`],
     ///   [`KeyMechanism::RsaDecryptionOaepSha512`], [`KeyMechanism::RsaSignaturePkcs1`],
-    ///   [`KeyMechanism::RsaSignaturePssMd5`], [`KeyMechanism::RsaSignaturePssSha1`],
-    ///   [`KeyMechanism::RsaSignaturePssSha224`], [`KeyMechanism::RsaSignaturePssSha256`],
-    ///   [`KeyMechanism::RsaSignaturePssSha384`] or [`KeyMechanism::RsaSignaturePssSha512`]
+    ///   [`KeyMechanism::RsaSignaturePssSha1`], [`KeyMechanism::RsaSignaturePssSha224`],
+    ///   [`KeyMechanism::RsaSignaturePssSha256`], [`KeyMechanism::RsaSignaturePssSha384`] or
+    ///   [`KeyMechanism::RsaSignaturePssSha512`]
     /// * [`KeyType::Curve25519`] must be used with [`KeyMechanism::EdDsaSignature`]
     /// * [`KeyType::EcP256`], [`KeyType::EcP384`] and [`KeyType::EcP521`] must be used with
     ///   [`KeyMechanism::EcdsaSignature`]
@@ -1400,7 +1399,6 @@ impl NetHsm {
     /// The `digest` must be of appropriate type depending on `signature_type`:
     /// * [`SignatureType::Pkcs1`], [`SignatureType::PssSha256`] and [`SignatureType::EcdsaP256`]
     ///   require a [SHA-256] digest
-    /// * [`SignatureType::PssMd5`] requires an [MD5] digest
     /// * [`SignatureType::PssSha1`] requires a [SHA-1] digest
     /// * [`SignatureType::PssSha384`] and [`SignatureType::EcdsaP384`] require a [SHA-384] digest
     /// * [`SignatureType::PssSha512`] and [`SignatureType::EcdsaP521`] require a [SHA-521] digest
@@ -1410,9 +1408,9 @@ impl NetHsm {
     ///
     /// * [`SignatureType::Pkcs1`] returns the [PKCS 1] padded signature (no signature algorithm OID
     ///   prepended, since the used hash is not known).
-    /// * [`SignatureType::PssMd5`], [`SignatureType::PssSha1`], [`SignatureType::PssSha224`],
-    ///   [`SignatureType::PssSha256`], [`SignatureType::PssSha384`] and
-    ///   [`SignatureType::PssSha512`] return the [EMSA-PSS] encoded signature.
+    /// * [`SignatureType::PssSha1`], [`SignatureType::PssSha224`], [`SignatureType::PssSha256`],
+    ///   [`SignatureType::PssSha384`] and [`SignatureType::PssSha512`] return the [EMSA-PSS]
+    ///   encoded signature.
     /// * [`SignatureType::EdDsa`] returns the encoding as specified in [RFC 8032 (5.1.6)] (`r`
     ///   appended with `s` (each 32 bytes), in total 64 bytes).
     /// * [`SignatureType::EcdsaP256`], [`SignatureType::EcdsaP384`] and
@@ -1560,9 +1558,9 @@ impl NetHsm {
     ///
     /// * [`SignatureType::Pkcs1`] returns the [PKCS 1] padded signature (no signature algorithm OID
     ///   prepended, since the used hash is not known).
-    /// * [`SignatureType::PssMd5`], [`SignatureType::PssSha1`], [`SignatureType::PssSha224`],
-    ///   [`SignatureType::PssSha256`], [`SignatureType::PssSha384`] and
-    ///   [`SignatureType::PssSha512`] return the [EMSA-PSS] encoded signature.
+    /// * [`SignatureType::PssSha1`], [`SignatureType::PssSha224`], [`SignatureType::PssSha256`],
+    ///   [`SignatureType::PssSha384`] and [`SignatureType::PssSha512`] return the [EMSA-PSS]
+    ///   encoded signature.
     /// * [`SignatureType::EdDsa`] returns the encoding as specified in [RFC 8032 (5.1.6)] (`r`
     ///   appended with `s` (each 32 bytes), in total 64 bytes).
     /// * [`SignatureType::EcdsaP256`], [`SignatureType::EcdsaP384`] and
@@ -1675,11 +1673,6 @@ impl NetHsm {
         let message = match signature_type {
             SignatureType::Pkcs1 | SignatureType::PssSha256 | SignatureType::EcdsaP256 => {
                 let mut hasher = Sha256::new();
-                hasher.update(message);
-                &hasher.finalize()[..]
-            }
-            SignatureType::PssMd5 => {
-                let mut hasher = Md5::new();
                 hasher.update(message);
                 &hasher.finalize()[..]
             }

@@ -23,4 +23,9 @@ pub enum Error {
     #[error("Test helper error: {0}")]
     #[cfg(feature = "_test-helpers")]
     TestHelper(#[from] crate::test::Error),
+
+    /// An unsupported key mechanism has been encountered.
+    #[error("Unsupported key mechanism: {0}")]
+    #[cfg(feature = "nethsm")]
+    UnsupportedNetHsmKeyMechanism(nethsm_sdk_rs::models::KeyMechanism),
 }

@@ -221,9 +221,6 @@ pub enum KeyMechanism {
     /// RSA signing following the PKCS#1 standard
     RsaSignaturePkcs1,
 
-    /// RSA signing following a "probabilistic signature scheme" (PSS) using an MD-5 hash
-    RsaSignaturePssMd5,
-
     /// RSA signing following a "probabilistic signature scheme" (PSS) using a SHA-1 hash
     RsaSignaturePssSha1,
 
@@ -271,7 +268,6 @@ impl KeyMechanism {
             KeyMechanism::RsaDecryptionOaepSha384,
             KeyMechanism::RsaDecryptionOaepSha512,
             KeyMechanism::RsaSignaturePkcs1,
-            KeyMechanism::RsaSignaturePssMd5,
             KeyMechanism::RsaSignaturePssSha1,
             KeyMechanism::RsaSignaturePssSha224,
             KeyMechanism::RsaSignaturePssSha256,
@@ -317,9 +313,6 @@ pub enum SignatureType {
 
     /// RSA signing following the PKCS#1 standard
     Pkcs1,
-
-    /// RSA signing following a "probabilistic signature scheme" (PSS) using an MD-5 hash
-    PssMd5,
 
     /// RSA signing following a "probabilistic signature scheme" (PSS) using a SHA-1 hash
     PssSha1,
@@ -406,8 +399,6 @@ impl CryptographicKeyContext {
                     if key_mechanisms.contains(&KeyMechanism::EcdsaSignature) => {}
                 (KeyType::Rsa, SignatureType::Pkcs1)
                     if key_mechanisms.contains(&KeyMechanism::RsaSignaturePkcs1) => {}
-                (KeyType::Rsa, SignatureType::PssMd5)
-                    if key_mechanisms.contains(&KeyMechanism::RsaSignaturePssMd5) => {}
                 (KeyType::Rsa, SignatureType::PssSha1)
                     if key_mechanisms.contains(&KeyMechanism::RsaSignaturePssSha1) => {}
                 (KeyType::Rsa, SignatureType::PssSha224)
@@ -685,19 +676,6 @@ pub fn key_type_and_mechanisms_match_signature_type(
                 });
             }
         }
-        SignatureType::PssMd5 => {
-            if key_type != KeyType::Rsa {
-                return Err(Error::InvalidKeyTypeForSignatureType {
-                    key_type,
-                    signature_type,
-                });
-            } else if !mechanisms.contains(&KeyMechanism::RsaSignaturePssMd5) {
-                return Err(Error::InvalidKeyMechanismsForSignatureType {
-                    required_key_mechanism: KeyMechanism::RsaSignaturePssMd5,
-                    signature_type,
-                });
-            }
-        }
         SignatureType::PssSha1 => {
             if key_type != KeyType::Rsa {
                 return Err(Error::InvalidKeyTypeForSignatureType {
@@ -847,7 +825,6 @@ mod tests {
     #[case(KeyType::EcP384, &[KeyMechanism::EcdsaSignature], SignatureType::EcdsaP384, None)]
     #[case(KeyType::EcP521, &[KeyMechanism::EcdsaSignature], SignatureType::EcdsaP521, None)]
     #[case(KeyType::Rsa, &[KeyMechanism::RsaSignaturePkcs1], SignatureType::Pkcs1, None)]
-    #[case(KeyType::Rsa, &[KeyMechanism::RsaSignaturePssMd5], SignatureType::PssMd5, None)]
     #[case(KeyType::Rsa, &[KeyMechanism::RsaSignaturePssSha1], SignatureType::PssSha1, None)]
     #[case(KeyType::Rsa, &[KeyMechanism::RsaSignaturePssSha224], SignatureType::PssSha224, None)]
     #[case(KeyType::Rsa, &[KeyMechanism::RsaSignaturePssSha256], SignatureType::PssSha256, None)]
@@ -934,15 +911,6 @@ mod tests {
             signature_type: SignatureType::EdDsa,
         })
     ))]
-    #[case(
-        KeyType::Rsa,
-        &[KeyMechanism::RsaDecryptionOaepMd5],
-        SignatureType::PssMd5,
-        Some(Box::new(Error::InvalidKeyMechanismsForSignatureType {
-            signature_type: SignatureType::PssMd5,
-            required_key_mechanism: KeyMechanism::RsaSignaturePssMd5,
-        })
-    ))]
     fn test_key_type_and_mechanisms_match_signature_type(
         #[case] key_type: KeyType,
         #[case] key_mechanisms: &[KeyMechanism],
@@ -1015,7 +983,6 @@ mod tests {
     #[case("rsadecryptionoaepsha512", Some(KeyMechanism::RsaDecryptionOaepSha512))]
     #[case("rsadecryptionoaepsha512", Some(KeyMechanism::RsaDecryptionOaepSha512))]
     #[case("rsasignaturepkcs1", Some(KeyMechanism::RsaSignaturePkcs1))]
-    #[case("rsasignaturepssmd5", Some(KeyMechanism::RsaSignaturePssMd5))]
     #[case("rsasignaturepsssha1", Some(KeyMechanism::RsaSignaturePssSha1))]
     #[case("rsasignaturepsssha224", Some(KeyMechanism::RsaSignaturePssSha224))]
     #[case("rsasignaturepsssha256", Some(KeyMechanism::RsaSignaturePssSha256))]
@@ -1061,7 +1028,6 @@ mod tests {
     #[case("ecdsap521", Some(SignatureType::EcdsaP521))]
     #[case("eddsa", Some(SignatureType::EdDsa))]
     #[case("pkcs1", Some(SignatureType::Pkcs1))]
-    #[case("pssmd5", Some(SignatureType::PssMd5))]
     #[case("psssha1", Some(SignatureType::PssSha1))]
     #[case("psssha224", Some(SignatureType::PssSha224))]
     #[case("psssha256", Some(SignatureType::PssSha256))]

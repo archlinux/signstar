@@ -43,9 +43,10 @@ impl TryFrom<nethsm_sdk_rs::models::KeyType> for KeyType {
     }
 }
 
-impl From<&nethsm_sdk_rs::models::KeyMechanism> for KeyMechanism {
-    fn from(value: &nethsm_sdk_rs::models::KeyMechanism) -> Self {
-        match value {
+impl TryFrom<&nethsm_sdk_rs::models::KeyMechanism> for KeyMechanism {
+    type Error = crate::Error;
+    fn try_from(value: &nethsm_sdk_rs::models::KeyMechanism) -> Result<Self, Self::Error> {
+        Ok(match value {
             nethsm_sdk_rs::models::KeyMechanism::AesDecryptionCbc => Self::AesDecryptionCbc,
             nethsm_sdk_rs::models::KeyMechanism::AesEncryptionCbc => Self::AesEncryptionCbc,
             nethsm_sdk_rs::models::KeyMechanism::EcdsaSignature => Self::EcdsaSignature,
@@ -69,7 +70,6 @@ impl From<&nethsm_sdk_rs::models::KeyMechanism> for KeyMechanism {
             nethsm_sdk_rs::models::KeyMechanism::RsaDecryptionPkcs1 => Self::RsaDecryptionPkcs1,
             nethsm_sdk_rs::models::KeyMechanism::RsaDecryptionRaw => Self::RsaDecryptionRaw,
             nethsm_sdk_rs::models::KeyMechanism::RsaSignaturePkcs1 => Self::RsaSignaturePkcs1,
-            nethsm_sdk_rs::models::KeyMechanism::RsaSignaturePssMd5 => Self::RsaSignaturePssMd5,
             nethsm_sdk_rs::models::KeyMechanism::RsaSignaturePssSha1 => Self::RsaSignaturePssSha1,
             nethsm_sdk_rs::models::KeyMechanism::RsaSignaturePssSha224 => {
                 Self::RsaSignaturePssSha224
@@ -83,7 +83,10 @@ impl From<&nethsm_sdk_rs::models::KeyMechanism> for KeyMechanism {
             nethsm_sdk_rs::models::KeyMechanism::RsaSignaturePssSha512 => {
                 Self::RsaSignaturePssSha512
             }
-        }
+            nethsm_sdk_rs::models::KeyMechanism::RsaSignaturePssMd5 => {
+                return Err(crate::Error::UnsupportedNetHsmKeyMechanism(*value));
+            }
+        })
     }
 }
 
@@ -103,7 +106,6 @@ impl From<KeyMechanism> for nethsm_sdk_rs::models::KeyMechanism {
             KeyMechanism::RsaDecryptionPkcs1 => Self::RsaDecryptionPkcs1,
             KeyMechanism::RsaDecryptionRaw => Self::RsaDecryptionRaw,
             KeyMechanism::RsaSignaturePkcs1 => Self::RsaSignaturePkcs1,
-            KeyMechanism::RsaSignaturePssMd5 => Self::RsaSignaturePssMd5,
             KeyMechanism::RsaSignaturePssSha1 => Self::RsaSignaturePssSha1,
             KeyMechanism::RsaSignaturePssSha224 => Self::RsaSignaturePssSha224,
             KeyMechanism::RsaSignaturePssSha256 => Self::RsaSignaturePssSha256,
@@ -123,7 +125,6 @@ impl From<SignatureType> for SignMode {
     fn from(value: SignatureType) -> Self {
         match value {
             SignatureType::Pkcs1 => SignMode::Pkcs1,
-            SignatureType::PssMd5 => SignMode::PssMd5,
             SignatureType::PssSha1 => SignMode::PssSha1,
             SignatureType::PssSha224 => SignMode::PssSha224,
             SignatureType::PssSha256 => SignMode::PssSha256,

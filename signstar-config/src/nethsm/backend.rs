@@ -589,7 +589,11 @@ fn add_system_wide_keys(
                             .r#type
                             .try_into()
                             .map_err(nethsm::Error::SignstarCryptoKey)?,
-                        key_mechanisms: info.mechanisms.iter().map(Into::into).collect(),
+                        key_mechanisms: info
+                            .mechanisms
+                            .iter()
+                            .filter_map(|mechanism| mechanism.try_into().ok())
+                            .collect(),
                     },
                 );
 
@@ -717,7 +721,11 @@ fn add_namespaced_keys(
                             .r#type
                             .try_into()
                             .map_err(nethsm::Error::SignstarCryptoKey)?,
-                        key_mechanisms: key_info.mechanisms.iter().map(Into::into).collect(),
+                        key_mechanisms: key_info
+                            .mechanisms
+                            .iter()
+                            .filter_map(|mechanism| mechanism.try_into().ok())
+                            .collect(),
                     },
                 );
 
@@ -1337,7 +1345,11 @@ impl<'a, 'b> NetHsmBackend<'a, 'b> {
                     .r#type
                     .try_into()
                     .map_err(nethsm::Error::SignstarCryptoKey)?,
-                mechanisms: key.mechanisms.iter().map(KeyMechanism::from).collect(),
+                mechanisms: key
+                    .mechanisms
+                    .iter()
+                    .filter_map(|mechanism| KeyMechanism::try_from(mechanism).ok())
+                    .collect(),
                 key_cert_state: key_context,
             });
         }
@@ -1377,7 +1389,11 @@ impl<'a, 'b> NetHsmBackend<'a, 'b> {
                         .r#type
                         .try_into()
                         .map_err(nethsm::Error::SignstarCryptoKey)?,
-                    mechanisms: key.mechanisms.iter().map(KeyMechanism::from).collect(),
+                    mechanisms: key
+                        .mechanisms
+                        .iter()
+                        .filter_map(|mechanism| KeyMechanism::try_from(mechanism).ok())
+                        .collect(),
                     key_cert_state: key_context,
                 });
             }
