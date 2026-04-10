@@ -62,6 +62,10 @@ signstar-request-signature send --host 127.0.0.1 --port 2222 --user signstar-sig
   --known-hosts "$known_hosts" Cargo.toml | jq
 ```
 
+## Features
+
+- `cli`: Enables command line interface for creating and sending signing requests
+
 ## Contributing
 
 Please refer to the [contributing guidelines] to learn how to contribute to this project.

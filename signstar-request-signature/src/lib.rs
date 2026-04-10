@@ -17,6 +17,7 @@ use sha2::Digest;
 pub use sha2::Sha512;
 use sha2::digest::common::hazmat::{DeserializeStateError, SerializableState};
 
+#[cfg(feature = "cli")]
 pub mod cli;
 pub mod ssh;
 

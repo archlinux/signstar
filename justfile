@@ -1151,7 +1151,7 @@ test-readme project:
         case "$project" in
             nethsm-cli)
                 printf "Installing executables of signstar-request-signature\n"
-                cargo install --locked --path signstar-request-signature
+                cargo install --locked --path signstar-request-signature --features cli
                 printf "Installing executables of %s...\n" "{{ project }}"
                 cargo install --locked --all-features --path {{ project }}
             ;;
