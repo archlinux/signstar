@@ -1,9 +1,9 @@
 //! Backend handling for [`NetHsm`].
 //!
-//! Based on a [`NetHsm`], [`NetHsmAdminCredentials`] and a [`SignstarConfig`] this module offers
+//! Based on a [`NetHsm`], [`NetHsmAdminCredentials`] and a [`Config`] this module offers
 //! the ability to populate a [`NetHsm`] backend with the help of the [`NetHsmBackend`] struct.
 //!
-//! Using [`NetHsmBackend::sync`] all users and keys configured in a [`SignstarConfig`]
+//! Using [`NetHsmBackend::sync`] all users and keys configured in a [`Config`]
 //! are created and adapted to changes upon re-run.
 //! The state representation can be found in the [`nethsm::state`][`crate::nethsm::state`] module.
 //!
@@ -34,11 +34,14 @@ use pgp::composed::{Deserializable, SignedPublicKey};
 
 use super::Error;
 use crate::{
-    FilterUserKeys,
     NetHsmAdminCredentials,
-    SignstarConfig,
-    UserMapping,
-    config::state::{KeyCertificateState, KeyState, UserState},
+    config::{
+        Config,
+        UserBackendConnection,
+        UserBackendConnectionFilter,
+        state::{KeyCertificateState, KeyState, UserState},
+    },
+    nethsm::NetHsmUserKeysFilter,
     state::StateType,
 };
 
@@ -302,7 +305,7 @@ fn add_namespace_admins(
 fn add_non_administrative_users(
     nethsm: &NetHsm,
     admin_credentials: &NetHsmAdminCredentials,
-    users: &[UserMapping],
+    users: &[UserBackendConnection],
     user_credentials: &[FullCredentials],
 ) -> Result<(), crate::Error> {
     debug!(
@@ -315,35 +318,59 @@ fn add_non_administrative_users(
     let available_users = nethsm.get_users()?;
     debug!("Available users: {available_users:?}");
 
-    for mapping in users.iter() {
-        // Add all users of the mapping.
-        for (user, role, tags) in mapping
-            .get_nethsm_user_role_and_tags()
-            .iter()
-            // Only use system-wide, non-administrative users.
-            .filter(|(user, role, _tags)| !user.is_namespaced() && role != &UserRole::Administrator)
-        {
-            let Some(creds) = user_credentials.iter().find(|creds| &creds.name == user) else {
-                return Err(Error::UserMissingPassphrase { user: user.clone() }.into());
-            };
-
-            if available_users.contains(user) {
-                nethsm.set_user_passphrase(user.clone(), creds.passphrase.clone())?;
-            } else {
-                nethsm.add_user(
-                    format!("{role} user {user}"),
-                    *role,
-                    creds.passphrase.clone(),
-                    Some(user.clone()),
-                )?;
-            }
-
-            // Add tags to users.
-            for tag in tags {
-                for available_tag in nethsm.get_user_tags(user)? {
-                    nethsm.delete_user_tag(user, available_tag.as_str())?;
+    let user_data_list = users
+        .iter()
+        .filter_map(|user_backend_connection| match user_backend_connection {
+            UserBackendConnection::NetHsm { mapping, .. } => {
+                let mut user_data_set = mapping.nethsm_user_data();
+                // We are only interested in mappings that define at least one system-wide,
+                // non-administrative NetHSM backend user.
+                user_data_set.retain(|data| {
+                    !data.user.is_namespaced() && data.role != UserRole::Administrator
+                });
+                if user_data_set.is_empty() {
+                    return None;
                 }
-                nethsm.add_user_tag(user, tag.as_str())?;
+
+                Some(user_data_set)
+            }
+            // We are only interested in user mappings for NetHSM.
+            #[cfg(feature = "yubihsm2")]
+            _ => None,
+        })
+        .flatten()
+        .collect::<Vec<_>>();
+
+    for user_data in user_data_list {
+        let Some(creds) = user_credentials
+            .iter()
+            .find(|creds| &creds.name == user_data.user)
+        else {
+            return Err(Error::UserMissingPassphrase {
+                user: user_data.user.clone(),
+            }
+            .into());
+        };
+
+        if available_users.contains(user_data.user) {
+            nethsm.set_user_passphrase(user_data.user.clone(), creds.passphrase.clone())?;
+        } else {
+            nethsm.add_user(
+                format!("{} user {}", user_data.role, user_data.user),
+                user_data.role,
+                creds.passphrase.clone(),
+                Some(user_data.user.clone()),
+            )?;
+        }
+
+        if user_data.role == UserRole::Operator {
+            // First, delete all existing tags from user.
+            for available_tag in nethsm.get_user_tags(user_data.user)? {
+                nethsm.delete_user_tag(user_data.user, available_tag.as_str())?;
+            }
+            // Then, add optional tag to user.
+            if let Some(tag) = user_data.tag {
+                nethsm.add_user_tag(user_data.user, tag)?;
             }
         }
     }
@@ -380,7 +407,7 @@ fn add_non_administrative_users(
 fn add_namespaced_non_administrative_users(
     nethsm: &NetHsm,
     admin_credentials: &NetHsmAdminCredentials,
-    users: &[UserMapping],
+    users: &[UserBackendConnection],
     user_credentials: &[FullCredentials],
 ) -> Result<(), crate::Error> {
     debug!(
@@ -394,62 +421,88 @@ fn add_namespaced_non_administrative_users(
 
     let available_users = nethsm.get_users()?;
     let available_namespaces = nethsm.get_namespaces()?;
-
-    for mapping in users.iter() {
-        for (user, role, tags) in mapping
-            .get_nethsm_user_role_and_tags()
-            .iter()
-            // Only use non-administrative, namespaced users on the NetHSM backend.
-            .filter(|(user, role, _tags)| user.is_namespaced() && role != &UserRole::Administrator)
-        {
-            // Extract the namespace of the user and ensure that the namespace exists already.
-            let Some(namespace) = user.namespace() else {
-                return Err(Error::NamespaceUserNoNamespace { user: user.clone() }.into());
-            };
-            if !available_namespaces.contains(namespace) {
-                return Err(Error::NamespaceMissing {
-                    namespace: namespace.clone(),
+    let user_data_list = users
+        .iter()
+        .filter_map(|user_backend_connection| match user_backend_connection {
+            UserBackendConnection::NetHsm { mapping, .. } => {
+                let mut user_data_set = mapping.nethsm_user_data();
+                // We are only interested in mappings that define at least one namespaced,
+                // non-administrative NetHSM backend user.
+                user_data_set.retain(|data| {
+                    data.user.is_namespaced() && data.role != UserRole::Administrator
+                });
+                if user_data_set.is_empty() {
+                    return None;
                 }
-                .into());
+
+                Some(user_data_set)
             }
+            // We are only interested in user mappings for NetHSM.
+            #[cfg(feature = "yubihsm2")]
+            _ => None,
+        })
+        .flatten()
+        .collect::<Vec<_>>();
 
-            // Select the first available N-Administrator credentials for interacting with the
-            // NetHSM backend.
-            nethsm.use_credentials(&get_first_available_namespace_admin(
-                nethsm,
-                admin_credentials,
-                &available_users,
-                namespace,
-            )?)?;
-
-            // Retrieve credentials for the specific user.
-            let Some(creds) = user_credentials.iter().find(|creds| &creds.name == user) else {
-                return Err(Error::UserMissingPassphrase { user: user.clone() }.into());
-            };
-
-            // If the user exists already, only set its passphrase, otherwise create it.
-            if available_users.contains(user) {
-                nethsm.set_user_passphrase(user.clone(), creds.passphrase.clone())?;
-            } else {
-                nethsm.add_user(
-                    format!("{role} user {user}"),
-                    *role,
-                    creds.passphrase.clone(),
-                    Some(user.clone()),
-                )?;
+    for user_data in user_data_list {
+        // Extract the namespace of the user and ensure that the namespace exists already.
+        let Some(namespace) = user_data.user.namespace() else {
+            return Err(Error::NamespaceUserNoNamespace {
+                user: user_data.user.clone(),
             }
-
-            // Delete all tags of the user.
-            let available_tags = nethsm.get_user_tags(user)?;
-            for available_tag in available_tags {
-                nethsm.delete_user_tag(user, available_tag.as_str())?;
+            .into());
+        };
+        if !available_namespaces.contains(namespace) {
+            return Err(Error::NamespaceMissing {
+                namespace: namespace.clone(),
             }
-            // Setup tags for the user.
-            for tag in tags.iter() {
-                nethsm.add_user_tag(user, tag)?;
+            .into());
+        }
+
+        // Select the first available N-Administrator credentials for interacting with the
+        // NetHSM backend.
+        nethsm.use_credentials(&get_first_available_namespace_admin(
+            nethsm,
+            admin_credentials,
+            &available_users,
+            namespace,
+        )?)?;
+
+        // Retrieve credentials for the specific user.
+        let Some(creds) = user_credentials
+            .iter()
+            .find(|creds| &creds.name == user_data.user)
+        else {
+            return Err(Error::UserMissingPassphrase {
+                user: user_data.user.clone(),
+            }
+            .into());
+        };
+
+        // If the user exists already, only set its passphrase, otherwise create it.
+        if available_users.contains(user_data.user) {
+            nethsm.set_user_passphrase(user_data.user.clone(), creds.passphrase.clone())?;
+        } else {
+            nethsm.add_user(
+                format!("{} user {}", user_data.role, user_data.user),
+                user_data.role,
+                creds.passphrase.clone(),
+                Some(user_data.user.clone()),
+            )?;
+        }
+
+        if user_data.role == UserRole::Operator {
+            // First, delete all existing tags from user.
+            for available_tag in nethsm.get_user_tags(user_data.user)? {
+                nethsm.delete_user_tag(user_data.user, available_tag.as_str())?;
+            }
+            // Then, add optional tag to user.
+            if let Some(tag) = user_data.tag {
+                nethsm.add_user_tag(user_data.user, tag)?;
             }
         }
     }
+
     // Always use the default R-Administrator again.
     nethsm.use_credentials(default_admin)?;
 
@@ -553,7 +606,7 @@ fn compare_key_setups(
 fn add_system_wide_keys(
     nethsm: &NetHsm,
     admin_credentials: &NetHsmAdminCredentials,
-    users: &[UserMapping],
+    users: &[UserBackendConnection],
 ) -> Result<(), crate::Error> {
     debug!(
         "Setup system-wide cryptographic keys on NetHSM backend at {}",
@@ -566,55 +619,69 @@ fn add_system_wide_keys(
 
     let available_keys = nethsm.get_keys(None)?;
 
-    for mapping in users {
-        for (_user, key_id, key_setup, tag) in
-            mapping.get_nethsm_user_key_and_tag(FilterUserKeys::SystemWide)
-        {
-            if available_keys.contains(&key_id) {
-                // Retrieve information about the key.
-                let info = nethsm.get_key(&key_id)?;
+    for user_backend_connection in users {
+        let user_key_data = match user_backend_connection {
+            UserBackendConnection::NetHsm { mapping, .. } => {
+                let Some(user_key_data) =
+                    mapping.nethsm_user_key_data(NetHsmUserKeysFilter::SystemWide)
+                else {
+                    // We are only interested in mappings that define key data.
+                    continue;
+                };
 
-                // Compare the key setups.
-                compare_key_setups(
-                    &key_id,
-                    None,
-                    KeySetupComparison {
-                        state_type: StateType::SignstarConfigNetHsm,
-                        key_type: key_setup.key_type(),
-                        key_mechanisms: HashSet::from_iter(key_setup.key_mechanisms().to_vec()),
-                    },
-                    KeySetupComparison {
-                        state_type: StateType::NetHsm,
-                        key_type: info
-                            .r#type
-                            .try_into()
-                            .map_err(nethsm::Error::SignstarCryptoKey)?,
-                        key_mechanisms: info
-                            .mechanisms
-                            .iter()
-                            .filter_map(|mechanism| mechanism.try_into().ok())
-                            .collect(),
-                    },
-                );
-
-                // Remove all existing tags.
-                if let Some(available_tags) = info.restrictions.tags {
-                    for available_tag in available_tags {
-                        nethsm.delete_key_tag(&key_id, available_tag.as_str())?;
-                    }
-                }
-                // Add the required tag to the key.
-                nethsm.add_key_tag(&key_id, tag.as_str())?;
-            } else {
-                // Add the key, including the required tag.
-                nethsm.generate_key(
-                    key_setup.key_type(),
-                    key_setup.key_mechanisms().to_vec(),
-                    key_setup.key_length(),
-                    Some(key_id.clone()),
-                    Some(vec![tag]),
-                )?;
+                user_key_data
             }
+            // We are only interested in user mappings for NetHSM.
+            #[cfg(feature = "yubihsm2")]
+            _ => continue,
+        };
+
+        if available_keys.contains(user_key_data.key_id) {
+            // Retrieve information about the key.
+            let info = nethsm.get_key(user_key_data.key_id)?;
+
+            // Compare the key setups.
+            compare_key_setups(
+                user_key_data.key_id,
+                None,
+                KeySetupComparison {
+                    state_type: StateType::SignstarConfigNetHsm,
+                    key_type: user_key_data.key_setup.key_type(),
+                    key_mechanisms: HashSet::from_iter(
+                        user_key_data.key_setup.key_mechanisms().to_vec(),
+                    ),
+                },
+                KeySetupComparison {
+                    state_type: StateType::NetHsm,
+                    key_type: info
+                        .r#type
+                        .try_into()
+                        .map_err(nethsm::Error::SignstarCryptoKey)?,
+                    key_mechanisms: info
+                        .mechanisms
+                        .iter()
+                        .filter_map(|mechanism| mechanism.try_into().ok())
+                        .collect(),
+                },
+            );
+
+            // Remove all existing tags.
+            if let Some(available_tags) = info.restrictions.tags {
+                for available_tag in available_tags {
+                    nethsm.delete_key_tag(user_key_data.key_id, available_tag.as_str())?;
+                }
+            }
+            // Add the required tag to the key.
+            nethsm.add_key_tag(user_key_data.key_id, user_key_data.tag)?;
+        } else {
+            // Add the key, including the required tag.
+            nethsm.generate_key(
+                user_key_data.key_setup.key_type(),
+                user_key_data.key_setup.key_mechanisms().to_vec(),
+                user_key_data.key_setup.key_length(),
+                Some(user_key_data.key_id.clone()),
+                Some(vec![user_key_data.tag.to_string()]),
+            )?;
         }
     }
 
@@ -666,7 +733,7 @@ fn add_system_wide_keys(
 fn add_namespaced_keys(
     nethsm: &NetHsm,
     admin_credentials: &NetHsmAdminCredentials,
-    users: &[UserMapping],
+    users: &[UserBackendConnection],
 ) -> Result<(), crate::Error> {
     debug!(
         "Setup namespaced cryptographic keys on NetHSM backend at {}",
@@ -679,87 +746,114 @@ fn add_namespaced_keys(
 
     let available_users = nethsm.get_users()?;
 
-    for mapping in users {
-        for (user, key_id, key_setup, tag) in
-            mapping.get_nethsm_user_key_and_tag(FilterUserKeys::Namespaced)
-        {
-            debug!("Set up key \"{key_id}\" with tag {tag} for user {user}");
+    for user_backend_connection in users {
+        let user_key_data = match user_backend_connection {
+            UserBackendConnection::NetHsm { mapping, .. } => {
+                let Some(user_key_data) =
+                    mapping.nethsm_user_key_data(NetHsmUserKeysFilter::Namespaced)
+                else {
+                    // We are only interested in mappings that define key data.
+                    continue;
+                };
 
-            // Extract the namespace from the user or return an error.
-            let Some(namespace) = user.namespace() else {
-                // Note: Returning this error is not really possible, as we are explicitly
-                // requesting tuples of namespaced user, key setup and tag.
-                return Err(Error::NamespaceUserNoNamespace { user }.into());
-            };
-
-            // Select the first available N-Administrator credentials for interacting with the
-            // NetHSM backend.
-            nethsm.use_credentials(&get_first_available_namespace_admin(
-                nethsm,
-                admin_credentials,
-                &available_users,
-                namespace,
-            )?)?;
-
-            let available_keys = nethsm.get_keys(None)?;
-
-            if available_keys.contains(&key_id) {
-                let key_info = nethsm.get_key(&key_id)?;
-
-                // Compare the key setups.
-                compare_key_setups(
-                    &key_id,
-                    Some(namespace),
-                    KeySetupComparison {
-                        state_type: StateType::SignstarConfigNetHsm,
-                        key_type: key_setup.key_type(),
-                        key_mechanisms: HashSet::from_iter(key_setup.key_mechanisms().to_vec()),
-                    },
-                    KeySetupComparison {
-                        state_type: StateType::NetHsm,
-                        key_type: key_info
-                            .r#type
-                            .try_into()
-                            .map_err(nethsm::Error::SignstarCryptoKey)?,
-                        key_mechanisms: key_info
-                            .mechanisms
-                            .iter()
-                            .filter_map(|mechanism| mechanism.try_into().ok())
-                            .collect(),
-                    },
-                );
-
-                // If there are tags already, check if the tag we are looking for is already set and
-                // if so, skip to the next key.
-                if let Some(available_tags) = key_info.restrictions.tags {
-                    debug!(
-                        "Available tags for key \"{key_id}\" in namespace {namespace}: {}",
-                        available_tags.join(", ")
-                    );
-                    // NOTE: If the required tag is already set, continue to the next key.
-                    //       Without this we otherwise trigger a bug in the NetHSM firmware which
-                    //       breaks the connection after re-adding the tag for the key further down.
-                    //       (i.e. "Bad Status: HTTP version did not start with HTTP/")
-                    //       See https://github.com/Nitrokey/nethsm/issues/13 for details.
-                    if available_tags.len() == 1 && available_tags.contains(&tag) {
-                        continue;
-                    }
-                }
-
-                // Add the tag to the key.
-                nethsm.add_key_tag(&key_id, tag.as_str())?;
-            } else {
-                // Add the key, including the required tag.
-                nethsm.generate_key(
-                    key_setup.key_type(),
-                    key_setup.key_mechanisms().to_vec(),
-                    key_setup.key_length(),
-                    Some(key_id.clone()),
-                    Some(vec![tag]),
-                )?;
+                user_key_data
             }
+            // We are only interested in user mappings for NetHSM.
+            #[cfg(feature = "yubihsm2")]
+            _ => continue,
+        };
+
+        debug!(
+            "Set up key \"{}\" with tag {} for user {}",
+            user_key_data.key_id, user_key_data.tag, user_key_data.user
+        );
+
+        // Extract the namespace from the user or return an error.
+        let Some(namespace) = user_key_data.user.namespace() else {
+            // Note: Returning this error is not really possible, as we are explicitly
+            // requesting tuples of namespaced user, key setup and tag.
+            return Err(Error::NamespaceUserNoNamespace {
+                user: user_key_data.user.clone(),
+            }
+            .into());
+        };
+
+        // Select the first available N-Administrator credentials for interacting with the
+        // NetHSM backend.
+        nethsm.use_credentials(&get_first_available_namespace_admin(
+            nethsm,
+            admin_credentials,
+            &available_users,
+            namespace,
+        )?)?;
+
+        let available_keys = nethsm.get_keys(None)?;
+
+        if available_keys.contains(user_key_data.key_id) {
+            let key_info = nethsm.get_key(user_key_data.key_id)?;
+
+            // Compare the key setups.
+            compare_key_setups(
+                user_key_data.key_id,
+                Some(namespace),
+                KeySetupComparison {
+                    state_type: StateType::SignstarConfigNetHsm,
+                    key_type: user_key_data.key_setup.key_type(),
+                    key_mechanisms: HashSet::from_iter(
+                        user_key_data.key_setup.key_mechanisms().to_vec(),
+                    ),
+                },
+                KeySetupComparison {
+                    state_type: StateType::NetHsm,
+                    key_type: key_info
+                        .r#type
+                        .try_into()
+                        .map_err(nethsm::Error::SignstarCryptoKey)?,
+                    key_mechanisms: key_info
+                        .mechanisms
+                        .iter()
+                        .filter_map(|mechanism| mechanism.try_into().ok())
+                        .collect(),
+                },
+            );
+
+            // If there are tags already, check if the tag we are looking for is already set and
+            // if so, skip to the next key.
+            if let Some(available_tags) = key_info.restrictions.tags {
+                debug!(
+                    "Available tags for key \"{}\" in namespace {namespace}: {}",
+                    user_key_data.key_id,
+                    available_tags.join(", ")
+                );
+                // NOTE: If the required tag is already set, continue to the next key.
+                //       Without this we otherwise trigger a bug in the NetHSM firmware which
+                //       breaks the connection after re-adding the tag for the key further down.
+                //       (i.e. "Bad Status: HTTP version did not start with HTTP/")
+                //       See https://github.com/Nitrokey/nethsm/issues/13 for details.
+                if available_tags.len() == 1
+                    && available_tags
+                        .iter()
+                        .find(|tag| tag.as_str() == user_key_data.tag)
+                        .is_some()
+                {
+                    continue;
+                }
+            }
+
+            // Add the tag to the key.
+            nethsm.add_key_tag(user_key_data.key_id, user_key_data.tag)?;
+        } else {
+            // Add the key, including the required tag.
+            nethsm.generate_key(
+                user_key_data.key_setup.key_type(),
+                user_key_data.key_setup.key_mechanisms().to_vec(),
+                user_key_data.key_setup.key_length(),
+                Some(user_key_data.key_id.clone()),
+                Some(vec![user_key_data.tag.to_string()]),
+            )?;
         }
     }
+
     // Always use the default R-Administrator again.
     nethsm.use_credentials(default_admin)?;
 
@@ -808,7 +902,7 @@ fn add_namespaced_keys(
 fn add_system_wide_openpgp_certificates(
     nethsm: &NetHsm,
     admin_credentials: &NetHsmAdminCredentials,
-    users: &[UserMapping],
+    users: &[UserBackendConnection],
 ) -> Result<(), crate::Error> {
     debug!(
         "Setup OpenPGP certificates for system-wide cryptographic keys on NetHSM backend at {}",
@@ -821,75 +915,111 @@ fn add_system_wide_openpgp_certificates(
 
     let available_users = nethsm.get_users()?;
 
-    for mapping in users {
-        // Continue to the next mapping if it is not used for signing.
-        if !matches!(mapping, UserMapping::SystemNetHsmOperatorSigning { .. }) {
-            continue;
-        }
-
-        for (user, key_id, key_setup, tag) in
-            mapping.get_nethsm_user_key_and_tag(FilterUserKeys::SystemWide)
-        {
-            // Get OpenPGP User IDs and version or continue to the next user/key setup if the
-            // mapping is not used for OpenPGP signing.
-            let CryptographicKeyContext::OpenPgp { user_ids, version } = key_setup.key_context()
-            else {
-                debug!(
-                    "Skip creating an OpenPGP certificate for the key \"{key_id}\" used by user \"{user}\" as it is not used in an OpenPGP context."
-                );
-                continue;
-            };
-
-            // Ensure the targeted user exists.
-            if !available_users.contains(&user) {
-                return Err(Error::UserMissing { user_id: user }.into());
-            }
-            // Ensure the required tag is assigned to the targeted user.
-            if !nethsm.get_user_tags(&user)?.contains(&tag) {
-                return Err(Error::UserMissingTag { user_id: user, tag }.into());
-            }
-
-            let available_keys = nethsm.get_keys(None)?;
-
-            // Ensure the targeted key exists.
-            if !available_keys.contains(&key_id) {
-                return Err(Error::KeyMissing { key_id }.into());
-            }
-            // Ensure the required tag is assigned to the targeted key.
-            if !nethsm
-                .get_key(&key_id)?
-                .restrictions
-                .tags
-                .is_some_and(|tags| tags.contains(&tag))
-            {
-                return Err(Error::KeyIsMissingTag { key_id, tag }.into());
-            }
-
-            // Create the OpenPGP certificate if it does not exist yet.
-            if nethsm.get_key_certificate(&key_id)?.is_none() {
-                // Ensure the first OpenPGP User ID exists.
-                let Some(user_id) = user_ids.first() else {
-                    return Err(Error::OpenPgpUserIdMissing { key_id }.into());
+    for user_backend_connection in users {
+        let user_key_data = match user_backend_connection {
+            UserBackendConnection::NetHsm { mapping, .. } => {
+                let Some(user_key_data) =
+                    mapping.nethsm_user_key_data(NetHsmUserKeysFilter::SystemWide)
+                else {
+                    // We are only interested in mappings that define key data.
+                    continue;
                 };
 
-                // Switch to the dedicated user with access to the key to create an OpenPGP
-                // certificate for the key.
-                nethsm.use_credentials(&user)?;
-                let data = nethsm.create_openpgp_cert(
-                    &key_id,
-                    OpenPgpKeyUsageFlags::default(),
-                    user_id.clone(),
-                    Timestamp::now(),
-                    *version,
-                )?;
-
-                // Switch back to the default R-Administrator for the import of the OpenPGP
-                // certificate.
-                nethsm.use_credentials(default_admin)?;
-                nethsm.import_key_certificate(&key_id, data)?;
+                user_key_data
             }
+            // We are only interested in user mappings for NetHSM.
+            #[cfg(feature = "yubihsm2")]
+            _ => continue,
+        };
+
+        // Get OpenPGP User IDs and version or continue to the next user/key setup if the
+        // mapping is not used for OpenPGP signing.
+        let CryptographicKeyContext::OpenPgp { user_ids, version } =
+            user_key_data.key_setup.key_context()
+        else {
+            debug!(
+                "Skip creating an OpenPGP certificate for the key \"{}\" used by user \"{}\" as it is not used in an OpenPGP context.",
+                user_key_data.key_id, user_key_data.user,
+            );
+            continue;
+        };
+
+        // Ensure the targeted user exists.
+        if !available_users.contains(user_key_data.user) {
+            return Err(Error::UserMissing {
+                user_id: user_key_data.user.clone(),
+            }
+            .into());
+        }
+        // Ensure the required tag is assigned to the targeted user.
+        if nethsm
+            .get_user_tags(user_key_data.user)?
+            .iter()
+            .find(|tag| tag.as_str() == user_key_data.tag)
+            .is_none()
+        {
+            return Err(Error::UserMissingTag {
+                user_id: user_key_data.user.clone(),
+                tag: user_key_data.tag.to_string(),
+            }
+            .into());
+        }
+
+        let available_keys = nethsm.get_keys(None)?;
+
+        // Ensure the targeted key exists.
+        if !available_keys.contains(user_key_data.key_id) {
+            return Err(Error::KeyMissing {
+                key_id: user_key_data.key_id.clone(),
+            }
+            .into());
+        }
+        // Ensure the required tag is assigned to the targeted key.
+        if !nethsm
+            .get_key(user_key_data.key_id)?
+            .restrictions
+            .tags
+            .is_some_and(|tags| {
+                tags.iter()
+                    .find(|tag| tag.as_str() == user_key_data.tag)
+                    .is_some()
+            })
+        {
+            return Err(Error::KeyIsMissingTag {
+                key_id: user_key_data.key_id.clone(),
+                tag: user_key_data.tag.to_string(),
+            }
+            .into());
+        }
+
+        // Create the OpenPGP certificate if it does not exist yet.
+        if nethsm.get_key_certificate(user_key_data.key_id)?.is_none() {
+            // Ensure the first OpenPGP User ID exists.
+            let Some(user_id) = user_ids.first() else {
+                return Err(Error::OpenPgpUserIdMissing {
+                    key_id: user_key_data.key_id.clone(),
+                }
+                .into());
+            };
+
+            // Switch to the dedicated user with access to the key to create an OpenPGP
+            // certificate for the key.
+            nethsm.use_credentials(user_key_data.user)?;
+            let data = nethsm.create_openpgp_cert(
+                user_key_data.key_id,
+                OpenPgpKeyUsageFlags::default(),
+                user_id.clone(),
+                Timestamp::now(),
+                *version,
+            )?;
+
+            // Switch back to the default R-Administrator for the import of the OpenPGP
+            // certificate.
+            nethsm.use_credentials(default_admin)?;
+            nethsm.import_key_certificate(user_key_data.key_id, data)?;
         }
     }
+
     // Always use the default R-Administrator again.
     nethsm.use_credentials(default_admin)?;
 
@@ -941,7 +1071,7 @@ fn add_system_wide_openpgp_certificates(
 fn add_namespaced_openpgp_certificates(
     nethsm: &NetHsm,
     admin_credentials: &NetHsmAdminCredentials,
-    users: &[UserMapping],
+    users: &[UserBackendConnection],
 ) -> Result<(), crate::Error> {
     debug!(
         "Setup OpenPGP certificates for namespaced cryptographic keys on NetHSM backend at {}",
@@ -954,111 +1084,137 @@ fn add_namespaced_openpgp_certificates(
 
     let available_users = nethsm.get_users()?;
 
-    for mapping in users {
-        // Continue to the next mapping if it is not used for signing.
-        if !matches!(mapping, UserMapping::SystemNetHsmOperatorSigning { .. }) {
+    let nethsm_user_key_data_list = users
+        .iter()
+        .filter_map(|user_backend_connection| match user_backend_connection {
+            UserBackendConnection::NetHsm { mapping, .. } => {
+                let Some(user_key_data) =
+                    mapping.nethsm_user_key_data(NetHsmUserKeysFilter::Namespaced)
+                else {
+                    // We are only interested in mappings that define key data.
+                    return None;
+                };
+                // We are only interested in mappings that define OpenPGP key data.
+                if !matches!(
+                    user_key_data.key_setup.key_context(),
+                    CryptographicKeyContext::OpenPgp { .. }
+                ) {
+                    return None;
+                }
+
+                Some(user_key_data)
+            }
+            // We are only interested in user mappings for NetHSM.
+            #[cfg(feature = "yubihsm2")]
+            _ => None,
+        })
+        .collect::<Vec<_>>();
+
+    for user_key_data in nethsm_user_key_data_list {
+        // Get OpenPGP User IDs and version or continue to the next user/key setup if the
+        // mapping is not used for OpenPGP signing.
+        let CryptographicKeyContext::OpenPgp { user_ids, version } =
+            user_key_data.key_setup.key_context()
+        else {
             continue;
+        };
+
+        // Extract the namespace from the user.
+        let Some(namespace) = user_key_data.user.namespace() else {
+            // Note: Returning this error is not really possible, as we are explicitly
+            // requesting tuples of namespaced user, key setup and tag.
+            return Err(Error::NamespaceUserNoNamespace {
+                user: user_key_data.user.clone(),
+            }
+            .into());
+        };
+
+        // Select the first available N-Administrator credentials for interacting with the
+        // NetHSM backend.
+        let admin = get_first_available_namespace_admin(
+            nethsm,
+            admin_credentials,
+            &available_users,
+            namespace,
+        )?;
+        nethsm.use_credentials(&admin)?;
+
+        // Ensure the targeted user exists.
+        if !available_users.contains(user_key_data.user) {
+            return Err(Error::NamespaceUserMissing {
+                user: user_key_data.user.clone(),
+                namespace: namespace.clone(),
+            }
+            .into());
+        }
+        // Ensure the required tag is assigned to the targeted user.
+        let user_tags = nethsm.get_user_tags(user_key_data.user)?;
+        if user_tags
+            .iter()
+            .find(|tag| tag.as_str() == user_key_data.tag)
+            .is_none()
+        {
+            return Err(Error::NamespaceUserMissingTag {
+                user: user_key_data.user.clone(),
+                namespace: namespace.clone(),
+                tag: user_key_data.tag.to_string(),
+            }
+            .into());
         }
 
-        for (user, key_id, key_setup, tag) in
-            mapping.get_nethsm_user_key_and_tag(FilterUserKeys::Namespaced)
-        {
-            // Get OpenPGP User IDs and version or continue to the next user/key setup if the
-            // mapping is not used for OpenPGP signing.
-            let CryptographicKeyContext::OpenPgp { user_ids, version } = key_setup.key_context()
-            else {
-                continue;
+        let available_keys = nethsm.get_keys(None)?;
+
+        // Ensure the targeted key exists.
+        if !available_keys.contains(user_key_data.key_id) {
+            return Err(Error::NamespaceKeyMissing {
+                key_id: user_key_data.key_id.clone(),
+                namespace: namespace.clone(),
+            }
+            .into());
+        }
+        // Ensure the required tag is assigned to the targeted key.
+        let pubkey = nethsm.get_key(user_key_data.key_id)?;
+        if !pubkey.restrictions.tags.is_some_and(|tags| {
+            tags.iter()
+                .find(|tag| tag.as_str() == user_key_data.tag)
+                .is_some()
+        }) {
+            return Err(Error::NamespaceKeyMissesTag {
+                key_id: user_key_data.key_id.clone(),
+                namespace: namespace.clone(),
+                tag: user_key_data.tag.to_string(),
+            }
+            .into());
+        }
+
+        // Create the OpenPGP certificate if it does not exist yet.
+        if nethsm.get_key_certificate(user_key_data.key_id)?.is_none() {
+            // Ensure the first OpenPGP User ID exists.
+            let Some(user_id) = user_ids.first() else {
+                return Err(Error::NamespaceOpenPgpUserIdMissing {
+                    key_id: user_key_data.key_id.clone(),
+                    namespace: namespace.clone(),
+                }
+                .into());
             };
 
-            // Extract the namespace from the user.
-            let Some(namespace) = user.namespace() else {
-                // Note: Returning this error is not really possible, as we are explicitly
-                // requesting tuples of namespaced user, key setup and tag.
-                return Err(Error::NamespaceUserNoNamespace { user }.into());
-            };
-
-            // Select the first available N-Administrator credentials for interacting with the
-            // NetHSM backend.
-            let admin = get_first_available_namespace_admin(
-                nethsm,
-                admin_credentials,
-                &available_users,
-                namespace,
+            // Switch to the dedicated user with access to the key to create an OpenPGP
+            // certificate for the key.
+            nethsm.use_credentials(user_key_data.user)?;
+            let data = nethsm.create_openpgp_cert(
+                user_key_data.key_id,
+                OpenPgpKeyUsageFlags::default(),
+                user_id.clone(),
+                Timestamp::now(),
+                *version,
             )?;
+
+            // Switch back to the N-Administrator for the import of the OpenPGP certificate.
             nethsm.use_credentials(&admin)?;
-
-            // Ensure the targeted user exists.
-            if !available_users.contains(&user) {
-                return Err(Error::NamespaceUserMissing {
-                    user: user.clone(),
-                    namespace: namespace.clone(),
-                }
-                .into());
-            }
-            // Ensure the required tag is assigned to the targeted user.
-            let user_tags = nethsm.get_user_tags(&user)?;
-            if !user_tags.contains(&tag) {
-                return Err(Error::NamespaceUserMissingTag {
-                    user: user.clone(),
-                    namespace: namespace.clone(),
-                    tag,
-                }
-                .into());
-            }
-
-            let available_keys = nethsm.get_keys(None)?;
-
-            // Ensure the targeted key exists.
-            if !available_keys.contains(&key_id) {
-                return Err(Error::NamespaceKeyMissing {
-                    key_id,
-                    namespace: namespace.clone(),
-                }
-                .into());
-            }
-            // Ensure the required tag is assigned to the targeted key.
-            let pubkey = nethsm.get_key(&key_id)?;
-            if !pubkey
-                .restrictions
-                .tags
-                .is_some_and(|tags| tags.contains(&tag))
-            {
-                return Err(Error::NamespaceKeyMissesTag {
-                    key_id,
-                    namespace: namespace.clone(),
-                    tag,
-                }
-                .into());
-            }
-
-            // Create the OpenPGP certificate if it does not exist yet.
-            if nethsm.get_key_certificate(&key_id)?.is_none() {
-                // Ensure the first OpenPGP User ID exists.
-                let Some(user_id) = user_ids.first() else {
-                    return Err(Error::NamespaceOpenPgpUserIdMissing {
-                        key_id,
-                        namespace: namespace.clone(),
-                    }
-                    .into());
-                };
-
-                // Switch to the dedicated user with access to the key to create an OpenPGP
-                // certificate for the key.
-                nethsm.use_credentials(&user)?;
-                let data = nethsm.create_openpgp_cert(
-                    &key_id,
-                    OpenPgpKeyUsageFlags::default(),
-                    user_id.clone(),
-                    Timestamp::now(),
-                    *version,
-                )?;
-
-                // Switch back to the N-Administrator for the import of the OpenPGP certificate.
-                nethsm.use_credentials(&admin)?;
-                nethsm.import_key_certificate(&key_id, data)?;
-            }
+            nethsm.import_key_certificate(user_key_data.key_id, data)?;
         }
     }
+
     // Always use the default R-Administrator again.
     nethsm.use_credentials(default_admin)?;
 
@@ -1068,12 +1224,12 @@ fn add_namespaced_openpgp_certificates(
 /// A NetHSM backend that provides full control over its data.
 ///
 /// This backend allows full control over the data in a [`NetHsm`], to the extend that is configured
-/// by the tracked [`NetHsmAdminCredentials`] and [`SignstarConfig`].
+/// by the tracked [`NetHsmAdminCredentials`] and [`Config`].
 #[derive(Debug)]
 pub struct NetHsmBackend<'a, 'b> {
     nethsm: NetHsm,
     admin_credentials: &'a NetHsmAdminCredentials,
-    signstar_config: &'b SignstarConfig,
+    signstar_config: &'b Config,
 }
 
 impl<'a, 'b> NetHsmBackend<'a, 'b> {
@@ -1089,17 +1245,21 @@ impl<'a, 'b> NetHsmBackend<'a, 'b> {
     /// # Examples
     ///
     /// ```
-    /// use std::collections::HashSet;
+    /// use std::{collections::BTreeSet, num::NonZeroUsize};
     ///
     /// use nethsm::{Connection, ConnectionSecurity, FullCredentials, NetHsm};
     /// use signstar_config::{
     ///     NetHsmAdminCredentials,
-    ///     AdministrativeSecretHandling,
-    ///     BackendConnection,
     ///     NetHsmBackend,
+    ///     NetHsmMetricsUsers,
+    ///     config::{ConfigBuilder, SystemConfig, SystemUserMapping},
+    ///     nethsm::{NetHsmConfig, NetHsmUserMapping},
+    /// };
+    /// use signstar_crypto::{
+    ///     AdministrativeSecretHandling,
     ///     NonAdministrativeSecretHandling,
-    ///     SignstarConfig,
-    ///     UserMapping,
+    ///     key::{CryptographicKeyContext, KeyMechanism, KeyType, SigningKeySetup, SignatureType},
+    ///     openpgp::OpenPgpUserIdList,
     /// };
     ///
     /// # fn main() -> testresult::TestResult {
@@ -1128,25 +1288,75 @@ impl<'a, 'b> NetHsmBackend<'a, 'b> {
     ///     )],
     /// )?;
     /// // The Signstar config.
-    /// let signstar_config = SignstarConfig::new(
-    ///     1,
-    ///     AdministrativeSecretHandling::ShamirsSecretSharing,
-    ///     NonAdministrativeSecretHandling::SystemdCreds,
-    ///     HashSet::from([BackendConnection::NetHsm(Connection::new(
-    ///         "https://localhost:8443/api/v1/".parse()?,
-    ///         "Unsafe".parse()?,
-    ///     ))]),
-    ///     HashSet::from([
-    ///         UserMapping::NetHsmOnlyAdmin("admin".parse()?),
-    ///         UserMapping::SystemOnlyShareDownload {
-    ///             system_user: "ssh-share-down".parse()?,
-    ///             ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOh96uFTnvX6P1ebbLxXFvy6sK7qFqlMHDOuJ0TmuXQQ user@host".parse()?,
+    /// let signstar_config = ConfigBuilder::new(SystemConfig::new(
+    ///         1,
+    ///         AdministrativeSecretHandling::ShamirsSecretSharing {
+    ///             number_of_shares: NonZeroUsize::new(3).expect("3 is larger than 0"),
+    ///             threshold: NonZeroUsize::new(2).expect("2 is larger than 0"),
     ///         },
-    ///         UserMapping::SystemOnlyShareUpload {
-    ///             system_user: "ssh-share-up".parse()?,
-    ///             ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOh96uFTnvX6P1ebbLxXFvy6sK7qFqlMHDOuJ0TmuXQQ user@host".parse()?,
-    ///         }]),
-    /// )?;
+    ///         NonAdministrativeSecretHandling::SystemdCreds,
+    ///         BTreeSet::from_iter([
+    ///             SystemUserMapping::ShareHolder {
+    ///                 system_user: "share-holder1".parse()?,
+    ///                 ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAN54Gd1jMz+yNDjBRwX1SnOtWuUsVF64RJIeYJ8DI7b user@host".parse()?,
+    ///             },
+    ///             SystemUserMapping::ShareHolder {
+    ///                 system_user: "share-holder2".parse()?,
+    ///                 ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPDgwGfIRBAsOUuDEZw/uJQZSwOYr4sg2DAZpcc7MfOj user@host".parse()?,
+    ///             },
+    ///             SystemUserMapping::ShareHolder {
+    ///                 system_user: "share-holder3".parse()?,
+    ///                 ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILWqWyMCk5BdSl1c3KYoLEokKr7qNVPbI1IbBhgEBQj5 user@host".parse()?
+    ///             },
+    ///             SystemUserMapping::WireGuardDownload {
+    ///                 system_user: "wireguard-downloader".parse()?,
+    ///                 ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOh9BTe81DC6A0YZALsq9dWcyl6xjjqlxWPwlExTFgBt user@host".parse()?,
+    ///             },
+    ///         ]),
+    ///     )?)
+    ///     .set_nethsm_config(NetHsmConfig::new(
+    ///         BTreeSet::from_iter([
+    ///             Connection::new("https:///nethsm1.example.org/".parse()?, ConnectionSecurity::Unsafe),
+    ///             Connection::new("https:///nethsm2.example.org/".parse()?, ConnectionSecurity::Unsafe),
+    ///         ]),
+    ///         BTreeSet::from_iter([
+    ///             NetHsmUserMapping::Admin("admin".parse()?),
+    ///             NetHsmUserMapping::Backup{
+    ///                 backend_user: "backup".parse()?,
+    ///                 ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHxR0Oc+SWXkEvvZPitc6NvjvykgiKc9iauRI7tLYvcp user@host".parse()?,
+    ///                 system_user: "nethsm-backup-user".parse()?,
+    ///             },
+    ///             NetHsmUserMapping::HermeticMetrics {
+    ///                 backend_users: NetHsmMetricsUsers::new("hermeticmetrics".parse()?, vec!["hermetickeymetrics".parse()?])?,
+    ///                 system_user: "nethsm-hermetic-metrics-user".parse()?,
+    ///             },
+    ///             NetHsmUserMapping::Metrics {
+    ///                 backend_users: NetHsmMetricsUsers::new("metrics".parse()?, vec!["keymetrics".parse()?])?,
+    ///                 ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIETxhCqeZhfzFLfH0KFyw3u/w/dkRBUrft8tQm7DEVzY user@host".parse()?,
+    ///                 system_user: "nethsm-metrics-user".parse()?,
+    ///             },
+    ///             NetHsmUserMapping::Signing {
+    ///                 backend_user: "signing".parse()?,
+    ///                 signing_key_id: "signing1".parse()?,
+    ///                 key_setup: SigningKeySetup::new(
+    ///                     KeyType::Curve25519,
+    ///                     vec![KeyMechanism::EdDsaSignature],
+    ///                     None,
+    ///                     SignatureType::EdDsa,
+    ///                     CryptographicKeyContext::OpenPgp {
+    ///                         user_ids: OpenPgpUserIdList::new(vec![
+    ///                             "Foobar McFooface <foobar@mcfooface.org>".parse()?,
+    ///                         ])?,
+    ///                         version: "v4".parse()?,
+    ///                     },
+    ///                 )?,
+    ///                 ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIClIXZdx0aDOPcIQA+6Qx68cwSUgGTL3TWzDSX3qUEOQ user@host".parse()?,
+    ///                 system_user: "nethsm-signing-user".parse()?,
+    ///                 tag: "signing1".to_string(),
+    ///             }
+    ///         ]),
+    ///     )?)
+    ///     .finish()?;
     ///
     /// let nethsm_backend = NetHsmBackend::new(nethsm, &admin_credentials, &signstar_config)?;
     /// # Ok(())
@@ -1155,7 +1365,7 @@ impl<'a, 'b> NetHsmBackend<'a, 'b> {
     pub fn new(
         nethsm: NetHsm,
         admin_credentials: &'a NetHsmAdminCredentials,
-        signstar_config: &'b SignstarConfig,
+        signstar_config: &'b Config,
     ) -> Result<Self, crate::Error> {
         debug!(
             "Create a new NetHSM backend for Signstar config at {}",
@@ -1163,10 +1373,10 @@ impl<'a, 'b> NetHsmBackend<'a, 'b> {
         );
 
         // Ensure that the iterations of administrative credentials and signstar config match.
-        if admin_credentials.get_iteration() != signstar_config.get_iteration() {
+        if admin_credentials.get_iteration() != signstar_config.system().iteration() {
             return Err(Error::IterationMismatch {
                 admin_creds: admin_credentials.get_iteration(),
-                signstar_config: signstar_config.get_iteration(),
+                signstar_config: signstar_config.system().iteration(),
             }
             .into());
         }
@@ -1464,12 +1674,10 @@ impl<'a, 'b> NetHsmBackend<'a, 'b> {
             self.nethsm.get_url()
         );
 
-        // Extract the user mappings.
-        let users = self
+        // Extract the user backend connections.
+        let non_admin_users = self
             .signstar_config
-            .iter_user_mappings()
-            .cloned()
-            .collect::<Vec<UserMapping>>();
+            .user_backend_connections(UserBackendConnectionFilter::NonAdmin);
 
         match self.nethsm.state()? {
             SystemState::Unprovisioned => {
@@ -1511,49 +1719,63 @@ impl<'a, 'b> NetHsmBackend<'a, 'b> {
 
         // Add any missing users and keys.
         add_system_wide_admins(&self.nethsm, self.admin_credentials)?;
-        add_system_wide_keys(&self.nethsm, self.admin_credentials, &users)?;
+        add_system_wide_keys(&self.nethsm, self.admin_credentials, &non_admin_users)?;
         add_non_administrative_users(
             &self.nethsm,
             self.admin_credentials,
-            &users,
+            &non_admin_users,
             user_credentials,
         )?;
-        add_system_wide_openpgp_certificates(&self.nethsm, self.admin_credentials, &users)?;
+        add_system_wide_openpgp_certificates(
+            &self.nethsm,
+            self.admin_credentials,
+            &non_admin_users,
+        )?;
         add_namespace_admins(&self.nethsm, self.admin_credentials)?;
-        add_namespaced_keys(&self.nethsm, self.admin_credentials, &users)?;
+        add_namespaced_keys(&self.nethsm, self.admin_credentials, &non_admin_users)?;
         add_namespaced_non_administrative_users(
             &self.nethsm,
             self.admin_credentials,
-            &users,
+            &non_admin_users,
             user_credentials,
         )?;
-        add_namespaced_openpgp_certificates(&self.nethsm, self.admin_credentials, &users)?;
+        add_namespaced_openpgp_certificates(
+            &self.nethsm,
+            self.admin_credentials,
+            &non_admin_users,
+        )?;
 
         Ok(())
     }
 }
 
 #[cfg(test)]
+#[cfg(feature = "_test-helpers")]
 mod tests {
-    use std::collections::HashSet;
-
     use log::LevelFilter;
     use nethsm::{Connection, ConnectionSecurity, FullCredentials, NetHsm};
     use signstar_common::logging::setup_logging;
     use testresult::TestResult;
 
     use super::*;
-    use crate::{
-        AdministrativeSecretHandling,
-        NonAdministrativeSecretHandling,
-        config::base::BackendConnection,
-    };
+    use crate::test::{ConfigFileConfig, ConfigFileVariant, SystemPrepareConfig};
 
     /// Ensures that the [`NetHsmBackend::new`] fails on mismatching iterations in
-    /// [`NetHsmAdminCredentials`] and [`SignstarConfig`].
+    /// [`NetHsmAdminCredentials`] and [`Config`].
     #[test]
     fn nethsm_backend_new_fails_on_iteration_mismatch() -> TestResult {
         setup_logging(LevelFilter::Debug)?;
+
+        let prepare_config = SystemPrepareConfig {
+            machine_id: false,
+            credentials_socket: false,
+            signstar_config: ConfigFileConfig {
+                location: None,
+                variant: ConfigFileVariant::OnlyNetHsmBackendPlainAdmin,
+                system_user_config: None,
+            },
+        };
+        let signstar_config = prepare_config.signstar_config.variant.to_config()?;
 
         let nethsm = NetHsm::new(
             Connection::new(
@@ -1579,26 +1801,6 @@ mod tests {
                 "ns1-admin-passphrase".parse()?,
             )],
         )?;
-        // The Signstar config.
-        let signstar_config = SignstarConfig::new(
-         1,
-         AdministrativeSecretHandling::ShamirsSecretSharing,
-         NonAdministrativeSecretHandling::SystemdCreds,
-         HashSet::from([BackendConnection::NetHsm(Connection::new(
-             "https://localhost:8443/api/v1/".parse()?,
-             "Unsafe".parse()?,
-         ))]),
-         HashSet::from([
-             UserMapping::NetHsmOnlyAdmin("admin".parse()?),
-             UserMapping::SystemOnlyShareDownload {
-                 system_user: "ssh-share-down".parse()?,
-                 ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOh96uFTnvX6P1ebbLxXFvy6sK7qFqlMHDOuJ0TmuXQQ user@host".parse()?,
-             },
-             UserMapping::SystemOnlyShareUpload {
-                 system_user: "ssh-share-up".parse()?,
-                 ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOh96uFTnvX6P1ebbLxXFvy6sK7qFqlMHDOuJ0TmuXQQ user@host".parse()?,
-             }]),
-     )?;
         let nethsm_backend_result =
             NetHsmBackend::new(nethsm, &admin_credentials, &signstar_config);
 

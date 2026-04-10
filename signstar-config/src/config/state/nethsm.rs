@@ -10,8 +10,6 @@ use nethsm::{KeyId, NamespaceId, UserId, UserRole};
 use signstar_crypto::key::{CryptographicKeyContext, KeyMechanism, KeyType};
 
 use crate::{
-    FilterUserKeys,
-    SignstarConfig,
     config::state::KeyCertificateState,
     nethsm::{NetHsmConfig, NetHsmUserKeysFilter, state::NetHsmState},
     state::{StateComparisonReport, StateHandling, StateType},
@@ -573,49 +571,6 @@ impl From<&NetHsmConfig> for SignstarConfigNetHsmState {
         }
 
         SignstarConfigNetHsmState {
-            user_states,
-            key_states,
-        }
-    }
-}
-
-impl From<&SignstarConfig> for SignstarConfigNetHsmState {
-    fn from(value: &SignstarConfig) -> Self {
-        let user_states: Vec<UserState> = value
-            .iter_user_mappings()
-            .flat_map(|mapping| {
-                mapping
-                    .get_nethsm_user_role_and_tags()
-                    .iter()
-                    .map(|(name, role, tags)| UserState {
-                        name: name.clone(),
-                        role: *role,
-                        tags: tags.clone(),
-                    })
-                    .collect::<Vec<UserState>>()
-            })
-            .collect();
-        let key_states: Vec<KeyState> = value
-            .iter_user_mappings()
-            .flat_map(|mapping| {
-                mapping
-                    .get_nethsm_user_key_and_tag(FilterUserKeys::All)
-                    .iter()
-                    .map(|(user_id, key_id, key_setup, tag)| KeyState {
-                        name: key_id.clone(),
-                        namespace: user_id.namespace().cloned(),
-                        tags: vec![tag.to_string()],
-                        key_type: key_setup.key_type(),
-                        mechanisms: key_setup.key_mechanisms().to_vec(),
-                        key_cert_state: KeyCertificateState::KeyContext(
-                            key_setup.key_context().clone(),
-                        ),
-                    })
-                    .collect::<Vec<KeyState>>()
-            })
-            .collect();
-
-        Self {
             user_states,
             key_states,
         }

@@ -3,19 +3,19 @@
 use nethsm::{KeyId, NamespaceId, Url, UserId};
 
 #[cfg(doc)]
-use crate::{NetHsmAdminCredentials, NetHsmBackend, SignstarConfig};
+use crate::{NetHsmAdminCredentials, NetHsmBackend, config::Config};
 
 /// An error that may occur when handling a NetHSM backend.
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
-    /// The iteration of the [`NetHsmAdminCredentials`] and [`SignstarConfig`] are not matching.
+    /// The iteration of the [`NetHsmAdminCredentials`] and [`Config`] are not matching.
     #[error(
         "Iteration mismatch: Administrative credentials ({admin_creds}) vs. Signstar config ({signstar_config})"
     )]
     IterationMismatch {
         /// The iteration of the [`NetHsmAdminCredentials`].
         admin_creds: u32,
-        /// The iteration of the [`SignstarConfig`].
+        /// The iteration of the [`Config`].
         signstar_config: u32,
     },
 
