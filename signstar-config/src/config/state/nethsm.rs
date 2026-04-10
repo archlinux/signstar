@@ -13,7 +13,7 @@ use crate::{
     FilterUserKeys,
     SignstarConfig,
     config::state::KeyCertificateState,
-    nethsm::state::NetHsmState,
+    nethsm::{NetHsmConfig, NetHsmUserKeysFilter, state::NetHsmState},
     state::{StateComparisonReport, StateHandling, StateType},
 };
 
@@ -542,6 +542,43 @@ impl StateHandling for SignstarConfigNetHsmState {
     }
 }
 
+impl From<&NetHsmConfig> for SignstarConfigNetHsmState {
+    fn from(value: &NetHsmConfig) -> Self {
+        let mut key_states: Vec<KeyState> = Vec::new();
+        let mut user_states: Vec<UserState> = Vec::new();
+
+        for mapping in value.mappings() {
+            if let Some(user_key_data) = mapping.nethsm_user_key_data(NetHsmUserKeysFilter::All) {
+                key_states.push(KeyState {
+                    name: user_key_data.key_id.clone(),
+                    namespace: user_key_data.user.namespace().cloned(),
+                    tags: vec![user_key_data.tag.to_string()],
+                    key_type: user_key_data.key_setup.key_type(),
+                    mechanisms: user_key_data.key_setup.key_mechanisms().to_vec(),
+                    key_cert_state: KeyCertificateState::KeyContext(
+                        user_key_data.key_setup.key_context().clone(),
+                    ),
+                })
+            }
+            for user_data in mapping.nethsm_user_data() {
+                user_states.push(UserState {
+                    name: user_data.user.clone(),
+                    role: user_data.role,
+                    tags: user_data
+                        .tag
+                        .map(|tag| vec![tag.to_string()])
+                        .unwrap_or_else(Vec::new),
+                })
+            }
+        }
+
+        SignstarConfigNetHsmState {
+            user_states,
+            key_states,
+        }
+    }
+}
+
 impl From<&SignstarConfig> for SignstarConfigNetHsmState {
     fn from(value: &SignstarConfig) -> Self {
         let user_states: Vec<UserState> = value
@@ -587,13 +624,111 @@ impl From<&SignstarConfig> for SignstarConfigNetHsmState {
 
 #[cfg(test)]
 mod tests {
+    use std::collections::BTreeSet;
+
     use log::LevelFilter;
-    use nethsm::{OpenPgpUserIdList, OpenPgpVersion};
+    use nethsm::{
+        Connection,
+        ConnectionSecurity,
+        OpenPgpUserIdList,
+        OpenPgpVersion,
+        SignatureType,
+    };
     use rstest::rstest;
     use signstar_common::logging::setup_logging;
+    use signstar_crypto::key::SigningKeySetup;
     use testresult::TestResult;
 
     use super::*;
+    use crate::nethsm::NetHsmUserMapping;
+
+    /// Ensures, that a [`SignstarConfigNetHsmState`] can be reliable created from a
+    /// [`NetHsmConfig`].
+    #[rstest]
+    #[case::with_signing_user(
+        NetHsmConfig::new(
+            BTreeSet::from_iter([Connection::new(
+                "https://nethsm.example.org".parse()?,
+                ConnectionSecurity::Unsafe,
+            )]),
+            BTreeSet::from_iter([
+                NetHsmUserMapping::Admin("admin".parse()?),
+                NetHsmUserMapping::Signing {
+                    backend_user: "signing1".parse()?,
+                    signing_key_id: "signing1".parse()?,
+                    key_setup: SigningKeySetup::new(
+                        KeyType::Curve25519,
+                        vec![KeyMechanism::EdDsaSignature],
+                        None,
+                        SignatureType::EdDsa,
+                        CryptographicKeyContext::OpenPgp {
+                            user_ids: OpenPgpUserIdList::new(vec![
+                                "John Doe <john@example.org>".parse()?,
+                            ])?,
+                            version: OpenPgpVersion::V4,
+                        },
+                    )?,
+                    ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOh96uFTnvX6P1ebbLxXFvy6sK7qFqlMHDOuJ0TmuXQQ user@host".parse()?,
+                    system_user: "nethsm-signing1".parse()?,
+                    tag: "tag1".to_string(),
+                },
+            ]),
+        )?,
+        SignstarConfigNetHsmState {
+            user_states: vec![
+                UserState {
+                    name: "admin".parse()?,
+                    role: UserRole::Administrator,
+                    tags: Vec::new(),
+                },
+                UserState {
+                    name: "signing1".parse()?,
+                    role: UserRole::Operator,
+                    tags: vec!["tag1".to_string()],
+                },
+            ],
+            key_states: vec![KeyState {
+                name: "signing1".parse()?,
+                namespace: None,
+                key_type: KeyType::Curve25519,
+                tags: vec!["tag1".to_string()],
+                mechanisms: vec![KeyMechanism::EdDsaSignature],
+                key_cert_state: KeyCertificateState::KeyContext(CryptographicKeyContext::OpenPgp {
+                    user_ids: OpenPgpUserIdList::new(vec!["John Doe <john@example.org>".parse()?])?,
+                    version: OpenPgpVersion::V4,
+                }),
+            }],
+        }
+    )]
+    #[case::without_signing_user(
+        NetHsmConfig::new(
+            BTreeSet::from_iter([Connection::new(
+                "https://nethsm.example.org".parse()?,
+                ConnectionSecurity::Unsafe,
+            )]),
+            BTreeSet::from_iter([
+                NetHsmUserMapping::Admin("admin".parse()?),
+            ]),
+        )?,
+        SignstarConfigNetHsmState {
+            user_states: vec![
+                UserState {
+                    name: "admin".parse()?,
+                    role: UserRole::Administrator,
+                    tags: Vec::new(),
+                },
+            ],
+            key_states: Vec::new(),
+        }
+    )]
+    fn signstar_state_nethsm_from_nethsm_config(
+        #[case] input: NetHsmConfig,
+        #[case] expected: SignstarConfigNetHsmState,
+    ) -> TestResult {
+        assert_eq!(expected, SignstarConfigNetHsmState::from(&input));
+
+        Ok(())
+    }
 
     /// Ensures that [`UserState::to_string`] shows correctly.
     #[rstest]
