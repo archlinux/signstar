@@ -2116,9 +2116,30 @@ mod tests {
         ///
         /// The configuration file describes a [`SystemConfig`] and a [`YubiHsm2Config`] object.
         #[rstest]
+        #[cfg(not(feature = "_yubihsm2-mockhsm"))]
         fn roundtrip_yaml_config(
             #[files("src/config/file/fixtures/valid_config/system-and-yubihsm2-config-*.yaml")]
             #[exclude("mock")]
+            path: PathBuf,
+        ) -> TestResult {
+            let config_string = read_to_string(&path)?;
+            let config = Config::from_file_path(&path)?;
+
+            assert_eq!(config.to_yaml_string()?, config_string);
+
+            Ok(())
+        }
+
+        /// Ensures, that a valid [`Config`] can be created from a YAML file and turned back into
+        /// the same YAML string.
+        ///
+        /// The configuration file describes a [`SystemConfig`] and a [`YubiHsm2Config`] object.
+        #[rstest]
+        #[cfg(feature = "_yubihsm2-mockhsm")]
+        fn roundtrip_yaml_config_mockhsm(
+            #[files(
+                "src/config/file/fixtures/valid_config/system-and-yubihsm2-config-mockhsm-*.yaml"
+            )]
             path: PathBuf,
         ) -> TestResult {
             let config_string = read_to_string(&path)?;
