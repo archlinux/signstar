@@ -142,8 +142,11 @@ let credentials = credentials_loading.credentials_for_signing_user()?;
   **NOTE**: Unless you are developing this crate, you will very likely not want to use this feature.
 - `_test-helpers`: Enables the `signstar_config::test` module which provides utilities for test setups that may also be useful for other crates.
   **NOTE**: Unless you are developing this crate, you will very likely not want to use this feature.
+- `_yubihsm2-mockhsm`: Test environment and integration using a virtual [YubiHSM2].
+  **NOTE**: Unless you are developing this crate, you will very likely not want to use this feature.
+  **WARNING**: This feature requires building in `debug` mode (see [signstar#288])!
 - `nethsm`: Enables support for the NetHSM backend.
-- `yubihsm2`: Enables support for the YubiHSM2 backend.
+- `yubihsm2`: Enables support for the [YubiHSM2] backend.
 
 ## Contributing
 
@@ -157,6 +160,8 @@ Changes to this project - unless stated otherwise - automatically fall under the
 
 [Apache-2.0]: https://www.apache.org/licenses/LICENSE-2.0
 [MIT]: https://opensource.org/licenses/MIT
-[contributing guidelines]: ../CONTRIBUTING.md
-[signstar-configure-build]: https://signstar.archlinux.page/signstar-configure-build/index.html
+[YubiHSM2]: https://www.yubico.com/de/product/yubihsm-2/
 [`systemd-creds`]: https://man.archlinux.org/man/systemd-creds.1
+[contributing guidelines]: ../CONTRIBUTING.md
+[signstar#288]: https://gitlab.archlinux.org/archlinux/signstar/-/work_items/288
+[signstar-configure-build]: https://signstar.archlinux.page/signstar-configure-build/index.html
