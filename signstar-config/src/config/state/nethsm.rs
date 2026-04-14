@@ -413,7 +413,7 @@ impl<'a> Display for KeyStates<'a> {
 }
 
 /// The state of configuration items for a NetHSM backend in a Signstar configuration.
-#[derive(Debug)]
+#[derive(Debug, Eq, PartialEq)]
 pub struct SignstarConfigNetHsmState {
     /// The user states.
     pub(crate) user_states: Vec<UserState>,
