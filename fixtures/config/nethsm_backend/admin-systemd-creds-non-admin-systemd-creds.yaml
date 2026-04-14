@@ -16,6 +16,7 @@ nethsm:
       tls_security: Unsafe
   mappings:
     - admin: admin
+    - admin: ns1~admin
     - backup:
         backend_user: backup
         ssh_authorized_key: >-
@@ -54,4 +55,22 @@ nethsm:
           ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOh96uFTnvX6P1ebbLxXFvy6sK7qFqlMHDOuJ0TmuXQQ
           user@host
         system_user: signing-user
+        tag: signing1
+    - signing:
+        backend_user: ns1~signing
+        signing_key_id: signing1
+        key_setup:
+          key_type: Curve25519
+          key_mechanisms:
+            - EdDsaSignature
+          signature_type: EdDsa
+          key_context:
+            openpgp:
+              user_ids:
+                - Barfoo McBarface <barfoo@mcbarface.org>
+              version: "4"
+        ssh_authorized_key: >-
+          ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJr4wdlEv3ZKkDufEQTZSLOjDLO3DeNN2pqKmp00ufIu
+          user@host
+        system_user: ns1-signing-user
         tag: signing1
