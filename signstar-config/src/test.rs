@@ -76,74 +76,231 @@ mod impl_none {
     }
 }
 
-/// No HSM backend, plain administrative secrets handling.
-const NO_BACKEND_PLAIN_ADMIN: &[u8] =
+/// Config with no HSM backend.
+///
+/// - plaintext for administrative secrets
+/// - plaintext for non-administrative secrets
+const NO_BACKEND_ADMIN_PLAINTEXT_NON_ADMIN_PLAINTEXT: &[u8] =
+    include_bytes!("../../fixtures/config/no_backend/admin-plaintext-non-admin-plaintext.yaml");
+
+/// Config with no HSM backend.
+///
+/// - plaintext for administrative secrets
+/// - systemd-creds for non-administrative secrets
+const NO_BACKEND_ADMIN_PLAINTEXT_NON_ADMIN_SYSTEMD_CREDS: &[u8] =
     include_bytes!("../../fixtures/config/no_backend/admin-plaintext-non-admin-systemd-creds.yaml");
 
-/// No HSM backend, systemd-creds administrative secrets handling.
-const NO_BACKEND_SYSTEMD_CREDS_ADMIN: &[u8] = include_bytes!(
+/// Config with no HSM backend.
+///
+/// - systemd-creds for administrative secrets
+/// - plaintext for non-administrative secrets
+const NO_BACKEND_ADMIN_SYSTEMD_CREDS_NON_ADMIN_PLAINTEXT: &[u8] =
+    include_bytes!("../../fixtures/config/no_backend/admin-systemd-creds-non-admin-plaintext.yaml");
+
+/// Config with no HSM backend.
+///
+/// - systemd-creds for administrative secrets
+/// - systemd-creds for non-administrative secrets
+const NO_BACKEND_ADMIN_SYSTEMD_CREDS_NON_ADMIN_SYSTEMD_CREDS: &[u8] = include_bytes!(
     "../../fixtures/config/no_backend/admin-systemd-creds-non-admin-systemd-creds.yaml"
 );
 
-/// No HSM backend, Shamir's Secret Sharing administrative secrets handling.
-const NO_BACKEND_SSS_ADMIN: &[u8] =
+/// Config with no HSM backend.
+///
+/// - Shamir's Secret Sharing for administrative secrets
+/// - plaintext for non-administrative secrets
+const NO_BACKEND_ADMIN_SSS_NON_ADMIN_PLAINTEXT: &[u8] =
+    include_bytes!("../../fixtures/config/no_backend/admin-sss-non-admin-plaintext.yaml");
+
+/// Config with no HSM backend.
+///
+/// - Shamir's Secret Sharing for administrative secrets
+/// - systemd-creds for non-administrative secrets
+const NO_BACKEND_ADMIN_SSS_NON_ADMIN_SYSTEMD_CREDS: &[u8] =
     include_bytes!("../../fixtures/config/no_backend/admin-sss-non-admin-systemd-creds.yaml");
 
-/// NetHSM backend, plain administrative secrets handling.
-const ONLY_NETHSM_PLAIN_ADMIN: &[u8] = include_bytes!(
+/// Config with NetHSM backend.
+///
+/// - plaintext for administrative secrets
+/// - plaintext for non-administrative secrets
+const ONLY_NETHSM_ADMIN_PLAINTEXT_NON_ADMIN_PLAINTEXT: &[u8] =
+    include_bytes!("../../fixtures/config/nethsm_backend/admin-plaintext-non-admin-plaintext.yaml");
+
+/// Config with NetHSM backend.
+///
+/// - plaintext for administrative secrets
+/// - systemd-creds for non-administrative secrets
+const ONLY_NETHSM_ADMIN_PLAINTEXT_NON_ADMIN_SYSTEMD_CREDS: &[u8] = include_bytes!(
     "../../fixtures/config/nethsm_backend/admin-plaintext-non-admin-systemd-creds.yaml"
 );
 
-/// NetHSM backend, systemd-creds administrative secrets handling.
-const ONLY_NETHSM_SYSTEMD_CREDS_ADMIN: &[u8] = include_bytes!(
+/// Config with NetHSM backend.
+///
+/// - systemd-creds for administrative secrets
+/// - plaintext for non-administrative secrets
+const ONLY_NETHSM_ADMIN_SYSTEMD_CREDS_NON_ADMIN_PLAINTEXT: &[u8] = include_bytes!(
+    "../../fixtures/config/nethsm_backend/admin-systemd-creds-non-admin-plaintext.yaml"
+);
+
+/// Config with NetHSM backend.
+///
+/// - systemd-creds for administrative secrets
+/// - systemd-creds for non-administrative secrets
+const ONLY_NETHSM_ADMIN_SYSTEMD_CREDS_NON_ADMIN_SYSTEMD_CREDS: &[u8] = include_bytes!(
     "../../fixtures/config/nethsm_backend/admin-systemd-creds-non-admin-systemd-creds.yaml"
 );
 
-/// NetHSM backend, Shamir's Secret Sharing administrative secrets handling.
-const ONLY_NETHSM_SSS_ADMIN: &[u8] =
+/// Config with NetHSM backend.
+///
+/// - Shamir's Secret Sharing for administrative secrets
+/// - plaintext for non-administrative secrets
+const ONLY_NETHSM_ADMIN_SSS_NON_ADMIN_PLAINTEXT: &[u8] =
+    include_bytes!("../../fixtures/config/nethsm_backend/admin-sss-non-admin-plaintext.yaml");
+
+/// Config with NetHSM backend.
+///
+/// - Shamir's Secret Sharing for administrative secrets
+/// - systemd-creds for non-administrative secrets
+const ONLY_NETHSM_ADMIN_SSS_NON_ADMIN_SYSTEMD_CREDS: &[u8] =
     include_bytes!("../../fixtures/config/nethsm_backend/admin-sss-non-admin-systemd-creds.yaml");
 
-/// YubiHSM2 backend, plain administrative secrets handling.
-const ONLY_YUBIHSM2_PLAIN_ADMIN: &[u8] = include_bytes!(
+/// Config with YubiHSM2 backend.
+///
+/// - plaintext for administrative secrets
+/// - plaintext for non-administrative secrets
+const ONLY_YUBIHSM2_ADMIN_PLAINTEXT_NON_ADMIN_PLAINTEXT: &[u8] = include_bytes!(
+    "../../fixtures/config/yubihsm2_backend/admin-plaintext-non-admin-plaintext.yaml"
+);
+
+/// Config with YubiHSM2 backend.
+///
+/// - plaintext for administrative secrets
+/// - systemd-creds for non-administrative secrets
+const ONLY_YUBIHSM2_ADMIN_PLAINTEXT_NON_ADMIN_SYSTEMD_CREDS: &[u8] = include_bytes!(
     "../../fixtures/config/yubihsm2_backend/admin-plaintext-non-admin-systemd-creds.yaml"
 );
 
-/// YubiHSM2 backend, systemd-creds administrative secrets handling.
-const ONLY_YUBIHSM2_SYSTEMD_CREDS_ADMIN: &[u8] = include_bytes!(
+/// Config with YubiHSM2 backend.
+///
+/// - systemd-creds for administrative secrets
+/// - plaintext for non-administrative secrets
+const ONLY_YUBIHSM2_ADMIN_SYSTEMD_CREDS_NON_ADMIN_PLAINTEXT: &[u8] = include_bytes!(
+    "../../fixtures/config/yubihsm2_backend/admin-systemd-creds-non-admin-plaintext.yaml"
+);
+
+/// Config with YubiHSM2 backend.
+///
+/// - systemd-creds for administrative secrets
+/// - systemd-creds for non-administrative secrets
+const ONLY_YUBIHSM2_ADMIN_SYSTEMD_CREDS_NON_ADMIN_SYSTEMD_CREDS: &[u8] = include_bytes!(
     "../../fixtures/config/yubihsm2_backend/admin-systemd-creds-non-admin-systemd-creds.yaml"
 );
 
-/// YubiHSM2 backend, Shamir's Secret Sharing administrative secrets handling.
-const ONLY_YUBIHSM2_SSS_ADMIN: &[u8] =
+/// Config with YubiHSM2 backend.
+///
+/// - Shamir's Secret Sharing for administrative secrets
+/// - plaintext for non-administrative secrets
+const ONLY_YUBIHSM2_ADMIN_SSS_NON_ADMIN_PLAINTEXT: &[u8] =
+    include_bytes!("../../fixtures/config/yubihsm2_backend/admin-sss-non-admin-plaintext.yaml");
+
+/// Config with YubiHSM2 backend.
+///
+/// - Shamir's Secret Sharing for administrative secrets
+/// - systemd-creds for non-administrative secrets
+const ONLY_YUBIHSM2_ADMIN_SSS_NON_ADMIN_SYSTEMD_CREDS: &[u8] =
     include_bytes!("../../fixtures/config/yubihsm2_backend/admin-sss-non-admin-systemd-creds.yaml");
 
-/// YubiHSM2 backend, plain administrative secrets handling.
-const ONLY_YUBIHSM2_MOCKHSM_PLAIN_ADMIN: &[u8] = include_bytes!(
+/// Config with YubiHSM2 mockhsm backend.
+///
+/// - plaintext for administrative secrets
+/// - plaintext for non-administrative secrets
+const ONLY_YUBIHSM2_MOCKHSM_ADMIN_PLAINTEXT_NON_ADMIN_PLAINTEXT: &[u8] = include_bytes!(
+    "../../fixtures/config/yubihsm2_mockhsm_backend/admin-plaintext-non-admin-plaintext.yaml"
+);
+
+/// Config with YubiHSM2 mockhsm backend.
+///
+/// - plaintext for administrative secrets
+/// - systemd-creds for non-administrative secrets
+const ONLY_YUBIHSM2_MOCKHSM_ADMIN_PLAINTEXT_NON_ADMIN_SYSTEMD_CREDS: &[u8] = include_bytes!(
     "../../fixtures/config/yubihsm2_mockhsm_backend/admin-plaintext-non-admin-systemd-creds.yaml"
 );
 
-/// YubiHSM2 backend, systemd-creds administrative secrets handling.
-const ONLY_YUBIHSM2_MOCKHSM_SYSTEMD_CREDS_ADMIN: &[u8] = include_bytes!(
+/// Config with YubiHSM2 mockhsm backend.
+///
+/// - systemd-creds for administrative secrets
+/// - plaintext for non-administrative secrets
+const ONLY_YUBIHSM2_MOCKHSM_ADMIN_SYSTEMD_CREDS_NON_ADMIN_PLAINTEXT: &[u8] = include_bytes!(
+    "../../fixtures/config/yubihsm2_mockhsm_backend/admin-systemd-creds-non-admin-plaintext.yaml"
+);
+
+/// Config with YubiHSM2 mockhsm backend.
+///
+/// - systemd-creds for administrative secrets
+/// - systemd-creds for non-administrative secrets
+const ONLY_YUBIHSM2_MOCKHSM_ADMIN_SYSTEMD_CREDS_NON_ADMIN_SYSTEMD_CREDS: &[u8] = include_bytes!(
     "../../fixtures/config/yubihsm2_mockhsm_backend/admin-systemd-creds-non-admin-systemd-creds.yaml"
 );
 
-/// YubiHSM2 backend, Shamir's Secret Sharing administrative secrets handling.
-const ONLY_YUBIHSM2_MOCKHSM_SSS_ADMIN: &[u8] = include_bytes!(
+/// Config with YubiHSM2 mockhsm backend.
+///
+/// - Shamir's Secret Sharing for administrative secrets
+/// - plaintext for non-administrative secrets
+const ONLY_YUBIHSM2_MOCKHSM_ADMIN_SSS_NON_ADMIN_PLAINTEXT: &[u8] = include_bytes!(
+    "../../fixtures/config/yubihsm2_mockhsm_backend/admin-sss-non-admin-plaintext.yaml"
+);
+
+/// Config with YubiHSM2 mockhsm backend.
+///
+/// - Shamir's Secret Sharing for administrative secrets
+/// - systemd-creds for non-administrative secrets
+const ONLY_YUBIHSM2_MOCKHSM_ADMIN_SSS_NON_ADMIN_SYSTEMD_CREDS: &[u8] = include_bytes!(
     "../../fixtures/config/yubihsm2_mockhsm_backend/admin-sss-non-admin-systemd-creds.yaml"
 );
 
-/// NetHSM and YubiHSM2 backends, plain administrative secrets handling.
-const ALL_BACKENDS_PLAIN_ADMIN: &[u8] = include_bytes!(
+/// Config with NetHSM and YubiHSM2 backends.
+///
+/// - plaintext for administrative secrets
+/// - plaintext for non-administrative secrets
+const ALL_BACKENDS_ADMIN_PLAINTEXT_NON_ADMIN_PLAINTEXT: &[u8] =
+    include_bytes!("../../fixtures/config/all_backends/admin-plaintext-non-admin-plaintext.yaml");
+
+/// Config with NetHSM and YubiHSM2 backends.
+///
+/// - plaintext for administrative secrets
+/// - systemd-creds for non-administrative secrets
+const ALL_BACKENDS_ADMIN_PLAINTEXT_NON_ADMIN_SYSTEMD_CREDS: &[u8] = include_bytes!(
     "../../fixtures/config/all_backends/admin-plaintext-non-admin-systemd-creds.yaml"
 );
 
-/// NetHSM and YubiHSM2 backends, systemd-creds administrative secrets handling.
-const ALL_BACKENDS_SYSTEMD_CREDS_ADMIN: &[u8] = include_bytes!(
+/// Config with NetHSM and YubiHSM2 backends.
+///
+/// - systemd-creds for administrative secrets
+/// - plaintext for non-administrative secrets
+const ALL_BACKENDS_ADMIN_SYSTEMD_CREDS_NON_ADMIN_PLAINTEXT: &[u8] = include_bytes!(
+    "../../fixtures/config/all_backends/admin-systemd-creds-non-admin-plaintext.yaml"
+);
+
+/// Config with NetHSM and YubiHSM2 backends.
+///
+/// - systemd-creds for administrative secrets
+/// - systemd-creds for non-administrative secrets
+const ALL_BACKENDS_ADMIN_SYSTEMD_CREDS_NON_ADMIN_SYSTEMD_CREDS: &[u8] = include_bytes!(
     "../../fixtures/config/all_backends/admin-systemd-creds-non-admin-systemd-creds.yaml"
 );
 
-/// NetHSM and YubiHSM2 backends, Shamir's Secret Sharing administrative secrets handling.
-const ALL_BACKENDS_SSS_ADMIN: &[u8] =
+/// Config with NetHSM and YubiHSM2 backends.
+///
+/// - Shamir's Secret Sharing for administrative secrets
+/// - plaintext for non-administrative secrets
+const ALL_BACKENDS_ADMIN_SSS_NON_ADMIN_PLAINTEXT: &[u8] =
+    include_bytes!("../../fixtures/config/all_backends/admin-sss-non-admin-plaintext.yaml");
+
+/// Config with NetHSM and YubiHSM2 backends.
+///
+/// - Shamir's Secret Sharing for administrative secrets
+/// - systemd-creds for non-administrative secrets
+const ALL_BACKENDS_ADMIN_SSS_NON_ADMIN_SYSTEMD_CREDS: &[u8] =
     include_bytes!("../../fixtures/config/all_backends/admin-sss-non-admin-systemd-creds.yaml");
 
 /// An error that may occur when using test utils.
@@ -261,82 +418,282 @@ impl From<ConfigFileLocation> for PathBuf {
 /// The Signstar configuration file variant used for the file contents.
 #[derive(Clone, Copy, Debug, Default)]
 pub enum ConfigFileVariant {
-    /// No HSM backend, plain administrative secrets handling.
-    NoBackendPlainAdmin,
+    /// No HSM backend.
+    ///
+    /// - plaintext for administrative secrets
+    /// - plaintext for non-administrative secrets
+    NoBackendAdminPlaintextNonAdminPlaintext,
 
-    /// No HSM backend, systemd-creds administrative secrets handling.
-    NoBackendSystemdCredsAdmin,
+    /// No HSM backend.
+    ///
+    /// - plaintext for administrative secrets
+    /// - systemd-creds for non-administrative secrets
+    NoBackendAdminPlaintextNonAdminSystemdCreds,
 
-    /// No HSM backend, Shamir's Secret Sharing administrative secrets handling.
-    NoBackendSssAdmin,
+    /// No HSM backend.
+    ///
+    /// - systemd-creds for administrative secrets
+    /// - plaintext for non-administrative secrets
+    NoBackendAdminSystemdCredsNonAdminPlaintext,
 
-    /// NetHSM backend, plain administrative secrets handling.
-    OnlyNetHsmBackendPlainAdmin,
+    /// No HSM backend.
+    ///
+    /// - systemd-creds for administrative secrets
+    /// - systemd-creds for non-administrative secrets
+    NoBackendAdminSystemdCredsNonAdminSystemdCreds,
 
-    /// NetHSM backend, systemd-creds administrative secrets handling.
-    OnlyNetHsmBackendSystemdCredsAdmin,
+    /// No HSM backend.
+    ///
+    /// - Shamir's Secret Sharing for administrative secrets
+    /// - plaintext for non-administrative secrets
+    NoBackendAdminSssNonAdminPlaintext,
 
-    /// NetHSM backend, Shamir's Secret Sharing administrative secrets handling.
-    OnlyNetHsmBackendSssAdmin,
+    /// No HSM backend.
+    ///
+    /// - Shamir's Secret Sharing for administrative secrets
+    /// - systemd-creds for non-administrative secrets
+    NoBackendAdminSssNonAdminSystemdCreds,
 
-    /// YubiHSM2 backend, plain administrative secrets handling.
-    OnlyYubiHsm2BackendPlainAdmin,
+    /// NetHSM backend.
+    ///
+    /// - plaintext for administrative secrets
+    /// - plaintext for non-administrative secrets
+    OnlyNetHsmBackendAdminPlaintextNonAdminPlaintext,
 
-    /// YubiHSM2 backend, systemd-creds administrative secrets handling.
-    OnlyYubiHsm2BackendSystemdCredsAdmin,
+    /// NetHSM backend.
+    ///
+    /// - plaintext for administrative secrets
+    /// - systemd-creds for non-administrative secrets
+    OnlyNetHsmBackendAdminPlaintextNonAdminSystemdCreds,
 
-    /// YubiHSM2 backend, Shamir's Secret Sharing administrative secrets handling.
-    OnlyYubiHsm2BackendSssAdmin,
+    /// NetHSM backend.
+    ///
+    /// - systemd-creds for administrative secrets
+    /// - plaintext for non-administrative secrets
+    OnlyNetHsmBackendAdminSystemdCredsNonAdminPlaintext,
 
-    /// YubiHSM2 backend, plain administrative secrets handling.
-    OnlyYubiHsm2MockHsmBackendPlainAdmin,
+    /// NetHSM backend.
+    ///
+    /// - systemd-creds for administrative secrets
+    /// - systemd-creds for non-administrative secrets
+    OnlyNetHsmBackendAdminSystemdCredsNonAdminSystemdCreds,
 
-    /// YubiHSM2 backend, systemd-creds administrative secrets handling.
-    OnlyYubiHsm2MockHsmBackendSystemdCredsAdmin,
+    /// NetHSM backend.
+    ///
+    /// - Shamir's Secret Sharing for administrative secrets
+    /// - plaintext for non-administrative secrets
+    OnlyNetHsmBackendAdminSssNonAdminPlaintext,
 
-    /// YubiHSM2 backend, Shamir's Secret Sharing administrative secrets handling.
-    OnlyYubiHsm2MockHsmBackendSssAdmin,
+    /// NetHSM backend.
+    ///
+    /// - Shamir's Secret Sharing for administrative secrets
+    /// - systemd-creds for non-administrative secrets
+    OnlyNetHsmBackendAdminSssNonAdminSystemdCreds,
 
-    /// NetHSM and YubiHSM2 backends, plain administrative secrets handling.
-    AllBackendsPlainAdmin,
+    /// YubiHSM2 backend.
+    ///
+    /// - plaintext for administrative secrets
+    /// - plaintext for non-administrative secrets
+    OnlyYubiHsm2BackendAdminPlaintextNonAdminPlaintext,
 
-    /// NetHSM and YubiHSM2 backends, systemd-creds administrative secrets handling.
-    AllBackendsSystemdCredsAdmin,
+    /// YubiHSM2 backend.
+    ///
+    /// - plaintext for administrative secrets
+    /// - systemd-creds for non-administrative secrets
+    OnlyYubiHsm2BackendAdminPlaintextNonAdminSystemdCreds,
 
-    /// NetHSM and YubiHSM2 backends, Shamir's Secret Sharing administrative secrets handling.
+    /// YubiHSM2 backend.
+    ///
+    /// - systemd-creds for administrative secrets
+    /// - plaintext for non-administrative secrets
+    OnlyYubiHsm2BackendAdminSystemdCredsNonAdminPlaintext,
+
+    /// YubiHSM2 backend.
+    ///
+    /// - systemd-creds for administrative secrets
+    /// - systemd-creds for non-administrative secrets
+    OnlyYubiHsm2BackendAdminSystemdCredsNonAdminSystemdCreds,
+
+    /// YubiHSM2 backend.
+    ///
+    /// - Shamir's Secret Sharing for administrative secrets
+    /// - plaintext for non-administrative secrets
+    OnlyYubiHsm2BackendAdminSssNonAdminPlaintext,
+
+    /// YubiHSM2 backend.
+    ///
+    /// - Shamir's Secret Sharing for administrative secrets
+    /// - systemd-creds for non-administrative secrets
+    OnlyYubiHsm2BackendAdminSssNonAdminSystemdCreds,
+
+    /// YubiHSM2 mockhsm backend.
+    ///
+    /// - plaintext for administrative secrets
+    /// - plaintext for non-administrative secrets
+    OnlyYubiHsm2MockHsmBackendAdminPlaintextNonAdminPlaintext,
+
+    /// YubiHSM2 mockhsm backend.
+    ///
+    /// - plaintext for administrative secrets
+    /// - systemd-creds for non-administrative secrets
+    OnlyYubiHsm2MockHsmBackendAdminPlaintextNonAdminSystemdCreds,
+
+    /// YubiHSM2 mockhsm backend.
+    ///
+    /// - systemd-creds for administrative secrets
+    /// - plaintext for non-administrative secrets
+    OnlyYubiHsm2MockHsmBackendAdminSystemdCredsNonAdminPlaintext,
+
+    /// YubiHSM2 mockhsm backend.
+    ///
+    /// - systemd-creds for administrative secrets
+    /// - systemd-creds for non-administrative secrets
+    OnlyYubiHsm2MockHsmBackendAdminSystemdCredsNonAdminSystemdCreds,
+
+    /// YubiHSM2 mockhsm backend.
+    ///
+    /// - Shamir's Secret Sharing for administrative secrets
+    /// - plaintext for non-administrative secrets
+    OnlyYubiHsm2MockHsmBackendAdminSssNonAdminPlaintext,
+
+    /// YubiHSM2 mockhsm backend.
+    ///
+    /// - Shamir's Secret Sharing for administrative secrets
+    /// - systemd-creds for non-administrative secrets
+    OnlyYubiHsm2MockHsmBackendAdminSssNonAdminSystemdCreds,
+
+    /// NetHSM and YubiHSM2 backends.
+    ///
+    /// - plaintext for administrative secrets
+    /// - plaintext for non-administrative secrets
+    AllBackendsAdminPlaintextNonAdminPlaintext,
+
+    /// NetHSM and YubiHSM2 backends.
+    ///
+    /// - plaintext for administrative secrets
+    /// - systemd-creds for non-administrative secrets
+    AllBackendsAdminPlaintextNonAdminSystemdCreds,
+
+    /// NetHSM and YubiHSM2 backends.
+    ///
+    /// - systemd-creds for administrative secrets
+    /// - plaintext for non-administrative secrets
+    AllBackendsAdminSystemdCredsNonAdminPlaintext,
+
+    /// NetHSM and YubiHSM2 backends.
+    ///
+    /// - systemd-creds for administrative secrets
+    /// - systemd-creds for non-administrative secrets
+    AllBackendsAdminSystemdCredsNonAdminSystemdCreds,
+
+    /// NetHSM and YubiHSM2 backends.
+    ///
+    /// - Shamir's Secret Sharing for administrative secrets
+    /// - plaintext for non-administrative secrets
+    AllBackendsAdminSssNonAdminPlaintext,
+
+    /// NetHSM and YubiHSM2 backends.
+    ///
+    /// - Shamir's Secret Sharing for administrative secrets
+    /// - systemd-creds for non-administrative secrets
     #[default]
-    AllBackendsSssAdmin,
+    AllBackendsAdminSssNonAdminSystemdCreds,
 }
 
 impl ConfigFileVariant {
     /// Returns the bytes of a Signstar configuration matching the chosen variant.
     pub fn as_config_bytes(&self) -> &[u8] {
         match self {
-            ConfigFileVariant::NoBackendPlainAdmin => NO_BACKEND_PLAIN_ADMIN,
-            ConfigFileVariant::NoBackendSystemdCredsAdmin => NO_BACKEND_SYSTEMD_CREDS_ADMIN,
-            ConfigFileVariant::NoBackendSssAdmin => NO_BACKEND_SSS_ADMIN,
-            ConfigFileVariant::OnlyNetHsmBackendPlainAdmin => ONLY_NETHSM_PLAIN_ADMIN,
-            ConfigFileVariant::OnlyNetHsmBackendSystemdCredsAdmin => {
-                ONLY_NETHSM_SYSTEMD_CREDS_ADMIN
+            ConfigFileVariant::NoBackendAdminPlaintextNonAdminPlaintext => {
+                NO_BACKEND_ADMIN_PLAINTEXT_NON_ADMIN_PLAINTEXT
             }
-            ConfigFileVariant::OnlyNetHsmBackendSssAdmin => ONLY_NETHSM_SSS_ADMIN,
-            ConfigFileVariant::OnlyYubiHsm2BackendPlainAdmin => ONLY_YUBIHSM2_PLAIN_ADMIN,
-            ConfigFileVariant::OnlyYubiHsm2BackendSystemdCredsAdmin => {
-                ONLY_YUBIHSM2_SYSTEMD_CREDS_ADMIN
+            ConfigFileVariant::NoBackendAdminPlaintextNonAdminSystemdCreds => {
+                NO_BACKEND_ADMIN_PLAINTEXT_NON_ADMIN_SYSTEMD_CREDS
             }
-            ConfigFileVariant::OnlyYubiHsm2BackendSssAdmin => ONLY_YUBIHSM2_SSS_ADMIN,
-            ConfigFileVariant::OnlyYubiHsm2MockHsmBackendPlainAdmin => {
-                ONLY_YUBIHSM2_MOCKHSM_PLAIN_ADMIN
+            ConfigFileVariant::NoBackendAdminSystemdCredsNonAdminPlaintext => {
+                NO_BACKEND_ADMIN_SYSTEMD_CREDS_NON_ADMIN_PLAINTEXT
             }
-            ConfigFileVariant::OnlyYubiHsm2MockHsmBackendSystemdCredsAdmin => {
-                ONLY_YUBIHSM2_MOCKHSM_SYSTEMD_CREDS_ADMIN
+            ConfigFileVariant::NoBackendAdminSystemdCredsNonAdminSystemdCreds => {
+                NO_BACKEND_ADMIN_SYSTEMD_CREDS_NON_ADMIN_SYSTEMD_CREDS
             }
-            ConfigFileVariant::OnlyYubiHsm2MockHsmBackendSssAdmin => {
-                ONLY_YUBIHSM2_MOCKHSM_SSS_ADMIN
+            ConfigFileVariant::NoBackendAdminSssNonAdminPlaintext => {
+                NO_BACKEND_ADMIN_SSS_NON_ADMIN_PLAINTEXT
             }
-            ConfigFileVariant::AllBackendsPlainAdmin => ALL_BACKENDS_PLAIN_ADMIN,
-            ConfigFileVariant::AllBackendsSystemdCredsAdmin => ALL_BACKENDS_SYSTEMD_CREDS_ADMIN,
-            ConfigFileVariant::AllBackendsSssAdmin => ALL_BACKENDS_SSS_ADMIN,
+            ConfigFileVariant::NoBackendAdminSssNonAdminSystemdCreds => {
+                NO_BACKEND_ADMIN_SSS_NON_ADMIN_SYSTEMD_CREDS
+            }
+            ConfigFileVariant::OnlyNetHsmBackendAdminPlaintextNonAdminPlaintext => {
+                ONLY_NETHSM_ADMIN_PLAINTEXT_NON_ADMIN_PLAINTEXT
+            }
+            ConfigFileVariant::OnlyNetHsmBackendAdminPlaintextNonAdminSystemdCreds => {
+                ONLY_NETHSM_ADMIN_PLAINTEXT_NON_ADMIN_SYSTEMD_CREDS
+            }
+            ConfigFileVariant::OnlyNetHsmBackendAdminSystemdCredsNonAdminPlaintext => {
+                ONLY_NETHSM_ADMIN_SYSTEMD_CREDS_NON_ADMIN_PLAINTEXT
+            }
+            ConfigFileVariant::OnlyNetHsmBackendAdminSystemdCredsNonAdminSystemdCreds => {
+                ONLY_NETHSM_ADMIN_SYSTEMD_CREDS_NON_ADMIN_SYSTEMD_CREDS
+            }
+            ConfigFileVariant::OnlyNetHsmBackendAdminSssNonAdminPlaintext => {
+                ONLY_NETHSM_ADMIN_SSS_NON_ADMIN_PLAINTEXT
+            }
+            ConfigFileVariant::OnlyNetHsmBackendAdminSssNonAdminSystemdCreds => {
+                ONLY_NETHSM_ADMIN_SSS_NON_ADMIN_SYSTEMD_CREDS
+            }
+            ConfigFileVariant::OnlyYubiHsm2BackendAdminPlaintextNonAdminPlaintext => {
+                ONLY_YUBIHSM2_ADMIN_PLAINTEXT_NON_ADMIN_PLAINTEXT
+            }
+            ConfigFileVariant::OnlyYubiHsm2BackendAdminPlaintextNonAdminSystemdCreds => {
+                ONLY_YUBIHSM2_ADMIN_PLAINTEXT_NON_ADMIN_SYSTEMD_CREDS
+            }
+            ConfigFileVariant::OnlyYubiHsm2BackendAdminSystemdCredsNonAdminPlaintext => {
+                ONLY_YUBIHSM2_ADMIN_SYSTEMD_CREDS_NON_ADMIN_PLAINTEXT
+            }
+            ConfigFileVariant::OnlyYubiHsm2BackendAdminSystemdCredsNonAdminSystemdCreds => {
+                ONLY_YUBIHSM2_ADMIN_SYSTEMD_CREDS_NON_ADMIN_SYSTEMD_CREDS
+            }
+            ConfigFileVariant::OnlyYubiHsm2BackendAdminSssNonAdminPlaintext => {
+                ONLY_YUBIHSM2_ADMIN_SSS_NON_ADMIN_PLAINTEXT
+            }
+            ConfigFileVariant::OnlyYubiHsm2BackendAdminSssNonAdminSystemdCreds => {
+                ONLY_YUBIHSM2_ADMIN_SSS_NON_ADMIN_SYSTEMD_CREDS
+            }
+            ConfigFileVariant::OnlyYubiHsm2MockHsmBackendAdminPlaintextNonAdminPlaintext => {
+                ONLY_YUBIHSM2_MOCKHSM_ADMIN_PLAINTEXT_NON_ADMIN_PLAINTEXT
+            }
+            ConfigFileVariant::OnlyYubiHsm2MockHsmBackendAdminPlaintextNonAdminSystemdCreds => {
+                ONLY_YUBIHSM2_MOCKHSM_ADMIN_PLAINTEXT_NON_ADMIN_SYSTEMD_CREDS
+            }
+            ConfigFileVariant::OnlyYubiHsm2MockHsmBackendAdminSystemdCredsNonAdminPlaintext => {
+                ONLY_YUBIHSM2_MOCKHSM_ADMIN_SYSTEMD_CREDS_NON_ADMIN_PLAINTEXT
+            }
+            ConfigFileVariant::OnlyYubiHsm2MockHsmBackendAdminSystemdCredsNonAdminSystemdCreds => {
+                ONLY_YUBIHSM2_MOCKHSM_ADMIN_SYSTEMD_CREDS_NON_ADMIN_SYSTEMD_CREDS
+            }
+            ConfigFileVariant::OnlyYubiHsm2MockHsmBackendAdminSssNonAdminPlaintext => {
+                ONLY_YUBIHSM2_MOCKHSM_ADMIN_SSS_NON_ADMIN_PLAINTEXT
+            }
+            ConfigFileVariant::OnlyYubiHsm2MockHsmBackendAdminSssNonAdminSystemdCreds => {
+                ONLY_YUBIHSM2_MOCKHSM_ADMIN_SSS_NON_ADMIN_SYSTEMD_CREDS
+            }
+            ConfigFileVariant::AllBackendsAdminPlaintextNonAdminPlaintext => {
+                ALL_BACKENDS_ADMIN_PLAINTEXT_NON_ADMIN_PLAINTEXT
+            }
+            ConfigFileVariant::AllBackendsAdminPlaintextNonAdminSystemdCreds => {
+                ALL_BACKENDS_ADMIN_PLAINTEXT_NON_ADMIN_SYSTEMD_CREDS
+            }
+            ConfigFileVariant::AllBackendsAdminSystemdCredsNonAdminPlaintext => {
+                ALL_BACKENDS_ADMIN_SYSTEMD_CREDS_NON_ADMIN_PLAINTEXT
+            }
+            ConfigFileVariant::AllBackendsAdminSystemdCredsNonAdminSystemdCreds => {
+                ALL_BACKENDS_ADMIN_SYSTEMD_CREDS_NON_ADMIN_SYSTEMD_CREDS
+            }
+            ConfigFileVariant::AllBackendsAdminSssNonAdminPlaintext => {
+                ALL_BACKENDS_ADMIN_SSS_NON_ADMIN_PLAINTEXT
+            }
+            ConfigFileVariant::AllBackendsAdminSssNonAdminSystemdCreds => {
+                ALL_BACKENDS_ADMIN_SSS_NON_ADMIN_SYSTEMD_CREDS
+            }
         }
     }
 

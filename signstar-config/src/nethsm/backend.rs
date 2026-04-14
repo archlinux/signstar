@@ -1771,7 +1771,7 @@ mod tests {
             credentials_socket: false,
             signstar_config: ConfigFileConfig {
                 location: None,
-                variant: ConfigFileVariant::OnlyNetHsmBackendPlainAdmin,
+                variant: ConfigFileVariant::OnlyNetHsmBackendAdminPlaintextNonAdminSystemdCreds,
                 system_user_config: None,
             },
         };

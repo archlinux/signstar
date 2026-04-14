@@ -30,7 +30,7 @@ const SIGNSTAR_ADMIN_CREDS_SIMPLE: &[u8] = include_bytes!("../fixtures/admin-cre
         credentials_socket: false,
         signstar_config: ConfigFileConfig {
             location: None,
-            variant: ConfigFileVariant::OnlyNetHsmBackendPlainAdmin,
+            variant: ConfigFileVariant::OnlyNetHsmBackendAdminPlaintextNonAdminSystemdCreds,
             system_user_config: None
         },
     },

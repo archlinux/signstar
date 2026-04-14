@@ -129,7 +129,7 @@ async fn sign_data(_req: HttpRequest) -> impl Responder {
             credentials_socket: true,
             signstar_config: ConfigFileConfig {
                 location: Some(ConfigFileLocation::default()),
-                variant: ConfigFileVariant::OnlyNetHsmBackendPlainAdmin,
+                variant: ConfigFileVariant::OnlyNetHsmBackendAdminPlaintextNonAdminSystemdCreds,
                 system_user_config: Some(SystemUserConfig{ create_secrets: true })
             },
         }
@@ -143,7 +143,7 @@ async fn sign_data(_req: HttpRequest) -> impl Responder {
             credentials_socket: true,
             signstar_config: ConfigFileConfig {
                 location: Some(ConfigFileLocation::default()),
-                variant: ConfigFileVariant::OnlyYubiHsm2MockHsmBackendPlainAdmin,
+                variant: ConfigFileVariant::OnlyYubiHsm2MockHsmBackendAdminPlaintextNonAdminSystemdCreds,
                 system_user_config: Some(SystemUserConfig{ create_secrets: true })
             },
         }
@@ -160,22 +160,22 @@ async fn run_signstar_sign(#[case] prepare_config: SystemPrepareConfig) -> TestR
     if matches!(
         prepare_config.signstar_config,
         ConfigFileConfig {
-            variant: ConfigFileVariant::OnlyNetHsmBackendPlainAdmin,
+            variant: ConfigFileVariant::OnlyNetHsmBackendAdminPlaintextNonAdminSystemdCreds,
             ..
         } | ConfigFileConfig {
-            variant: ConfigFileVariant::OnlyNetHsmBackendSystemdCredsAdmin,
+            variant: ConfigFileVariant::OnlyNetHsmBackendAdminSystemdCredsNonAdminSystemdCreds,
             ..
         } | ConfigFileConfig {
-            variant: ConfigFileVariant::OnlyNetHsmBackendSssAdmin,
+            variant: ConfigFileVariant::OnlyNetHsmBackendAdminSssNonAdminSystemdCreds,
             ..
         } | ConfigFileConfig {
-            variant: ConfigFileVariant::AllBackendsPlainAdmin,
+            variant: ConfigFileVariant::AllBackendsAdminPlaintextNonAdminSystemdCreds,
             ..
         } | ConfigFileConfig {
-            variant: ConfigFileVariant::AllBackendsSystemdCredsAdmin,
+            variant: ConfigFileVariant::AllBackendsAdminSystemdCredsNonAdminSystemdCreds,
             ..
         } | ConfigFileConfig {
-            variant: ConfigFileVariant::AllBackendsSssAdmin,
+            variant: ConfigFileVariant::AllBackendsAdminSssNonAdminSystemdCreds,
             ..
         }
     ) {
