@@ -37,6 +37,7 @@ change-user-run.workspace = true
 clap.workspace = true
 insta = { version = "1.46.1", features = ["filters"] }
 nethsm = { features = ["_test-helpers"], workspace = true }
+pretty_assertions = "1.4.1"
 rstest.workspace = true
 signstar-common = { workspace = true, features = ["logging"] }
 simplelog.workspace = true

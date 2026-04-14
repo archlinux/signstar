@@ -552,6 +552,7 @@ mod tests {
     use insta::{assert_snapshot, with_settings};
     #[cfg(feature = "nethsm")]
     use nethsm::ConnectionSecurity;
+    use pretty_assertions::assert_eq;
     use rstest::{fixture, rstest};
     use signstar_crypto::{AdministrativeSecretHandling, NonAdministrativeSecretHandling};
     #[cfg(any(feature = "nethsm", feature = "yubihsm2"))]
@@ -763,6 +764,8 @@ mod tests {
     mod no_backend {
         use std::collections::HashSet;
 
+        use pretty_assertions::assert_eq;
+
         use super::*;
         use crate::config::{ConfigAuthorizedKeyEntries, ConfigSystemUserIds};
 
@@ -813,6 +816,8 @@ mod tests {
     /// Tests, that are only available when using the NetHSM (and no other) backend.
     #[cfg(all(feature = "nethsm", not(feature = "yubihsm2")))]
     mod nethsm_backend {
+        use pretty_assertions::assert_eq;
+
         use super::*;
 
         /// Creates a default [`Config`] for testing purposes.
@@ -1483,6 +1488,8 @@ mod tests {
     /// Tests, that are only available when using the YubiHSM2 (and no other) backend.
     #[cfg(all(feature = "yubihsm2", not(feature = "nethsm")))]
     mod yubihsm2_backend {
+        use pretty_assertions::assert_eq;
+
         use super::*;
 
         /// Creates a default [`Config`] for testing purposes.
@@ -2178,6 +2185,8 @@ mod tests {
     /// Tests, that are only available when using all available backends.
     #[cfg(all(feature = "nethsm", feature = "yubihsm2"))]
     mod all_backends {
+        use pretty_assertions::assert_eq;
+
         use super::*;
 
         /// Creates a default [`Config`] for testing purposes.
@@ -3110,6 +3119,8 @@ mod tests {
     /// Tests, that are only available when using no backends.
     #[cfg(not(all(feature = "nethsm", feature = "yubihsm2")))]
     mod no_backends {
+        use pretty_assertions::assert_eq;
+
         use super::*;
 
         /// Create a [`Config`] using [`ConfigBuilder`].
