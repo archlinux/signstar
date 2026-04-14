@@ -85,7 +85,7 @@ mod nethsm_backend {
     /// configured system user associated.
     #[rstest]
     fn create_and_load_non_admin_secrets(
-        #[files("src/config/file/fixtures/valid_config/system-and-nethsm-config*.yaml")]
+        #[files("../fixtures/config/nethsm_backend/*.yaml")]
         #[exclude("sss")]
         #[mode = str]
         config: &str,
@@ -189,8 +189,8 @@ mod yubihsm2_backend {
     /// configured system user associated.
     #[rstest]
     fn create_and_load_non_admin_secrets(
-        #[files("src/config/file/fixtures/valid_config/system-and-yubihsm2-config*.yaml")]
-        #[exclude("sss|mock")]
+        #[files("../fixtures/config/yubihsm2_backend/*.yaml")]
+        #[exclude("sss")]
         #[mode = str]
         config: &str,
     ) -> TestResult {
@@ -293,7 +293,7 @@ mod all_backends {
     /// configured system user associated.
     #[rstest]
     fn create_and_load_non_admin_secrets(
-        #[files("src/config/file/fixtures/valid_config/system-nethsm-and-yubihsm2-config*.yaml")]
+        #[files("../fixtures/config/all_backends/*.yaml")]
         #[exclude("sss")]
         #[mode = str]
         config: &str,

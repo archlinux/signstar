@@ -1439,8 +1439,7 @@ mod tests {
         /// The configuration file describes a [`SystemConfig`] and a [`NetHsmConfig`] object.
         #[rstest]
         fn roundtrip_yaml_config(
-            #[files("src/config/file/fixtures/valid_config/system-and-nethsm-config-*.yaml")]
-            path: PathBuf,
+            #[files("../fixtures/config/nethsm_backend/*.yaml")] path: PathBuf,
         ) -> TestResult {
             let config_string = read_to_string(&path)?;
             let config = Config::from_file_path(&path)?;
@@ -2118,9 +2117,7 @@ mod tests {
         #[rstest]
         #[cfg(not(feature = "_yubihsm2-mockhsm"))]
         fn roundtrip_yaml_config(
-            #[files("src/config/file/fixtures/valid_config/system-and-yubihsm2-config-*.yaml")]
-            #[exclude("mock")]
-            path: PathBuf,
+            #[files("../fixtures/config/yubihsm2_backend/*.yaml")] path: PathBuf,
         ) -> TestResult {
             let config_string = read_to_string(&path)?;
             let config = Config::from_file_path(&path)?;
@@ -2137,10 +2134,7 @@ mod tests {
         #[rstest]
         #[cfg(feature = "_yubihsm2-mockhsm")]
         fn roundtrip_yaml_config_mockhsm(
-            #[files(
-                "src/config/file/fixtures/valid_config/system-and-yubihsm2-config-mockhsm-*.yaml"
-            )]
-            path: PathBuf,
+            #[files("../fixtures/config/yubihsm2_mockhsm_backend/*.yaml")] path: PathBuf,
         ) -> TestResult {
             let config_string = read_to_string(&path)?;
             let config = Config::from_file_path(&path)?;
@@ -3070,10 +3064,7 @@ mod tests {
         /// [`YubiHsm2Config`] object.
         #[rstest]
         fn roundtrip_yaml_config(
-            #[files(
-                "src/config/file/fixtures/valid_config/system-nethsm-and-yubihsm2-config-*.yaml"
-            )]
-            path: PathBuf,
+            #[files("../fixtures/config/all_backends/*.yaml")] path: PathBuf,
         ) -> TestResult {
             let config_string = read_to_string(&path)?;
             let config = Config::from_file_path(&path)?;
@@ -3164,13 +3155,12 @@ mod tests {
         /// The configuration file only describes a [`SystemConfig`] object.
         #[rstest]
         fn roundtrip_yaml_config(
-            #[files("src/config/file/fixtures/valid_config/only-system-config-*.yaml")]
-            #[mode = str]
-            s: &str,
+            #[files("../fixtures/config/no_backend/*.yaml")] path: PathBuf,
         ) -> TestResult {
-            let config = Config::from_yaml_str(s)?;
+            let config_string = read_to_string(&path)?;
+            let config = Config::from_file_path(&path)?;
 
-            assert_eq!(config.to_yaml_string()?, s);
+            assert_eq!(config.to_yaml_string()?, config_string);
 
             Ok(())
         }

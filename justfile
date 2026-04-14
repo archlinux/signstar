@@ -1116,7 +1116,7 @@ test-readme project:
                 --tty
                 "--mount=type=bind,source=$cargo_home/bin,destination=/usr/local/bin,ro=true"
                 "--mount=type=bind,source=$project,destination=/mnt,ro=true"
-                "--mount=type=bind,source=signstar-config/src/config/file/fixtures/valid_config/system-nethsm-and-yubihsm2-config-sss.yaml,destination=/usr/share/signstar/config.yaml,ro=true"
+                "--mount=type=bind,source=fixtures/config/all_backends/admin-sss-non-admin-systemd-creds.yaml,destination=/usr/share/signstar/config.yaml,ro=true"
                 --workdir=/mnt
                 "$arch_container"
                 sh -c 'pacman-key --init && pacman -Sy --needed --noconfirm archlinux-keyring && pacman -Syu --needed --noconfirm tangler && tangler bash < /mnt/README.md | bash -euxo pipefail -'

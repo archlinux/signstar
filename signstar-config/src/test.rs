@@ -78,68 +78,73 @@ mod impl_none {
 
 /// No HSM backend, plain administrative secrets handling.
 const NO_BACKEND_PLAIN_ADMIN: &[u8] =
-    include_bytes!("config/file/fixtures/valid_config/only-system-config-plaintext.yaml");
+    include_bytes!("../../fixtures/config/no_backend/admin-plaintext-non-admin-systemd-creds.yaml");
 
 /// No HSM backend, systemd-creds administrative secrets handling.
-const NO_BACKEND_SYSTEMD_CREDS_ADMIN: &[u8] =
-    include_bytes!("config/file/fixtures/valid_config/only-system-config-systemd-creds.yaml");
+const NO_BACKEND_SYSTEMD_CREDS_ADMIN: &[u8] = include_bytes!(
+    "../../fixtures/config/no_backend/admin-systemd-creds-non-admin-systemd-creds.yaml"
+);
 
 /// No HSM backend, Shamir's Secret Sharing administrative secrets handling.
 const NO_BACKEND_SSS_ADMIN: &[u8] =
-    include_bytes!("config/file/fixtures/valid_config/only-system-config-sss.yaml");
+    include_bytes!("../../fixtures/config/no_backend/admin-sss-non-admin-systemd-creds.yaml");
 
 /// NetHSM backend, plain administrative secrets handling.
-const ONLY_NETHSM_PLAIN_ADMIN: &[u8] =
-    include_bytes!("config/file/fixtures/valid_config/system-and-nethsm-config-plaintext.yaml");
+const ONLY_NETHSM_PLAIN_ADMIN: &[u8] = include_bytes!(
+    "../../fixtures/config/nethsm_backend/admin-plaintext-non-admin-systemd-creds.yaml"
+);
 
 /// NetHSM backend, systemd-creds administrative secrets handling.
-const ONLY_NETHSM_SYSTEMD_CREDS_ADMIN: &[u8] =
-    include_bytes!("config/file/fixtures/valid_config/system-and-nethsm-config-systemd-creds.yaml");
+const ONLY_NETHSM_SYSTEMD_CREDS_ADMIN: &[u8] = include_bytes!(
+    "../../fixtures/config/nethsm_backend/admin-systemd-creds-non-admin-systemd-creds.yaml"
+);
 
 /// NetHSM backend, Shamir's Secret Sharing administrative secrets handling.
 const ONLY_NETHSM_SSS_ADMIN: &[u8] =
-    include_bytes!("config/file/fixtures/valid_config/system-and-nethsm-config-sss.yaml");
+    include_bytes!("../../fixtures/config/nethsm_backend/admin-sss-non-admin-systemd-creds.yaml");
 
 /// YubiHSM2 backend, plain administrative secrets handling.
-const ONLY_YUBIHSM2_PLAIN_ADMIN: &[u8] =
-    include_bytes!("config/file/fixtures/valid_config/system-and-yubihsm2-config-plaintext.yaml");
+const ONLY_YUBIHSM2_PLAIN_ADMIN: &[u8] = include_bytes!(
+    "../../fixtures/config/yubihsm2_backend/admin-plaintext-non-admin-systemd-creds.yaml"
+);
 
 /// YubiHSM2 backend, systemd-creds administrative secrets handling.
 const ONLY_YUBIHSM2_SYSTEMD_CREDS_ADMIN: &[u8] = include_bytes!(
-    "config/file/fixtures/valid_config/system-and-yubihsm2-config-systemd-creds.yaml"
+    "../../fixtures/config/yubihsm2_backend/admin-systemd-creds-non-admin-systemd-creds.yaml"
 );
 
 /// YubiHSM2 backend, Shamir's Secret Sharing administrative secrets handling.
 const ONLY_YUBIHSM2_SSS_ADMIN: &[u8] =
-    include_bytes!("config/file/fixtures/valid_config/system-and-yubihsm2-config-sss.yaml");
+    include_bytes!("../../fixtures/config/yubihsm2_backend/admin-sss-non-admin-systemd-creds.yaml");
 
 /// YubiHSM2 backend, plain administrative secrets handling.
 const ONLY_YUBIHSM2_MOCKHSM_PLAIN_ADMIN: &[u8] = include_bytes!(
-    "config/file/fixtures/valid_config/system-and-yubihsm2-config-mockhsm-plaintext.yaml"
+    "../../fixtures/config/yubihsm2_mockhsm_backend/admin-plaintext-non-admin-systemd-creds.yaml"
 );
 
 /// YubiHSM2 backend, systemd-creds administrative secrets handling.
 const ONLY_YUBIHSM2_MOCKHSM_SYSTEMD_CREDS_ADMIN: &[u8] = include_bytes!(
-    "config/file/fixtures/valid_config/system-and-yubihsm2-config-mockhsm-systemd-creds.yaml"
+    "../../fixtures/config/yubihsm2_mockhsm_backend/admin-systemd-creds-non-admin-systemd-creds.yaml"
 );
 
 /// YubiHSM2 backend, Shamir's Secret Sharing administrative secrets handling.
-const ONLY_YUBIHSM2_MOCKHSM_SSS_ADMIN: &[u8] =
-    include_bytes!("config/file/fixtures/valid_config/system-and-yubihsm2-config-sss.yaml");
+const ONLY_YUBIHSM2_MOCKHSM_SSS_ADMIN: &[u8] = include_bytes!(
+    "../../fixtures/config/yubihsm2_mockhsm_backend/admin-sss-non-admin-systemd-creds.yaml"
+);
 
 /// NetHSM and YubiHSM2 backends, plain administrative secrets handling.
 const ALL_BACKENDS_PLAIN_ADMIN: &[u8] = include_bytes!(
-    "config/file/fixtures/valid_config/system-nethsm-and-yubihsm2-config-plaintext.yaml"
+    "../../fixtures/config/all_backends/admin-plaintext-non-admin-systemd-creds.yaml"
 );
 
 /// NetHSM and YubiHSM2 backends, systemd-creds administrative secrets handling.
 const ALL_BACKENDS_SYSTEMD_CREDS_ADMIN: &[u8] = include_bytes!(
-    "config/file/fixtures/valid_config/system-nethsm-and-yubihsm2-config-systemd-creds.yaml"
+    "../../fixtures/config/all_backends/admin-systemd-creds-non-admin-systemd-creds.yaml"
 );
 
 /// NetHSM and YubiHSM2 backends, Shamir's Secret Sharing administrative secrets handling.
 const ALL_BACKENDS_SSS_ADMIN: &[u8] =
-    include_bytes!("config/file/fixtures/valid_config/system-nethsm-and-yubihsm2-config-sss.yaml");
+    include_bytes!("../../fixtures/config/all_backends/admin-sss-non-admin-systemd-creds.yaml");
 
 /// An error that may occur when using test utils.
 #[derive(Debug, thiserror::Error)]
