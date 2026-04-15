@@ -10,7 +10,7 @@ use signstar_yubihsm2::{
     Connection,
     Credentials,
     object::{Domain, Id},
-    yubihsm::Code,
+    yubihsm::{Capability, Code},
 };
 
 use crate::{
@@ -92,7 +92,6 @@ pub enum YubiHsm2UserMapping {
     /// - `sign-hmac`
     /// - `verify-hmac`
     /// - `delete-opaque`
-    /// - `generate-opaque`
     /// - `get-opaque`
     /// - `put-opaque`
     /// - `reset-device`
@@ -106,11 +105,6 @@ pub enum YubiHsm2UserMapping {
     /// - `put-wrap-key`
     /// - `unwrap-data`
     /// - `wrap-data`
-    /// - `put-public-wrap-key`
-    /// - `delete-public-wrap-key`
-    /// - `generate-symmetric-key`
-    /// - `put-symmetric-key`
-    /// - `delete-symmetric-key`
     ///
     /// Further, it is assumed that the [authentication key object] is added to all [domains].
     ///
@@ -282,6 +276,41 @@ pub enum YubiHsm2UserMapping {
 }
 
 impl YubiHsm2UserMapping {
+    /// The list of [`Capability`] options for [`YubiHsm2UserMapping::Admin`].
+    ///
+    /// Each [`Capability`] relates to a [capability] of the YubiHSM2 device.
+    ///
+    /// [capability]: https://docs.yubico.com/hardware/yubihsm-2/hsm-2-user-guide/hsm2-core-concepts.html#capability-protocol-details
+    pub const CAP_ADMIN: &[Capability] = &[
+        Capability::CHANGE_AUTHENTICATION_KEY,
+        Capability::DELETE_ASYMMETRIC_KEY,
+        Capability::DELETE_AUTHENTICATION_KEY,
+        Capability::DELETE_HMAC_KEY,
+        Capability::DELETE_OPAQUE,
+        Capability::DELETE_TEMPLATE,
+        Capability::DELETE_WRAP_KEY,
+        Capability::EXPORTABLE_UNDER_WRAP,
+        Capability::GENERATE_ASYMMETRIC_KEY,
+        Capability::GENERATE_HMAC_KEY,
+        Capability::GENERATE_WRAP_KEY,
+        Capability::GET_OPAQUE,
+        Capability::GET_OPTION,
+        Capability::GET_TEMPLATE,
+        Capability::IMPORT_WRAPPED,
+        Capability::PUT_ASYMMETRIC_KEY,
+        Capability::PUT_AUTHENTICATION_KEY,
+        Capability::PUT_HMAC_KEY,
+        Capability::PUT_OPAQUE,
+        Capability::PUT_OPTION,
+        Capability::PUT_TEMPLATE,
+        Capability::PUT_WRAP_KEY,
+        Capability::RESET_DEVICE,
+        Capability::SIGN_HMAC,
+        Capability::UNWRAP_DATA,
+        Capability::VERIFY_HMAC,
+        Capability::WRAP_DATA,
+    ];
+
     /// Returns the optional [`Domain`] of the [`YubiHsm2UserMapping`].
     pub fn domain(&self) -> Option<&Domain> {
         match self {
