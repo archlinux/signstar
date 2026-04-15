@@ -375,6 +375,26 @@ impl YubiHsm2UserMapping {
             } => *authentication_key_id,
         }
     }
+
+    /// Returns the [`Capability`] assigned to a variant.
+    ///
+    /// Each variant tracks a different set of [capabilities].
+    /// The return value of this function combines each of them in a single value.
+    ///
+    /// [capabilities]: https://docs.yubico.com/hardware/yubihsm-2/hsm-2-user-guide/hsm2-core-concepts.html#capability-protocol-details
+    pub fn capability(&self) -> Capability {
+        let mut capability = Capability::empty();
+        for cap in match self {
+            Self::Admin { .. } => Self::CAP_ADMIN,
+            Self::AuditLog { .. } => Self::CAP_AUDIT_LOG,
+            Self::Backup { .. } => Self::CAP_BACKUP,
+            Self::HermeticAuditLog { .. } => Self::CAP_HERMETIC_AUDIT_LOG,
+            Self::Signing { .. } => Self::CAP_SIGNING,
+        } {
+            capability.set(*cap, true);
+        }
+        capability
+    }
 }
 
 impl MappingSystemUserId for YubiHsm2UserMapping {
