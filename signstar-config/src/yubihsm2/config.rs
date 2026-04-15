@@ -387,6 +387,24 @@ impl YubiHsm2UserMapping {
             } => *authentication_key_id,
         }
     }
+
+    /// Returns the [`Capability`] required by a variant.
+    ///
+    /// Each variant tracks a different set of [capabilities].
+    /// The return value of this function combines each item from that set in a single value.
+    ///
+    /// [capabilities]: https://docs.yubico.com/hardware/yubihsm-2/hsm-2-user-guide/hsm2-core-concepts.html#capability-protocol-details
+    pub fn capability(&self) -> Capability {
+        match self {
+            Self::Admin { .. } => Self::CAP_ADMIN,
+            Self::AuditLog { .. } => Self::CAP_AUDIT_LOG,
+            Self::Backup { .. } => Self::CAP_BACKUP,
+            Self::HermeticAuditLog { .. } => Self::CAP_HERMETIC_AUDIT_LOG,
+            Self::Signing { .. } => Self::CAP_SIGNING,
+        }
+        .iter()
+        .fold(Capability::empty(), |acc, cap| acc | *cap)
+    }
 }
 
 impl MappingSystemUserId for YubiHsm2UserMapping {
@@ -989,6 +1007,71 @@ mod tests {
     fn yubihsm2_user_mapping_backend_user_id(#[case] mapping: YubiHsm2UserMapping) -> TestResult {
         let id: Id = "1".parse()?;
         assert_eq!(mapping.backend_user_id(), id);
+
+        Ok(())
+    }
+
+    /// Ensures that [`YubiHsm2UserMapping::capability`] works as intended.
+    #[rstest]
+    #[case::admin(
+        YubiHsm2UserMapping::Admin{ authentication_key_id: "1".parse()? },
+        YubiHsm2UserMapping::CAP_ADMIN,
+    )]
+    #[case::audit_log(
+        YubiHsm2UserMapping::AuditLog {
+            authentication_key_id: "1".parse()?,
+            ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPkpXKiNhy39A3bZ1u19a5d4sFwYMBkWQyCbzgUfdKBm user@host".parse()?,
+            system_user: "metrics-user".parse()?,
+        },
+        YubiHsm2UserMapping::CAP_AUDIT_LOG,
+    )]
+    #[case::backup(
+        YubiHsm2UserMapping::Backup{
+            authentication_key_id: "1".parse()?,
+            ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOh9BTe81DC6A0YZALsq9dWcyl6xjjqlxWPwlExTFgBt user@host".parse()?,
+            system_user: "backup-user".parse()?,
+            wrapping_key_id: "1".parse()?,
+        },
+        YubiHsm2UserMapping::CAP_BACKUP,
+    )]
+    #[case::hermetic_audit_log(
+        YubiHsm2UserMapping::HermeticAuditLog {
+            authentication_key_id: "1".parse()?,
+            system_user: "metrics-user".parse()?,
+        },
+        YubiHsm2UserMapping::CAP_HERMETIC_AUDIT_LOG,
+    )]
+    #[case::signing(
+        YubiHsm2UserMapping::Signing {
+            authentication_key_id: "1".parse()?,
+            signing_key_id: "1".parse()?,
+            key_setup: SigningKeySetup::new(
+                KeyType::Curve25519,
+                vec![KeyMechanism::EdDsaSignature],
+                None,
+                SignatureType::EdDsa,
+                CryptographicKeyContext::OpenPgp {
+                    user_ids: OpenPgpUserIdList::new(vec![
+                        "Foobar McFooface <foobar@mcfooface.org>".parse()?,
+                    ])?,
+                    version: "v4".parse()?,
+                },
+            )?,
+            ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOh96uFTnvX6P1ebbLxXFvy6sK7qFqlMHDOuJ0TmuXQQ user@host".parse()?,
+            system_user: "signing-user".parse()?,
+            domain: Domain::One,
+        },
+        YubiHsm2UserMapping::CAP_SIGNING,
+    )]
+    fn yubihsm2_user_mapping_capability(
+        #[case] mapping: YubiHsm2UserMapping,
+        #[case] expected: &[Capability],
+    ) -> TestResult {
+        let expected = expected
+            .iter()
+            .fold(Capability::empty(), |acc, cap| acc | *cap);
+
+        assert_eq!(mapping.capability(), expected);
 
         Ok(())
     }
