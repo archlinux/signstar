@@ -311,6 +311,13 @@ impl YubiHsm2UserMapping {
         Capability::WRAP_DATA,
     ];
 
+    /// The list of [`Capability`] options for [`YubiHsm2UserMapping::AuditLog`].
+    ///
+    /// Each [`Capability`] relates to a [capability] of the YubiHSM2 device.
+    ///
+    /// [capability]: https://docs.yubico.com/hardware/yubihsm-2/hsm-2-user-guide/hsm2-core-concepts.html#capability-protocol-details
+    pub const CAP_AUDIT_LOG: &[Capability] = &[Capability::GET_LOG_ENTRIES];
+
     /// Returns the optional [`Domain`] of the [`YubiHsm2UserMapping`].
     pub fn domain(&self) -> Option<&Domain> {
         match self {
