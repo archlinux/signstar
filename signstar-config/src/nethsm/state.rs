@@ -49,10 +49,6 @@ impl StateHandling for NetHsmState {
         Self::STATE_TYPE
     }
 
-    fn as_any(&self) -> &dyn Any {
-        self
-    }
-
     fn compare(&self, other: &dyn StateHandling) -> StateComparisonReport {
         if !self.is_comparable(other) {
             trace!(
@@ -71,7 +67,7 @@ impl StateHandling for NetHsmState {
                 match other.state_type() {
                     StateType::SignstarConfigNetHsm => {
                         let Some(other) =
-                            other.as_any().downcast_ref::<SignstarConfigNetHsmState>()
+                            (other as &dyn Any).downcast_ref::<SignstarConfigNetHsmState>()
                         else {
                             return StateComparisonReport::Incompatible {
                                 self_state: self.state_type(),
@@ -98,7 +94,7 @@ impl StateHandling for NetHsmState {
                         )
                     }
                     StateType::NetHsm => {
-                        let Some(other) = other.as_any().downcast_ref::<NetHsmState>() else {
+                        let Some(other) = (other as &dyn Any).downcast_ref::<NetHsmState>() else {
                             return StateComparisonReport::Incompatible {
                                 self_state: self.state_type(),
                                 other_state: other.state_type(),
