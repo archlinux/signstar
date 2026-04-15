@@ -10,6 +10,7 @@ use signstar_yubihsm2::{
     Connection,
     Credentials,
     object::{Domain, Id},
+    yubihsm::Code,
 };
 
 use crate::{
@@ -782,6 +783,32 @@ pub struct YubiHsm2Config {
 }
 
 impl YubiHsm2Config {
+    /// The list of [YubiHSM2 commands] that should be tracked in the audit log.
+    ///
+    /// [YubiHSM2 commands]: https://docs.yubico.com/hardware/yubihsm-2/hsm-2-user-guide/hsm2-cmd-reference.html
+    pub const AUDIT_COMMANDS: &[Code] = &[
+        Code::AuthenticateSession,
+        Code::ChangeAuthenticationKey,
+        Code::CloseSession,
+        Code::CreateSession,
+        Code::DeleteObject,
+        Code::ExportWrapped,
+        Code::GetObjectInfo,
+        Code::GetLogEntries,
+        Code::GetOpaqueObject,
+        Code::GetOption,
+        Code::GetPublicKey,
+        Code::GetStorageInfo,
+        Code::HsmInitialization,
+        Code::ImportWrapped,
+        Code::PutOpaqueObject,
+        Code::PutWrapKey,
+        Code::ResetDevice,
+        Code::SetOption,
+        Code::SignAttestationCertificate,
+        Code::SignEddsa,
+    ];
+
     /// Creates a new [`YubiHsm2Config`] from a set of [`Connection`] and a set of
     /// [`YubiHsm2UserMapping`] items.
     pub fn new(
