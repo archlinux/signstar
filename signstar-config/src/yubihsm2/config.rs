@@ -242,8 +242,7 @@ pub enum YubiHsm2UserMapping {
     /// # Note
     ///
     /// This variant implies, that the created [authentication key object] has all relevant
-    /// [capabilities] for signing with the [asymmetric key object] (i.e. `sign-ecdsa`,
-    /// `sign-eddsa`, `sign-pkcs` and `sign-pss`).
+    /// [capabilities] for signing with the [asymmetric key object] (i.e. `sign-eddsa`).
     ///
     /// Further, it is assumed that both the [authentication key object] and [asymmetric key object]
     /// are added to the single [domain] `domain`.
@@ -331,6 +330,13 @@ impl YubiHsm2UserMapping {
     ///
     /// [capability]: https://docs.yubico.com/hardware/yubihsm-2/hsm-2-user-guide/hsm2-core-concepts.html#capability-protocol-details
     pub const CAP_HERMETIC_AUDIT_LOG: &[Capability] = &[Capability::GET_LOG_ENTRIES];
+
+    /// The list of [`Capability`] options for [`YubiHsm2UserMapping::Signing`].
+    ///
+    /// Each [`Capability`] relates to a [capability] of the YubiHSM2 device.
+    ///
+    /// [capability]: https://docs.yubico.com/hardware/yubihsm-2/hsm-2-user-guide/hsm2-core-concepts.html#capability-protocol-details
+    pub const CAP_SIGNING: &[Capability] = &[Capability::SIGN_EDDSA];
 
     /// Returns the optional [`Domain`] of the [`YubiHsm2UserMapping`].
     pub fn domain(&self) -> Option<&Domain> {
