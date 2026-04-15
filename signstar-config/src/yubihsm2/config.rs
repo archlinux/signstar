@@ -10,7 +10,7 @@ use signstar_yubihsm2::{
     Connection,
     Credentials,
     object::{Domain, Id},
-    yubihsm::Code,
+    yubihsm::{Capability, Code},
 };
 
 use crate::{
@@ -75,42 +75,8 @@ pub enum YubiHsm2UserMapping {
     /// # Note
     ///
     /// This variant implies, that the created [authentication key object] has all relevant
-    /// [capabilities] necessary for the creation of users and keys and to restore from backup,
-    /// i.e.:
-    ///
-    /// - `delete-asymmetric-key`
-    /// - `generate-asymmetric-key`
-    /// - `put-asymmetric-key`
-    /// - `delete-authentication-key`
-    /// - `put-authentication-key`
-    /// - `change-authentication-key`
-    /// - `get-option`
-    /// - `set-option`
-    /// - `delete-hmac-key`
-    /// - `generate-hmac-key`
-    /// - `put-mac-key`
-    /// - `sign-hmac`
-    /// - `verify-hmac`
-    /// - `delete-opaque`
-    /// - `generate-opaque`
-    /// - `get-opaque`
-    /// - `put-opaque`
-    /// - `reset-device`
-    /// - `delete-template`
-    /// - `get-template`
-    /// - `put-template`
-    /// - `delete-wrap-key`
-    /// - `exportable-under-wrap`
-    /// - `generate-wrap-key`
-    /// - `import-wrapped`
-    /// - `put-wrap-key`
-    /// - `unwrap-data`
-    /// - `wrap-data`
-    /// - `put-public-wrap-key`
-    /// - `delete-public-wrap-key`
-    /// - `generate-symmetric-key`
-    /// - `put-symmetric-key`
-    /// - `delete-symmetric-key`
+    /// [capabilities] necessary for the creation of users and keys and to restore from backup
+    /// (see [`YubiHsm2UserMapping::CAP_ADMIN`] for details).
     ///
     /// Further, it is assumed that the [authentication key object] is added to all [domains].
     ///
@@ -282,6 +248,69 @@ pub enum YubiHsm2UserMapping {
 }
 
 impl YubiHsm2UserMapping {
+    /// The list of [`Capability`] items required for [`YubiHsm2UserMapping::Admin`].
+    ///
+    /// Each item relates to a [capability] of the YubiHSM2 device:
+    ///
+    /// - `change-authentication-key`
+    /// - `delete-asymmetric-key`
+    /// - `delete-authentication-key`
+    /// - `delete-hmac-key`
+    /// - `delete-opaque`
+    /// - `delete-template`
+    /// - `delete-wrap-key`
+    /// - `exportable-under-wrap`
+    /// - `generate-asymmetric-key`
+    /// - `generate-hmac-key`
+    /// - `generate-wrap-key`
+    /// - `get-opaque`
+    /// - `get-option`
+    /// - `get-template`
+    /// - `import-wrapped`
+    /// - `put-asymmetric-key`
+    /// - `put-authentication-key`
+    /// - `put-mac-key`
+    /// - `put-opaque`
+    /// - `put-template`
+    /// - `put-wrap-key`
+    /// - `reset-device`
+    /// - `set-option`
+    /// - `sign-hmac`
+    /// - `unwrap-data`
+    /// - `verify-hmac`
+    /// - `wrap-data`
+    ///
+    /// [capability]: https://docs.yubico.com/hardware/yubihsm-2/hsm-2-user-guide/hsm2-core-concepts.html#capability-protocol-details
+    pub const CAP_ADMIN: &[Capability] = &[
+        Capability::CHANGE_AUTHENTICATION_KEY,
+        Capability::DELETE_ASYMMETRIC_KEY,
+        Capability::DELETE_AUTHENTICATION_KEY,
+        Capability::DELETE_HMAC_KEY,
+        Capability::DELETE_OPAQUE,
+        Capability::DELETE_TEMPLATE,
+        Capability::DELETE_WRAP_KEY,
+        Capability::EXPORTABLE_UNDER_WRAP,
+        Capability::GENERATE_ASYMMETRIC_KEY,
+        Capability::GENERATE_HMAC_KEY,
+        Capability::GENERATE_WRAP_KEY,
+        Capability::GET_OPAQUE,
+        Capability::GET_OPTION,
+        Capability::GET_TEMPLATE,
+        Capability::IMPORT_WRAPPED,
+        Capability::PUT_ASYMMETRIC_KEY,
+        Capability::PUT_AUTHENTICATION_KEY,
+        Capability::PUT_HMAC_KEY,
+        Capability::PUT_OPAQUE,
+        Capability::PUT_OPTION,
+        Capability::PUT_TEMPLATE,
+        Capability::PUT_WRAP_KEY,
+        Capability::RESET_DEVICE,
+        Capability::SIGN_HMAC,
+        Capability::UNWRAP_DATA,
+        Capability::VERIFY_HMAC,
+        Capability::WRAP_DATA,
+    ];
+
     /// Returns the optional [`Domain`] of the [`YubiHsm2UserMapping`].
     pub fn domain(&self) -> Option<&Domain> {
         match self {
