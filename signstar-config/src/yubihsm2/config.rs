@@ -161,7 +161,7 @@ pub enum YubiHsm2UserMapping {
     /// # Note
     ///
     /// This variant implies, that the created [authentication key object] has all relevant
-    /// [capabilities] for backup related actions (i.e. `export-wrapped`, `wrap-data`).
+    /// [capabilities] for backup related actions (i.e. `export-wrapped`).
     ///
     /// Further, it is assumed that both the [authentication key object] and [wrap key object] are
     /// added to all [domains].
@@ -317,6 +317,13 @@ impl YubiHsm2UserMapping {
     ///
     /// [capability]: https://docs.yubico.com/hardware/yubihsm-2/hsm-2-user-guide/hsm2-core-concepts.html#capability-protocol-details
     pub const CAP_AUDIT_LOG: &[Capability] = &[Capability::GET_LOG_ENTRIES];
+
+    /// The list of [`Capability`] options for [`YubiHsm2UserMapping::Backup`].
+    ///
+    /// Each [`Capability`] relates to a [capability] of the YubiHSM2 device.
+    ///
+    /// [capability]: https://docs.yubico.com/hardware/yubihsm-2/hsm-2-user-guide/hsm2-core-concepts.html#capability-protocol-details
+    pub const CAP_BACKUP: &[Capability] = &[Capability::EXPORT_WRAPPED];
 
     /// Returns the optional [`Domain`] of the [`YubiHsm2UserMapping`].
     pub fn domain(&self) -> Option<&Domain> {
