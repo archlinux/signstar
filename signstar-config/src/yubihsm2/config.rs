@@ -102,7 +102,8 @@ pub enum YubiHsm2UserMapping {
     /// # Note
     ///
     /// This variant implies, that the created [authentication key object] has all relevant
-    /// [capabilities] for audit log retrieval (i.e. `get-log-entries`).
+    /// [capabilities] for audit log retrieval (see [`YubiHsm2UserMapping::CAP_AUDIT_LOG`] for
+    /// details).
     ///
     /// [authentication key object]: https://docs.yubico.com/hardware/yubihsm-2/hsm-2-user-guide/hsm2-core-concepts.html#authentication-key-object
     /// [capabilities]: https://docs.yubico.com/hardware/yubihsm-2/hsm-2-user-guide/hsm2-core-concepts.html#capability-protocol-details
@@ -310,6 +311,15 @@ impl YubiHsm2UserMapping {
         Capability::VERIFY_HMAC,
         Capability::WRAP_DATA,
     ];
+
+    /// The list of [`Capability`] items required for [`YubiHsm2UserMapping::AuditLog`].
+    ///
+    /// Each item relates to a [capability] of the YubiHSM2 device:
+    ///
+    /// - `get-log-entries`
+    ///
+    /// [capability]: https://docs.yubico.com/hardware/yubihsm-2/hsm-2-user-guide/hsm2-core-concepts.html#capability-protocol-details
+    pub const CAP_AUDIT_LOG: &[Capability] = &[Capability::GET_LOG_ENTRIES];
 
     /// Returns the optional [`Domain`] of the [`YubiHsm2UserMapping`].
     pub fn domain(&self) -> Option<&Domain> {
