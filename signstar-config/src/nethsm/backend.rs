@@ -1252,9 +1252,8 @@ impl<'a, 'b> NetHsmBackend<'a, 'b> {
     ///
     /// use nethsm::{Connection, ConnectionSecurity, FullCredentials, NetHsm};
     /// use signstar_config::{
-    ///     NetHsmBackend,
     ///     config::{ConfigBuilder, SystemConfig, SystemUserMapping},
-    ///     nethsm::{NetHsmAdminCredentials, NetHsmConfig, NetHsmMetricsUsers, NetHsmUserMapping},
+    ///     nethsm::{NetHsmAdminCredentials, NetHsmBackend, NetHsmConfig, NetHsmMetricsUsers, NetHsmUserMapping},
     /// };
     /// use signstar_crypto::{
     ///     AdministrativeSecretHandling,
