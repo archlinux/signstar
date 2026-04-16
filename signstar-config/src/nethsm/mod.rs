@@ -4,7 +4,7 @@ mod admin_credentials;
 mod backend;
 mod config;
 mod error;
-pub mod state;
+mod state;
 
 pub use admin_credentials::NetHsmAdminCredentials;
 pub use backend::NetHsmBackend;
@@ -19,3 +19,4 @@ pub use config::{
     NetHsmUserMapping,
 };
 pub use error::Error;
+pub use state::{KeyState, NetHsmConfigState, NetHsmState, UserState};
