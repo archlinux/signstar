@@ -110,7 +110,7 @@ impl Display for UserStateComparisonFailure {
 
 /// A set of [`UserState`].
 #[derive(Debug)]
-pub struct UserStates<'a> {
+struct UserStates<'a> {
     /// The type of state the users are used in.
     pub state_type: StateType,
     /// The user states.
@@ -308,7 +308,7 @@ impl Display for KeyState {
 
 /// A set of [`KeyState`]s used in the same [`StateType`].
 #[derive(Debug)]
-pub struct KeyStates<'a> {
+struct KeyStates<'a> {
     /// The type of state the keys are used in.
     pub state_type: StateType,
     /// The key states.
