@@ -6,8 +6,10 @@ use rstest::rstest;
 use signstar_common::logging::setup_logging;
 use signstar_config::{
     NetHsmBackend,
-    config::state::SignstarConfigNetHsmState,
-    nethsm::{NetHsmUserMapping, state::NetHsmState},
+    nethsm::{
+        NetHsmUserMapping,
+        state::{NetHsmState, SignstarConfigNetHsmState},
+    },
     state::StateHandling,
     test::{
         ConfigFileConfig,

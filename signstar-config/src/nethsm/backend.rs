@@ -39,9 +39,12 @@ use crate::{
         Config,
         UserBackendConnection,
         UserBackendConnectionFilter,
-        state::{KeyCertificateState, KeyState, UserState},
+        state::KeyCertificateState,
     },
-    nethsm::NetHsmUserKeysFilter,
+    nethsm::{
+        NetHsmUserKeysFilter,
+        state::{KeyState, UserState},
+    },
     state::StateType,
 };
 
