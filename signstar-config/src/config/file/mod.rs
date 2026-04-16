@@ -567,7 +567,7 @@ mod tests {
 
     use super::*;
     #[cfg(feature = "nethsm")]
-    use crate::NetHsmMetricsUsers;
+    use crate::nethsm::NetHsmMetricsUsers;
     use crate::{AuthorizedKeyEntry, SystemUserId};
     use crate::{ConfigError, config::SystemUserMapping};
 

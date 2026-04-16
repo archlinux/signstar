@@ -104,7 +104,7 @@ impl NetHsmMetricsUsers {
     /// # Examples
     ///
     /// ```
-    /// use signstar_config::NetHsmMetricsUsers;
+    /// use signstar_config::nethsm::NetHsmMetricsUsers;
     ///
     /// # fn main() -> testresult::TestResult {
     /// NetHsmMetricsUsers::new(
@@ -144,7 +144,7 @@ impl NetHsmMetricsUsers {
     ///
     /// ```
     /// use nethsm::UserId;
-    /// use signstar_config::NetHsmMetricsUsers;
+    /// use signstar_config::nethsm::NetHsmMetricsUsers;
     ///
     /// # fn main() -> testresult::TestResult {
     /// let nethsm_metrics_users = NetHsmMetricsUsers::new(
@@ -177,7 +177,7 @@ impl NetHsmMetricsUsers {
     ///
     /// ```
     /// use nethsm::{UserId, UserRole};
-    /// use signstar_config::NetHsmMetricsUsers;
+    /// use signstar_config::nethsm::NetHsmMetricsUsers;
     ///
     /// # fn main() -> testresult::TestResult {
     /// let nethsm_metrics_users = NetHsmMetricsUsers::new(
