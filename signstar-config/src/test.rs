@@ -11,7 +11,7 @@ use std::{
     time,
 };
 
-use change_user_run::create_users;
+use change_user_run::{create_users, get_command};
 use log::debug;
 #[cfg(feature = "nethsm")]
 use nethsm::{FullCredentials, UserId};
@@ -23,7 +23,6 @@ use signstar_crypto::AdministrativeSecretHandling;
 #[cfg(feature = "nethsm")]
 use signstar_crypto::passphrase::Passphrase;
 use tempfile::NamedTempFile;
-use which::which;
 
 use crate::config::{Config, ConfigSystemUserIds};
 #[cfg(feature = "nethsm")]
@@ -40,7 +39,7 @@ pub mod impl_any {
         /// # Errors
         ///
         /// Returns an error if secrets for a non-administrative backend user cannot be created.
-        pub fn apply(&self, config: &Config) -> Result<(), Error> {
+        pub fn apply(&self, config: &Config) -> Result<(), crate::Error> {
             if self.create_secrets {
                 let user_backend_connections =
                     config.user_backend_connections(UserBackendConnectionFilter::NonAdmin);
@@ -306,61 +305,6 @@ const ALL_BACKENDS_ADMIN_SSS_NON_ADMIN_SYSTEMD_CREDS: &[u8] =
 /// An error that may occur when using test utils.
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
-    /// Applying permissions to a file failed.
-    #[error("Unable to apply permissions to {path}:\n{source}")]
-    ApplyPermissions {
-        /// The file that was being modified.
-        path: PathBuf,
-
-        /// The source error.
-        source: std::io::Error,
-    },
-
-    /// A [`change_user_run::Error`] occurred.
-    #[error(transparent)]
-    ChangeUserRun(#[from] change_user_run::Error),
-
-    /// A directory can not be created.
-    #[error("Unable to create directory {dir}:\n{source}")]
-    CreateDirectory {
-        /// The directory which was about to be created.
-        dir: PathBuf,
-
-        /// The source error.
-        source: std::io::Error,
-    },
-
-    /// The socket for io.systemd.Credentials could not be started.
-    #[error("Unable to start socket for io.systemd.Credentials:\n{0}")]
-    CredentialsSocket(#[source] std::io::Error),
-
-    /// An I/O error.
-    #[error("I/O error while {context}:\n{source}")]
-    Io {
-        /// The short description of the operation.
-        context: &'static str,
-
-        /// The source error.
-        source: std::io::Error,
-    },
-
-    /// An I/O error with a specific path.
-    #[error("I/O error at {path} while {context}:\n{source}")]
-    IoPath {
-        /// The file that was being accessed.
-        path: PathBuf,
-
-        /// The short description of the operation.
-        context: &'static str,
-
-        /// The source error.
-        source: std::io::Error,
-    },
-
-    /// A signstar-config error.
-    #[error("Signstar-config error:\n{0}")]
-    SignstarConfig(#[from] crate::Error),
-
     /// A timeout has been reached.
     #[error("Timeout of {timeout}ms reached while {context}")]
     Timeout {
@@ -369,16 +313,6 @@ pub enum Error {
 
         /// The short description of the operation.
         context: String,
-    },
-
-    /// A temporary file cannot be created.
-    #[error("A temporary file for {purpose} cannot be created:\n{source}")]
-    Tmpfile {
-        /// The purpose of the temporary file.
-        purpose: &'static str,
-
-        /// The source error.
-        source: std::io::Error,
     },
 }
 
@@ -758,8 +692,11 @@ pub struct ConfigFileConfig {
 /// - the creation of parent directories fails
 /// - the configuration file cannot be created
 /// - the configuration file cannot be written to
-fn create_config(location: ConfigFileLocation, variant: ConfigFileVariant) -> Result<(), Error> {
-    create_dir_all(location.to_parent_dir_path()).map_err(|source| Error::IoPath {
+fn create_config(
+    location: ConfigFileLocation,
+    variant: ConfigFileVariant,
+) -> Result<(), crate::Error> {
+    create_dir_all(location.to_parent_dir_path()).map_err(|source| crate::Error::IoPath {
         path: location.to_parent_dir_path(),
         context: "creating the parent directory for the Signstar config",
         source,
@@ -787,7 +724,7 @@ fn create_config(location: ConfigFileLocation, variant: ConfigFileVariant) -> Re
 /// # Errors
 ///
 /// Returns an error if any of the Unix users cannot be created.
-fn create_unix_users_and_homes(config: &Config) -> Result<(), Error> {
+fn create_unix_users_and_homes(config: &Config) -> Result<(), crate::Error> {
     let users = config
         .system_user_ids()
         .iter()
@@ -826,7 +763,7 @@ impl SystemPrepareConfig {
     /// - a configuration file should be created, but writing it fails
     /// - the creation of system users and/or their home directories fails
     /// - the creation of backend user secrets fails
-    pub fn apply(&self) -> Result<Option<BackgroundProcess>, Error> {
+    pub fn apply(&self) -> Result<Option<BackgroundProcess>, crate::Error> {
         if self.machine_id {
             write_machine_id()?;
         }
@@ -864,21 +801,21 @@ impl Default for SystemPrepareConfig {
 }
 
 /// Recursively lists files, their permissions and ownership.
-pub fn list_files_in_dir(path: impl AsRef<Path>) -> Result<(), Error> {
+pub fn list_files_in_dir(path: impl AsRef<Path>) -> Result<(), crate::Error> {
     let path = path.as_ref();
-    let entries = read_dir(path).map_err(|source| Error::IoPath {
+    let entries = read_dir(path).map_err(|source| crate::Error::IoPath {
         path: path.to_path_buf(),
         context: "reading its children",
         source,
     })?;
 
     for entry in entries {
-        let entry = entry.map_err(|source| Error::IoPath {
+        let entry = entry.map_err(|source| crate::Error::IoPath {
             path: path.to_path_buf(),
             context: "getting an entry below it",
             source,
         })?;
-        let meta = entry.metadata().map_err(|source| Error::IoPath {
+        let meta = entry.metadata().map_err(|source| crate::Error::IoPath {
             path: path.to_path_buf(),
             context: "getting metadata",
             source,
@@ -900,12 +837,13 @@ pub fn list_files_in_dir(path: impl AsRef<Path>) -> Result<(), Error> {
 }
 
 /// Returns a configuration file with `data` as contents in a temporary location.
-pub fn get_tmp_config(data: &[u8]) -> Result<NamedTempFile, Error> {
-    let tmp_config = NamedTempFile::new().map_err(|source| Error::Tmpfile {
-        purpose: "full signstar configuration",
+pub fn get_tmp_config(data: &[u8]) -> Result<NamedTempFile, crate::Error> {
+    let tmp_config = NamedTempFile::new().map_err(|source| crate::Error::Io {
+        context: "creating a temporary configuration file".to_string(),
         source,
     })?;
-    write(&tmp_config, data).map_err(|source| Error::Io {
+    write(&tmp_config, data).map_err(|source| crate::Error::IoPath {
+        path: tmp_config.path().to_path_buf(),
         context: "writing full signstar configuration to temporary file",
         source,
     })?;
@@ -920,22 +858,24 @@ pub fn get_tmp_config(data: &[u8]) -> Result<NamedTempFile, Error> {
 ///
 /// - a static machine-id can not be written to `/etc/machine-id`,
 /// - or metadata on the created `/etc/machine-id` can not be retrieved.
-pub fn write_machine_id() -> Result<(), Error> {
+pub fn write_machine_id() -> Result<(), crate::Error> {
     debug!("Write dummy /etc/machine-id, required for systemd-creds");
     let machine_id = PathBuf::from("/etc/machine-id");
     std::fs::write(&machine_id, "d3b07384d113edec49eaa6238ad5ff00").map_err(|source| {
-        Error::IoPath {
+        crate::Error::IoPath {
             path: machine_id.to_path_buf(),
             context: "writing machine-id",
             source,
         }
     })?;
 
-    let metadata = machine_id.metadata().map_err(|source| Error::IoPath {
-        path: machine_id,
-        context: "getting metadata of file",
-        source,
-    })?;
+    let metadata = machine_id
+        .metadata()
+        .map_err(|source| crate::Error::IoPath {
+            path: machine_id,
+            context: "getting metadata of file",
+            source,
+        })?;
     debug!(
         "/etc/machine-id\nmode: {}\nuid: {}\ngid: {}",
         metadata.permissions().mode(),
@@ -961,9 +901,9 @@ impl BackgroundProcess {
     /// # Errors
     ///
     /// Returns an error if the process could not be killed.
-    pub fn kill(&mut self) -> Result<(), Error> {
-        self.child.kill().map_err(|source| Error::Io {
-            context: "killing process",
+    pub fn kill(&mut self) -> Result<(), crate::Error> {
+        self.child.kill().map_err(|source| crate::Error::Io {
+            context: format!("killing process of command \"{}\"", self.command),
             source,
         })
     }
@@ -993,26 +933,17 @@ impl Drop for BackgroundProcess {
 /// - one or more files in `/run/systemd` can not be listed,
 /// - applying of permissions on `/run/systemd/io.systemd.Credentials` fails,
 /// - or the socket has not been made available within 10000ms.
-pub fn start_credentials_socket() -> Result<BackgroundProcess, Error> {
+pub fn start_credentials_socket() -> Result<BackgroundProcess, crate::Error> {
     let systemd_run_path = PathBuf::from("/run/systemd");
     let socket_path = PathBuf::from("/run/systemd/io.systemd.Credentials");
-    create_dir_all(&systemd_run_path).map_err(|source| Error::CreateDirectory {
-        dir: systemd_run_path,
+    create_dir_all(&systemd_run_path).map_err(|source| crate::Error::IoPath {
+        path: systemd_run_path.clone(),
+        context: "creating the directory",
         source,
     })?;
 
     // Run systemd-socket-activate to provide /run/systemd/io.systemd.Credentials
-    let command = "systemd-socket-activate";
-    let systemd_socket_activate = which(command).map_err(|source| {
-        Error::SignstarConfig(
-            crate::utils::Error::ExecutableNotFound {
-                command: command.to_string(),
-                source,
-            }
-            .into(),
-        )
-    })?;
-    let mut command = Command::new(systemd_socket_activate);
+    let mut command = Command::new(get_command("systemd-socket-activate")?);
     let command = command.args([
         "--listen",
         "/run/systemd/io.systemd.Credentials",
@@ -1020,7 +951,11 @@ pub fn start_credentials_socket() -> Result<BackgroundProcess, Error> {
         "--fdname=varlink",
         "systemd-creds",
     ]);
-    let child = command.spawn().map_err(Error::CredentialsSocket)?;
+    let child = command.spawn().map_err(|source| crate::Error::IoPath {
+        path: PathBuf::from("/run/systemd/io.systemd.Credentials"),
+        context: "creating a socket using systemd-socket-activate",
+        source,
+    })?;
 
     // Set the socket to be writable by all, once it's available.
     let timeout = 10000;
@@ -1031,8 +966,9 @@ pub fn start_credentials_socket() -> Result<BackgroundProcess, Error> {
         if socket_path.exists() {
             debug!("Found {socket_path:?}");
             set_permissions(socket_path.as_path(), Permissions::from_mode(0o666)).map_err(
-                |source| Error::ApplyPermissions {
+                |source| crate::Error::IoPath {
                     path: socket_path.to_path_buf(),
+                    context: "applying permissions",
                     source,
                 },
             )?;
@@ -1047,7 +983,8 @@ pub fn start_credentials_socket() -> Result<BackgroundProcess, Error> {
         return Err(Error::Timeout {
             timeout,
             context: format!("waiting for {socket_path:?}"),
-        });
+        }
+        .into());
     }
 
     Ok(BackgroundProcess {
@@ -1067,13 +1004,14 @@ pub fn start_credentials_socket() -> Result<BackgroundProcess, Error> {
 /// - a temporary config file can not be created from `config_data`,
 /// - an [`AdminCredentials`] can not be created from the temporary config file.
 #[cfg(feature = "nethsm")]
-pub fn nethsm_admin_credentials(config_data: &[u8]) -> Result<NetHsmAdminCredentials, Error> {
+pub fn nethsm_admin_credentials(
+    config_data: &[u8],
+) -> Result<NetHsmAdminCredentials, crate::Error> {
     let config_file = get_tmp_config(config_data)?;
     NetHsmAdminCredentials::load_from_file(
         config_file.path(),
         AdministrativeSecretHandling::Plaintext,
     )
-    .map_err(Error::SignstarConfig)
 }
 
 /// Creates a list of [`FullCredentials`] for a list of [`UserId`]s.

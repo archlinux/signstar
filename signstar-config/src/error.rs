@@ -21,6 +21,10 @@ pub enum Error {
         source: std::io::Error,
     },
 
+    /// A [`change_user_run::Error`] occurred.
+    #[error(transparent)]
+    ChangeUserRun(#[from] change_user_run::Error),
+
     /// The ownership of a path can not be changed.
     #[error("Changing ownership of {path} to user {user} failed:\n{source}")]
     Chown {
@@ -83,6 +87,18 @@ pub enum Error {
     #[error("Signstar config error:\n{0}")]
     Config(#[from] crate::config::Error),
 
+    /// An I/O error.
+    #[error("I/O error while {context}: {source}")]
+    Io {
+        /// The context in which the error occurs.
+        ///
+        /// This is meant to complete the sentence "I/O error while ".
+        context: String,
+
+        /// The source error.
+        source: std::io::Error,
+    },
+
     /// An I/O error occurred for a file.
     #[error("I/O error for file {path} while {context}: {source}")]
     IoPath {
@@ -115,6 +131,11 @@ pub enum Error {
     /// A [`signstar_crypto::Error`] occurred.
     #[error(transparent)]
     SignstarCrypto(#[from] signstar_crypto::Error),
+
+    /// An error occurred in the test module.
+    #[cfg(feature = "_test-helpers")]
+    #[error(transparent)]
+    Test(#[from] crate::test::Error),
 
     /// Joining a thread returned an error.
     #[error("Thread error while {context}")]
