@@ -16,12 +16,12 @@ use clap::{Parser, ValueEnum};
 use log::{LevelFilter, debug};
 use nix::unistd::User;
 #[cfg(any(feature = "nethsm", feature = "yubihsm2"))]
-use signstar_config::AuthorizedKeyEntry;
+use signstar_config::config::AuthorizedKeyEntry;
+use signstar_config::config::{MappingSystemUserId, SystemUserId};
 #[cfg(feature = "nethsm")]
 use signstar_config::nethsm::{NetHsmMetricsUsers, NetHsmUserMapping};
 #[cfg(feature = "yubihsm2")]
 use signstar_config::yubihsm2::YubiHsm2UserMapping;
-use signstar_config::{SystemUserId, config::MappingSystemUserId};
 #[cfg(any(feature = "nethsm", feature = "yubihsm2"))]
 use signstar_crypto::{
     key::{CryptographicKeyContext, KeyMechanism, KeyType, SignatureType, SigningKeySetup},

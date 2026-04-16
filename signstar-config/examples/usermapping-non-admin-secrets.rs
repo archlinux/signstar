@@ -11,15 +11,17 @@ use std::process::ExitCode;
 use clap::{Parser, ValueEnum};
 use log::LevelFilter;
 #[cfg(any(feature = "nethsm", feature = "yubihsm2"))]
-use signstar_config::AuthorizedKeyEntry;
+use signstar_config::config::AuthorizedKeyEntry;
+use signstar_config::config::{
+    MappingBackendUserSecrets,
+    NonAdminBackendUserIdFilter,
+    NonAdminBackendUserIdKind,
+    SystemUserId,
+};
 #[cfg(feature = "nethsm")]
 use signstar_config::nethsm::{NetHsmMetricsUsers, NetHsmUserMapping};
 #[cfg(feature = "yubihsm2")]
 use signstar_config::yubihsm2::YubiHsm2UserMapping;
-use signstar_config::{
-    SystemUserId,
-    config::{MappingBackendUserSecrets, NonAdminBackendUserIdFilter, NonAdminBackendUserIdKind},
-};
 use signstar_crypto::NonAdministrativeSecretHandling;
 #[cfg(any(feature = "nethsm", feature = "yubihsm2"))]
 use signstar_crypto::{

@@ -13,28 +13,26 @@ use signstar_yubihsm2::{
     yubihsm::{Capability, Code},
 };
 
-use crate::{
+use crate::config::{
     AuthorizedKeyEntry,
+    BackendDomainFilter,
+    BackendKeyIdFilter,
+    BackendUserIdFilter,
+    BackendUserIdKind,
+    ConfigAuthorizedKeyEntries,
+    ConfigSystemUserIds,
+    MappingAuthorizedKeyEntry,
+    MappingBackendDomain,
+    MappingBackendKeyId,
+    MappingBackendUserIds,
+    MappingBackendUserSecrets,
+    MappingSystemUserId,
     SystemUserId,
-    config::{
-        BackendDomainFilter,
-        BackendKeyIdFilter,
-        BackendUserIdFilter,
-        BackendUserIdKind,
-        ConfigAuthorizedKeyEntries,
-        ConfigSystemUserIds,
-        MappingAuthorizedKeyEntry,
-        MappingBackendDomain,
-        MappingBackendKeyId,
-        MappingBackendUserIds,
-        MappingBackendUserSecrets,
-        MappingSystemUserId,
-        duplicate_authorized_keys,
-        duplicate_backend_user_ids,
-        duplicate_domains,
-        duplicate_key_ids,
-        duplicate_system_user_ids,
-    },
+    duplicate_authorized_keys,
+    duplicate_backend_user_ids,
+    duplicate_domains,
+    duplicate_key_ids,
+    duplicate_system_user_ids,
 };
 
 /// An error that may occur when using YubiHSM2 config objects.

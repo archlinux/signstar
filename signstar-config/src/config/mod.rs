@@ -1,6 +1,6 @@
 //! Configuration file handling for _Signstar hosts_.
 
-pub mod credentials;
+mod credentials;
 pub mod error;
 mod file;
 pub mod state;
@@ -8,6 +8,7 @@ mod system;
 mod traits;
 mod utils;
 
+pub use credentials::{AuthorizedKeyEntry, SystemUserId};
 pub use file::{Config, ConfigBuilder, UserBackendConnection, UserBackendConnectionFilter};
 pub use system::{SystemConfig, SystemUserMapping};
 pub use traits::{

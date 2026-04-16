@@ -10,7 +10,10 @@ use signstar_crypto::{
     traits::UserWithPassphrase,
 };
 
-use crate::{AuthorizedKeyEntry, SystemUserId, utils::get_current_system_user};
+use crate::{
+    config::{AuthorizedKeyEntry, SystemUserId},
+    utils::get_current_system_user,
+};
 
 /// An error that may occur when using signstar-config traits.
 #[derive(Debug, thiserror::Error)]
@@ -33,7 +36,7 @@ pub enum Error {
 /// # Example
 ///
 /// ```
-/// use signstar_config::{SystemUserId, config::MappingSystemUserId};
+/// use signstar_config::config::{MappingSystemUserId, SystemUserId};
 /// use signstar_crypto::{passphrase::Passphrase, traits::UserWithPassphrase};
 ///
 /// #[derive(Debug)]
@@ -189,8 +192,7 @@ pub struct BackendUserIdFilter {
 /// ```
 /// use signstar_config::{
 ///     Error,
-///     SystemUserId,
-///     config::{BackendUserIdFilter, BackendUserIdKind, MappingBackendUserIds},
+///     config::{BackendUserIdFilter, BackendUserIdKind, MappingBackendUserIds, SystemUserId},
 /// };
 /// use signstar_crypto::{passphrase::Passphrase, traits::UserWithPassphrase};
 ///
@@ -461,7 +463,7 @@ pub trait MappingBackendUserIds {
 /// # Example
 ///
 /// ```
-/// use signstar_config::{AuthorizedKeyEntry, SystemUserId, config::MappingAuthorizedKeyEntry};
+/// use signstar_config::config::{AuthorizedKeyEntry, MappingAuthorizedKeyEntry, SystemUserId};
 /// use signstar_crypto::{passphrase::Passphrase, traits::UserWithPassphrase};
 ///
 /// #[derive(Debug)]
@@ -534,10 +536,7 @@ pub trait BackendKeyIdFilter: Clone {}
 /// # Example
 ///
 /// ```
-/// use signstar_config::{
-///     SystemUserId,
-///     config::{BackendKeyIdFilter, MappingBackendKeyId},
-/// };
+/// use signstar_config::config::{BackendKeyIdFilter, MappingBackendKeyId, SystemUserId};
 /// use signstar_crypto::{passphrase::Passphrase, traits::UserWithPassphrase};
 ///
 /// #[derive(Clone, Debug, PartialEq)]
@@ -645,10 +644,7 @@ pub trait BackendDomainFilter {}
 /// # Example
 ///
 /// ```
-/// use signstar_config::{
-///     SystemUserId,
-///     config::{BackendDomainFilter, MappingBackendDomain},
-/// };
+/// use signstar_config::config::{BackendDomainFilter, MappingBackendDomain, SystemUserId};
 /// use signstar_crypto::{passphrase::Passphrase, traits::UserWithPassphrase};
 ///
 /// #[derive(Clone, Debug, PartialEq)]
@@ -819,13 +815,13 @@ impl From<NonAdminBackendUserIdFilter> for BackendUserIdFilter {
 /// ```
 /// use signstar_config::{
 ///     Error,
-///     SystemUserId,
 ///     config::{
 ///         BackendUserIdFilter,
 ///         BackendUserIdKind,
 ///         MappingBackendUserIds,
 ///         MappingBackendUserSecrets,
 ///         MappingSystemUserId,
+///         SystemUserId,
 ///     },
 /// };
 /// use signstar_crypto::{passphrase::Passphrase, traits::UserWithPassphrase};
@@ -1118,10 +1114,7 @@ pub trait MappingBackendUserSecrets: MappingSystemUserId + MappingBackendUserIds
 /// ```
 /// use std::collections::HashSet;
 ///
-/// use signstar_config::{
-///     SystemUserId,
-///     config::{ConfigSystemUserIds, MappingSystemUserId},
-/// };
+/// use signstar_config::config::{ConfigSystemUserIds, MappingSystemUserId, SystemUserId};
 /// use signstar_crypto::{passphrase::Passphrase, traits::UserWithPassphrase};
 ///
 /// #[derive(Debug, Eq, Hash, PartialEq)]
@@ -1220,7 +1213,7 @@ pub trait ConfigSystemUserIds {
 /// ```
 /// use std::collections::HashSet;
 ///
-/// use signstar_config::{AuthorizedKeyEntry, SystemUserId, config::{ConfigAuthorizedKeyEntries, MappingAuthorizedKeyEntry}};
+/// use signstar_config::config::{AuthorizedKeyEntry, ConfigAuthorizedKeyEntries, MappingAuthorizedKeyEntry, SystemUserId};
 /// use signstar_crypto::{passphrase::Passphrase, traits::UserWithPassphrase};
 ///
 /// #[derive(Debug, Eq, Hash, PartialEq)]

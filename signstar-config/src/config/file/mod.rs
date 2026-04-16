@@ -568,8 +568,10 @@ mod tests {
     use super::*;
     #[cfg(feature = "nethsm")]
     use crate::nethsm::NetHsmMetricsUsers;
-    use crate::{AuthorizedKeyEntry, SystemUserId};
-    use crate::{ConfigError, config::SystemUserMapping};
+    use crate::{
+        ConfigError,
+        config::{AuthorizedKeyEntry, SystemUserId, SystemUserMapping},
+    };
 
     const SNAPSHOT_PATH: &str = "fixtures/file/";
 

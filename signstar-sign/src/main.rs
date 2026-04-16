@@ -64,17 +64,18 @@ enum Error {
 mod impl_any {
     #[cfg(feature = "nethsm")]
     use nethsm::{NetHsm, signer::OwnedNetHsmKey};
-    use signstar_config::config::NonAdminBackendUserIdFilter;
     #[cfg(any(feature = "nethsm", feature = "yubihsm2"))]
     use signstar_config::config::UserBackendConnection;
+    use signstar_config::config::{
+        Config,
+        NonAdminBackendUserIdFilter,
+        NonAdminBackendUserIdKind,
+        SystemUserId,
+    };
     #[cfg(feature = "nethsm")]
     use signstar_config::nethsm::NetHsmUserMapping;
     #[cfg(feature = "yubihsm2")]
     use signstar_config::yubihsm2::YubiHsm2UserMapping;
-    use signstar_config::{
-        SystemUserId,
-        config::{Config, NonAdminBackendUserIdKind},
-    };
     #[cfg(feature = "yubihsm2")]
     use signstar_yubihsm2::{Connection, Credentials, YubiHsm2SigningKey};
 

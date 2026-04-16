@@ -14,9 +14,8 @@ use signstar_crypto::{
 };
 
 use crate::{
-    AuthorizedKeyEntry,
-    SystemUserId,
     config::{
+        AuthorizedKeyEntry,
         Config,
         ConfigAuthorizedKeyEntries,
         ConfigBuilder,
@@ -24,6 +23,7 @@ use crate::{
         MappingBackendUserSecrets,
         MappingSystemUserId,
         SystemConfig,
+        SystemUserId,
         UserBackendConnection,
         UserBackendConnectionFilter,
         traits::NonAdminBackendUserIdFilter,
