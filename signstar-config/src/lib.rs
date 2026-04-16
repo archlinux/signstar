@@ -19,4 +19,4 @@ pub use config::{
 };
 pub use error::{Error, ErrorExitCode};
 #[cfg(feature = "nethsm")]
-pub use nethsm::{NetHsmMetricsUsers, backend::NetHsmBackend, error::Error as NetHsmBackendError};
+pub use nethsm::{backend::NetHsmBackend, error::Error as NetHsmBackendError};

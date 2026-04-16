@@ -17,10 +17,10 @@ use log::{LevelFilter, debug};
 use nix::unistd::User;
 #[cfg(any(feature = "nethsm", feature = "yubihsm2"))]
 use signstar_config::AuthorizedKeyEntry;
+#[cfg(feature = "nethsm")]
+use signstar_config::nethsm::{NetHsmMetricsUsers, NetHsmUserMapping};
 #[cfg(feature = "yubihsm2")]
 use signstar_config::yubihsm2::YubiHsm2UserMapping;
-#[cfg(feature = "nethsm")]
-use signstar_config::{NetHsmMetricsUsers, nethsm::NetHsmUserMapping};
 use signstar_config::{SystemUserId, config::MappingSystemUserId};
 #[cfg(any(feature = "nethsm", feature = "yubihsm2"))]
 use signstar_crypto::{
