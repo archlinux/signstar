@@ -8,7 +8,7 @@ use signstar_config::{
     NetHsmBackend,
     nethsm::{
         NetHsmUserMapping,
-        state::{NetHsmState, SignstarConfigNetHsmState},
+        state::{NetHsmConfigState, NetHsmState},
     },
     state::StateHandling,
     test::{
@@ -49,7 +49,7 @@ async fn sync_unprovisioned_backend(
         panic!("This test requires a NetHSM configuration object in the Signstar config");
     };
     // Derive the acclaimed NetHSM state from the Signstar config
-    let signstar_state = SignstarConfigNetHsmState::from(nethsm_config);
+    let signstar_state = NetHsmConfigState::from(nethsm_config);
     let nethsm_admin_credentials = nethsm_admin_credentials(creds_data)?;
 
     let container = create_container().await?;
