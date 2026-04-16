@@ -22,7 +22,6 @@ pub use error::{Error, ErrorExitCode};
 pub use nethsm::{
     FilterUserKeys,
     NetHsmMetricsUsers,
-    admin_credentials::NetHsmAdminCredentials,
     backend::NetHsmBackend,
     error::Error as NetHsmBackendError,
 };

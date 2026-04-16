@@ -11,7 +11,7 @@ use signstar_common::admin_credentials::{
 };
 use signstar_config::{
     AdminCredentials,
-    NetHsmAdminCredentials,
+    nethsm::NetHsmAdminCredentials,
     test::{get_tmp_config, write_machine_id},
 };
 use signstar_crypto::AdministrativeSecretHandling;

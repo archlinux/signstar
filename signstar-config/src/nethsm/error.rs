@@ -3,7 +3,7 @@
 use nethsm::{KeyId, NamespaceId, Url, UserId};
 
 #[cfg(doc)]
-use crate::{NetHsmAdminCredentials, NetHsmBackend, config::Config};
+use crate::{NetHsmBackend, config::Config, nethsm::NetHsmAdminCredentials};
 
 /// An error that may occur when handling a NetHSM backend.
 #[derive(Debug, thiserror::Error)]
