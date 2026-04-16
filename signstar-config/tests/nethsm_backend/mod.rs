@@ -5,11 +5,7 @@ use nethsm::{Connection, NetHsm, SystemState, UserId, UserRole, test::create_con
 use rstest::rstest;
 use signstar_common::logging::setup_logging;
 use signstar_config::{
-    nethsm::{
-        NetHsmBackend,
-        NetHsmUserMapping,
-        state::{NetHsmConfigState, NetHsmState},
-    },
+    nethsm::{NetHsmBackend, NetHsmConfigState, NetHsmState, NetHsmUserMapping},
     state::StateHandling,
     test::{
         ConfigFileConfig,
