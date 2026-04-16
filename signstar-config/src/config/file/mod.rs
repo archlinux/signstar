@@ -28,9 +28,9 @@ use signstar_crypto::{AdministrativeSecretHandling, NonAdministrativeSecretHandl
 use signstar_yubihsm2::Connection as YubiHsm2Connection;
 use strum::{AsRefStr, VariantNames};
 
-use crate::config::SystemConfig;
 #[cfg(any(feature = "nethsm", feature = "yubihsm2"))]
 use crate::config::{ConfigAuthorizedKeyEntries, ConfigSystemUserIds};
+use crate::config::{Error, SystemConfig};
 #[cfg(feature = "nethsm")]
 use crate::nethsm::{NetHsmConfig, NetHsmUserMapping};
 #[cfg(feature = "yubihsm2")]
@@ -342,7 +342,7 @@ impl Config {
         let path = Self::list_config_file_paths()
             .into_iter()
             .find(|path| path.is_file());
-        path.ok_or(crate::ConfigError::ConfigIsMissing.into())
+        path.ok_or(Error::ConfigIsMissing.into())
     }
 
     /// Returns the list of supported directory paths in which configuration files may reside.
@@ -380,11 +380,10 @@ impl Config {
     ///
     /// Returns an error if deserialization or validation fails.
     fn from_yaml_str(s: &str) -> Result<Self, crate::Error> {
-        let config: Self =
-            serde_saphyr::from_str(s).map_err(|source| crate::ConfigError::YamlDeserialize {
-                context: "creating a Signstar configuration object".to_string(),
-                source,
-            })?;
+        let config: Self = serde_saphyr::from_str(s).map_err(|source| Error::YamlDeserialize {
+            context: "creating a Signstar configuration object".to_string(),
+            source,
+        })?;
 
         config
             .validate()
@@ -429,7 +428,7 @@ impl Config {
         let path = path.as_ref();
         let extension = {
             let Some(extension) = path.extension() else {
-                return Err(crate::ConfigError::MissingFileExtension {
+                return Err(Error::MissingFileExtension {
                     path: path.to_path_buf(),
                 }
                 .into());
@@ -438,7 +437,7 @@ impl Config {
         };
 
         if !ConfigFileFormat::VARIANTS.contains(&extension.as_ref()) {
-            return Err(crate::ConfigError::UnsupportedFileExtension {
+            return Err(Error::UnsupportedFileExtension {
                 path: path.to_path_buf(),
                 extension,
             }
@@ -470,7 +469,7 @@ impl Config {
     /// Returns an error if serialization fails.
     pub fn to_yaml_string(&self) -> Result<String, crate::Error> {
         serde_saphyr::to_string(&self).map_err(|source| {
-            crate::ConfigError::YamlSerialize {
+            Error::YamlSerialize {
                 context: "serializing Signstar config",
                 source,
             }
@@ -566,12 +565,9 @@ mod tests {
     use testresult::TestResult;
 
     use super::*;
+    use crate::config::{AuthorizedKeyEntry, SystemUserId, SystemUserMapping};
     #[cfg(feature = "nethsm")]
     use crate::nethsm::NetHsmMetricsUsers;
-    use crate::{
-        ConfigError,
-        config::{AuthorizedKeyEntry, SystemUserId, SystemUserMapping},
-    };
 
     const SNAPSHOT_PATH: &str = "fixtures/file/";
 
@@ -734,7 +730,7 @@ mod tests {
             Ok(config) => panic!(
                 "Should have failed to create a Config object, but succeeded instead: {config:?}"
             ),
-            Err(crate::Error::Config(ConfigError::MissingFileExtension { .. })) => {}
+            Err(crate::Error::Config(Error::MissingFileExtension { .. })) => {}
             Err(error) => panic!(
                 "Should have failed with a ConfigError::MissingFileExtension, but failed with a different error instead: {error}"
             ),
@@ -752,7 +748,7 @@ mod tests {
             Ok(config) => panic!(
                 "Should have failed to create a Config object, but succeeded instead: {config:?}"
             ),
-            Err(crate::Error::Config(ConfigError::UnsupportedFileExtension { .. })) => {}
+            Err(crate::Error::Config(Error::UnsupportedFileExtension { .. })) => {}
             Err(error) => panic!(
                 "Should have failed with a ConfigError::UnsupportedFileExtension, but failed with a different error instead: {error}"
             ),

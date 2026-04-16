@@ -85,7 +85,7 @@ pub enum Error {
 
     /// Configuration errors.
     #[error("Signstar config error:\n{0}")]
-    Config(#[from] crate::ConfigError),
+    Config(#[from] crate::config::Error),
 
     /// An I/O error occurred for a file.
     #[error("I/O error for file {path} while {context}: {source}")]
@@ -252,83 +252,83 @@ pub enum ErrorExitCode {
     /// Mapping for [`Error::CommandWriteToStdin`].
     CommandWriteToStdin = 16,
 
-    /// Mapping for [`crate::ConfigError::ConfigIsMissing`] wrapped in [`Error::Config`].
+    /// Mapping for [`crate::config::Error::ConfigIsMissing`] wrapped in [`Error::Config`].
     ConfigConfigMissing = 120,
 
-    /// Mapping for [`crate::ConfigError::MissingFileExtension`] wrapped in [`Error::Config`].
+    /// Mapping for [`crate::config::Error::MissingFileExtension`] wrapped in [`Error::Config`].
     ConfigMissingFileExtension = 180,
 
-    /// Mapping for [`crate::ConfigError::UnsupportedFileExtension`] wrapped in [`Error::Config`].
+    /// Mapping for [`crate::config::Error::UnsupportedFileExtension`] wrapped in [`Error::Config`].
     ConfigUnsupportedFileExtension = 181,
 
-    /// Mapping for [`crate::ConfigError::DuplicateNetHsmUserId`] wrapped in
+    /// Mapping for [`crate::config::Error::DuplicateNetHsmUserId`] wrapped in
     /// [`Error::Config`].
     #[cfg(feature = "nethsm")]
     ConfigDuplicateNetHsmUserId = 121,
 
-    /// Mapping for [`crate::ConfigError::DuplicateSshPublicKey`] wrapped in
+    /// Mapping for [`crate::config::Error::DuplicateSshPublicKey`] wrapped in
     /// [`Error::Config`].
     ConfigDuplicateSshPublicKey = 122,
 
-    /// Mapping for [`crate::ConfigError::DuplicateKeyId`] wrapped in [`Error::Config`].
+    /// Mapping for [`crate::config::Error::DuplicateKeyId`] wrapped in [`Error::Config`].
     #[cfg(feature = "nethsm")]
     ConfigDuplicateKeyId = 123,
 
-    /// Mapping for [`crate::ConfigError::DuplicateSystemUserId`] wrapped in
+    /// Mapping for [`crate::config::Error::DuplicateSystemUserId`] wrapped in
     /// [`Error::Config`].
     ConfigDuplicateSystemUserId = 124,
 
-    /// Mapping for [`crate::ConfigError::DuplicateTag`] wrapped in [`Error::Config`].
+    /// Mapping for [`crate::config::Error::DuplicateTag`] wrapped in [`Error::Config`].
     #[cfg(feature = "nethsm")]
     ConfigDuplicateTag = 125,
 
-    /// Mapping for [`crate::ConfigError::InvalidSystemUserName`] wrapped in
+    /// Mapping for [`crate::config::Error::InvalidSystemUserName`] wrapped in
     /// [`Error::Config`].
     ConfigInvalidSystemUserName = 126,
 
-    /// Mapping for [`crate::ConfigError::InvalidAuthorizedKeyEntry`] wrapped in
+    /// Mapping for [`crate::config::Error::InvalidAuthorizedKeyEntry`] wrapped in
     /// [`Error::Config`].
     ConfigInvalidAuthorizedKeyEntry = 127,
 
-    /// Mapping for [`crate::ConfigError::MetricsAlsoOperator`] wrapped in
+    /// Mapping for [`crate::config::Error::MetricsAlsoOperator`] wrapped in
     /// [`Error::Config`].
     #[cfg(feature = "nethsm")]
     ConfigMetricsAlsoOperator = 128,
 
-    /// Mapping for [`crate::ConfigError::MissingAdministrator`] wrapped in
+    /// Mapping for [`crate::config::Error::MissingAdministrator`] wrapped in
     /// [`Error::Config`].
     #[cfg(feature = "nethsm")]
     ConfigMissingAdministrator = 129,
 
-    /// Mapping for [`crate::ConfigError::MissingShareDownloadSystemUser`] wrapped in
+    /// Mapping for [`crate::config::Error::MissingShareDownloadSystemUser`] wrapped in
     /// [`Error::Config`].
     ConfigMissingShareDownloadSystemUser = 130,
 
-    /// Mapping for [`crate::ConfigError::MissingShareUploadSystemUser`] wrapped in
+    /// Mapping for [`crate::config::Error::MissingShareUploadSystemUser`] wrapped in
     /// [`Error::Config`].
     ConfigMissingShareUploadSystemUser = 131,
 
-    /// Mapping for [`crate::ConfigError::NoAuthorizedKeys`] wrapped in [`Error::Config`].
+    /// Mapping for [`crate::config::Error::NoAuthorizedKeys`] wrapped in [`Error::Config`].
     ConfigNoAuthorizedKeys = 132,
 
-    /// Mapping for [`crate::ConfigError::NoMatchingMappingForSystemUser`] wrapped in
+    /// Mapping for [`crate::config::Error::NoMatchingMappingForSystemUser`] wrapped in
     /// [`Error::Config`].
     ConfigNoMatchingMappingForSystemUser = 133,
 
-    /// Mapping for [`crate::ConfigError::NoSssButShareUsers`] wrapped in [`Error::Config`].
+    /// Mapping for [`crate::config::Error::NoSssButShareUsers`] wrapped in [`Error::Config`].
     ConfigNoSssButShareUsers = 134,
 
-    /// Mapping for [`crate::ConfigError::SshKey`] wrapped in [`Error::Config`].
+    /// Mapping for [`crate::config::Error::SshKey`] wrapped in [`Error::Config`].
     ConfigSshKey = 135,
 
-    /// Mapping for [`crate::ConfigError::User`] wrapped in [`Error::Config`].
+    /// Mapping for [`crate::config::Error::User`] wrapped in [`Error::Config`].
     #[cfg(feature = "nethsm")]
     ConfigUser = 136,
 
-    /// Mapping for [`crate::ConfigError::YamlDeserialize`] wrapped in [`Error::Config`].
+    /// Mapping for [`crate::config::Error::YamlDeserialize`] wrapped in [`Error::Config`].
     ConfigYamlDeserialize = 137,
 
-    /// Mapping for [`crate::ConfigError::YamlSerialize`] wrapped in [`Error::Config`].
+    /// Mapping for [`crate::config::Error::YamlSerialize`] wrapped in [`Error::Config`].
     ConfigYamlSerialize = 138,
 
     /// Mapping for [`crate::Error::NetHsm`].
@@ -428,51 +428,55 @@ impl From<Error> for ErrorExitCode {
             },
             // config related errors
             Error::Config(error) => match error {
-                crate::ConfigError::ConfigIsMissing => Self::ConfigConfigMissing,
-                crate::ConfigError::MissingFileExtension { .. } => Self::ConfigMissingFileExtension,
-                crate::ConfigError::UnsupportedFileExtension { .. } => {
+                crate::config::Error::ConfigIsMissing => Self::ConfigConfigMissing,
+                crate::config::Error::MissingFileExtension { .. } => {
+                    Self::ConfigMissingFileExtension
+                }
+                crate::config::Error::UnsupportedFileExtension { .. } => {
                     Self::ConfigUnsupportedFileExtension
                 }
                 #[cfg(feature = "nethsm")]
-                crate::ConfigError::DuplicateNetHsmUserId { .. } => {
+                crate::config::Error::DuplicateNetHsmUserId { .. } => {
                     Self::ConfigDuplicateNetHsmUserId
                 }
-                crate::ConfigError::DuplicateSshPublicKey { .. } => {
+                crate::config::Error::DuplicateSshPublicKey { .. } => {
                     Self::ConfigDuplicateSshPublicKey
                 }
                 #[cfg(feature = "nethsm")]
-                crate::ConfigError::DuplicateKeyId { .. } => Self::ConfigDuplicateKeyId,
-                crate::ConfigError::DuplicateSystemUserId { .. } => {
+                crate::config::Error::DuplicateKeyId { .. } => Self::ConfigDuplicateKeyId,
+                crate::config::Error::DuplicateSystemUserId { .. } => {
                     Self::ConfigDuplicateSystemUserId
                 }
                 #[cfg(feature = "nethsm")]
-                crate::ConfigError::DuplicateTag { .. } => Self::ConfigDuplicateTag,
-                crate::ConfigError::InvalidSystemUserName { .. } => {
+                crate::config::Error::DuplicateTag { .. } => Self::ConfigDuplicateTag,
+                crate::config::Error::InvalidSystemUserName { .. } => {
                     Self::ConfigInvalidSystemUserName
                 }
-                crate::ConfigError::InvalidAuthorizedKeyEntry { .. } => {
+                crate::config::Error::InvalidAuthorizedKeyEntry { .. } => {
                     Self::ConfigInvalidAuthorizedKeyEntry
                 }
                 #[cfg(feature = "nethsm")]
-                crate::ConfigError::MetricsAlsoOperator { .. } => Self::ConfigMetricsAlsoOperator,
+                crate::config::Error::MetricsAlsoOperator { .. } => Self::ConfigMetricsAlsoOperator,
                 #[cfg(feature = "nethsm")]
-                crate::ConfigError::MissingAdministrator { .. } => Self::ConfigMissingAdministrator,
-                crate::ConfigError::MissingShareDownloadSystemUser => {
+                crate::config::Error::MissingAdministrator { .. } => {
+                    Self::ConfigMissingAdministrator
+                }
+                crate::config::Error::MissingShareDownloadSystemUser => {
                     Self::ConfigMissingShareDownloadSystemUser
                 }
-                crate::ConfigError::MissingShareUploadSystemUser => {
+                crate::config::Error::MissingShareUploadSystemUser => {
                     Self::ConfigMissingShareUploadSystemUser
                 }
-                crate::ConfigError::NoAuthorizedKeys => Self::ConfigNoAuthorizedKeys,
-                crate::ConfigError::NoMatchingMappingForSystemUser { .. } => {
+                crate::config::Error::NoAuthorizedKeys => Self::ConfigNoAuthorizedKeys,
+                crate::config::Error::NoMatchingMappingForSystemUser { .. } => {
                     Self::ConfigNoMatchingMappingForSystemUser
                 }
-                crate::ConfigError::NoSssButShareUsers { .. } => Self::ConfigNoSssButShareUsers,
-                crate::ConfigError::SshKey(_) => Self::ConfigSshKey,
+                crate::config::Error::NoSssButShareUsers { .. } => Self::ConfigNoSssButShareUsers,
+                crate::config::Error::SshKey(_) => Self::ConfigSshKey,
                 #[cfg(feature = "nethsm")]
-                crate::ConfigError::User(_) => Self::ConfigUser,
-                crate::ConfigError::YamlDeserialize { .. } => Self::ConfigYamlDeserialize,
-                crate::ConfigError::YamlSerialize { .. } => Self::ConfigYamlSerialize,
+                crate::config::Error::User(_) => Self::ConfigUser,
+                crate::config::Error::YamlDeserialize { .. } => Self::ConfigYamlDeserialize,
+                crate::config::Error::YamlSerialize { .. } => Self::ConfigYamlSerialize,
             },
             // NetHSM related errors
             #[cfg(feature = "nethsm")]
