@@ -3,7 +3,7 @@
 mod credentials;
 mod error;
 mod file;
-pub mod state;
+mod state;
 mod system;
 mod traits;
 mod utils;
@@ -11,6 +11,7 @@ mod utils;
 pub use credentials::{AuthorizedKeyEntry, SystemUserId};
 pub use error::Error;
 pub use file::{Config, ConfigBuilder, UserBackendConnection, UserBackendConnectionFilter};
+pub use state::KeyCertificateState;
 pub use system::{SystemConfig, SystemUserMapping};
 pub use traits::{
     BackendDomainFilter,
