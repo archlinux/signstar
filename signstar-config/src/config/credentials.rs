@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 use ssh_key::authorized_keys::Entry;
 use zeroize::Zeroize;
 
-use crate::{ConfigError, utils::get_current_system_user};
+use crate::{config::Error, utils::get_current_system_user};
 
 /// The name of a user on a Unix system
 ///
@@ -42,7 +42,7 @@ impl SystemUserId {
                 .chars()
                 .all(|char| char.is_ascii_alphanumeric() || char == '_' || char == '-'))
         {
-            return Err(ConfigError::InvalidSystemUserName { name: user }.into());
+            return Err(Error::InvalidSystemUserName { name: user }.into());
         }
         Ok(Self(user))
     }
@@ -137,7 +137,7 @@ impl AuthorizedKeyEntry {
     /// ```
     pub fn new(entry: String) -> Result<Self, crate::Error> {
         Ok(Self(Entry::from_str(&entry).map_err(|_source| {
-            ConfigError::InvalidAuthorizedKeyEntry { entry }
+            Error::InvalidAuthorizedKeyEntry { entry }
         })?))
     }
 }

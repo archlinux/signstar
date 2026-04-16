@@ -65,7 +65,7 @@ fn config_first_existing_system_path_fails_on_missing_config() -> TestResult {
         Ok(config) => panic!(
             "Expected to fail with ConfigError::ConfigIsMissing but succeeded instead:\n{config:?}"
         ),
-        Err(signstar_config::Error::Config(signstar_config::ConfigError::ConfigIsMissing)) => {}
+        Err(signstar_config::Error::Config(signstar_config::config::Error::ConfigIsMissing)) => {}
         Err(error) => panic!(
             "Expected to fail with ConfigError::ConfigIsMissing but failed with a different error instead:\n{error}"
         ),

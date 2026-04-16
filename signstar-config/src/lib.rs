@@ -13,5 +13,4 @@ pub mod utils;
 pub mod yubihsm2;
 
 pub use admin_credentials::AdminCredentials;
-pub use config::error::Error as ConfigError;
 pub use error::{Error, ErrorExitCode};
