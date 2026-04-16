@@ -27,7 +27,7 @@ use which::which;
 
 use crate::config::{Config, ConfigSystemUserIds};
 #[cfg(feature = "nethsm")]
-use crate::{AdminCredentials, NetHsmAdminCredentials};
+use crate::{AdminCredentials, nethsm::NetHsmAdminCredentials};
 /// When any of the HSM backends is present.
 #[cfg(any(feature = "nethsm", feature = "yubihsm2"))]
 pub mod impl_any {

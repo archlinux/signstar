@@ -38,7 +38,7 @@ impl NetHsmAdminCredentials {
     ///
     /// ```
     /// use nethsm::FullCredentials;
-    /// use signstar_config::NetHsmAdminCredentials;
+    /// use signstar_config::nethsm::NetHsmAdminCredentials;
     ///
     /// # fn main() -> testresult::TestResult {
     /// let creds = NetHsmAdminCredentials::new(

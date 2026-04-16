@@ -14,7 +14,7 @@ use nethsm::{KeyId, NamespaceId, SystemState, UserId, UserRole};
 use signstar_crypto::key::{CryptographicKeyContext, KeyMechanism, KeyType};
 
 #[cfg(doc)]
-use crate::{config::Config, nethsm::admin_credentials::NetHsmAdminCredentials};
+use crate::{config::Config, nethsm::NetHsmAdminCredentials};
 use crate::{
     config::state::KeyCertificateState,
     nethsm::{NetHsmConfig, NetHsmUserKeysFilter, backend::NetHsmBackend},

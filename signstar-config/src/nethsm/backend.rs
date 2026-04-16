@@ -34,7 +34,6 @@ use pgp::composed::{Deserializable, SignedPublicKey};
 
 use super::Error;
 use crate::{
-    NetHsmAdminCredentials,
     config::{
         Config,
         UserBackendConnection,
@@ -42,6 +41,7 @@ use crate::{
         state::KeyCertificateState,
     },
     nethsm::{
+        NetHsmAdminCredentials,
         NetHsmUserKeysFilter,
         state::{KeyState, UserState},
     },
@@ -1252,11 +1252,10 @@ impl<'a, 'b> NetHsmBackend<'a, 'b> {
     ///
     /// use nethsm::{Connection, ConnectionSecurity, FullCredentials, NetHsm};
     /// use signstar_config::{
-    ///     NetHsmAdminCredentials,
     ///     NetHsmBackend,
     ///     NetHsmMetricsUsers,
     ///     config::{ConfigBuilder, SystemConfig, SystemUserMapping},
-    ///     nethsm::{NetHsmConfig, NetHsmUserMapping},
+    ///     nethsm::{NetHsmAdminCredentials, NetHsmConfig, NetHsmUserMapping},
     /// };
     /// use signstar_crypto::{
     ///     AdministrativeSecretHandling,

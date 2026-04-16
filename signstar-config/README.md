@@ -20,7 +20,7 @@ Functions for interacting with configurations in default locations must be calle
 ```rust no_run
 # #[cfg(feature = "nethsm")]
 # mod impl_nethsm {
-use signstar_config::{AdminCredentials, NetHsmAdminCredentials};
+use signstar_config::{AdminCredentials, nethsm::NetHsmAdminCredentials};
 use signstar_crypto::AdministrativeSecretHandling;
 
 #     pub fn main() -> testresult::TestResult {
