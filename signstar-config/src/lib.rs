@@ -2,7 +2,7 @@
 
 pub mod admin_credentials;
 pub mod config;
-pub mod error;
+mod error;
 #[cfg(feature = "nethsm")]
 pub mod nethsm;
 pub mod state;
