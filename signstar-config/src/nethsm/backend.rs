@@ -32,7 +32,6 @@ use nethsm::{
 };
 use pgp::composed::{Deserializable, SignedPublicKey};
 
-use super::Error;
 use crate::{
     config::{
         Config,
@@ -43,6 +42,7 @@ use crate::{
     nethsm::{
         NetHsmAdminCredentials,
         NetHsmUserKeysFilter,
+        error::Error,
         state::{KeyState, UserState},
     },
     state::StateType,

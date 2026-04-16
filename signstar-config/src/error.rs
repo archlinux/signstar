@@ -110,7 +110,7 @@ pub enum Error {
     /// This variant is used when actions for a NetHSM backend fail.
     #[cfg(feature = "nethsm")]
     #[error("NetHSM backend error:\n{0}")]
-    NetHsmBackend(#[from] crate::NetHsmBackendError),
+    NetHsmBackend(#[from] crate::nethsm::Error),
 
     /// Low-level administrative credentials handling in signstar-common failed.
     #[error("Handling of administrative credentials failed:\n{0}")]
