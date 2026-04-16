@@ -10,7 +10,7 @@ repository.workspace = true
 version = "0.2.0"
 
 [dependencies]
-change-user-run = { workspace = true, optional = true }
+change-user-run.workspace = true
 garde = { version = "0.22.1", features = ["derive"] }
 log.workspace = true
 nethsm = { workspace = true, optional = true }
@@ -28,11 +28,9 @@ tempfile = { workspace = true, optional = true }
 testresult = { workspace = true, optional = true }
 thiserror.workspace = true
 toml = "1.0.0"
-which = "8.0.0"
 zeroize.workspace = true
 
 [dev-dependencies]
-change-user-run.workspace = true
 clap.workspace = true
 insta = { version = "1.46.1", features = ["filters"] }
 nethsm = { features = ["_test-helpers"], workspace = true }
@@ -48,7 +46,7 @@ tokio.workspace = true
 [features]
 _containerized-integration-test = ["_test-helpers"]
 _nethsm-integration-test = ["_test-helpers", "nethsm"]
-_test-helpers = ["dep:change-user-run", "dep:tempfile", "dep:testresult"]
+_test-helpers = ["dep:tempfile", "dep:testresult"]
 _yubihsm2-mockhsm = ["signstar-yubihsm2/_yubihsm2-mockhsm", "yubihsm2"]
 default = []
 # Support for the NetHSM backend.

@@ -1,23 +1,11 @@
 //! Utilities for signstar-config.
-use std::path::PathBuf;
-
 use nix::unistd::{User, geteuid};
-use which::which;
 
 use crate::config::SystemUserId;
 
 /// An error that may occur when using signstar-config utils.
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
-    /// An executable that is supposed to be called, is not found.
-    #[error("Unable to to find executable \"{command}\"")]
-    ExecutableNotFound {
-        /// The executable that could not be found.
-        command: String,
-        /// The source error.
-        source: which::Error,
-    },
-
     /// There is no data about a system user.
     #[error("Data for system user {user} is missing")]
     SystemUserData {
@@ -66,21 +54,6 @@ pub enum NameOrUid {
     Name(SystemUserId),
     /// The ID of the system user.
     Uid(nix::unistd::Uid),
-}
-
-/// Returns the path to a `command`.
-///
-/// Searches for an executable in `$PATH` of the current environment and returns the first one
-/// found.
-///
-/// # Errors
-///
-/// Returns an error if no executable matches the provided `command`.
-pub(crate) fn get_command(command: &str) -> Result<PathBuf, Error> {
-    which(command).map_err(|source| Error::ExecutableNotFound {
-        command: command.to_string(),
-        source,
-    })
 }
 
 /// Fails if not running as root.

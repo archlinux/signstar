@@ -8,6 +8,7 @@ use std::{
     process::{Command, Stdio},
 };
 
+use change_user_run::get_command;
 use serde::{de::DeserializeOwned, ser::Serialize};
 use signstar_common::{
     admin_credentials::{
@@ -19,7 +20,7 @@ use signstar_common::{
 };
 use signstar_crypto::AdministrativeSecretHandling;
 
-use crate::utils::{fail_if_not_root, get_command, get_current_system_user};
+use crate::utils::{fail_if_not_root, get_current_system_user};
 
 /// An error that may occur when handling administrative credentials for a backend.
 #[derive(Debug, thiserror::Error)]
