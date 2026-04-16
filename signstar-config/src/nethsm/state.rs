@@ -14,7 +14,7 @@ use nethsm::{KeyId, NamespaceId, SystemState, UserId, UserRole};
 use signstar_crypto::key::{CryptographicKeyContext, KeyMechanism, KeyType};
 
 #[cfg(doc)]
-use crate::nethsm::admin_credentials::NetHsmAdminCredentials;
+use crate::{config::Config, nethsm::admin_credentials::NetHsmAdminCredentials};
 use crate::{
     config::state::KeyCertificateState,
     nethsm::{NetHsmConfig, NetHsmUserKeysFilter, backend::NetHsmBackend},
@@ -416,21 +416,23 @@ impl<'a> Display for KeyStates<'a> {
     }
 }
 
-/// The state of configuration items for a NetHSM backend in a Signstar configuration.
+/// The state of configuration items in a [`NetHsmConfig`].
+///
+/// [`NetHsmConfig`] objects are used in [`Config`] objects.
 #[derive(Debug, Eq, PartialEq)]
-pub struct SignstarConfigNetHsmState {
+pub struct NetHsmConfigState {
     /// The user states.
     pub(crate) user_states: Vec<UserState>,
     /// The key states.
     pub(crate) key_states: Vec<KeyState>,
 }
 
-impl SignstarConfigNetHsmState {
+impl NetHsmConfigState {
     /// The specific [`StateType`] of this state.
     const STATE_TYPE: StateType = StateType::SignstarConfigNetHsm;
 }
 
-impl StateHandling for SignstarConfigNetHsmState {
+impl StateHandling for NetHsmConfigState {
     fn state_type(&self) -> StateType {
         Self::STATE_TYPE
     }
@@ -456,9 +458,7 @@ impl StateHandling for SignstarConfigNetHsmState {
             let (self_user_states, other_user_states, self_key_states, other_key_states) =
                 match other.state_type() {
                     StateType::SignstarConfigNetHsm => {
-                        let Some(other) =
-                            other.as_any().downcast_ref::<SignstarConfigNetHsmState>()
-                        else {
+                        let Some(other) = other.as_any().downcast_ref::<NetHsmConfigState>() else {
                             warn!("Unexpectedly unable to find a {}", other.state_type());
                             return StateComparisonReport::Incompatible {
                                 self_state: self.state_type(),
@@ -546,7 +546,7 @@ impl StateHandling for SignstarConfigNetHsmState {
     }
 }
 
-impl From<&NetHsmConfig> for SignstarConfigNetHsmState {
+impl From<&NetHsmConfig> for NetHsmConfigState {
     fn from(value: &NetHsmConfig) -> Self {
         let mut key_states: Vec<KeyState> = Vec::new();
         let mut user_states: Vec<UserState> = Vec::new();
@@ -576,7 +576,7 @@ impl From<&NetHsmConfig> for SignstarConfigNetHsmState {
             }
         }
 
-        SignstarConfigNetHsmState {
+        NetHsmConfigState {
             user_states,
             key_states,
         }
@@ -626,9 +626,7 @@ impl StateHandling for NetHsmState {
             let (self_user_states, other_user_states, self_key_states, other_key_states) =
                 match other.state_type() {
                     StateType::SignstarConfigNetHsm => {
-                        let Some(other) =
-                            other.as_any().downcast_ref::<SignstarConfigNetHsmState>()
-                        else {
+                        let Some(other) = other.as_any().downcast_ref::<NetHsmConfigState>() else {
                             return StateComparisonReport::Incompatible {
                                 self_state: self.state_type(),
                                 other_state: other.state_type(),
@@ -835,7 +833,7 @@ mod tests {
                 },
             ]),
         )?,
-        SignstarConfigNetHsmState {
+        NetHsmConfigState {
             user_states: vec![
                 UserState {
                     name: "admin".parse()?,
@@ -871,7 +869,7 @@ mod tests {
                 NetHsmUserMapping::Admin("admin".parse()?),
             ]),
         )?,
-        SignstarConfigNetHsmState {
+        NetHsmConfigState {
             user_states: vec![
                 UserState {
                     name: "admin".parse()?,
@@ -884,9 +882,9 @@ mod tests {
     )]
     fn signstar_state_nethsm_from_nethsm_config(
         #[case] input: NetHsmConfig,
-        #[case] expected: SignstarConfigNetHsmState,
+        #[case] expected: NetHsmConfigState,
     ) -> TestResult {
-        assert_eq!(expected, SignstarConfigNetHsmState::from(&input));
+        assert_eq!(expected, NetHsmConfigState::from(&input));
 
         Ok(())
     }
@@ -1109,17 +1107,17 @@ mod tests {
             user_states: Vec::new(),
             key_states: Vec::new(),
         },
-        SignstarConfigNetHsmState {
+        NetHsmConfigState {
             user_states: Vec::new(),
             key_states: Vec::new(),
         },
     )]
     #[case::config_vs_config_empty(
-        SignstarConfigNetHsmState {
+        NetHsmConfigState {
             user_states: Vec::new(),
             key_states: Vec::new(),
         },
-        SignstarConfigNetHsmState {
+        NetHsmConfigState {
             user_states: Vec::new(),
             key_states: Vec::new(),
         },
@@ -1164,7 +1162,7 @@ mod tests {
                 },
             ],
         },
-        SignstarConfigNetHsmState {
+        NetHsmConfigState {
             user_states: vec![
                 UserState{
                     name: "operator1".parse()?,
@@ -1195,7 +1193,7 @@ mod tests {
         },
     )]
     #[case::config_vs_config_with_users_and_keys(
-        SignstarConfigNetHsmState {
+        NetHsmConfigState {
             user_states: vec![
                 UserState{
                     name: "operator1".parse()?,
@@ -1224,7 +1222,7 @@ mod tests {
                 },
             ],
         },
-        SignstarConfigNetHsmState {
+        NetHsmConfigState {
             user_states: vec![
                 UserState{
                     name: "operator1".parse()?,
@@ -1333,7 +1331,7 @@ mod tests {
     /// [`SignstarConfigNetHsmState`] containing differing data.
     #[rstest]
     #[case::one_empty(
-        SignstarConfigNetHsmState {
+        NetHsmConfigState {
             user_states: vec![
                 UserState{
                     name: "operator1".parse()?,
@@ -1377,7 +1375,7 @@ key1 (tags: tag1; type: Curve25519; mechanisms: EdDsaSignature; context: OpenPGP
 "#,
     )]
     #[case::differing_users_and_keys(
-        SignstarConfigNetHsmState {
+        NetHsmConfigState {
             user_states: vec![
                 UserState{
                     name: "operator1".parse()?,
@@ -1460,7 +1458,7 @@ key3 (tags: tag3; type: Curve25519; mechanisms: EdDsaSignature; context: OpenPGP
 "#,
     )]
     #[case::user_and_key_mismatch(
-        SignstarConfigNetHsmState {
+        NetHsmConfigState {
             user_states: vec![
                 UserState{
                     name: "operator1".parse()?,
@@ -1573,7 +1571,7 @@ B: key1 (tags: tag1; type: Curve25519; mechanisms: EdDsaSignature; context: Raw)
     #[rstest]
     #[case::dummy_and_signstar_config_nethsm_state(
         DummyYubiHsm2ConfigBackend::new(),
-        SignstarConfigNetHsmState {
+        NetHsmConfigState {
             user_states: vec![
                 UserState{
                     name: "operator1".parse()?,
@@ -1631,7 +1629,7 @@ B: key1 (tags: tag1; type: Curve25519; mechanisms: EdDsaSignature; context: Raw)
         },
     )]
     #[case::signstar_config_nethsm_state_and_dummy(
-        SignstarConfigNetHsmState {
+        NetHsmConfigState {
             user_states: vec![
                 UserState{
                     name: "operator1".parse()?,
