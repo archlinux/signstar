@@ -20,7 +20,7 @@ Functions for interacting with configurations in default locations must be calle
 ```rust no_run
 # #[cfg(feature = "nethsm")]
 # mod impl_nethsm {
-use signstar_config::{AdminCredentials, nethsm::NetHsmAdminCredentials};
+use signstar_config::{admin_credentials::AdminCredentials, nethsm::NetHsmAdminCredentials};
 use signstar_crypto::AdministrativeSecretHandling;
 
 #     pub fn main() -> testresult::TestResult {
@@ -55,7 +55,10 @@ creds.store(AdministrativeSecretHandling::SystemdCreds)?;
 ```rust no_run
 # #[cfg(feature = "yubihsm2")]
 # mod impl_yubihsm2 {
-use signstar_config::{AdminCredentials, yubihsm2::admin_credentials::YubiHsm2AdminCredentials};
+use signstar_config::{
+    admin_credentials::AdminCredentials,
+    yubihsm2::admin_credentials::YubiHsm2AdminCredentials,
+};
 use signstar_crypto::AdministrativeSecretHandling;
 
 #     pub fn main() -> testresult::TestResult {

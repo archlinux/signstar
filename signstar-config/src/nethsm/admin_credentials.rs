@@ -5,7 +5,7 @@ use nethsm::{FullCredentials, Passphrase};
 use nethsm::{NetHsm, UserId};
 use serde::{Deserialize, Serialize};
 
-use crate::{AdminCredentials, admin_credentials::Error};
+use crate::admin_credentials::{AdminCredentials, Error};
 
 /// Administrative credentials.
 ///

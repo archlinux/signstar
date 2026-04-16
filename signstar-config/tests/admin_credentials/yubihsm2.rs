@@ -12,7 +12,7 @@ use signstar_common::admin_credentials::{
     get_systemd_creds_credentials_file,
 };
 use signstar_config::{
-    AdminCredentials,
+    admin_credentials::AdminCredentials,
     test::write_machine_id,
     yubihsm2::admin_credentials::YubiHsm2AdminCredentials,
 };
