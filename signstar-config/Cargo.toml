@@ -15,7 +15,6 @@ garde = { version = "0.22.1", features = ["derive"] }
 log.workspace = true
 nethsm = { workspace = true, optional = true }
 nix.workspace = true
-num_enum.workspace = true
 pgp.workspace = true
 rand.workspace = true
 serde.workspace = true

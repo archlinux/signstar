@@ -12,4 +12,4 @@ pub mod utils;
 #[cfg(feature = "yubihsm2")]
 pub mod yubihsm2;
 
-pub use error::{Error, ErrorExitCode};
+pub use error::Error;
