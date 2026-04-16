@@ -12,5 +12,4 @@ pub mod utils;
 #[cfg(feature = "yubihsm2")]
 pub mod yubihsm2;
 
-pub use admin_credentials::AdminCredentials;
 pub use error::{Error, ErrorExitCode};

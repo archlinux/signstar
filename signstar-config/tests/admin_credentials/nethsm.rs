@@ -10,7 +10,7 @@ use signstar_common::admin_credentials::{
     get_systemd_creds_credentials_file,
 };
 use signstar_config::{
-    AdminCredentials,
+    admin_credentials::AdminCredentials,
     nethsm::NetHsmAdminCredentials,
     test::{get_tmp_config, write_machine_id},
 };

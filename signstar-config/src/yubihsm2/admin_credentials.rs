@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use signstar_crypto::{passphrase::Passphrase, traits::UserWithPassphrase};
 use signstar_yubihsm2::Credentials;
 
-use crate::{AdminCredentials, admin_credentials::Error};
+use crate::admin_credentials::{AdminCredentials, Error};
 
 /// Administrative credentials for YubiHSM2 backends.
 ///
