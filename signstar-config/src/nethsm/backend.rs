@@ -33,12 +33,7 @@ use nethsm::{
 use pgp::composed::{Deserializable, SignedPublicKey};
 
 use crate::{
-    config::{
-        Config,
-        UserBackendConnection,
-        UserBackendConnectionFilter,
-        state::KeyCertificateState,
-    },
+    config::{Config, KeyCertificateState, UserBackendConnection, UserBackendConnectionFilter},
     nethsm::{
         NetHsmAdminCredentials,
         NetHsmUserKeysFilter,
