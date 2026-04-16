@@ -10,16 +10,14 @@
 
 use std::collections::HashSet;
 
-use crate::{
+use crate::config::{
     AuthorizedKeyEntry,
+    Config,
+    ConfigAuthorizedKeyEntries,
+    ConfigBuilder,
+    ConfigSystemUserIds,
+    SystemConfig,
     SystemUserId,
-    config::{
-        Config,
-        ConfigAuthorizedKeyEntries,
-        ConfigBuilder,
-        ConfigSystemUserIds,
-        SystemConfig,
-    },
 };
 
 impl ConfigAuthorizedKeyEntries for Config {

@@ -14,7 +14,7 @@ use nix::unistd::{User, geteuid};
 use rstest::rstest;
 #[cfg(any(feature = "nethsm", feature = "yubihsm2"))]
 use signstar_common::{logging::setup_logging, system_user::get_home_base_dir_path};
-use signstar_config::{SystemUserId, config::Config};
+use signstar_config::config::{Config, SystemUserId};
 #[cfg(any(feature = "nethsm", feature = "yubihsm2"))]
 use signstar_config::{
     config::ConfigSystemUserIds,

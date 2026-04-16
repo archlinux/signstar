@@ -27,7 +27,7 @@ impl SystemUserId {
     /// # Examples
     ///
     /// ```
-    /// use signstar_config::SystemUserId;
+    /// use signstar_config::config::SystemUserId;
     ///
     /// # fn main() -> testresult::TestResult {
     /// SystemUserId::new("user1".to_string())?;
@@ -124,7 +124,7 @@ impl AuthorizedKeyEntry {
     /// # Examples
     ///
     /// ```
-    /// use signstar_config::AuthorizedKeyEntry;
+    /// use signstar_config::config::AuthorizedKeyEntry;
     ///
     /// # fn main() -> testresult::TestResult {
     /// let auth_key = AuthorizedKeyEntry::new("ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPkpXKiNhy39A3bZ1u19a5d4sFwYMBkWQyCbzgUfdKBm user@host".to_string())?;

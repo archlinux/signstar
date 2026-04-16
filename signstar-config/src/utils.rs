@@ -4,7 +4,7 @@ use std::path::PathBuf;
 use nix::unistd::{User, geteuid};
 use which::which;
 
-use crate::SystemUserId;
+use crate::config::SystemUserId;
 
 /// An error that may occur when using signstar-config utils.
 #[derive(Debug, thiserror::Error)]

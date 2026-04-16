@@ -5,7 +5,7 @@ use std::path::PathBuf;
 #[cfg(feature = "nethsm")]
 use nethsm::{KeyId, NamespaceId, SystemWideUserId, UserId};
 
-use crate::{SystemUserId, config::Config};
+use crate::config::{Config, SystemUserId};
 
 /// An error that may occur when using a Signstar configuration.
 #[derive(Debug, thiserror::Error)]

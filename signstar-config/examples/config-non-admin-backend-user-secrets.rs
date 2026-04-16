@@ -18,7 +18,7 @@ use std::process::ExitCode;
 
 use clap::Parser;
 use log::LevelFilter;
-use signstar_config::SystemUserId;
+use signstar_config::config::SystemUserId;
 use simplelog::{ColorChoice, TermLogger, TerminalMode};
 
 /// When any of the backends is compiled in.

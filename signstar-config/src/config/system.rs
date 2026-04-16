@@ -6,17 +6,15 @@ use garde::Validate;
 use serde::{Deserialize, Serialize};
 use signstar_crypto::{AdministrativeSecretHandling, NonAdministrativeSecretHandling};
 
-use crate::{
+use crate::config::{
     AuthorizedKeyEntry,
+    ConfigAuthorizedKeyEntries,
+    ConfigSystemUserIds,
+    MappingAuthorizedKeyEntry,
+    MappingSystemUserId,
     SystemUserId,
-    config::{
-        ConfigAuthorizedKeyEntries,
-        ConfigSystemUserIds,
-        MappingAuthorizedKeyEntry,
-        MappingSystemUserId,
-        duplicate_authorized_keys,
-        duplicate_system_user_ids,
-    },
+    duplicate_authorized_keys,
+    duplicate_system_user_ids,
 };
 
 /// Mappings for system users.
