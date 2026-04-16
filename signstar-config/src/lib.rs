@@ -18,5 +18,3 @@ pub use config::{
     error::Error as ConfigError,
 };
 pub use error::{Error, ErrorExitCode};
-#[cfg(feature = "nethsm")]
-pub use nethsm::error::Error as NetHsmBackendError;

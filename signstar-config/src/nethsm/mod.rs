@@ -3,7 +3,7 @@
 mod admin_credentials;
 mod backend;
 mod config;
-pub mod error;
+mod error;
 pub mod state;
 
 pub use admin_credentials::NetHsmAdminCredentials;
@@ -18,4 +18,4 @@ pub use config::{
     NetHsmUserKeysFilter,
     NetHsmUserMapping,
 };
-use error::Error;
+pub use error::Error;
