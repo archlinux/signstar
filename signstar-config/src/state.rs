@@ -49,19 +49,6 @@ impl StateType {
     }
 }
 
-/// The description of a failure in comparing an item between two [`StateHandling`] implementations.
-#[derive(Debug)]
-pub struct StateComparisonFailure {
-    /// A message describing the discrepancy.
-    pub message: String,
-
-    /// The [`StateType`] of the calling [`StateHandling`] implementation.
-    pub self_state_type: StateType,
-
-    /// The [`StateType`] of the [`StateHandling`] implementation that is compared against.
-    pub other_state_type: StateType,
-}
-
 /// A report on the comparison between two compatible [`StateHandling`] implementations.
 #[derive(Debug)]
 pub enum StateComparisonReport {
