@@ -12,9 +12,9 @@ pub use config::{
     Error as NetHsmConfigError,
     FilterUserKeys,
     NetHsmConfig,
+    NetHsmConfigUserData,
+    NetHsmConfigUserKeyData,
     NetHsmMetricsUsers,
-    NetHsmUserData,
-    NetHsmUserKeyData,
     NetHsmUserKeysFilter,
     NetHsmUserMapping,
 };

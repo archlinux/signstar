@@ -552,7 +552,9 @@ impl From<&NetHsmConfig> for NetHsmConfigState {
         let mut user_states: Vec<UserState> = Vec::new();
 
         for mapping in value.mappings() {
-            if let Some(user_key_data) = mapping.nethsm_user_key_data(NetHsmUserKeysFilter::All) {
+            if let Some(user_key_data) =
+                mapping.nethsm_config_user_key_data(NetHsmUserKeysFilter::All)
+            {
                 key_states.push(KeyState {
                     name: user_key_data.key_id.clone(),
                     namespace: user_key_data.user.namespace().cloned(),
@@ -564,7 +566,7 @@ impl From<&NetHsmConfig> for NetHsmConfigState {
                     ),
                 })
             }
-            for user_data in mapping.nethsm_user_data() {
+            for user_data in mapping.nethsm_config_user_data() {
                 user_states.push(UserState {
                     name: user_data.user.clone(),
                     role: user_data.role,
