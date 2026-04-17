@@ -208,7 +208,7 @@ impl NetHsmMetricsUsers {
 
 /// Data about a NetHSM user.
 #[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
-pub struct NetHsmUserData<'a> {
+pub struct NetHsmConfigUserData<'a> {
     /// The name of the user.
     pub user: &'a UserId,
 
@@ -234,7 +234,7 @@ pub enum NetHsmUserKeysFilter {
 
 /// Data about a NetHSM signing user associated with a key.
 #[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
-pub struct NetHsmUserKeyData<'a> {
+pub struct NetHsmConfigUserKeyData<'a> {
     /// The name of the user.
     pub user: &'a UserId,
 
@@ -366,15 +366,16 @@ impl NetHsmUserMapping {
         }
     }
 
-    /// Returns the list of [`NetHsmUserData`] objects associated with this [`NetHsmUserMapping`].
-    pub fn nethsm_user_data<'a>(&'a self) -> HashSet<NetHsmUserData<'a>> {
+    /// Returns the list of [`NetHsmConfigUserData`] objects associated with this
+    /// [`NetHsmUserMapping`].
+    pub fn nethsm_config_user_data<'a>(&'a self) -> HashSet<NetHsmConfigUserData<'a>> {
         match self {
-            Self::Admin(user_id) => HashSet::from_iter([NetHsmUserData {
+            Self::Admin(user_id) => HashSet::from_iter([NetHsmConfigUserData {
                 user: user_id,
                 role: UserRole::Administrator,
                 tag: None,
             }]),
-            Self::Backup { backend_user, .. } => HashSet::from_iter([NetHsmUserData {
+            Self::Backup { backend_user, .. } => HashSet::from_iter([NetHsmConfigUserData {
                 user: backend_user.as_ref(),
                 role: UserRole::Backup,
                 tag: None,
@@ -383,13 +384,13 @@ impl NetHsmUserMapping {
                 let mut users = backend_users
                     .operator_users
                     .iter()
-                    .map(|user_id| NetHsmUserData {
+                    .map(|user_id| NetHsmConfigUserData {
                         user: user_id,
                         role: UserRole::Operator,
                         tag: None,
                     })
                     .collect::<Vec<_>>();
-                users.push(NetHsmUserData {
+                users.push(NetHsmConfigUserData {
                     user: backend_users.metrics_user.as_ref(),
                     role: UserRole::Metrics,
                     tag: None,
@@ -398,7 +399,7 @@ impl NetHsmUserMapping {
             }
             Self::Signing {
                 backend_user, tag, ..
-            } => HashSet::from_iter([NetHsmUserData {
+            } => HashSet::from_iter([NetHsmConfigUserData {
                 user: backend_user,
                 role: UserRole::Operator,
                 tag: Some(tag.as_ref()),
@@ -406,14 +407,15 @@ impl NetHsmUserMapping {
         }
     }
 
-    /// Returns a filtered list of [`NetHsmUserKeyData`] objects from this [`NetHsmUserMapping`].
+    /// Returns a filtered list of [`NetHsmConfigUserKeyData`] objects from this
+    /// [`NetHsmUserMapping`].
     ///
     /// Based on a [`NetHsmUserKeysFilter`] it is possible to target only namespaced or system-wide,
     /// or all user mappings that have associated key configs.
-    pub fn nethsm_user_key_data<'a>(
+    pub fn nethsm_config_user_key_data<'a>(
         &'a self,
         filter: NetHsmUserKeysFilter,
-    ) -> Option<NetHsmUserKeyData<'a>> {
+    ) -> Option<NetHsmConfigUserKeyData<'a>> {
         match self {
             Self::Admin(_)
             | Self::Backup { .. }
@@ -432,7 +434,7 @@ impl NetHsmUserMapping {
                     || (matches!(filter, NetHsmUserKeysFilter::SystemWide)
                         && !backend_user.is_namespaced())
                 {
-                    Some(NetHsmUserKeyData {
+                    Some(NetHsmConfigUserKeyData {
                         user: backend_user,
                         key_id: signing_key_id,
                         key_setup,
@@ -1154,19 +1156,19 @@ mod tests {
         },
         vec![("signing".parse()?, UserRole::Operator, Some("signing1"))],
     )]
-    fn nethsm_user_mapping_nethsm_user_data(
+    fn nethsm_user_mapping_nethsm_config_user_data(
         #[case] mapping: NetHsmUserMapping,
         #[case] expected: Vec<(UserId, UserRole, Option<&str>)>,
     ) -> TestResult {
         let expected = expected
             .iter()
-            .map(|(user, role, tag)| NetHsmUserData {
+            .map(|(user, role, tag)| NetHsmConfigUserData {
                 user,
                 role: *role,
                 tag: *tag,
             })
             .collect::<HashSet<_>>();
-        assert_eq!(mapping.nethsm_user_data(), expected);
+        assert_eq!(mapping.nethsm_config_user_data(), expected);
 
         Ok(())
     }
@@ -1443,20 +1445,21 @@ mod tests {
         NetHsmUserKeysFilter::SystemWide,
         None,
     )]
-    fn nethsm_user_mapping_nethsm_user_key_data(
+    fn nethsm_user_mapping_nethsm_config_user_key_data(
         #[case] mapping: NetHsmUserMapping,
         #[case] filter: NetHsmUserKeysFilter,
         #[case] expected: Option<(UserId, KeyId, SigningKeySetup, &str)>,
     ) -> TestResult {
-        let expected = expected
-            .as_ref()
-            .map(|(user, key_id, key_setup, tag)| NetHsmUserKeyData {
-                user,
-                key_id,
-                key_setup,
-                tag,
-            });
-        assert_eq!(mapping.nethsm_user_key_data(filter), expected);
+        let expected =
+            expected
+                .as_ref()
+                .map(|(user, key_id, key_setup, tag)| NetHsmConfigUserKeyData {
+                    user,
+                    key_id,
+                    key_setup,
+                    tag,
+                });
+        assert_eq!(mapping.nethsm_config_user_key_data(filter), expected);
 
         Ok(())
     }

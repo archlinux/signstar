@@ -55,7 +55,7 @@ async fn sync_unprovisioned_backend(
         .iter()
         .flat_map(|mapping: &NetHsmUserMapping| {
             mapping
-                .nethsm_user_data()
+                .nethsm_config_user_data()
                 .iter()
                 .filter_map(|user_data| {
                     if user_data.role != UserRole::Administrator {

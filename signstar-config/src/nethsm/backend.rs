@@ -320,7 +320,7 @@ fn add_non_administrative_users(
         .iter()
         .filter_map(|user_backend_connection| match user_backend_connection {
             UserBackendConnection::NetHsm { mapping, .. } => {
-                let mut user_data_set = mapping.nethsm_user_data();
+                let mut user_data_set = mapping.nethsm_config_user_data();
                 // We are only interested in mappings that define at least one system-wide,
                 // non-administrative NetHSM backend user.
                 user_data_set.retain(|data| {
@@ -423,7 +423,7 @@ fn add_namespaced_non_administrative_users(
         .iter()
         .filter_map(|user_backend_connection| match user_backend_connection {
             UserBackendConnection::NetHsm { mapping, .. } => {
-                let mut user_data_set = mapping.nethsm_user_data();
+                let mut user_data_set = mapping.nethsm_config_user_data();
                 // We are only interested in mappings that define at least one namespaced,
                 // non-administrative NetHSM backend user.
                 user_data_set.retain(|data| {
@@ -621,7 +621,7 @@ fn add_system_wide_keys(
         let user_key_data = match user_backend_connection {
             UserBackendConnection::NetHsm { mapping, .. } => {
                 let Some(user_key_data) =
-                    mapping.nethsm_user_key_data(NetHsmUserKeysFilter::SystemWide)
+                    mapping.nethsm_config_user_key_data(NetHsmUserKeysFilter::SystemWide)
                 else {
                     // We are only interested in mappings that define key data.
                     continue;
@@ -748,7 +748,7 @@ fn add_namespaced_keys(
         let user_key_data = match user_backend_connection {
             UserBackendConnection::NetHsm { mapping, .. } => {
                 let Some(user_key_data) =
-                    mapping.nethsm_user_key_data(NetHsmUserKeysFilter::Namespaced)
+                    mapping.nethsm_config_user_key_data(NetHsmUserKeysFilter::Namespaced)
                 else {
                     // We are only interested in mappings that define key data.
                     continue;
@@ -917,7 +917,7 @@ fn add_system_wide_openpgp_certificates(
         let user_key_data = match user_backend_connection {
             UserBackendConnection::NetHsm { mapping, .. } => {
                 let Some(user_key_data) =
-                    mapping.nethsm_user_key_data(NetHsmUserKeysFilter::SystemWide)
+                    mapping.nethsm_config_user_key_data(NetHsmUserKeysFilter::SystemWide)
                 else {
                     // We are only interested in mappings that define key data.
                     continue;
@@ -1087,7 +1087,7 @@ fn add_namespaced_openpgp_certificates(
         .filter_map(|user_backend_connection| match user_backend_connection {
             UserBackendConnection::NetHsm { mapping, .. } => {
                 let Some(user_key_data) =
-                    mapping.nethsm_user_key_data(NetHsmUserKeysFilter::Namespaced)
+                    mapping.nethsm_config_user_key_data(NetHsmUserKeysFilter::Namespaced)
                 else {
                     // We are only interested in mappings that define key data.
                     return None;
