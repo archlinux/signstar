@@ -437,10 +437,6 @@ impl StateHandling for NetHsmConfigState {
         Self::STATE_TYPE
     }
 
-    fn as_any(&self) -> &dyn Any {
-        self
-    }
-
     fn compare(&self, other: &dyn StateHandling) -> StateComparisonReport {
         if !self.is_comparable(other) {
             trace!(
@@ -458,7 +454,8 @@ impl StateHandling for NetHsmConfigState {
             let (self_user_states, other_user_states, self_key_states, other_key_states) =
                 match other.state_type() {
                     StateType::SignstarConfigNetHsm => {
-                        let Some(other) = other.as_any().downcast_ref::<NetHsmConfigState>() else {
+                        let Some(other) = (other as &dyn Any).downcast_ref::<NetHsmConfigState>()
+                        else {
                             warn!("Unexpectedly unable to find a {}", other.state_type());
                             return StateComparisonReport::Incompatible {
                                 self_state: self.state_type(),
@@ -485,7 +482,7 @@ impl StateHandling for NetHsmConfigState {
                         )
                     }
                     StateType::NetHsm => {
-                        let Some(other) = other.as_any().downcast_ref::<NetHsmState>() else {
+                        let Some(other) = (other as &dyn Any).downcast_ref::<NetHsmState>() else {
                             warn!("Unexpectedly unable to find a {}", other.state_type());
                             return StateComparisonReport::Incompatible {
                                 self_state: self.state_type(),
@@ -607,10 +604,6 @@ impl StateHandling for NetHsmState {
         Self::STATE_TYPE
     }
 
-    fn as_any(&self) -> &dyn Any {
-        self
-    }
-
     fn compare(&self, other: &dyn StateHandling) -> StateComparisonReport {
         if !self.is_comparable(other) {
             trace!(
@@ -628,7 +621,8 @@ impl StateHandling for NetHsmState {
             let (self_user_states, other_user_states, self_key_states, other_key_states) =
                 match other.state_type() {
                     StateType::SignstarConfigNetHsm => {
-                        let Some(other) = other.as_any().downcast_ref::<NetHsmConfigState>() else {
+                        let Some(other) = (other as &dyn Any).downcast_ref::<NetHsmConfigState>()
+                        else {
                             return StateComparisonReport::Incompatible {
                                 self_state: self.state_type(),
                                 other_state: other.state_type(),
@@ -654,7 +648,7 @@ impl StateHandling for NetHsmState {
                         )
                     }
                     StateType::NetHsm => {
-                        let Some(other) = other.as_any().downcast_ref::<NetHsmState>() else {
+                        let Some(other) = (other as &dyn Any).downcast_ref::<NetHsmState>() else {
                             return StateComparisonReport::Incompatible {
                                 self_state: self.state_type(),
                                 other_state: other.state_type(),
@@ -1556,10 +1550,6 @@ B: key1 (tags: tag1; type: Curve25519; mechanisms: EdDsaSignature; context: Raw)
     impl StateHandling for DummyYubiHsm2ConfigBackend {
         fn state_type(&self) -> StateType {
             StateType::SignstarConfigYubiHsm2
-        }
-
-        fn as_any(&self) -> &dyn Any {
-            self
         }
 
         fn compare(&self, other: &dyn StateHandling) -> StateComparisonReport {
