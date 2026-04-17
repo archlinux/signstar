@@ -2821,7 +2821,7 @@ dependencies = [
  "log",
  "mime",
  "mime_guess",
- "rand 0.8.5",
+ "rand 0.8.6",
  "tempfile",
 ]
 
@@ -2857,7 +2857,7 @@ dependencies = [
  "p521",
  "picky-asn1-der",
  "picky-asn1-x509",
- "rand 0.8.5",
+ "rand 0.8.6",
  "rsa 0.9.10",
  "rstest",
  "rustainers",
@@ -2905,7 +2905,7 @@ dependencies = [
  "nethsm",
  "nethsm-backup",
  "nethsm-config",
- "rand 0.8.5",
+ "rand 0.8.6",
  "rstest",
  "signstar-request-signature",
  "strum",
@@ -3001,7 +3001,7 @@ checksum = "a5e44f723f1133c9deac646763579fdb3ac745e418f2a7af9cd0c431da1f20b9"
 dependencies = [
  "num-integer",
  "num-traits",
- "rand 0.8.5",
+ "rand 0.8.6",
 ]
 
 [[package]]
@@ -3015,7 +3015,7 @@ dependencies = [
  "num-integer",
  "num-iter",
  "num-traits",
- "rand 0.8.5",
+ "rand 0.8.6",
  "serde",
  "smallvec 1.15.1",
  "zeroize",
@@ -3263,7 +3263,7 @@ dependencies = [
  "delegate",
  "futures",
  "log",
- "rand 0.8.5",
+ "rand 0.8.6",
  "sha2 0.10.9",
  "thiserror 1.0.69",
  "tokio",
@@ -3433,7 +3433,7 @@ dependencies = [
  "p256",
  "p384",
  "p521",
- "rand 0.8.5",
+ "rand 0.8.6",
  "regex",
  "replace_with",
  "ripemd",
@@ -3684,9 +3684,9 @@ checksum = "dc33ff2d4973d518d823d61aa239014831e521c75da58e3df4840d3f47749d09"
 
 [[package]]
 name = "rand"
-version = "0.8.5"
+version = "0.8.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "34af8d1a0e25924bc5b7c43c079c942339d8f0a8b57c39049bef581b46327404"
+checksum = "5ca0ecfa931c29007047d1bc58e623ab12e5590e8c7cc53200d5202b69266d8a"
 dependencies = [
  "libc",
  "rand_chacha 0.3.1",
@@ -4640,7 +4640,7 @@ dependencies = [
  "num_enum",
  "pgp",
  "pretty_assertions",
- "rand 0.8.5",
+ "rand 0.8.6",
  "rstest",
  "serde",
  "serde-saphyr",
@@ -4692,7 +4692,7 @@ dependencies = [
  "p384",
  "p521",
  "pgp",
- "rand 0.8.5",
+ "rand 0.8.6",
  "rsa 0.9.10",
  "rstest",
  "secrecy 0.10.3",
@@ -4715,7 +4715,7 @@ dependencies = [
  "digest-io",
  "hmac 0.13.0",
  "log",
- "rand 0.8.5",
+ "rand 0.8.6",
  "rsa 0.9.10",
  "rstest",
  "russh",
