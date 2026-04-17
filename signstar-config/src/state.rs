@@ -84,12 +84,9 @@ pub enum StateComparisonReport {
 }
 
 /// An interface to handle and compare the state of various types.
-pub trait StateHandling {
+pub trait StateHandling: Any {
     /// Returns the [`StateType`] of the implementation.
     fn state_type(&self) -> StateType;
-
-    /// Returns `self` as an [`Any`].
-    fn as_any(&self) -> &dyn Any;
 
     /// Checks whether this [`StateHandling`] implementation is comparable to another.
     ///
