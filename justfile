@@ -398,7 +398,7 @@ build-book: docs
     mapfile -t workspace_members < <(just get-workspace-members 2>/dev/null)
 
     # Build the local dependency graph.
-    cargo depgraph --dev-deps --workspace-only | dot -Tpng > resources/docs/src/api-docs/dependency_graph.png
+    cargo depgraph --all-features --dev-deps --locked --workspace-only | dot -Tpng > resources/docs/src/api-docs/dependency_graph.png
 
     mdbook-mermaid install resources/docs/
     mdbook build resources/docs/
