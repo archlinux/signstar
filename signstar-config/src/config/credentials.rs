@@ -18,6 +18,9 @@ use crate::{config::Error, utils::get_current_system_user};
 pub struct SystemUserId(String);
 
 impl SystemUserId {
+    /// The root user.
+    const ROOT: &str = "root";
+
     /// Creates a new [`SystemUserId`]
     ///
     /// # Errors
@@ -45,6 +48,11 @@ impl SystemUserId {
             return Err(Error::InvalidSystemUserName { name: user }.into());
         }
         Ok(Self(user))
+    }
+
+    /// Returns the root user.
+    pub fn root() -> Self {
+        Self(Self::ROOT.to_string())
     }
 
     /// Creates a new [`SystemUserId`] from the currently calling Unix user.
