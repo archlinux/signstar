@@ -27,6 +27,7 @@ use crate::config::{
     MappingBackendUserIds,
     MappingBackendUserSecrets,
     MappingSystemUserId,
+    SystemUserData,
     SystemUserId,
     duplicate_authorized_keys,
     duplicate_backend_user_ids,
@@ -610,6 +611,43 @@ impl MappingAuthorizedKeyEntry for YubiHsm2UserMapping {
             | Self::Signing {
                 ssh_authorized_key, ..
             } => Some(ssh_authorized_key),
+        }
+    }
+}
+
+impl<'a> From<&'a YubiHsm2UserMapping> for SystemUserData<'a> {
+    fn from(value: &'a YubiHsm2UserMapping) -> Self {
+        match value {
+            YubiHsm2UserMapping::Admin { .. } => Self::BackendAdmin {
+                system_user: SystemUserId::root(),
+            },
+            YubiHsm2UserMapping::AuditLog {
+                ssh_authorized_key,
+                system_user,
+                ..
+            } => Self::BackendMetrics {
+                system_user,
+                ssh_authorized_key,
+            },
+            YubiHsm2UserMapping::Backup {
+                ssh_authorized_key,
+                system_user,
+                ..
+            } => Self::BackendBackup {
+                system_user,
+                ssh_authorized_key,
+            },
+            YubiHsm2UserMapping::HermeticAuditLog { system_user, .. } => {
+                Self::BackendHermeticMetrics { system_user }
+            }
+            YubiHsm2UserMapping::Signing {
+                ssh_authorized_key,
+                system_user,
+                ..
+            } => Self::BackendSign {
+                system_user,
+                ssh_authorized_key,
+            },
         }
     }
 }
