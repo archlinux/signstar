@@ -549,7 +549,7 @@ check-dependencies: dry-update
 [group('check')]
 check-formatting:
     just ensure-command mado rustup taplo
-    just --unstable --fmt --check
+    just --fmt --check
     # We're using nightly to properly group imports, see rustfmt.toml
     cargo +nightly fmt -- --check
 
@@ -675,7 +675,7 @@ fix:
     fi
 
     codespell --write-changes
-    just --unstable --fmt
+    just --fmt
     cargo clippy --fix --allow-staged
     taplo format
 
