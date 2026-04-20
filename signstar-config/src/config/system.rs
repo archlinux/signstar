@@ -12,6 +12,7 @@ use crate::config::{
     ConfigSystemUserIds,
     MappingAuthorizedKeyEntry,
     MappingSystemUserId,
+    SystemUserData,
     SystemUserId,
     duplicate_authorized_keys,
     duplicate_system_user_ids,
@@ -64,6 +65,27 @@ impl MappingSystemUserId for SystemUserMapping {
             Self::ShareHolder { system_user, .. } | Self::WireGuardDownload { system_user, .. } => {
                 Some(system_user)
             }
+        }
+    }
+}
+
+impl<'a> From<&'a SystemUserMapping> for SystemUserData<'a> {
+    fn from(value: &'a SystemUserMapping) -> Self {
+        match value {
+            SystemUserMapping::ShareHolder {
+                system_user,
+                ssh_authorized_key,
+            } => Self::HostShareholder {
+                system_user,
+                ssh_authorized_key,
+            },
+            SystemUserMapping::WireGuardDownload {
+                system_user,
+                ssh_authorized_key,
+            } => Self::HostDownloadNetworkConfig {
+                system_user,
+                ssh_authorized_key,
+            },
         }
     }
 }
