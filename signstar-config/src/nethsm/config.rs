@@ -27,6 +27,7 @@ use crate::{
         BackendUserIdKind,
         ConfigAuthorizedKeyEntries,
         ConfigSystemUserIds,
+        KeyCertificateState,
         MappingAuthorizedKeyEntry,
         MappingBackendDomain,
         MappingBackendKeyId,
@@ -40,7 +41,7 @@ use crate::{
         duplicate_key_ids,
         duplicate_system_user_ids,
     },
-    nethsm::UserState,
+    nethsm::{KeyState, UserState},
 };
 
 /// An error that may occur when using NetHsm config objects.
@@ -261,6 +262,21 @@ pub struct NetHsmConfigUserKeyData<'a> {
 
     /// The tag assigned to the user and the key.
     pub tag: &'a str,
+}
+
+impl<'a> PartialEq<KeyState> for NetHsmConfigUserKeyData<'a> {
+    fn eq(&self, other: &KeyState) -> bool {
+        self.user.namespace() == other.namespace.as_ref()
+            && self.key_id == &other.name
+            && self.key_setup.key_type() == other.key_type
+            && self.key_setup.key_mechanisms() == other.mechanisms
+            && vec![self.tag] == other.tags.iter().collect::<Vec<_>>()
+            && if let KeyCertificateState::KeyContext(context) = &other.key_cert_state {
+                self.key_setup.key_context() == context
+            } else {
+                false
+            }
+    }
 }
 
 /// User and data mapping between system users and NetHSM users.
