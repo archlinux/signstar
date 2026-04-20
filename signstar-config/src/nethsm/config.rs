@@ -73,6 +73,16 @@ pub enum Error {
         /// user data, because ".
         context: String,
     },
+
+    /// Failed creating a [`NetHsmConfigUserKeyData`] from a [`UserState`].
+    #[error("Unable to create a reference to NetHSM config key data, because {context}")]
+    NetHsmConfigUserKeyDataConversion {
+        /// The context in which the error is happening.
+        ///
+        /// This is meant to complete the sentence "Unable to create a reference to NetHSM config
+        /// key data, because ".
+        context: String,
+    },
 }
 
 /// A filter for retrieving information about users and keys.
@@ -300,6 +310,19 @@ impl<'a> PartialEq<KeyState> for NetHsmConfigUserKeyData<'a> {
             } else {
                 false
             }
+    }
+}
+
+impl<'a> From<&NetHsmConfigUserKeyData<'a>> for KeyState {
+    fn from(value: &NetHsmConfigUserKeyData<'a>) -> Self {
+        KeyState {
+            name: value.key_id.clone(),
+            namespace: value.user.namespace().cloned(),
+            tags: vec![value.tag.to_string()],
+            key_type: value.key_setup.key_type(),
+            mechanisms: value.key_setup.key_mechanisms().to_vec(),
+            key_cert_state: KeyCertificateState::KeyContext(value.key_setup.key_context().clone()),
+        }
     }
 }
 
