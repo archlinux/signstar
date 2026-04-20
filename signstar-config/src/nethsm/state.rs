@@ -264,7 +264,7 @@ impl Display for KeyStateComparisonFailure {
 /// The state of a key.
 ///
 /// State may be derived e.g. from a [`NetHsm`] backend or a Signstar configuration file.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct KeyState {
     /// The name of the key.
     pub name: KeyId,
