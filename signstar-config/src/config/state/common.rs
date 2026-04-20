@@ -10,7 +10,7 @@ use signstar_crypto::key::CryptographicKeyContext;
 ///
 /// Key certificates are technology specific and carry information on the context in which a key is
 /// used. They can be derived e.g. from Signstar backends or Signstar configuration files.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub enum KeyCertificateState {
     /// A [`CryptographicKeyContext`] describing the context in which a certificate is used.
     KeyContext(CryptographicKeyContext),
