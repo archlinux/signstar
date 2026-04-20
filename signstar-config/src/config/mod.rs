@@ -19,6 +19,7 @@ pub use traits::{
     BackendUserIdFilter,
     BackendUserIdKind,
     ConfigAuthorizedKeyEntries,
+    ConfigSystemUserData,
     ConfigSystemUserIds,
     Error as TraitsError,
     MappingAuthorizedKeyEntry,
