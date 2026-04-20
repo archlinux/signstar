@@ -602,6 +602,30 @@ mod tests {
         )?)
     }
 
+    /// List of raw data required to create [`SystemUserData`] for each item in the default
+    /// [`SystemConfig`].
+    #[fixture]
+    fn raw_user_data_system() -> TestResult<Vec<(SystemUserId, Option<AuthorizedKeyEntry>)>> {
+        Ok(vec![
+                (
+                    "share-holder1".parse()?,
+                    Some("ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAN54Gd1jMz+yNDjBRwX1SnOtWuUsVF64RJIeYJ8DI7b user@host".parse()?),
+                ),
+                (
+                    "share-holder2".parse()?,
+                    Some("ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPDgwGfIRBAsOUuDEZw/uJQZSwOYr4sg2DAZpcc7MfOj user@host".parse()?),
+                ),
+                (
+                    "share-holder3".parse()?,
+                    Some("ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILWqWyMCk5BdSl1c3KYoLEokKr7qNVPbI1IbBhgEBQj5 user@host".parse()?),
+                ),
+                (
+                    "wireguard-downloader".parse()?,
+                    Some("ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOh9BTe81DC6A0YZALsq9dWcyl6xjjqlxWPwlExTFgBt user@host".parse()?),
+                ),
+            ])
+    }
+
     /// Creates a default [`NetHsmConfig`] for testing purposes.
     #[cfg(feature = "nethsm")]
     #[fixture]
@@ -648,6 +672,35 @@ mod tests {
                 }
             ]),
         )?)
+    }
+
+    /// List of raw data required to create [`SystemUserData`] for each item in the default
+    /// [`NetHsmConfig`].
+    #[cfg(feature = "nethsm")]
+    #[fixture]
+    fn raw_user_data_nethsm() -> TestResult<Vec<(SystemUserId, Option<AuthorizedKeyEntry>)>> {
+        Ok(vec![
+                (
+                    SystemUserId::root(),
+                    None,
+                ),
+                (
+                    "nethsm-backup-user".parse()?,
+                    Some("ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHxR0Oc+SWXkEvvZPitc6NvjvykgiKc9iauRI7tLYvcp user@host".parse()?),
+                ),
+                (
+                    "nethsm-hermetic-metrics-user".parse()?,
+                    None,
+                ),
+                (
+                    "nethsm-metrics-user".parse()?,
+                    Some("ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIETxhCqeZhfzFLfH0KFyw3u/w/dkRBUrft8tQm7DEVzY user@host".parse()?),
+                ),
+                (
+                    "nethsm-signing-user".parse()?,
+                    Some("ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIClIXZdx0aDOPcIQA+6Qx68cwSUgGTL3TWzDSX3qUEOQ user@host".parse()?),
+                ),
+            ])
     }
 
     /// Creates a default [`YubiHsm2Config`] for testing purposes.
@@ -697,6 +750,35 @@ mod tests {
                 }
             ]),
         )?)
+    }
+
+    /// List of raw data required to create [`SystemUserData`] for each item in the default
+    /// [`YubiHsm2Config`].
+    #[cfg(feature = "yubihsm2")]
+    #[fixture]
+    fn raw_user_data_yubihsm2() -> TestResult<Vec<(SystemUserId, Option<AuthorizedKeyEntry>)>> {
+        Ok(vec![
+                (
+                    SystemUserId::root(),
+                    None,
+                ),
+                (
+                    "yubihsm2-metrics-user".parse()?,
+                    Some("ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPkpXKiNhy39A3bZ1u19a5d4sFwYMBkWQyCbzgUfdKBm user@host".parse()?),
+                ),
+                (
+                    "yubihsm2-backup-user".parse()?,
+                    Some("ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOOCMo+ODRchqIiXm89TxF7avi+LXRtqWZdBAvJ1SG5g user@host".parse()?),
+                ),
+                (
+                    "yubihsm2-hermetic-metrics-user".parse()?,
+                    None,
+                ),
+                (
+                    "yubihsm2-signing-user".parse()?,
+                    Some("ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOh96uFTnvX6P1ebbLxXFvy6sK7qFqlMHDOuJ0TmuXQQ user@host".parse()?),
+                ),
+            ])
     }
 
     /// Ensures, that [`Config::default_system_path`] always returns the same path.
@@ -765,7 +847,12 @@ mod tests {
         use pretty_assertions::assert_eq;
 
         use super::*;
-        use crate::config::{ConfigAuthorizedKeyEntries, ConfigSystemUserIds};
+        use crate::config::{
+            ConfigAuthorizedKeyEntries,
+            ConfigSystemUserIds,
+            SystemUserData,
+            traits::ConfigSystemUserData,
+        };
 
         /// Creates a default [`Config`] for testing purposes.
         #[fixture]
@@ -789,6 +876,49 @@ mod tests {
                 config.authorized_key_entries(),
                 expected.iter().collect::<HashSet<_>>()
             );
+            Ok(())
+        }
+
+        /// Ensures, that [`Config::system_user_data`] returns [`SystemUserData`] entries correctly.
+        #[rstest]
+        fn config_system_user_data(
+            default_config: TestResult<Config>,
+            raw_user_data_system: TestResult<Vec<(SystemUserId, Option<AuthorizedKeyEntry>)>>,
+        ) -> TestResult {
+            let config = default_config?;
+            let raw_user_data = raw_user_data_system?;
+            let expected: HashSet<SystemUserData> = HashSet::from_iter([
+                SystemUserData::HostShareholder {
+                    system_user: &raw_user_data[0].0,
+                    ssh_authorized_key: raw_user_data[0]
+                        .1
+                        .as_ref()
+                        .expect("to have SSH authorized key"),
+                },
+                SystemUserData::HostShareholder {
+                    system_user: &raw_user_data[1].0,
+                    ssh_authorized_key: raw_user_data[1]
+                        .1
+                        .as_ref()
+                        .expect("to have SSH authorized key"),
+                },
+                SystemUserData::HostShareholder {
+                    system_user: &raw_user_data[2].0,
+                    ssh_authorized_key: raw_user_data[2]
+                        .1
+                        .as_ref()
+                        .expect("to have SSH authorized key"),
+                },
+                SystemUserData::HostDownloadNetworkConfig {
+                    system_user: &raw_user_data[3].0,
+                    ssh_authorized_key: raw_user_data[3]
+                        .1
+                        .as_ref()
+                        .expect("to have SSH authorized key"),
+                },
+            ]);
+
+            assert_eq!(config.system_user_data(), expected);
             Ok(())
         }
 
@@ -817,6 +947,7 @@ mod tests {
         use pretty_assertions::assert_eq;
 
         use super::*;
+        use crate::config::{SystemUserData, traits::ConfigSystemUserData};
 
         /// Creates a default [`Config`] for testing purposes.
         #[fixture]
@@ -827,6 +958,18 @@ mod tests {
             Ok(ConfigBuilder::new(default_system_config?)
                 .set_nethsm_config(default_nethsm_config?)
                 .finish()?)
+        }
+
+        /// List of raw data required to create [`SystemUserData`] for each item in the default
+        /// [`Config`].
+        #[fixture]
+        fn raw_user_data(
+            raw_user_data_system: TestResult<Vec<(SystemUserId, Option<AuthorizedKeyEntry>)>>,
+            raw_user_data_nethsm: TestResult<Vec<(SystemUserId, Option<AuthorizedKeyEntry>)>>,
+        ) -> TestResult<Vec<(SystemUserId, Option<AuthorizedKeyEntry>)>> {
+            let mut data = raw_user_data_system?;
+            data.extend(raw_user_data_nethsm?);
+            Ok(data)
         }
 
         /// Ensures, that [`ConfigBuilder::finish`] fails on issues with overlapping data in
@@ -1390,6 +1533,76 @@ mod tests {
             Ok(())
         }
 
+        /// Ensures, that [`Config::system_user_data`] returns [`SystemUserData`] entries correctly.
+        #[rstest]
+        fn config_system_user_data(
+            default_config: TestResult<Config>,
+            raw_user_data: TestResult<Vec<(SystemUserId, Option<AuthorizedKeyEntry>)>>,
+        ) -> TestResult {
+            let config = default_config?;
+            let raw_user_data = raw_user_data?;
+            let expected: HashSet<SystemUserData> = HashSet::from_iter([
+                SystemUserData::HostShareholder {
+                    system_user: &raw_user_data[0].0,
+                    ssh_authorized_key: raw_user_data[0]
+                        .1
+                        .as_ref()
+                        .expect("to have SSH authorized key"),
+                },
+                SystemUserData::HostShareholder {
+                    system_user: &raw_user_data[1].0,
+                    ssh_authorized_key: raw_user_data[1]
+                        .1
+                        .as_ref()
+                        .expect("to have SSH authorized key"),
+                },
+                SystemUserData::HostShareholder {
+                    system_user: &raw_user_data[2].0,
+                    ssh_authorized_key: raw_user_data[2]
+                        .1
+                        .as_ref()
+                        .expect("to have SSH authorized key"),
+                },
+                SystemUserData::HostDownloadNetworkConfig {
+                    system_user: &raw_user_data[3].0,
+                    ssh_authorized_key: raw_user_data[3]
+                        .1
+                        .as_ref()
+                        .expect("to have SSH authorized key"),
+                },
+                SystemUserData::BackendAdmin {
+                    system_user: raw_user_data[4].0.clone(),
+                },
+                SystemUserData::BackendBackup {
+                    system_user: &raw_user_data[5].0,
+                    ssh_authorized_key: raw_user_data[5]
+                        .1
+                        .as_ref()
+                        .expect("to have SSH authorized key"),
+                },
+                SystemUserData::BackendHermeticMetrics {
+                    system_user: &raw_user_data[6].0,
+                },
+                SystemUserData::BackendMetrics {
+                    system_user: &raw_user_data[7].0,
+                    ssh_authorized_key: raw_user_data[7]
+                        .1
+                        .as_ref()
+                        .expect("to have SSH authorized key"),
+                },
+                SystemUserData::BackendSign {
+                    system_user: &raw_user_data[8].0,
+                    ssh_authorized_key: raw_user_data[8]
+                        .1
+                        .as_ref()
+                        .expect("to have SSH authorized key"),
+                },
+            ]);
+
+            assert_eq!(config.system_user_data(), expected);
+            Ok(())
+        }
+
         /// Ensures, that [`Config::system_user_ids`] returns system user IDs correctly.
         #[rstest]
         fn config_system_user_ids(default_config: TestResult<Config>) -> TestResult {
@@ -1489,6 +1702,7 @@ mod tests {
         use pretty_assertions::assert_eq;
 
         use super::*;
+        use crate::config::{SystemUserData, traits::ConfigSystemUserData};
 
         /// Creates a default [`Config`] for testing purposes.
         #[fixture]
@@ -1499,6 +1713,18 @@ mod tests {
             Ok(ConfigBuilder::new(default_system_config?)
                 .set_yubihsm2_config(default_yubihsm2_config?)
                 .finish()?)
+        }
+
+        /// List of raw data required to create [`SystemUserData`] for each item in the default
+        /// [`Config`].
+        #[fixture]
+        fn raw_user_data(
+            raw_user_data_system: TestResult<Vec<(SystemUserId, Option<AuthorizedKeyEntry>)>>,
+            raw_user_data_yubihsm2: TestResult<Vec<(SystemUserId, Option<AuthorizedKeyEntry>)>>,
+        ) -> TestResult<Vec<(SystemUserId, Option<AuthorizedKeyEntry>)>> {
+            let mut data = raw_user_data_system?;
+            data.extend(raw_user_data_yubihsm2?);
+            Ok(data)
         }
 
         /// Ensures, that [`ConfigBuilder::finish`] fails on issues with overlapping data in
@@ -2093,6 +2319,76 @@ mod tests {
             Ok(())
         }
 
+        /// Ensures, that [`Config::system_user_data`] returns [`SystemUserData`] entries correctly.
+        #[rstest]
+        fn config_system_user_data(
+            default_config: TestResult<Config>,
+            raw_user_data: TestResult<Vec<(SystemUserId, Option<AuthorizedKeyEntry>)>>,
+        ) -> TestResult {
+            let config = default_config?;
+            let raw_user_data = raw_user_data?;
+            let expected: HashSet<SystemUserData> = HashSet::from_iter([
+                SystemUserData::HostShareholder {
+                    system_user: &raw_user_data[0].0,
+                    ssh_authorized_key: raw_user_data[0]
+                        .1
+                        .as_ref()
+                        .expect("to have SSH authorized key"),
+                },
+                SystemUserData::HostShareholder {
+                    system_user: &raw_user_data[1].0,
+                    ssh_authorized_key: raw_user_data[1]
+                        .1
+                        .as_ref()
+                        .expect("to have SSH authorized key"),
+                },
+                SystemUserData::HostShareholder {
+                    system_user: &raw_user_data[2].0,
+                    ssh_authorized_key: raw_user_data[2]
+                        .1
+                        .as_ref()
+                        .expect("to have SSH authorized key"),
+                },
+                SystemUserData::HostDownloadNetworkConfig {
+                    system_user: &raw_user_data[3].0,
+                    ssh_authorized_key: raw_user_data[3]
+                        .1
+                        .as_ref()
+                        .expect("to have SSH authorized key"),
+                },
+                SystemUserData::BackendAdmin {
+                    system_user: raw_user_data[4].0.clone(),
+                },
+                SystemUserData::BackendMetrics {
+                    system_user: &raw_user_data[5].0,
+                    ssh_authorized_key: raw_user_data[5]
+                        .1
+                        .as_ref()
+                        .expect("to have SSH authorized key"),
+                },
+                SystemUserData::BackendBackup {
+                    system_user: &raw_user_data[6].0,
+                    ssh_authorized_key: raw_user_data[6]
+                        .1
+                        .as_ref()
+                        .expect("to have SSH authorized key"),
+                },
+                SystemUserData::BackendHermeticMetrics {
+                    system_user: &raw_user_data[7].0,
+                },
+                SystemUserData::BackendSign {
+                    system_user: &raw_user_data[8].0,
+                    ssh_authorized_key: raw_user_data[8]
+                        .1
+                        .as_ref()
+                        .expect("to have SSH authorized key"),
+                },
+            ]);
+
+            assert_eq!(config.system_user_data(), expected);
+            Ok(())
+        }
+
         /// Ensures, that [`Config::system_user_ids`] returns system user IDs correctly.
         #[rstest]
         fn config_system_user_ids(default_config: TestResult<Config>) -> TestResult {
@@ -2186,6 +2482,7 @@ mod tests {
         use pretty_assertions::assert_eq;
 
         use super::*;
+        use crate::config::{SystemUserData, traits::ConfigSystemUserData};
 
         /// Creates a default [`Config`] for testing purposes.
         #[fixture]
@@ -2198,6 +2495,20 @@ mod tests {
                 .set_nethsm_config(default_nethsm_config?)
                 .set_yubihsm2_config(default_yubihsm2_config?)
                 .finish()?)
+        }
+
+        /// List of raw data required to create [`SystemUserData`] for each item in the default
+        /// [`Config`].
+        #[fixture]
+        fn raw_user_data(
+            raw_user_data_system: TestResult<Vec<(SystemUserId, Option<AuthorizedKeyEntry>)>>,
+            raw_user_data_nethsm: TestResult<Vec<(SystemUserId, Option<AuthorizedKeyEntry>)>>,
+            raw_user_data_yubihsm2: TestResult<Vec<(SystemUserId, Option<AuthorizedKeyEntry>)>>,
+        ) -> TestResult<Vec<(SystemUserId, Option<AuthorizedKeyEntry>)>> {
+            let mut data = raw_user_data_system?;
+            data.extend(raw_user_data_nethsm?);
+            data.extend(raw_user_data_yubihsm2?);
+            Ok(data)
         }
 
         /// Ensures, that [`ConfigBuilder::finish`] fails on issues with overlapping data in
@@ -3020,6 +3331,100 @@ mod tests {
                 config.authorized_key_entries(),
                 expected.iter().collect::<HashSet<_>>()
             );
+            Ok(())
+        }
+
+        /// Ensures, that [`Config::system_user_data`] returns [`SystemUserData`] entries correctly.
+        #[rstest]
+        fn config_system_user_data(
+            default_config: TestResult<Config>,
+            raw_user_data: TestResult<Vec<(SystemUserId, Option<AuthorizedKeyEntry>)>>,
+        ) -> TestResult {
+            let config = default_config?;
+            let raw_user_data = raw_user_data?;
+            let expected: HashSet<SystemUserData> = HashSet::from_iter([
+                SystemUserData::HostShareholder {
+                    system_user: &raw_user_data[0].0,
+                    ssh_authorized_key: raw_user_data[0]
+                        .1
+                        .as_ref()
+                        .expect("to have SSH authorized key"),
+                },
+                SystemUserData::HostShareholder {
+                    system_user: &raw_user_data[1].0,
+                    ssh_authorized_key: raw_user_data[1]
+                        .1
+                        .as_ref()
+                        .expect("to have SSH authorized key"),
+                },
+                SystemUserData::HostShareholder {
+                    system_user: &raw_user_data[2].0,
+                    ssh_authorized_key: raw_user_data[2]
+                        .1
+                        .as_ref()
+                        .expect("to have SSH authorized key"),
+                },
+                SystemUserData::HostDownloadNetworkConfig {
+                    system_user: &raw_user_data[3].0,
+                    ssh_authorized_key: raw_user_data[3]
+                        .1
+                        .as_ref()
+                        .expect("to have SSH authorized key"),
+                },
+                SystemUserData::BackendAdmin {
+                    system_user: raw_user_data[4].0.clone(),
+                },
+                SystemUserData::BackendBackup {
+                    system_user: &raw_user_data[5].0,
+                    ssh_authorized_key: raw_user_data[5]
+                        .1
+                        .as_ref()
+                        .expect("to have SSH authorized key"),
+                },
+                SystemUserData::BackendHermeticMetrics {
+                    system_user: &raw_user_data[6].0,
+                },
+                SystemUserData::BackendMetrics {
+                    system_user: &raw_user_data[7].0,
+                    ssh_authorized_key: raw_user_data[7]
+                        .1
+                        .as_ref()
+                        .expect("to have SSH authorized key"),
+                },
+                SystemUserData::BackendSign {
+                    system_user: &raw_user_data[8].0,
+                    ssh_authorized_key: raw_user_data[8]
+                        .1
+                        .as_ref()
+                        .expect("to have SSH authorized key"),
+                },
+                SystemUserData::BackendMetrics {
+                    system_user: &raw_user_data[10].0,
+                    ssh_authorized_key: raw_user_data[10]
+                        .1
+                        .as_ref()
+                        .expect("to have SSH authorized key"),
+                },
+                SystemUserData::BackendBackup {
+                    system_user: &raw_user_data[11].0,
+                    ssh_authorized_key: raw_user_data[11]
+                        .1
+                        .as_ref()
+                        .expect("to have SSH authorized key"),
+                },
+                SystemUserData::BackendHermeticMetrics {
+                    system_user: &raw_user_data[12].0,
+                },
+                SystemUserData::BackendSign {
+                    system_user: &raw_user_data[13].0,
+                    ssh_authorized_key: raw_user_data[13]
+                        .1
+                        .as_ref()
+                        .expect("to have SSH authorized key"),
+                },
+            ]);
+
+            assert_eq!(config.system_user_data(), expected);
             Ok(())
         }
 

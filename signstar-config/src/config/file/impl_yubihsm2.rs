@@ -19,10 +19,12 @@ use crate::{
         Config,
         ConfigAuthorizedKeyEntries,
         ConfigBuilder,
+        ConfigSystemUserData,
         ConfigSystemUserIds,
         MappingBackendUserSecrets,
         MappingSystemUserId,
         SystemConfig,
+        SystemUserData,
         SystemUserId,
         UserBackendConnection,
         UserBackendConnectionFilter,
@@ -163,6 +165,24 @@ impl ConfigAuthorizedKeyEntries for Config {
         let mut output = self.system.authorized_key_entries();
         if let Some(yubihsm2) = &self.yubihsm2 {
             output.extend(yubihsm2.authorized_key_entries());
+        }
+
+        output
+    }
+}
+
+impl<'a> ConfigSystemUserData<'a> for Config {
+    fn system_user_data(&'a self) -> HashSet<SystemUserData<'a>> {
+        let mut output = HashSet::new();
+
+        for mapping in self.system.mappings() {
+            output.insert(mapping.into());
+        }
+
+        if let Some(config) = self.yubihsm2() {
+            for mapping in config.mappings() {
+                output.insert(mapping.into());
+            }
         }
 
         output

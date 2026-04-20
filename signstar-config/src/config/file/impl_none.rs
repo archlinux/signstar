@@ -15,14 +15,28 @@ use crate::config::{
     Config,
     ConfigAuthorizedKeyEntries,
     ConfigBuilder,
+    ConfigSystemUserData,
     ConfigSystemUserIds,
     SystemConfig,
+    SystemUserData,
     SystemUserId,
 };
 
 impl ConfigAuthorizedKeyEntries for Config {
     fn authorized_key_entries(&self) -> HashSet<&AuthorizedKeyEntry> {
         self.system.authorized_key_entries()
+    }
+}
+
+impl<'a> ConfigSystemUserData<'a> for Config {
+    fn system_user_data(&'a self) -> HashSet<SystemUserData<'a>> {
+        let mut output = HashSet::new();
+
+        for mapping in self.system.mappings() {
+            output.insert(mapping.into());
+        }
+
+        output
     }
 }
 
