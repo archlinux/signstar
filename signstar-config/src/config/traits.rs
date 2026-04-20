@@ -11,7 +11,7 @@ use signstar_crypto::{
 };
 
 use crate::{
-    config::{AuthorizedKeyEntry, SystemUserId},
+    config::{AuthorizedKeyEntry, SystemUserData, SystemUserId},
     utils::get_current_system_user,
 };
 
@@ -1299,6 +1299,13 @@ pub trait ConfigSystemUserIds {
 pub trait ConfigAuthorizedKeyEntries {
     /// Returns the list of all [`AuthorizedKeyEntry`]s.
     fn authorized_key_entries(&self) -> HashSet<&AuthorizedKeyEntry>;
+}
+
+/// An interface for returning all [`SystemUserData`] tracked by a configuration
+/// implementation.
+pub trait ConfigSystemUserData<'a> {
+    /// Returns the list of all [`SystemUserData`].
+    fn system_user_data(&'a self) -> HashSet<SystemUserData<'a>>;
 }
 
 #[cfg(test)]
