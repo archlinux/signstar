@@ -24,7 +24,7 @@ use crate::{
 /// The state of a user.
 ///
 /// State may be derived e.g. from a [`NetHsm`] backend or a Signstar configuration file.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct UserState {
     /// The name of the user.
     pub name: UserId,
