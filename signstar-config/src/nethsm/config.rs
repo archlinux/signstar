@@ -18,26 +18,29 @@ use nethsm::{
 use serde::{Deserialize, Serialize};
 use signstar_crypto::{key::SigningKeySetup, traits::UserWithPassphrase};
 
-use crate::config::{
-    AuthorizedKeyEntry,
-    BackendDomainFilter,
-    BackendKeyIdFilter,
-    BackendUserIdFilter,
-    BackendUserIdKind,
-    ConfigAuthorizedKeyEntries,
-    ConfigSystemUserIds,
-    MappingAuthorizedKeyEntry,
-    MappingBackendDomain,
-    MappingBackendKeyId,
-    MappingBackendUserIds,
-    MappingBackendUserSecrets,
-    MappingSystemUserId,
-    SystemUserId,
-    duplicate_authorized_keys,
-    duplicate_backend_user_ids,
-    duplicate_domains,
-    duplicate_key_ids,
-    duplicate_system_user_ids,
+use crate::{
+    config::{
+        AuthorizedKeyEntry,
+        BackendDomainFilter,
+        BackendKeyIdFilter,
+        BackendUserIdFilter,
+        BackendUserIdKind,
+        ConfigAuthorizedKeyEntries,
+        ConfigSystemUserIds,
+        MappingAuthorizedKeyEntry,
+        MappingBackendDomain,
+        MappingBackendKeyId,
+        MappingBackendUserIds,
+        MappingBackendUserSecrets,
+        MappingSystemUserId,
+        SystemUserId,
+        duplicate_authorized_keys,
+        duplicate_backend_user_ids,
+        duplicate_domains,
+        duplicate_key_ids,
+        duplicate_system_user_ids,
+    },
+    nethsm::UserState,
 };
 
 /// An error that may occur when using NetHsm config objects.
@@ -217,6 +220,18 @@ pub struct NetHsmConfigUserData<'a> {
 
     /// The optional tag assigned to the user.
     pub tag: Option<&'a str>,
+}
+
+impl<'a> PartialEq<UserState> for NetHsmConfigUserData<'a> {
+    fn eq(&self, other: &UserState) -> bool {
+        self.user == &other.name
+            && self.role == other.role
+            && if let Some(tag) = self.tag {
+                vec![tag]
+            } else {
+                Vec::new()
+            } == other.tags.iter().collect::<Vec<_>>()
+    }
 }
 
 /// A filter for retrieving information about users and keys.
