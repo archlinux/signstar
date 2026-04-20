@@ -63,6 +63,16 @@ pub enum Error {
         /// The name of the NetHSM user that cannot be found.
         user: String,
     },
+
+    /// Failed creating a [`NetHsmConfigUserData`] from a [`UserState`].
+    #[error("Unable to create a reference to NetHSM config user data, because {context}")]
+    NetHsmConfigUserDataConversion {
+        /// The context in which the error is happening.
+        ///
+        /// This is meant to complete the sentence "Unable to create a reference to NetHSM config
+        /// user data, because ".
+        context: String,
+    },
 }
 
 /// A filter for retrieving information about users and keys.
@@ -232,6 +242,20 @@ impl<'a> PartialEq<UserState> for NetHsmConfigUserData<'a> {
             } else {
                 Vec::new()
             } == other.tags.iter().collect::<Vec<_>>()
+    }
+}
+
+impl<'a> From<&NetHsmConfigUserData<'a>> for UserState {
+    fn from(value: &NetHsmConfigUserData<'a>) -> Self {
+        Self {
+            name: value.user.clone(),
+            role: value.role,
+            tags: if let Some(tag) = value.tag {
+                vec![tag.to_string()]
+            } else {
+                Vec::new()
+            },
+        }
     }
 }
 
