@@ -1,7 +1,7 @@
 #!/usr/bin/env -S just --working-directory . --justfile
 # Load project-specific properties from the `.env` file
 
-set dotenv-load := true
+set dotenv-load
 
 ###################
 # Global variables.
