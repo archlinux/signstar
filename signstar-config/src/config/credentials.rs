@@ -1,10 +1,12 @@
 //! Credentials handling for Signstar configuration.
 
-use std::{fmt::Display, path::PathBuf, str::FromStr};
+use std::{fmt::Display, fs::read_to_string, path::PathBuf, str::FromStr};
 
 use nix::unistd::User;
 use serde::{Deserialize, Serialize};
+use signstar_common::ssh::get_ssh_authorized_key_base_dir;
 use ssh_key::authorized_keys::Entry;
+use uzers::all_users;
 use zeroize::Zeroize;
 
 use crate::{config::Error, utils::get_current_system_user};
@@ -101,6 +103,14 @@ impl TryFrom<String> for SystemUserId {
 
     fn try_from(value: String) -> Result<Self, Self::Error> {
         Self::new(value)
+    }
+}
+
+impl TryFrom<&User> for SystemUserId {
+    type Error = crate::Error;
+
+    fn try_from(value: &User) -> Result<Self, Self::Error> {
+        Self::new(value.name.clone())
     }
 }
 
@@ -376,6 +386,50 @@ impl<'a> Display for SystemUserData<'a> {
     }
 }
 
+/// The state of a host.
+#[derive(Debug, Eq, PartialEq)]
+pub struct SystemUserHostState<'a> {
+    pub(crate) system_user_data: Vec<SystemUserData<'a>>,
+}
+
+impl<'a> SystemUserHostState<'a> {
+    /// Creates a new [`SystemUserHostState`] from system users and associated data on the host.
+    pub fn new() -> Result<Self, crate::Error> {
+        let mut system_user_data = Vec::new();
+        for user in unsafe { all_users() } {
+            let user = User::from_name(&user.name().to_string_lossy())
+                .map_err(|_source| Error::InvalidSystemUserName {
+                    name: user.name().to_string_lossy().to_string(),
+                })?
+                .ok_or(Error::InvalidSystemUserName {
+                    name: user.name().to_string_lossy().to_string(),
+                })?;
+            let mut ssh_authorized_keys = Vec::new();
+            let default_file = get_ssh_authorized_key_base_dir()
+                .join(format!("signstar-user-{}.authorized_keys", user.name));
+            if default_file.is_file() {
+                for line in read_to_string(&default_file)
+                    .map_err(|source| crate::Error::IoPath {
+                        path: default_file,
+                        context: "reading the file to string",
+                        source,
+                    })?
+                    .lines()
+                {
+                    ssh_authorized_keys.push(AuthorizedKeyEntry::from_str(line)?);
+                }
+            }
+            system_user_data.push(SystemUserData::Unknown {
+                system_user: SystemUserId::try_from(&user)?,
+                ssh_authorized_keys,
+                home_dir: user.dir,
+            })
+        }
+
+        Ok(Self { system_user_data })
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use rstest::rstest;
@@ -438,6 +492,20 @@ mod tests {
             system_user_data.ssh_authorized_keys(),
             ssh_authorized_keys.iter().collect::<Vec<_>>()
         );
+        Ok(())
+    }
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn system_user_host_state_new_contains_root() -> TestResult {
+        let state = SystemUserHostState::new()?;
+
+        assert!(state.system_user_data.contains(&SystemUserData::Unknown {
+            system_user: SystemUserId::root(),
+            ssh_authorized_keys: Vec::new(),
+            home_dir: PathBuf::from("/root"),
+        }));
+
         Ok(())
     }
 }
