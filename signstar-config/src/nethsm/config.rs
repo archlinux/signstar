@@ -34,6 +34,7 @@ use crate::{
         MappingBackendUserIds,
         MappingBackendUserSecrets,
         MappingSystemUserId,
+        SystemUserData,
         SystemUserId,
         duplicate_authorized_keys,
         duplicate_backend_user_ids,
@@ -704,6 +705,43 @@ impl MappingBackendUserIds for NetHsmUserMapping {
                 .collect()
         } else {
             Vec::new()
+        }
+    }
+}
+
+impl<'a> From<&'a NetHsmUserMapping> for SystemUserData<'a> {
+    fn from(value: &'a NetHsmUserMapping) -> Self {
+        match value {
+            NetHsmUserMapping::Admin(..) => Self::BackendAdmin {
+                system_user: SystemUserId::root(),
+            },
+            NetHsmUserMapping::Backup {
+                ssh_authorized_key,
+                system_user,
+                ..
+            } => Self::BackendBackup {
+                system_user,
+                ssh_authorized_key,
+            },
+            NetHsmUserMapping::HermeticMetrics { system_user, .. } => {
+                Self::BackendHermeticMetrics { system_user }
+            }
+            NetHsmUserMapping::Metrics {
+                ssh_authorized_key,
+                system_user,
+                ..
+            } => Self::BackendMetrics {
+                system_user,
+                ssh_authorized_key,
+            },
+            NetHsmUserMapping::Signing {
+                ssh_authorized_key,
+                system_user,
+                ..
+            } => Self::BackendSign {
+                system_user,
+                ssh_authorized_key,
+            },
         }
     }
 }
