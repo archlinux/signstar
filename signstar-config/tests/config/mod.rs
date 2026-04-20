@@ -8,11 +8,9 @@ use std::{
 
 #[cfg(any(feature = "nethsm", feature = "yubihsm2"))]
 use change_user_run::{CommandOutput, create_users, run_command_as_user};
-#[cfg(any(feature = "nethsm", feature = "yubihsm2"))]
 use log::{LevelFilter, debug};
 use nix::unistd::{User, geteuid};
 use rstest::rstest;
-#[cfg(any(feature = "nethsm", feature = "yubihsm2"))]
 use signstar_common::{logging::setup_logging, system_user::get_home_base_dir_path};
 use signstar_config::config::{Config, SystemUserId};
 #[cfg(any(feature = "nethsm", feature = "yubihsm2"))]
@@ -72,6 +70,60 @@ fn config_first_existing_system_path_fails_on_missing_config() -> TestResult {
     }
 
     Ok(())
+}
+
+/// Tests for when using no backend.
+#[cfg(all(not(feature = "nethsm"), not(feature = "yubihsm2")))]
+mod no_backend {
+    use signstar_config::{
+        config::{SystemUserData, SystemUserHostState},
+        test::{
+            ConfigFileConfig,
+            ConfigFileLocation,
+            ConfigFileVariant,
+            SystemPrepareConfig,
+            SystemUserConfig,
+        },
+    };
+
+    use super::*;
+
+    /// Ensures, that [`SystemUserHostState`] can be created from a running system and contains
+    /// system user data of the Signstar config in use.
+    #[test]
+    fn system_user_host_state_new() -> TestResult {
+        setup_logging(LevelFilter::Debug)?;
+
+        let config = SystemPrepareConfig {
+            machine_id: false,
+            credentials_socket: false,
+            signstar_config: ConfigFileConfig {
+                location: Some(ConfigFileLocation::UsrShare),
+                variant: ConfigFileVariant::NoBackendAdminPlaintextNonAdminPlaintext,
+                system_user_config: Some(SystemUserConfig {
+                    create_ssh_authorized_keys: true,
+                }),
+            },
+        };
+        config.apply()?;
+
+        let system_user_host_state = SystemUserHostState::new()?;
+        let expected_system_user_data = [
+            SystemUserData::Unknown {
+                system_user: "wireguard-downloader".parse()?,
+                ssh_authorized_keys: vec!["ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOh9BTe81DC6A0YZALsq9dWcyl6xjjqlxWPwlExTFgBt user@host".parse()?],
+                home_dir: get_home_base_dir_path().join("wireguard-downloader"),
+            },
+        ];
+
+        debug!("Compare the system user host state with raw system user data...");
+
+        for expected in expected_system_user_data.iter() {
+            assert!(system_user_host_state.system_user_data().contains(expected));
+        }
+
+        Ok(())
+    }
 }
 
 /// Tests for when using only the NetHSM backend.

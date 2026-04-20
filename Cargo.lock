@@ -4745,6 +4745,7 @@ dependencies = [
  "thiserror 2.0.18",
  "tokio",
  "toml 1.1.0+spec-1.1.0",
+ "uzers",
  "zeroize",
 ]
 
@@ -5800,6 +5801,16 @@ dependencies = [
  "js-sys",
  "serde_core",
  "wasm-bindgen",
+]
+
+[[package]]
+name = "uzers"
+version = "0.12.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0b8275fb1afee25b4111d2dc8b5c505dbbc4afd0b990cb96deb2d88bff8be18d"
+dependencies = [
+ "libc",
+ "log",
 ]
 
 [[package]]

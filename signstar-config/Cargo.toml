@@ -28,6 +28,7 @@ tempfile = { workspace = true, optional = true }
 testresult = { workspace = true, optional = true }
 thiserror.workspace = true
 toml = "1.0.0"
+uzers = "0.12.2"
 zeroize.workspace = true
 
 [dev-dependencies]

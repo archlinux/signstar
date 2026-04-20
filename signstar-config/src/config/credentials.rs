@@ -1,10 +1,12 @@
 //! Credentials handling for Signstar configuration.
 
-use std::{fmt::Display, path::PathBuf, str::FromStr};
+use std::{collections::HashSet, fmt::Display, fs::read_to_string, path::PathBuf, str::FromStr};
 
 use nix::unistd::User;
 use serde::{Deserialize, Serialize};
+use signstar_common::{ssh::get_ssh_authorized_key_base_dir, system_user::get_home_base_dir_path};
 use ssh_key::authorized_keys::Entry;
+use uzers::all_users;
 use zeroize::Zeroize;
 
 use crate::{config::Error, utils::get_current_system_user};
@@ -101,6 +103,14 @@ impl TryFrom<String> for SystemUserId {
 
     fn try_from(value: String) -> Result<Self, Self::Error> {
         Self::new(value)
+    }
+}
+
+impl TryFrom<&User> for SystemUserId {
+    type Error = crate::Error;
+
+    fn try_from(value: &User) -> Result<Self, Self::Error> {
+        Self::new(value.name.clone())
     }
 }
 
@@ -376,6 +386,95 @@ impl<'a> Display for SystemUserData<'a> {
     }
 }
 
+/// The state of a host.
+#[derive(Debug, Eq, PartialEq)]
+pub struct SystemUserHostState<'a> {
+    pub(crate) system_user_data: HashSet<SystemUserData<'a>>,
+}
+
+impl<'a> SystemUserHostState<'a> {
+    /// Creates a new [`SystemUserHostState`] from system users and associated data on the host.
+    ///
+    /// # Note
+    ///
+    /// The user data collected from the current system is always of the form
+    /// [`SystemUserData::Unknown`], because without further context we cannot know (yet) whether a
+    /// given system user is supposed to be used by the Signstar system or not.
+    ///
+    /// # Safety
+    ///
+    /// Uses `unsafe` functions to retrieve the user data on the current system (see
+    /// [`uzers::all_users`] for details).
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if
+    ///
+    /// - a user record cannot be created from an item in `/etc/passwd`
+    /// - a file with SSH authorized keys cannot be read
+    /// - a file with SSH authorized keys contains an invalid SSH authorized key
+    pub fn new() -> Result<Self, crate::Error> {
+        let user_data = unsafe { all_users() }.collect::<Vec<_>>();
+        let mut system_user_data = HashSet::new();
+
+        for user in user_data {
+            let user = User::from_name(&user.name().to_string_lossy())
+                .map_err(|_source| Error::InvalidSystemUserName {
+                    name: user.name().to_string_lossy().to_string(),
+                })?
+                .ok_or(Error::InvalidSystemUserName {
+                    name: user.name().to_string_lossy().to_string(),
+                })?;
+
+            // Retrieve all SSH authorized keys that can be found for the user.
+            let ssh_authorized_keys = {
+                let mut ssh_authorized_keys = Vec::new();
+
+                let files = [
+                    // The Signstar authorized_keys configuration location.
+                    get_ssh_authorized_key_base_dir()
+                        .join(format!("signstar-user-{}.authorized_keys", user.name)),
+                    // The default SSH authorized_keys configuration location.
+                    get_home_base_dir_path()
+                        .join(&user.name)
+                        .join(".ssh")
+                        .join("authorized_keys"),
+                ];
+
+                for file in files {
+                    if file.is_file() {
+                        for line in read_to_string(&file)
+                            .map_err(|source| crate::Error::IoPath {
+                                path: file,
+                                context: "reading the file to string",
+                                source,
+                            })?
+                            .lines()
+                        {
+                            ssh_authorized_keys.push(AuthorizedKeyEntry::from_str(line)?);
+                        }
+                    }
+                }
+
+                ssh_authorized_keys
+            };
+
+            system_user_data.insert(SystemUserData::Unknown {
+                system_user: SystemUserId::try_from(&user)?,
+                ssh_authorized_keys,
+                home_dir: user.dir,
+            });
+        }
+
+        Ok(Self { system_user_data })
+    }
+
+    /// Returns a reference to the set of [`SystemUserData`].
+    pub fn system_user_data(&self) -> &HashSet<SystemUserData<'a>> {
+        &self.system_user_data
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use rstest::rstest;
@@ -438,6 +537,20 @@ mod tests {
             system_user_data.ssh_authorized_keys(),
             ssh_authorized_keys.iter().collect::<Vec<_>>()
         );
+        Ok(())
+    }
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn system_user_host_state_new_contains_root() -> TestResult {
+        let state = SystemUserHostState::new()?;
+
+        assert!(state.system_user_data.contains(&SystemUserData::Unknown {
+            system_user: SystemUserId::root(),
+            ssh_authorized_keys: Vec::new(),
+            home_dir: PathBuf::from("/root"),
+        }));
+
         Ok(())
     }
 }
