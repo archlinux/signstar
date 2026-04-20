@@ -8,7 +8,7 @@ mod system;
 mod traits;
 mod utils;
 
-pub use credentials::{AuthorizedKeyEntry, SystemUserId};
+pub use credentials::{AuthorizedKeyEntry, SystemUserData, SystemUserId};
 pub use error::Error;
 pub use file::{Config, ConfigBuilder, UserBackendConnection, UserBackendConnectionFilter};
 pub use state::KeyCertificateState;
