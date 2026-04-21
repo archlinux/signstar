@@ -10,8 +10,9 @@ pub mod impl_none;
 pub mod impl_yubihsm2;
 
 #[cfg(any(feature = "nethsm", feature = "yubihsm2"))]
-use std::collections::{BTreeSet, HashSet};
+use std::collections::BTreeSet;
 use std::{
+    collections::HashSet,
     fs::read_to_string,
     path::{Path, PathBuf},
     str::FromStr,
@@ -30,7 +31,7 @@ use strum::{AsRefStr, VariantNames};
 
 #[cfg(any(feature = "nethsm", feature = "yubihsm2"))]
 use crate::config::{ConfigAuthorizedKeyEntries, ConfigSystemUserIds};
-use crate::config::{Error, SystemConfig};
+use crate::config::{ConfigSystemUserData, Error, SystemConfig, SystemUserData};
 #[cfg(feature = "nethsm")]
 use crate::nethsm::{NetHsmConfig, NetHsmUserMapping};
 #[cfg(feature = "yubihsm2")]
@@ -544,6 +545,20 @@ impl ConfigBuilder {
     }
 }
 
+/// The state of system users according to a Signstar configuration.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct SystemUserConfigState<'a> {
+    pub(crate) system_user_data: HashSet<SystemUserData<'a>>,
+}
+
+impl<'a> From<&'a Config> for SystemUserConfigState<'a> {
+    fn from(value: &'a Config) -> Self {
+        Self {
+            system_user_data: value.system_user_data(),
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use std::{collections::BTreeSet, num::NonZeroUsize, thread::current};
@@ -937,6 +952,16 @@ mod tests {
                 config.system_user_ids(),
                 expected.iter().collect::<HashSet<_>>()
             );
+            Ok(())
+        }
+
+        /// Ensures, that [`SystemUserConfigState`] can be created from [`Config`].
+        #[rstest]
+        fn system_user_config_state_from_config(default_config: TestResult<Config>) -> TestResult {
+            let config = default_config?;
+            let state = SystemUserConfigState::from(&config);
+
+            assert_eq!(state.system_user_data, config.system_user_data(),);
             Ok(())
         }
     }
@@ -1758,6 +1783,16 @@ mod tests {
                 non_admin_secret_handling
             );
 
+            Ok(())
+        }
+
+        /// Ensures, that [`SystemUserConfigState`] can be created from [`Config`].
+        #[rstest]
+        fn system_user_config_state_from_config(default_config: TestResult<Config>) -> TestResult {
+            let config = default_config?;
+            let state = SystemUserConfigState::from(&config);
+
+            assert_eq!(state.system_user_data, config.system_user_data(),);
             Ok(())
         }
     }
@@ -2602,6 +2637,16 @@ mod tests {
                 non_admin_secret_handling
             );
 
+            Ok(())
+        }
+
+        /// Ensures, that [`SystemUserConfigState`] can be created from [`Config`].
+        #[rstest]
+        fn system_user_config_state_from_config(default_config: TestResult<Config>) -> TestResult {
+            let config = default_config?;
+            let state = SystemUserConfigState::from(&config);
+
+            assert_eq!(state.system_user_data, config.system_user_data(),);
             Ok(())
         }
     }
