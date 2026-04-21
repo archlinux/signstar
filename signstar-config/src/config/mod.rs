@@ -10,7 +10,13 @@ mod utils;
 
 pub use credentials::{AuthorizedKeyEntry, SystemUserData, SystemUserHostState, SystemUserId};
 pub use error::Error;
-pub use file::{Config, ConfigBuilder, UserBackendConnection, UserBackendConnectionFilter};
+pub use file::{
+    Config,
+    ConfigBuilder,
+    SystemUserConfigState,
+    UserBackendConnection,
+    UserBackendConnectionFilter,
+};
 pub use state::KeyCertificateState;
 pub use system::{SystemConfig, SystemUserMapping};
 pub use traits::{

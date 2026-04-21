@@ -10,8 +10,9 @@ pub mod impl_none;
 pub mod impl_yubihsm2;
 
 #[cfg(any(feature = "nethsm", feature = "yubihsm2"))]
-use std::collections::{BTreeSet, HashSet};
+use std::collections::BTreeSet;
 use std::{
+    collections::HashSet,
     fs::read_to_string,
     path::{Path, PathBuf},
     str::FromStr,
@@ -30,7 +31,7 @@ use strum::{AsRefStr, VariantNames};
 
 #[cfg(any(feature = "nethsm", feature = "yubihsm2"))]
 use crate::config::{ConfigAuthorizedKeyEntries, ConfigSystemUserIds};
-use crate::config::{Error, SystemConfig};
+use crate::config::{ConfigSystemUserData, Error, SystemConfig, SystemUserData};
 #[cfg(feature = "nethsm")]
 use crate::nethsm::{NetHsmConfig, NetHsmUserMapping};
 #[cfg(feature = "yubihsm2")]
@@ -541,6 +542,20 @@ impl ConfigBuilder {
             })?;
 
         Ok(self.0)
+    }
+}
+
+/// The state of system users according to a Signstar configuration.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct SystemUserConfigState<'a> {
+    pub(crate) system_user_data: HashSet<SystemUserData<'a>>,
+}
+
+impl<'a> From<&'a Config> for SystemUserConfigState<'a> {
+    fn from(value: &'a Config) -> Self {
+        Self {
+            system_user_data: value.system_user_data(),
+        }
     }
 }
 
