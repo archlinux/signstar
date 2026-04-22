@@ -89,6 +89,14 @@ impl<'a, 'b> Display for SystemUserDataDiscrepancy<'a, 'b> {
     }
 }
 
+/// The state of a YubiHSM2 backend.
+#[derive(Debug)]
+pub struct YubiHsm2BackendState {}
+
+/// The state of a YubiHSM2 configuration.
+#[derive(Debug)]
+pub struct YubiHsm2ConfigState {}
+
 /// The type of [`SignstarState`].
 #[derive(AsRefStr, Clone, Copy, Debug, strum::Display, Eq, PartialEq)]
 pub enum SignstarStateType {
@@ -128,6 +136,10 @@ impl<'a, 'b> From<&SignstarState<'a, 'b>> for SignstarStateType {
             SignstarState::NetHsmBackend(..) => Self::NetHsmBackend,
             #[cfg(feature = "nethsm")]
             SignstarState::NetHsmConfig(..) => Self::NetHsmConfig,
+            #[cfg(feature = "yubihsm2")]
+            SignstarState::YubiHsm2Backend(..) => Self::YubiHsm2Backend,
+            #[cfg(feature = "yubihsm2")]
+            SignstarState::YubiHsm2Config(..) => Self::YubiHsm2Config,
             SignstarState::SystemUserHost(..) => Self::SystemUserHost,
             SignstarState::SystemUserConfig(..) => Self::SystemUserConfig,
         }
@@ -786,6 +798,14 @@ pub enum SignstarState<'a, 'b> {
     #[cfg(feature = "nethsm")]
     NetHsmConfig(NetHsmConfigState<'a>),
 
+    /// State of a YubiHSM2 backend.
+    #[cfg(feature = "yubihsm2")]
+    YubiHsm2Backend(YubiHsm2BackendState),
+
+    /// State of a YubiHSM2 configuration.
+    #[cfg(feature = "yubihsm2")]
+    YubiHsm2Config(YubiHsm2ConfigState),
+
     /// State of system users on a host.
     SystemUserHost(SystemUserHostState<'a>),
 
@@ -811,6 +831,34 @@ impl<'a, 'b> SignstarState<'a, 'b> {
                     other_state: other.into(),
                 }
             }
+            #[cfg(feature = "yubihsm2")]
+            (Self::YubiHsm2Backend(..), Self::SystemUserHost(..))
+            | (Self::YubiHsm2Backend(..), Self::SystemUserConfig(..))
+            | (Self::YubiHsm2Config(..), Self::SystemUserHost(..))
+            | (Self::YubiHsm2Config(..), Self::SystemUserConfig(..))
+            | (Self::SystemUserHost(..), Self::YubiHsm2Backend(..))
+            | (Self::SystemUserHost(..), Self::YubiHsm2Config(..))
+            | (Self::SystemUserConfig(..), Self::YubiHsm2Backend(..))
+            | (Self::SystemUserConfig(..), Self::YubiHsm2Config(..)) => {
+                StateComparisonReport::Incompatible {
+                    self_state: self.into(),
+                    other_state: other.into(),
+                }
+            }
+            #[cfg(all(feature = "nethsm", feature = "yubihsm2"))]
+            (Self::NetHsmBackend(..), Self::YubiHsm2Backend(..))
+            | (Self::NetHsmBackend(..), Self::YubiHsm2Config(..))
+            | (Self::NetHsmConfig(..), Self::YubiHsm2Backend(..))
+            | (Self::NetHsmConfig(..), Self::YubiHsm2Config(..))
+            | (Self::YubiHsm2Backend(..), Self::NetHsmBackend(..))
+            | (Self::YubiHsm2Backend(..), Self::NetHsmConfig(..))
+            | (Self::YubiHsm2Config(..), Self::NetHsmBackend(..))
+            | (Self::YubiHsm2Config(..), Self::NetHsmConfig(..)) => {
+                StateComparisonReport::Incompatible {
+                    self_state: self.into(),
+                    other_state: other.into(),
+                }
+            }
             #[cfg(feature = "nethsm")]
             (Self::NetHsmBackend(self_state), Self::NetHsmBackend(other_state)) => {
                 StateComparisonReport::from((self_state, other_state))
@@ -827,6 +875,14 @@ impl<'a, 'b> SignstarState<'a, 'b> {
             (Self::NetHsmConfig(self_state), Self::NetHsmConfig(other_state)) => {
                 StateComparisonReport::from((self_state, other_state))
             }
+            #[cfg(feature = "yubihsm2")]
+            (Self::YubiHsm2Backend(..), Self::YubiHsm2Backend(..)) => unimplemented!(),
+            #[cfg(feature = "yubihsm2")]
+            (Self::YubiHsm2Backend(..), Self::YubiHsm2Config(..)) => unimplemented!(),
+            #[cfg(feature = "yubihsm2")]
+            (Self::YubiHsm2Config(..), Self::YubiHsm2Backend(..)) => unimplemented!(),
+            #[cfg(feature = "yubihsm2")]
+            (Self::YubiHsm2Config(..), Self::YubiHsm2Config(..)) => unimplemented!(),
             (Self::SystemUserHost(host_a), Self::SystemUserHost(host_b)) => {
                 StateComparisonReport::from((host_a, host_b))
             }
