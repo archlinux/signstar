@@ -17,6 +17,8 @@ To ease deployment and provisioning of a YubiHSM2 backend a command-line interfa
 
 ### CLI
 
+#### Running scenarios
+
 Reset the device to factory settings (erasing all key material) and get the HSM info:
 
 ```bash
@@ -58,6 +60,24 @@ Enable forced auditing of signing and retrieving log:
 
 ```bash
 signstar-yubihsm scenario run "tests/scenarios/audit.json" | jq --compact-output
+```
+
+#### Backup
+
+Decrypt and print details about several types of objects:
+
+<!--
+```bash
+wrap_key="$(mktemp --suffix '-wrap.key' --dry-run)"
+echo -en '\x00\x11\x22\x33\x44\x55\x66\x77\x88\x99\xaa\xbb\xcc\xdd\xee\xff' > "$wrap_key"
+```
+-->
+
+```bash
+signstar-yubihsm backup dump "tests/backup/auth.yhw" "$wrap_key"
+signstar-yubihsm backup dump "tests/backup/opaque.yhw" "$wrap_key"
+signstar-yubihsm backup dump "tests/backup/private-ed25519.yhw" "$wrap_key"
+signstar-yubihsm backup dump "tests/backup/private-ed25519-seed.yhw" "$wrap_key"
 ```
 
 ## Features
