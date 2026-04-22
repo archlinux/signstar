@@ -30,6 +30,18 @@ pub enum Error {
     },
 
     /// A device operation failed.
+    #[error("YubiHSM domain operation failed while {context}:\n{source}")]
+    Domain {
+        /// The context in which the error occurred.
+        ///
+        /// This is meant to complete the sentence "YubiHSM domain operation failed while ".
+        context: &'static str,
+
+        /// The source error.
+        source: yubihsm::domain::Error,
+    },
+
+    /// A device operation failed.
     #[error("Certificate generation failed while {context}:\n{source}")]
     CertificateGeneration {
         /// The context in which the error occurred.
@@ -87,6 +99,24 @@ pub enum Error {
         context: &'static str,
         /// The error source.
         source: std::io::Error,
+    },
+
+    /// A slice length error occurred.
+    #[error("Data had an incorrect length when {context}")]
+    IncorrectDataLength {
+        /// The context in which the error occurs.
+        ///
+        /// This is meant to complete the sentence "Data had an incorrect length when ".
+        context: &'static str,
+    },
+
+    /// A domain ID parse error occurred.
+    #[error("Domain ID cannot be parsed when {context}")]
+    DomainParseError {
+        /// The context in which the error occurs.
+        ///
+        /// This is meant to complete the sentence "Domain ID cannot be parsed when ".
+        context: &'static str,
     },
 
     /// Attempted to use functionality guarded by the "_yubihsm2-mockhsm" feature.

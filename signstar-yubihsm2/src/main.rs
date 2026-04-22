@@ -62,7 +62,8 @@ use signstar_common::logging::setup_logging;
 use signstar_yubihsm2::{
     Error,
     automation::{Scenario, ScenarioRunner},
-    backup::{InnerFormat, YubiHsm2Wrap},
+    backup::{InnerFormat, Label, YubiHsm2Wrap, wrap_ed25519},
+    object::{Capabilities, Capability, Domain, Domains, Id},
 };
 use yubihsm::{Connector, UsbConfig, device::SerialNumber};
 
@@ -118,6 +119,37 @@ enum BackupSubcommands {
 
         /// The path to a file which contains a raw (binary) wrapping key.
         wrapping_key: PathBuf,
+    },
+    /// Wraps an ed25519 private key and returns it in YHW format.
+    ///
+    /// A wrapping key is used to encrypt the ed25519 private key.
+    /// Additional data about the target use of the key under wrap must be provided using options.
+    WrapEd25519 {
+        /// The path to a file containing a raw (binary) private ed25519 key.
+        private_key_file: PathBuf,
+
+        /// The path to a file which contains a raw (binary) wrapping key.
+        wrapping_key: PathBuf,
+
+        /// The capabilities for the key under wrap.
+        #[clap(long, value_enum, value_delimiter = ',')]
+        capabilities: Vec<Capability>,
+
+        /// An identifier for the key under wrap.
+        #[clap(long)]
+        id: Id,
+
+        /// The domains for the key under wrap.
+        #[clap(long, value_enum, value_delimiter = ',')]
+        domains: Vec<Domain>,
+
+        /// A label for the key under wrap.
+        #[clap(long)]
+        label: Label,
+
+        /// The optional path to a specific output file.
+        #[arg(long, short)]
+        output: Option<PathBuf>,
     },
 }
 
@@ -179,6 +211,27 @@ fn dump_backup(backup_file: PathBuf, wrapping_key_file: impl AsRef<Path>) -> Res
     Ok(())
 }
 
+/// Returns a writer to the specified output.
+///
+/// If `output` is [`None`] then the writer will append to standard output, otherwise it will write
+/// to the named file.
+///
+/// # Errors
+///
+/// Returns an error if
+/// - creating the file fails
+fn get_writer(output: Option<PathBuf>) -> Result<Box<dyn std::io::Write>, Error> {
+    Ok(if let Some(output) = output {
+        Box::new(File::create(&output).map_err(|source| Error::IoPath {
+            path: output,
+            context: "creating the output file",
+            source,
+        })?)
+    } else {
+        Box::new(stdout())
+    })
+}
+
 /// Signs the signing request on standard input and returns a signing response on standard output.
 fn main() -> ExitCode {
     let args = Cli::parse();
@@ -200,6 +253,29 @@ fn main() -> ExitCode {
                 backup_file,
                 wrapping_key,
             } => dump_backup(backup_file, wrapping_key),
+            BackupSubcommands::WrapEd25519 {
+                private_key_file,
+                wrapping_key,
+                id,
+                domains,
+                label,
+                capabilities,
+                output,
+            } => wrap_ed25519(
+                private_key_file,
+                wrapping_key,
+                id,
+                Domains::from(&domains[..]),
+                Capabilities::from(&capabilities[..]),
+                label,
+            )
+            .and_then(|yhw| {
+                let mut writer = get_writer(output)?;
+                write!(writer, "{}", yhw).map_err(|source| Error::Io {
+                    context: "writing a wrapped key to output",
+                    source,
+                })
+            }),
         },
     };
 

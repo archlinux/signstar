@@ -5232,6 +5232,8 @@ dependencies = [
  "serde_repr",
  "signstar-common",
  "signstar-crypto",
+ "strum",
+ "tempfile",
  "testresult",
  "thiserror 2.0.18",
  "yubihsm",

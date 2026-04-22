@@ -32,14 +32,20 @@
 //! - 1 byte for the subtype of the object (e.g. ed25519 key)
 //! - 1 byte for a sequence number, which is used internally and always `0`
 //! - 1 byte for encoding the origin (this is only relevant when exporting)
-//! - 40 bytes for a UTF-8 encoded label
+//! - 40 bytes for a UTF-8 encoded [`Label`]
 //! - the rest of the inner format is specific to each object type (e.g. opaque byte vectors are
 //!   embedded in their entirety here)
 //!
 //! [backup and restore]: https://docs.yubico.com/hardware/yubihsm-2/hsm-2-user-guide/hsm2-backup-restore.html
 //! [nonce]: https://en.wikipedia.org/wiki/Cryptographic_nonce
 
-use std::{array::TryFromSliceError, fmt::Debug};
+use std::{
+    array::TryFromSliceError,
+    fmt::{Debug, Display},
+    fs::read,
+    path::Path,
+    str::FromStr,
+};
 
 use aes::{Aes128, cipher::typenum::Unsigned};
 use base64ct::{Base64, Encoding as _};
@@ -54,9 +60,7 @@ use ed25519_dalek::{SigningKey, hazmat::ExpandedSecretKey};
 use num_enum::{FromPrimitive, IntoPrimitive};
 use yubihsm::object::{Handle, Type};
 
-#[cfg(doc)]
-use crate::object::Capabilities;
-use crate::object::{Domains, ObjectId};
+use crate::object::{Capabilities, Domains, Id, ObjectId};
 
 /// Backup error.
 #[derive(Debug, thiserror::Error)]
@@ -765,14 +769,78 @@ impl<'a> InnerFormat<'a> {
     }
 }
 
+/// Wraps an ed25519 private key file using a wrapping key and returns it in YHW format.
+///
+/// # Errors
+///
+/// Returns an error if
+/// - reading the key file fails
+/// - reading the wrapping key file fails
+/// - encryption of the backup fails
+/// - the inner format structure is incorrect
+pub fn wrap_ed25519(
+    private_key_file: impl AsRef<Path>,
+    wrapping_key: impl AsRef<Path>,
+    object_id: Id,
+    domains: Domains,
+    capabilities: Capabilities,
+    label: Label,
+) -> Result<String, crate::Error> {
+    let wrapping_key = read(&wrapping_key).map_err(|source| crate::Error::IoPath {
+        path: wrapping_key.as_ref().into(),
+        context: "reading wrapping key file",
+        source,
+    })?;
+    let key = SerializedEd25519::from(&SigningKey::from_bytes(
+        &read(&private_key_file)
+            .map_err(|source| crate::Error::IoPath {
+                path: private_key_file.as_ref().into(),
+                context: "reading an ed25519 private key file",
+                source,
+            })?
+            .try_into()
+            .map_err(|_| crate::Error::IncorrectDataLength {
+                context: "reading an ed25519 key file",
+            })?,
+    ));
+    let inner = InnerFormat {
+        wrap_algorithm: WrapAlgorithm::Aes128Ccm,
+        capabilities,
+        object_id: ObjectId::AsymmetricKey(object_id),
+        domains,
+        object_type: ObjectType::Ed25519,
+        sequence: 0,
+        origin: 1,
+        label,
+        key_data: WrappedPayload::SeedEd25519(key.as_ref().try_into().map_err(|_| {
+            crate::Error::IncorrectDataLength {
+                context: "converting key formats",
+            }
+        })?),
+    };
+    let buffer = {
+        let mut buffer = vec![];
+        inner.serialize_into(&mut buffer);
+        buffer
+    };
+    let data_with_key = PlainWrappedDataWithKey {
+        data: &buffer,
+        key: &wrapping_key,
+    };
+    Ok(YubiHsm2Wrap::try_from(data_with_key)?.to_yhw())
+}
+
 #[cfg(test)]
 mod tests {
 
+    use std::fs::write;
+
     use ed25519_dalek::VerifyingKey;
+    use tempfile::TempDir;
     use testresult::TestResult;
 
     use super::*;
-    use crate::object::Domain;
+    use crate::object::{Capability, Domain};
 
     const WRAP_KEY: &[u8] = &[
         0, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF,
@@ -988,6 +1056,31 @@ mod tests {
         let wrap: YubiHsm2Wrap = plain.try_into()?;
         let decrypted_from_plain = wrap.decrypt(WRAP_KEY)?;
         assert_eq!(decrypted_original, decrypted_from_plain);
+        Ok(())
+    }
+
+    #[test]
+    fn roundtrip_wrap() -> TestResult {
+        let temp_dir = TempDir::new()?;
+        let private_key_file = temp_dir.path().join("private.key");
+        let wrapping_key_file = temp_dir.path().join("wrap.key");
+        write(&private_key_file, [0; 32])?;
+        write(&wrapping_key_file, WRAP_KEY)?;
+
+        let object_id = Id::new(1.try_into()?)?;
+        let wrapped = wrap_ed25519(
+            private_key_file,
+            wrapping_key_file,
+            object_id,
+            Domains::all(),
+            Capabilities::from(&[Capability::Sign][..]),
+            "test".parse()?,
+        )?;
+
+        let yhw = YubiHsm2Wrap::from_yhw(&wrapped)?;
+        let raw = yhw.decrypt(WRAP_KEY)?;
+        let inner = InnerFormat::parse(&raw)?;
+        assert_eq!(inner.object_id, ObjectId::AsymmetricKey(object_id));
         Ok(())
     }
 }
