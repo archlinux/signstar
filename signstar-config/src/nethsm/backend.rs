@@ -12,7 +12,7 @@
 //! This module only works with data for the same iteration (i.e. the iteration of the
 //! [`NetHsmAdminCredentials`] and those of the [`NetHsm`] backend must match).
 
-use std::{any::Any, collections::HashSet, fmt::Display, str::FromStr};
+use std::{collections::HashSet, fmt::Display, str::FromStr};
 
 use log::{debug, trace, warn};
 use nethsm::{
@@ -37,13 +37,11 @@ use crate::{
     nethsm::{
         NetHsmAdminCredentials,
         NetHsmConfig,
-        NetHsmConfigStateLegacy,
         NetHsmUserKeysFilter,
         NetHsmUserMapping,
         error::Error,
-        state::{KeyStates, UserStates},
     },
-    state::{StateComparisonReport, StateHandling, StateOrigin, StateOriginInfo, StateType},
+    state::{StateOrigin, StateOriginInfo},
 };
 
 /// Creates all _R-Administrators_ on a [`NetHsm`].
@@ -1810,9 +1808,6 @@ pub struct NetHsmBackendState {
 }
 
 impl NetHsmBackendState {
-    /// The specific [`StateType`] of this state.
-    const STATE_TYPE: StateType = StateType::NetHsm;
-
     /// The name of the origin for the state.
     pub const STATE_NAME: &'static str = "NetHSM backend";
 }
@@ -1824,117 +1819,6 @@ impl StateOriginInfo for NetHsmBackendState {
 
     fn state_origin(&self) -> StateOrigin {
         StateOrigin::Backend
-    }
-}
-
-impl StateHandling for NetHsmBackendState {
-    fn state_type(&self) -> StateType {
-        Self::STATE_TYPE
-    }
-
-    fn compare(&self, other: &dyn StateHandling) -> StateComparisonReport {
-        if !self.is_comparable(other) {
-            trace!(
-                "{} is not compatible with {}",
-                self.state_type(),
-                other.state_type()
-            );
-            return StateComparisonReport::Incompatible {
-                self_state: self.state_type(),
-                other_state: other.state_type(),
-            };
-        }
-
-        let (user_failures, key_failures) = {
-            let (self_user_states, other_user_states, self_key_states, other_key_states) =
-                match other.state_type() {
-                    StateType::SignstarConfigNetHsm => {
-                        let Some(other) =
-                            (other as &dyn Any).downcast_ref::<NetHsmConfigStateLegacy>()
-                        else {
-                            return StateComparisonReport::Incompatible {
-                                self_state: self.state_type(),
-                                other_state: other.state_type(),
-                            };
-                        };
-                        (
-                            UserStates {
-                                state_type: self.state_type(),
-                                users: &self.user_states,
-                            },
-                            UserStates {
-                                state_type: other.state_type(),
-                                users: &other.user_states,
-                            },
-                            KeyStates {
-                                state_type: self.state_type(),
-                                keys: &self.key_states,
-                            },
-                            KeyStates {
-                                state_type: other.state_type(),
-                                keys: &other.key_states,
-                            },
-                        )
-                    }
-                    StateType::NetHsm => {
-                        let Some(other) = (other as &dyn Any).downcast_ref::<NetHsmBackendState>()
-                        else {
-                            return StateComparisonReport::Incompatible {
-                                self_state: self.state_type(),
-                                other_state: other.state_type(),
-                            };
-                        };
-                        (
-                            UserStates {
-                                state_type: self.state_type(),
-                                users: &self.user_states,
-                            },
-                            UserStates {
-                                state_type: other.state_type(),
-                                users: &other.user_states,
-                            },
-                            KeyStates {
-                                state_type: self.state_type(),
-                                keys: &self.key_states,
-                            },
-                            KeyStates {
-                                state_type: other.state_type(),
-                                keys: &other.key_states,
-                            },
-                        )
-                    }
-                    StateType::SignstarConfigYubiHsm2 | StateType::YubiHsm2 => {
-                        return StateComparisonReport::Incompatible {
-                            self_state: self.state_type(),
-                            other_state: other.state_type(),
-                        };
-                    }
-                };
-
-            let user_failures = self_user_states.compare(&other_user_states);
-            let key_failures = self_key_states.compare(&other_key_states);
-
-            (user_failures, key_failures)
-        };
-
-        let failures = {
-            let mut failures: Vec<String> = Vec::new();
-
-            for user_failure in user_failures.iter() {
-                failures.push(user_failure.to_string());
-            }
-            for key_failure in key_failures.iter() {
-                failures.push(key_failure.to_string());
-            }
-
-            failures
-        };
-
-        if !failures.is_empty() {
-            return StateComparisonReport::Failure(failures);
-        }
-
-        StateComparisonReport::Success
     }
 }
 
@@ -2014,10 +1898,12 @@ mod tests {
     use nethsm::{
         Connection,
         ConnectionSecurity,
+        CryptographicKeyContext,
         FullCredentials,
         NetHsm,
         OpenPgpUserIdList,
         OpenPgpVersion,
+        UserRole,
     };
     use rstest::rstest;
     use signstar_common::logging::setup_logging;

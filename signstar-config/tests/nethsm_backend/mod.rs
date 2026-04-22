@@ -13,6 +13,7 @@ use nethsm::{
     UserRole,
     test::create_container,
 };
+use pretty_assertions::assert_eq;
 use rstest::rstest;
 use signstar_common::logging::setup_logging;
 use signstar_config::{
@@ -23,12 +24,11 @@ use signstar_config::{
         NetHsmBackendState,
         NetHsmConfig,
         NetHsmConfigState,
-        NetHsmConfigStateLegacy,
         NetHsmDiff,
         NetHsmMetricsUsers,
         NetHsmUserMapping,
     },
-    state::{StateDiff, StateDiffReport, StateHandling},
+    state::{StateDiff, StateDiffReport},
     test::{
         ConfigFileConfig,
         ConfigFileVariant,
@@ -73,7 +73,6 @@ async fn sync_unprovisioned_backend(
         panic!("This test requires a NetHSM configuration object in the Signstar config");
     };
     // Derive the acclaimed NetHSM state from the Signstar config
-    let signstar_state = NetHsmConfigStateLegacy::from(nethsm_config);
     let nethsm_admin_credentials = nethsm_admin_credentials(creds_data)?;
     let nethsm_config_state = NetHsmConfigState::from(nethsm_config);
 
@@ -184,9 +183,6 @@ async fn sync_unprovisioned_backend(
         ),
     }
 
-    debug!("Compare state of NetHSM with that of the Signstar config");
-    nethsm_backend_state.compare(&signstar_state);
-
     debug!("Rerunning sync");
     nethsm_backend.sync(&user_credentials)?;
 
@@ -210,7 +206,6 @@ async fn sync_unprovisioned_backend(
         ),
     }
 
-    nethsm_backend_state.compare(&signstar_state);
     assert_eq!(nethsm_backend.nethsm().state()?, SystemState::Operational);
 
     Ok(())
