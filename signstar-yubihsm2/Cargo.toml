@@ -25,6 +25,7 @@ serde_json = { workspace = true, optional = true }
 serde_repr = { version = "0.1.20", optional = true }
 signstar-common = { workspace = true, features = ["logging"] }
 signstar-crypto.workspace = true
+strum.workspace = true
 thiserror.workspace = true
 yubihsm = { version = "0.42.1", features = ["usb"] }
 

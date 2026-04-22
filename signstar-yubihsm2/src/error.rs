@@ -30,6 +30,18 @@ pub enum Error {
     },
 
     /// A device operation failed.
+    #[error("YubiHSM domain operation failed while {context}:\n{source}")]
+    Domain {
+        /// The context in which the error occurred.
+        ///
+        /// This is meant to complete the sentence "YubiHSM domain operation failed while ".
+        context: &'static str,
+
+        /// The source error.
+        source: yubihsm::domain::Error,
+    },
+
+    /// A device operation failed.
     #[error("Certificate generation failed while {context}:\n{source}")]
     CertificateGeneration {
         /// The context in which the error occurred.

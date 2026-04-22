@@ -74,6 +74,21 @@ signstar-yubihsm backup dump "tests/backup/private-ed25519.yhw" "$wrap_key"
 signstar-yubihsm backup dump "tests/backup/private-ed25519-seed.yhw" "$wrap_key"
 ```
 
+### Wrapping ed25519 keys
+
+```bash
+wrap_key="$(mktemp --suffix '-wrap.key' --dry-run)"
+echo -en '\x00\x11\x22\x33\x44\x55\x66\x77\x88\x99\xaa\xbb\xcc\xdd\xee\xff' > "$wrap_key"
+
+private_key="$(mktemp --suffix '-private.key' --dry-run)"
+head -c 32 /dev/random > "$private_key"
+
+wrapped_key="$(mktemp --suffix '-private.key' --dry-run)"
+
+signstar-yubihsm backup wrap-ed25519 --capabilities Sign,Export --domains 1,2 --label test --id 3 "$private_key" "$wrap_key" > "$wrapped_key"
+signstar-yubihsm backup dump "$wrapped_key" "$wrap_key"
+```
+
 ## Features
 
 - `_yubihsm2-mockhsm`: Test environment and integration using a virtual [YubiHSM2].

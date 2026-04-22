@@ -1,6 +1,6 @@
 //! YubiHSM2 key metadata.
 
-use std::{collections::HashSet, fmt::Display, hash::Hash};
+use std::{collections::HashSet, fmt::Display, hash::Hash, str::FromStr};
 
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
@@ -153,10 +153,28 @@ impl From<Domain> for Domains {
     }
 }
 
-impl From<u16> for Domains {
-    fn from(value: u16) -> Self {
+impl FromStr for Domains {
+    type Err = crate::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(s.split(',')
+            .flat_map(usize::from_str)
+            .map(yubihsm::Domain::at)
+            .try_fold(yubihsm::Domain::empty(), |acc, c| {
+                Ok::<_, crate::Error>(
+                    acc | c.map_err(|source| crate::Error::Domain {
+                        context: "converting string to domains",
+                        source,
+                    })?,
+                )
+            })?
+            .into())
+    }
+}
+
+impl From<yubihsm::Domain> for Domains {
+    fn from(value: yubihsm::Domain) -> Self {
         let mut domains = HashSet::new();
-        let yubi_domain = yubihsm::Domain::from_bits_retain(value);
         for (yubi_dom, dom) in [
             (yubihsm::Domain::DOM1, Domain::One),
             (yubihsm::Domain::DOM2, Domain::Two),
@@ -175,12 +193,18 @@ impl From<u16> for Domains {
             (yubihsm::Domain::DOM15, Domain::Fifteen),
             (yubihsm::Domain::DOM16, Domain::Sixteen),
         ] {
-            if yubi_domain.contains(yubi_dom) {
+            if value.contains(yubi_dom) {
                 domains.insert(dom);
             }
         }
 
         Domains(domains)
+    }
+}
+
+impl From<u16> for Domains {
+    fn from(value: u16) -> Self {
+        yubihsm::Domain::from_bits_retain(value).into()
     }
 }
 

@@ -53,6 +53,7 @@ use std::{
 
 use clap::{Parser, Subcommand};
 use clap_verbosity_flag::Verbosity;
+use ed25519_dalek::SigningKey;
 #[cfg(not(feature = "_yubihsm2-mockhsm"))]
 use impl_default::get_connector;
 #[cfg(feature = "_yubihsm2-mockhsm")]
@@ -62,7 +63,16 @@ use signstar_common::logging::setup_logging;
 use signstar_yubihsm2::{
     Error,
     automation::{Scenario, ScenarioRunner},
-    backup::{InnerFormat, YubiHsm2Wrap},
+    backup::{
+        InnerFormat,
+        ObjectType,
+        PlainWrappedDataWithKey,
+        SerializedEd25519,
+        WrapAlgorithm,
+        WrappedPayload,
+        YubiHsm2Wrap,
+    },
+    object::{Capabilities, Domains, Id},
 };
 use yubihsm::{Connector, UsbConfig, device::SerialNumber};
 
@@ -118,6 +128,24 @@ enum BackupSubcommands {
 
         /// Path to a file which contains raw (binary) wrapping key.
         wrapping_key: PathBuf,
+    },
+    WrapEd25519 {
+        private_key_file: PathBuf,
+
+        /// Path to a file which contains raw (binary) wrapping key.
+        wrapping_key: PathBuf,
+
+        #[clap(long)]
+        capabilities: Capabilities,
+
+        #[clap(long)]
+        id: Id,
+
+        #[clap(long)]
+        domains: Domains,
+
+        #[clap(long)]
+        label: String,
     },
 }
 
@@ -175,6 +203,56 @@ fn dump_backup(backup_file: PathBuf, wrapping_key_file: PathBuf) -> Result<(), E
     Ok(())
 }
 
+fn wrap_ed25519(
+    private_key_file: PathBuf,
+    wrapping_key: PathBuf,
+    object_id: Id,
+    domains: Domains,
+    capabilities: Capabilities,
+    label: String,
+) -> Result<(), Error> {
+    let wrapping_key = read(&wrapping_key).map_err(|source| Error::IoPath {
+        path: wrapping_key,
+        context: "reading wrapping key file",
+        source,
+    })?;
+    let s = SigningKey::from_bytes(
+        &read(&private_key_file)
+            .map_err(|source| Error::IoPath {
+                path: private_key_file,
+                context: "reading private key file",
+                source,
+            })?
+            .try_into()
+            .unwrap(),
+    );
+    let s: SerializedEd25519 = (&s).into();
+    let mut buffer = vec![];
+    let inner = InnerFormat {
+        wrap_algorithm: WrapAlgorithm::Aes128Ccm,
+        capabilities,
+        object_id: signstar_yubihsm2::object::ObjectId::AsymmetricKey(object_id),
+        domains,
+        object_type: ObjectType::Ed25519,
+        sequence: 0,
+        origin: 1,
+        label,
+        key_data: WrappedPayload::SeedEd25519(s.as_ref().try_into().unwrap()),
+    };
+    eprintln!("Inner: {:?}", inner);
+    inner.serialize_into(&mut buffer);
+    eprintln!("Serialized: {:?}", buffer);
+    let data_with_key = PlainWrappedDataWithKey {
+        data: &buffer,
+        key: &wrapping_key,
+    };
+    print!(
+        "{}",
+        YubiHsm2Wrap::try_from(data_with_key).unwrap().to_yhw()
+    );
+    Ok(())
+}
+
 /// Signs the signing request on standard input and returns a signing response on standard output.
 fn main() -> ExitCode {
     let args = Cli::parse();
@@ -196,6 +274,21 @@ fn main() -> ExitCode {
                 backup_file,
                 wrapping_key,
             } => dump_backup(backup_file, wrapping_key),
+            BackupSubcommands::WrapEd25519 {
+                private_key_file,
+                wrapping_key,
+                id,
+                domains,
+                label,
+                capabilities,
+            } => wrap_ed25519(
+                private_key_file,
+                wrapping_key,
+                id,
+                domains,
+                capabilities,
+                label,
+            ),
         },
     };
 
