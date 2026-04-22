@@ -44,7 +44,12 @@ mod impl_mockhsm {
     }
 }
 
-use std::{fs::File, io::stdout, path::PathBuf, process::ExitCode};
+use std::{
+    fs::{File, read, read_to_string},
+    io::stdout,
+    path::PathBuf,
+    process::ExitCode,
+};
 
 use clap::{Parser, Subcommand};
 use clap_verbosity_flag::Verbosity;
@@ -57,6 +62,7 @@ use signstar_common::logging::setup_logging;
 use signstar_yubihsm2::{
     Error,
     automation::{Scenario, ScenarioRunner},
+    backup::{InnerFormat, YubiHsm2Wrap},
 };
 use yubihsm::{Connector, UsbConfig, device::SerialNumber};
 
@@ -77,6 +83,10 @@ enum Subcommands {
     /// Scenario runner.
     #[command(subcommand)]
     Scenario(ScenarioSubcommands),
+
+    /// Backup-related features.
+    #[command(subcommand)]
+    Backup(BackupSubcommands),
 }
 
 /// Scenario runner subcommands.
@@ -95,6 +105,19 @@ enum ScenarioSubcommands {
         /// started. This is useful for tests.
         #[clap(env = "SIGNSTAR_YUBIHSM_SN")]
         serial_number: Option<SerialNumber>,
+    },
+}
+
+/// Backup-related subcommands.
+#[derive(Debug, Subcommand)]
+enum BackupSubcommands {
+    /// Decrypts and inspects a single backup file.
+    Dump {
+        /// A path to the YHW backup file which contains base64-encoded wrap file.
+        backup_file: PathBuf,
+
+        /// Path to a file which contains raw (binary) wrapping key.
+        wrapping_key: PathBuf,
     },
 }
 
@@ -125,6 +148,33 @@ fn run_scenario(serial_number: Option<SerialNumber>, scenario_file: PathBuf) -> 
     Ok(())
 }
 
+/// Decrypt and inspect a single backup file.
+///
+/// # Errors
+///
+/// Returns an error if
+/// - reading the backup file fails
+/// - reading the wrapping key file fails
+/// - decryption of the backup fails (e.g. the wrapping key is incorrect)
+/// - the inner format structure is incorrect
+fn dump_backup(backup_file: PathBuf, wrapping_key_file: PathBuf) -> Result<(), Error> {
+    let backup = read_to_string(&backup_file).map_err(|source| Error::IoPath {
+        path: backup_file,
+        context: "reading backup file",
+        source,
+    })?;
+    let wrap = YubiHsm2Wrap::from_yhw(&backup)?;
+    let wrapping_key = read(&wrapping_key_file).map_err(|source| Error::IoPath {
+        path: wrapping_key_file,
+        context: "reading wrapping key file",
+        source,
+    })?;
+    let decrypted = wrap.decrypt(&wrapping_key)?;
+    let inner = InnerFormat::parse(&decrypted)?;
+    println!("{inner:#?}");
+    Ok(())
+}
+
 /// Signs the signing request on standard input and returns a signing response on standard output.
 fn main() -> ExitCode {
     let args = Cli::parse();
@@ -140,6 +190,12 @@ fn main() -> ExitCode {
                 scenario,
                 serial_number,
             } => run_scenario(serial_number, scenario),
+        },
+        Subcommands::Backup(subcommand) => match subcommand {
+            BackupSubcommands::Dump {
+                backup_file,
+                wrapping_key,
+            } => dump_backup(backup_file, wrapping_key),
         },
     };
 
