@@ -2,11 +2,12 @@
 
 use log::{LevelFilter, debug};
 use nethsm::{Connection, NetHsm, SystemState, UserId, UserRole, test::create_container};
+use pretty_assertions::assert_eq;
 use rstest::rstest;
 use signstar_common::logging::setup_logging;
 use signstar_config::{
-    nethsm::{NetHsmBackend, NetHsmConfigState, NetHsmState, NetHsmUserMapping},
-    state::StateHandling,
+    nethsm::{NetHsmBackend, NetHsmBackendState, NetHsmConfigState, NetHsmUserMapping},
+    state::StateComparisonReport,
     test::{
         ConfigFileConfig,
         ConfigFileVariant,
@@ -45,7 +46,7 @@ async fn sync_unprovisioned_backend(
         panic!("This test requires a NetHSM configuration object in the Signstar config");
     };
     // Derive the acclaimed NetHSM state from the Signstar config
-    let signstar_state = NetHsmConfigState::from(nethsm_config);
+    let signstar_config_state = NetHsmConfigState::from(nethsm_config);
     let nethsm_admin_credentials = nethsm_admin_credentials(creds_data)?;
 
     let container = create_container().await?;
@@ -78,7 +79,11 @@ async fn sync_unprovisioned_backend(
     )?;
     assert_eq!(nethsm.state()?, SystemState::Unprovisioned);
 
-    let nethsm_backend = NetHsmBackend::new(nethsm, &nethsm_admin_credentials, &signstar_config)?;
+    let Some(nethsm_backend) =
+        NetHsmBackend::new(nethsm, &nethsm_admin_credentials, &signstar_config)?
+    else {
+        panic!("The used Signstar config should have a section for a NetHSM setup");
+    };
     debug!("Running sync");
     nethsm_backend.sync(&user_credentials)?;
     assert_eq!(nethsm_backend.nethsm().state()?, SystemState::Operational);
@@ -87,16 +92,22 @@ async fn sync_unprovisioned_backend(
     assert_eq!(nethsm_backend.nethsm().state()?, SystemState::Locked);
 
     debug!("Retrieve state of NetHSM");
-    let initial_nethsm_state = NetHsmState::try_from(&nethsm_backend)?;
+    let nethsm_backend_state = NetHsmBackendState::try_from(&nethsm_backend)?;
 
     debug!("Compare state of NetHSM with that of the Signstar config");
-    initial_nethsm_state.compare(&signstar_state);
+    assert_eq!(
+        StateComparisonReport::from((&nethsm_backend_state, &signstar_config_state)),
+        StateComparisonReport::Success
+    );
 
     debug!("Rerunning sync");
     nethsm_backend.sync(&user_credentials)?;
-    let nethsm_state = NetHsmState::try_from(&nethsm_backend)?;
+    let nethsm_backend_state = NetHsmBackendState::try_from(&nethsm_backend)?;
     debug!("Compare state of NetHSM with that of the Signstar config");
-    nethsm_state.compare(&signstar_state);
+    assert_eq!(
+        StateComparisonReport::from((&nethsm_backend_state, &signstar_config_state)),
+        StateComparisonReport::Success
+    );
     assert_eq!(nethsm_backend.nethsm().state()?, SystemState::Operational);
 
     Ok(())

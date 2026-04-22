@@ -7,11 +7,13 @@ mod error;
 mod state;
 
 pub use admin_credentials::NetHsmAdminCredentials;
-pub use backend::NetHsmBackend;
+pub(crate) use backend::{KeyState, UserState};
+pub use backend::{NetHsmBackend, NetHsmBackendState};
 pub use config::{
     Error as NetHsmConfigError,
     FilterUserKeys,
     NetHsmConfig,
+    NetHsmConfigState,
     NetHsmConfigUserData,
     NetHsmConfigUserKeyData,
     NetHsmMetricsUsers,
@@ -19,4 +21,5 @@ pub use config::{
     NetHsmUserMapping,
 };
 pub use error::Error;
-pub use state::{KeyState, NetHsmConfigState, NetHsmState, UserState};
+pub use state::NetHsmStateType;
+pub(crate) use state::{NetHsmKeyStateDiscrepancy, NetHsmUserStateDiscrepancy};

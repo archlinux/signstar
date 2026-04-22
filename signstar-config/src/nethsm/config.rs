@@ -1,10 +1,8 @@
-//! [`NetHsm`] specific integration for the [`crate::config`] module.
+//! NetHSM specific integration for the [`crate::config`] module.
 
 use std::collections::{BTreeSet, HashSet};
 
 use garde::Validate;
-#[cfg(doc)]
-use nethsm::NetHsm;
 use nethsm::{
     Connection,
     FullCredentials,
@@ -42,10 +40,10 @@ use crate::{
         duplicate_key_ids,
         duplicate_system_user_ids,
     },
-    nethsm::{KeyState, UserState},
+    nethsm::{KeyState, NetHsmBackendState, UserState},
 };
 
-/// An error that may occur when using NetHsm config objects.
+/// An error that may occur when using NetHSM config objects.
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
     /// A [`UserId`] is used both for a user in the [`Metrics`][`nethsm::UserRole::Metrics`] and
@@ -65,7 +63,7 @@ pub enum Error {
         user: String,
     },
 
-    /// Failed creating a [`NetHsmConfigUserData`] from a [`UserState`].
+    /// Failed creating a [`NetHsmConfigUserData`] from the state of a NetHSM backend.
     #[error("Unable to create a reference to NetHSM config user data, because {context}")]
     NetHsmConfigUserDataConversion {
         /// The context in which the error is happening.
@@ -75,7 +73,7 @@ pub enum Error {
         context: String,
     },
 
-    /// Failed creating a [`NetHsmConfigUserKeyData`] from a [`UserState`].
+    /// Failed creating a [`NetHsmConfigUserKeyData`] from the state of a NetHSM backend.
     #[error("Unable to create a reference to NetHSM config key data, because {context}")]
     NetHsmConfigUserKeyDataConversion {
         /// The context in which the error is happening.
@@ -331,7 +329,7 @@ impl<'a> From<&NetHsmConfigUserKeyData<'a>> for KeyState {
 #[derive(Clone, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum NetHsmUserMapping {
-    /// A NetHsm user in the Administrator role, without a system user mapped to it.
+    /// A NetHSM user in the Administrator role, without a system user mapped to it.
     Admin(UserId),
 
     /// A system user, with SSH access, mapped to a system-wide NetHSM user in the Backup role.
@@ -345,7 +343,7 @@ pub enum NetHsmUserMapping {
     },
 
     /// A system user, without SSH access, mapped to a system-wide NetHSM
-    /// user in the Metrics role and one or more NetHsm users in the Operator role with
+    /// user in the Metrics role and one or more NetHSM users in the Operator role with
     /// read-only access to zero or more keys.
     HermeticMetrics {
         /// The NetHSM users in the [`Metrics`][`UserRole::Metrics`] and
@@ -1132,6 +1130,89 @@ impl ConfigSystemUserIds for NetHsmConfig {
             .iter()
             .filter_map(|mapping| mapping.system_user_id())
             .collect()
+    }
+}
+
+/// The state of a NetHSM configuration.
+///
+/// Tracks the available backend users, their roles and assigned tags, as well as the key setups
+/// associated with users.
+#[derive(Debug, Eq, PartialEq)]
+pub struct NetHsmConfigState<'a> {
+    /// The user states.
+    pub(crate) user_data: Vec<NetHsmConfigUserData<'a>>,
+    /// The key states.
+    pub(crate) key_data: Vec<NetHsmConfigUserKeyData<'a>>,
+}
+
+impl<'a> From<&'a NetHsmConfig> for NetHsmConfigState<'a> {
+    fn from(value: &'a NetHsmConfig) -> Self {
+        let (key_data, user_data) = {
+            let mut key_data = Vec::new();
+            let mut user_data = Vec::new();
+
+            for mapping in value.mappings() {
+                if let Some(user_key_data) =
+                    mapping.nethsm_config_user_key_data(NetHsmUserKeysFilter::All)
+                {
+                    key_data.push(user_key_data)
+                }
+                user_data.extend(mapping.nethsm_config_user_data());
+            }
+
+            (key_data, user_data)
+        };
+
+        Self {
+            user_data,
+            key_data,
+        }
+    }
+}
+
+impl<'a> PartialEq<NetHsmBackendState> for NetHsmConfigState<'a> {
+    fn eq(&self, other: &NetHsmBackendState) -> bool {
+        if self.user_data.len() != other.user_states.len()
+            || self.key_data.len() != other.key_states.len()
+        {
+            return false;
+        }
+
+        {
+            let mut remaining_other_user_states: HashSet<&UserState> =
+                HashSet::from_iter(other.user_states.iter());
+            'outer: for self_user_data in self.user_data.iter() {
+                for other_user_state in remaining_other_user_states.iter() {
+                    if self_user_data == *other_user_state {
+                        remaining_other_user_states.remove(*other_user_state);
+                        continue 'outer;
+                    }
+                }
+                return false;
+            }
+            if !remaining_other_user_states.is_empty() {
+                return false;
+            }
+        }
+
+        {
+            let mut remaining_other_key_states: HashSet<&KeyState> =
+                HashSet::from_iter(other.key_states.iter());
+            'outer: for self_key_data in self.key_data.iter() {
+                for other_user_state in remaining_other_key_states.iter() {
+                    if self_key_data == *other_user_state {
+                        remaining_other_key_states.remove(*other_user_state);
+                        continue 'outer;
+                    }
+                }
+                return false;
+            }
+            if !remaining_other_key_states.is_empty() {
+                return false;
+            }
+        }
+
+        true
     }
 }
 
@@ -3110,6 +3191,14 @@ mod tests {
         }, {
             assert_snapshot!(current().name().expect("current thread should have a name").to_string().replace("::", "__"), error_msg);
         });
+        Ok(())
+    }
+
+    /// Ensures that [`NetHsmConfigState`] can be created from [`NetHsmConfig`].
+    #[rstest]
+    fn nethsm_config_state_from_config(nethsm_config: TestResult<NetHsmConfig>) -> TestResult {
+        let nethsm_config = nethsm_config?;
+        let _state = NetHsmConfigState::from(&nethsm_config);
         Ok(())
     }
 }
