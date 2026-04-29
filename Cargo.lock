@@ -4682,7 +4682,7 @@ dependencies = [
  "change-user-run",
  "clap",
  "clap-verbosity-flag",
- "digest 0.10.7",
+ "digest 0.11.2",
  "ed25519-dalek",
  "email_address",
  "log",
