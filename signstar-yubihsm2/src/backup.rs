@@ -8,7 +8,36 @@
 //! - AES-128 authentication keys,
 //! - opaque byte vectors.
 //!
+//! # YHW format
+//!
+//! YubiHSM wrap files (`*.yhw`) consist of an inner and an outer format.
+//!
+//! ## Outer
+//!
+//! The outer format is represented by a base64-encoded file.
+//! Its contents consist of 13 bytes of [nonce] at the start and AES-CCM encrypted data until the
+//! end of the file.
+//!
+//! ## Inner
+//!
+//! Decrypting the AES-CCM encrypted outer data reveals the inner format which has the following
+//! structure:
+//!
+//! - 1 byte for [`WrapAlgorithm`]
+//! - 8 bytes for [`Capabilities`]
+//! - 2 bytes for encoding the object's identifier
+//! - 2 bytes for encoding the wrapped object length without framing
+//! - 2 bytes for [`Domains`]
+//! - 1 byte for the object type (e.g. asymmetric key, opaque)
+//! - 1 byte for the subtype of the object (e.g. ed25519 key)
+//! - 1 byte for a sequence number, which is used internally and always `0`
+//! - 1 byte for encoding the origin (this is only relevant when exporting)
+//! - 40 bytes for a UTF-8 encoded label
+//! - the rest of the inner format is specific to each object type (e.g. opaque byte vectors are
+//!   embedded in their entirety here)
+//!
 //! [backup and restore]: https://docs.yubico.com/hardware/yubihsm-2/hsm-2-user-guide/hsm2-backup-restore.html
+//! [nonce]: https://en.wikipedia.org/wiki/Cryptographic_nonce
 
 use std::{array::TryFromSliceError, fmt::Debug};
 
@@ -25,6 +54,8 @@ use ed25519_dalek::{SigningKey, hazmat::ExpandedSecretKey};
 use num_enum::{FromPrimitive, IntoPrimitive};
 use yubihsm::object::{Handle, Type};
 
+#[cfg(doc)]
+use crate::object::Capabilities;
 use crate::object::{Domains, ObjectId};
 
 /// Backup error.
