@@ -65,5 +65,5 @@ precedence = "aggregate"
 [[annotations]]
 SPDX-FileCopyrightText = "Signstar Contributors"
 SPDX-License-Identifier = "CC-BY-SA-4.0"
-path = ["**.md"]
+path = ["**.md", "**.png", "**.svg"]
 precedence = "aggregate"
