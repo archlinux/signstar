@@ -1,5 +1,7 @@
 # Signstar
 
+<img src="signstar.png" alt="Signstar logo" width="33%" style="display: block; margin-left: auto; margin-right: auto;">
+
 This project provides tools and documentation for running a generic signing enclave with the help of a Hardware Security Module (HSM) as backend.
 
 Raw cryptographic signatures and [OpenPGP data signatures] are supported.
