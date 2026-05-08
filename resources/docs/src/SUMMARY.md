@@ -43,4 +43,5 @@
 - [API Documentation](./api-docs/README.md)
 - [Contributing Guidelines](./CONTRIBUTING.md)
 - [Testing](./testing.md)
+- [In the media](./media.md)
 - [Community](./community.md)
