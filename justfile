@@ -1218,6 +1218,7 @@ test-readmes:
 build-image openpgp_signing_key="openpgp_signing.tsk" openpgp_signing_cert="openpgp_signing.tpk" sb_verity_signing_key="sb_verity_signing.key" sb_verity_signing_cert="sb_verity_signing.pem" mkosi_options="":
     just ensure-command rsop mkosi
 
+    just create-image-signing-key {{ absolute_path(openpgp_signing_key) }} {{ absolute_path(openpgp_signing_cert) }}
     just create-secureboot-verity-key {{ absolute_path(sb_verity_signing_key) }} {{ absolute_path(sb_verity_signing_cert) }}
     cp -v {{ absolute_path(openpgp_signing_cert) }} {{ absolute_path("resources/mkosi/signstar/mkosi.extra/usr/lib/systemd/import-pubring.gpg") }}
     mkosi -f {{ mkosi_options }} --secure-boot-key={{ absolute_path(sb_verity_signing_key) }} --secure-boot-certificate={{ absolute_path(sb_verity_signing_cert) }} --verity-key={{ absolute_path(sb_verity_signing_key) }} --verity-certificate={{ absolute_path(sb_verity_signing_cert) }} --key={{ absolute_path(openpgp_signing_key) }} build
@@ -1238,6 +1239,17 @@ create-secureboot-verity-key key cert common_name="archlinux.org" key_settings="
         just ensure-command openssl; \
         mkdir -p resources/mkosi/signstar/mkosi.output/; \
         openssl req -x509 -newkey {{ key_settings }} -keyout "{{ key }}" -out "{{ cert }}" -nodes -days 3650 -set_serial 01 -subj /CN={{ common_name }}; \
+    fi
+
+# Creates an OpenPGP signing key and certificate, for signing and verifying the eventual payloads (only if either `key` or `cert` does not exist).
+[group('signstaros')]
+create-image-signing-key key cert user_id="Signstar Update <signstar-update@archlinux.org>":
+    if ! {{ path_exists(key) }} || ! {{ path_exists(cert) }}; then \
+        printf "Creating new OpenPGP image signing key (%s) and certificate (%s)...\n" {{ key }} {{ cert }}; \
+        just ensure-command rsop; \
+        mkdir --parents --verbose `dirname {{ absolute_path(key) }}` `dirname {{ absolute_path(cert) }}`; \
+        rsop generate-key --signing-only "{{ user_id }}" > {{ absolute_path(key) }}; \
+        rsop extract-cert < {{ absolute_path(key) }} > {{ absolute_path(cert) }}; \
     fi
 
 # Runs an OS image using mkosi qemu
