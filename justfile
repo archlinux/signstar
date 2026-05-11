@@ -1234,6 +1234,7 @@ build-test-image openpgp_signing_key="openpgp_signing.tsk" openpgp_signing_cert=
 [group('signstaros')]
 create-secureboot-verity-key key cert common_name="archlinux.org" key_settings="rsa:3072":
     if ! {{ path_exists(key) }} || ! {{ path_exists(cert) }}; then \
+        printf "Creating new Secure Boot/Verity signing key (%s) and certificate (%s)...\n" {{ key }} {{ cert }}; \
         just ensure-command openssl; \
         mkdir -p resources/mkosi/signstar/mkosi.output/; \
         openssl req -x509 -newkey {{ key_settings }} -keyout "{{ key }}" -out "{{ cert }}" -nodes -days 3650 -set_serial 01 -subj /CN={{ common_name }}; \
