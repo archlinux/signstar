@@ -1217,7 +1217,7 @@ test-readmes:
 build-image openpgp_signing_key signing_key="resources/mkosi/signstar/mkosi.output/signing.key" signing_cert="resources/mkosi/signstar/mkosi.output/signing.pem" mkosi_options="":
     just ensure-command rsop mkosi
 
-    just create-image-signing-key {{ absolute_path(signing_key) }} {{ absolute_path(signing_cert) }}
+    just create-secureboot-verity-key {{ absolute_path(signing_key) }} {{ absolute_path(signing_cert) }}
     cp {{ openpgp_signing_key }} {{ absolute_path("resources/mkosi/signstar/mkosi.extra/usr/lib/systemd/import-pubring.gpg") }}
     mkosi -f -C {{ absolute_path("resources/mkosi/signstar") }} {{ mkosi_options }} --secure-boot-key={{ absolute_path(signing_key) }} --secure-boot-certificate={{ absolute_path(signing_cert) }} --verity-key={{ absolute_path(signing_key) }} --verity-certificate={{ absolute_path(signing_cert) }} --key={{ openpgp_signing_key }} build
 
@@ -1231,7 +1231,7 @@ build-test-image openpgp_signing_key signing_key="resources/mkosi/signstar/mkosi
 
 # Creates a signing key and certificate for Secure Boot and verity signing if not both `key` and `cert` exist
 [group('signstaros')]
-create-image-signing-key key cert common_name="archlinux.org" key_settings="rsa:3072":
+create-secureboot-verity-key key cert common_name="archlinux.org" key_settings="rsa:3072":
     if ! {{ path_exists(key) }}; then \
         if ! {{ path_exists(cert) }}; then \
             just ensure-command openssl; \
