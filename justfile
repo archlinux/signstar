@@ -1215,20 +1215,20 @@ test-readmes:
 # Builds an OS image using mkosi
 [group('signstaros')]
 [working-directory("resources/mkosi/signstar")]
-build-image openpgp_signing_key="openpgp_signing.tsk" openpgp_signing_cert="openpgp_signing.tpk" signing_key="resources/mkosi/signstar/mkosi.output/signing.key" signing_cert="resources/mkosi/signstar/mkosi.output/signing.pem" mkosi_options="":
+build-image openpgp_signing_key="openpgp_signing.tsk" openpgp_signing_cert="openpgp_signing.tpk" sb_verity_signing_key="sb_verity_signing.key" sb_verity_signing_cert="sb_verity_signing.pem" mkosi_options="":
     just ensure-command rsop mkosi
 
-    just create-secureboot-verity-key {{ absolute_path(signing_key) }} {{ absolute_path(signing_cert) }}
+    just create-secureboot-verity-key {{ absolute_path(sb_verity_signing_key) }} {{ absolute_path(sb_verity_signing_cert) }}
     cp -v {{ absolute_path(openpgp_signing_cert) }} {{ absolute_path("resources/mkosi/signstar/mkosi.extra/usr/lib/systemd/import-pubring.gpg") }}
-    mkosi -f {{ mkosi_options }} --secure-boot-key={{ absolute_path(signing_key) }} --secure-boot-certificate={{ absolute_path(signing_cert) }} --verity-key={{ absolute_path(signing_key) }} --verity-certificate={{ absolute_path(signing_cert) }} --key={{ absolute_path(openpgp_signing_key) }} build
+    mkosi -f {{ mkosi_options }} --secure-boot-key={{ absolute_path(sb_verity_signing_key) }} --secure-boot-certificate={{ absolute_path(sb_verity_signing_cert) }} --verity-key={{ absolute_path(sb_verity_signing_key) }} --verity-certificate={{ absolute_path(sb_verity_signing_cert) }} --key={{ absolute_path(openpgp_signing_key) }} build
 
 # Builds an OS image using mkosi
 [group('signstaros')]
-build-test-image openpgp_signing_key="openpgp_signing.tsk" openpgp_signing_cert="openpgp_signing.tpk" signing_key="resources/mkosi/signstar/mkosi.output/signing.key" signing_cert="resources/mkosi/signstar/mkosi.output/signing.pem" mkosi_options="--profile local-testing":
+build-test-image openpgp_signing_key="openpgp_signing.tsk" openpgp_signing_cert="openpgp_signing.tpk" sb_verity_signing_key="sb_verity_signing.key" sb_verity_signing_cert="sb_verity_signing.pem" mkosi_options="--profile local-testing":
     just build signstar-configure-build --features nethsm,yubihsm2
     install -vDm 755 "`just get-cargo-target-dir`/debug/signstar-configure-build" -t resources/mkosi/signstar/mkosi.profiles/local-testing/mkosi.extra/usr/local/bin/
     install -vDm 644 fixtures/config/all_backends/admin-systemd-creds-non-admin-systemd-creds.yaml resources/mkosi/signstar/mkosi.profiles/local-testing/mkosi.extra/usr/share/signstar/config.yaml
-    just build-image {{ openpgp_signing_key }} {{ openpgp_signing_cert }} {{ signing_key }} {{ signing_cert }} "{{ mkosi_options }}"
+    just build-image {{ openpgp_signing_key }} {{ openpgp_signing_cert }} {{ sb_verity_signing_key }} {{ sb_verity_signing_cert }} "{{ mkosi_options }}"
 
 # Creates a signing key and certificate for Secure Boot and verity signing if not both `key` and `cert` exist
 [group('signstaros')]
