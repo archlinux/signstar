@@ -198,6 +198,7 @@ install-alpm-package-set set:
         edk2-ovmf
         erofs-utils
         git
+        jq
         mkosi
         mtools
         openssl
@@ -1223,10 +1224,9 @@ build-image openpgp_signing_key signing_key="resources/mkosi/signstar/mkosi.outp
 # Builds an OS image using mkosi
 [group('signstaros')]
 build-test-image openpgp_signing_key signing_key="resources/mkosi/signstar/mkosi.output/signing.key" signing_cert="resources/mkosi/signstar/mkosi.output/signing.pem" mkosi_options="":
-    just build signstar-configure-build
-    mkdir -p resources/mkosi/signstar/mkosi.profiles/local-testing/mkosi.extra/usr/local/bin/ resources/mkosi/signstar/mkosi.profiles/local-testing/mkosi.extra/usr/local/share/signstar/
-    cp -v "${CARGO_TARGET_DIR:-target}/debug/signstar-configure-build" resources/mkosi/signstar/mkosi.profiles/local-testing/mkosi.extra/usr/local/bin/
-    cp -v signstar-configure-build/tests/fixtures/example.toml resources/mkosi/signstar/mkosi.profiles/local-testing/mkosi.extra/usr/local/share/signstar/config.toml
+    just build signstar-configure-build --features nethsm,yubihsm2
+    install -vDm 755 "`just get-cargo-target-dir`/debug/signstar-configure-build" -t resources/mkosi/signstar/mkosi.profiles/local-testing/mkosi.extra/usr/local/bin/
+    install -vDm 644 fixtures/config/all_backends/admin-systemd-creds-non-admin-systemd-creds.yaml resources/mkosi/signstar/mkosi.profiles/local-testing/mkosi.extra/usr/share/signstar/config.yaml
     just build-image {{ openpgp_signing_key }} {{ signing_key }} {{ signing_cert }} "--profile local-testing"
 
 # Creates a signing key and certificate for Secure Boot and verity signing if not both `key` and `cert` exist
