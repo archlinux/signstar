@@ -1232,12 +1232,10 @@ build-test-image openpgp_signing_key signing_key="resources/mkosi/signstar/mkosi
 # Creates a signing key and certificate for Secure Boot and verity signing if not both `key` and `cert` exist
 [group('signstaros')]
 create-secureboot-verity-key key cert common_name="archlinux.org" key_settings="rsa:3072":
-    if ! {{ path_exists(key) }}; then \
-        if ! {{ path_exists(cert) }}; then \
-            just ensure-command openssl; \
-            mkdir -p resources/mkosi/signstar/mkosi.output/; \
-            openssl req -x509 -newkey {{ key_settings }} -keyout "{{ key }}" -out "{{ cert }}" -nodes -days 3650 -set_serial 01 -subj /CN={{ common_name }}; \
-        fi \
+    if ! {{ path_exists(key) }} || ! {{ path_exists(cert) }}; then \
+        just ensure-command openssl; \
+        mkdir -p resources/mkosi/signstar/mkosi.output/; \
+        openssl req -x509 -newkey {{ key_settings }} -keyout "{{ key }}" -out "{{ cert }}" -nodes -days 3650 -set_serial 01 -subj /CN={{ common_name }}; \
     fi
 
 # Runs an OS image using mkosi qemu
