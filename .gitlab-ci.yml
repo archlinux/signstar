@@ -291,13 +291,8 @@ build-image:
     - useradd -m testuser
     - chown -R testuser:testuser .
     - just --justfile .gitlab/justfile section-end "create-testuser"
-    - just --justfile .gitlab/justfile section-start "create-openpgp-key" "Create ephemeral OpenPGP signing key"
-    - export KEY="$(mktemp)"
-    - rsop generate-key --signing-only test > "$KEY"
-    - chown testuser:testuser "$KEY"
-    - just --justfile .gitlab/justfile section-end "create-openpgp-key"
     - just --justfile .gitlab/justfile section-start "build-image" "Build Signstar OS image as 'testuser'"
-    - WORKDIR="$(pwd)" runuser -w WORKDIR,KEY -l testuser -c 'env && cd "$WORKDIR" && just build-image "$KEY"'
+    - WORKDIR="$(pwd)" runuser -w WORKDIR -l testuser -c 'env && cd "$WORKDIR" && just build-image'
     - just --justfile .gitlab/justfile section-end "build-image"
   stage: signstaros
   tags:
@@ -314,13 +309,8 @@ build-test-image:
     # show the mkosi version
     - mkosi --version
     - just --justfile .gitlab/justfile section-end "install-alpm-packages"
-    - just --justfile .gitlab/justfile section-start "create-openpgp-key" "Create ephemeral OpenPGP signing key"
-    - export KEY="$(mktemp)"
-    - rsop generate-key --signing-only test > "$KEY"
-    - chown testuser:testuser "$KEY"
-    - just --justfile .gitlab/justfile section-end "create-openpgp-key"
     - just --justfile .gitlab/justfile section-start "build-image" "Build Signstar OS test image as 'testuser'"
-    - WORKDIR="$(pwd)" runuser -w WORKDIR,KEY -l testuser -c 'env && cd "$WORKDIR" && just build-test-image "$KEY"'
+    - WORKDIR="$(pwd)" runuser -w WORKDIR -l testuser -c 'env && cd "$WORKDIR" && just build-test-image'
     - just --justfile .gitlab/justfile section-end "build-image"
   stage: signstaros
   tags:
