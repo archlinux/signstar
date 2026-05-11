@@ -1218,8 +1218,8 @@ build-image openpgp_signing_key signing_key="resources/mkosi/signstar/mkosi.outp
     just ensure-command rsop mkosi
 
     just create-secureboot-verity-key {{ absolute_path(signing_key) }} {{ absolute_path(signing_cert) }}
-    cp {{ openpgp_signing_key }} {{ absolute_path("resources/mkosi/signstar/mkosi.extra/usr/lib/systemd/import-pubring.gpg") }}
-    mkosi -f -C {{ absolute_path("resources/mkosi/signstar") }} {{ mkosi_options }} --secure-boot-key={{ absolute_path(signing_key) }} --secure-boot-certificate={{ absolute_path(signing_cert) }} --verity-key={{ absolute_path(signing_key) }} --verity-certificate={{ absolute_path(signing_cert) }} --key={{ openpgp_signing_key }} build
+    cp -v {{ openpgp_signing_key }} {{ absolute_path("resources/mkosi/signstar/mkosi.extra/usr/lib/systemd/import-pubring.gpg") }}
+    mkosi -f -C {{ absolute_path("resources/mkosi/signstar") }} {{ mkosi_options }} --secure-boot-key={{ absolute_path(signing_key) }} --secure-boot-certificate={{ absolute_path(signing_cert) }} --verity-key={{ absolute_path(signing_key) }} --verity-certificate={{ absolute_path(signing_cert) }} --key={{ absolute_path(openpgp_signing_key) }} build
 
 # Builds an OS image using mkosi
 [group('signstaros')]
