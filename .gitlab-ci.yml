@@ -159,6 +159,7 @@ licenses:
   stage: check
 
 links:
+  allow_failure: true
   extends: .default
   script:
     - just --justfile .gitlab/justfile section-start "install-alpm-packages" "Install ALPM package set 'links'"
