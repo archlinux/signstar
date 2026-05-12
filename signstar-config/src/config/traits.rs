@@ -1,8 +1,9 @@
 //! Traits for configuration use.
 
-use std::collections::HashSet;
+use std::{collections::HashSet, fs::write};
 
 use nix::unistd::User;
+use signstar_common::ssh::get_ssh_authorized_key_base_dir;
 use signstar_crypto::{
     NonAdministrativeSecretHandling,
     passphrase::Passphrase,
@@ -12,7 +13,7 @@ use signstar_crypto::{
 
 use crate::{
     config::{AuthorizedKeyEntry, SystemUserData, SystemUserId},
-    utils::get_current_system_user,
+    utils::{fail_if_not_root, get_current_system_user},
 };
 
 /// An error that may occur when using signstar-config traits.
@@ -463,7 +464,12 @@ pub trait MappingBackendUserIds {
 /// # Example
 ///
 /// ```
-/// use signstar_config::config::{AuthorizedKeyEntry, MappingAuthorizedKeyEntry, SystemUserId};
+/// use signstar_config::config::{
+///     AuthorizedKeyEntry,
+///     MappingAuthorizedKeyEntry,
+///     MappingSystemUserId,
+///     SystemUserId,
+/// };
 /// use signstar_crypto::{passphrase::Passphrase, traits::UserWithPassphrase};
 ///
 /// #[derive(Debug)]
@@ -486,6 +492,17 @@ pub trait MappingBackendUserIds {
 ///         ssh_authorized_key: AuthorizedKeyEntry,
 ///         system_user: SystemUserId,
 ///     },
+/// }
+///
+/// impl MappingSystemUserId for ExampleUserMapping {
+///     fn system_user_id(&self) -> Option<&SystemUserId> {
+///         match self {
+///             Self::Admin { .. } => None,
+///             Self::Backup { system_user, .. }
+///             | Self::Metrics { system_user, .. }
+///             | Self::Signer { system_user, .. } => Some(system_user),
+///         }
+///     }
 /// }
 ///
 /// impl MappingAuthorizedKeyEntry for ExampleUserMapping {
@@ -516,12 +533,48 @@ pub trait MappingBackendUserIds {
 /// # Ok(())
 /// # }
 /// ```
-pub trait MappingAuthorizedKeyEntry {
+pub trait MappingAuthorizedKeyEntry: MappingSystemUserId {
     /// Returns an optional SSH `authorized_keys` entry.
     ///
     /// Implementations must return [`None`] if the specific mapping does not provide any
     /// [`AuthorizedKeyEntry`].
     fn authorized_key_entry(&self) -> Option<&AuthorizedKeyEntry>;
+
+    /// Writes an optional SSH `authorized_keys` entry to the location configured by Signstar.
+    ///
+    /// # Note
+    ///
+    /// Returns `Ok(true)`, if the SSH authorized keys file has been written successfully.
+    /// Returns `Ok(false)`, if either the mapping implementation does not track an SSH authorized
+    /// key, or does not track a system user.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if
+    ///
+    /// - the system user of the mapping does not exist
+    /// - the currently calling user is not `root`
+    /// - the SSH authorized key cannot be written to file
+    fn write_authorized_key_entry(&self) -> Result<bool, crate::Error> {
+        let Some(authorized_key) = self.authorized_key_entry() else {
+            return Ok(false);
+        };
+        let path = if let Some(user) = self.system_user_id_as_existing_unix_user()? {
+            fail_if_not_root(&get_current_system_user()?)?;
+            get_ssh_authorized_key_base_dir()
+                .join(format!("signstar-user-{}.authorized_keys", user.name))
+        } else {
+            return Ok(false);
+        };
+
+        write(&path, authorized_key.to_string()).map_err(|source| crate::Error::IoPath {
+            path,
+            context: "writing SSH authorized key to file",
+            source,
+        })?;
+
+        Ok(true)
+    }
 }
 
 /// An interface to define a generic filter when evaluating the key IDs of a backend.
@@ -1213,7 +1266,13 @@ pub trait ConfigSystemUserIds {
 /// ```
 /// use std::collections::HashSet;
 ///
-/// use signstar_config::config::{AuthorizedKeyEntry, ConfigAuthorizedKeyEntries, MappingAuthorizedKeyEntry, SystemUserId};
+/// use signstar_config::config::{
+///     AuthorizedKeyEntry,
+///     ConfigAuthorizedKeyEntries,
+///     MappingAuthorizedKeyEntry,
+///     MappingSystemUserId,
+///     SystemUserId,
+/// };
 /// use signstar_crypto::{passphrase::Passphrase, traits::UserWithPassphrase};
 ///
 /// #[derive(Debug, Eq, Hash, PartialEq)]
@@ -1236,6 +1295,17 @@ pub trait ConfigSystemUserIds {
 ///         ssh_authorized_key: AuthorizedKeyEntry,
 ///         system_user: SystemUserId,
 ///     },
+/// }
+///
+/// impl MappingSystemUserId for ExampleUserMapping {
+///     fn system_user_id(&self) -> Option<&SystemUserId> {
+///         match self {
+///             Self::Admin { .. } => None,
+///             Self::Backup { system_user, .. }
+///             | Self::Metrics { system_user, .. }
+///             | Self::Signer { system_user, .. } => Some(system_user),
+///         }
+///     }
 /// }
 ///
 /// impl MappingAuthorizedKeyEntry for ExampleUserMapping {
