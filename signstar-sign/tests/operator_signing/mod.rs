@@ -130,7 +130,7 @@ async fn sign_data(_req: HttpRequest) -> impl Responder {
             signstar_config: ConfigFileConfig {
                 location: Some(ConfigFileLocation::default()),
                 variant: ConfigFileVariant::OnlyNetHsmBackendAdminPlaintextNonAdminSystemdCreds,
-                system_user_config: Some(SystemUserConfig{ create_secrets: true })
+                system_user_config: Some(SystemUserConfig{ create_secrets: true, create_ssh_authorized_keys: true })
             },
         }
     )
@@ -144,7 +144,7 @@ async fn sign_data(_req: HttpRequest) -> impl Responder {
             signstar_config: ConfigFileConfig {
                 location: Some(ConfigFileLocation::default()),
                 variant: ConfigFileVariant::OnlyYubiHsm2MockHsmBackendAdminPlaintextNonAdminSystemdCreds,
-                system_user_config: Some(SystemUserConfig{ create_secrets: true })
+                system_user_config: Some(SystemUserConfig{ create_secrets: true, create_ssh_authorized_keys: true  })
             },
         }
     )

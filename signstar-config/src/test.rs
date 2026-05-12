@@ -24,7 +24,7 @@ use signstar_crypto::AdministrativeSecretHandling;
 use signstar_crypto::passphrase::Passphrase;
 use tempfile::NamedTempFile;
 
-use crate::config::{Config, ConfigSystemUserIds};
+use crate::config::{Config, ConfigSystemUserIds, MappingAuthorizedKeyEntry};
 #[cfg(feature = "nethsm")]
 use crate::{admin_credentials::AdminCredentials, nethsm::NetHsmAdminCredentials};
 /// When any of the HSM backends is present.
@@ -49,6 +49,18 @@ pub mod impl_any {
                 }
             }
 
+            if self.create_ssh_authorized_keys {
+                let user_backend_connections =
+                    config.user_backend_connections(UserBackendConnectionFilter::NonAdmin);
+                for user_backend_connection in user_backend_connections {
+                    user_backend_connection.write_authorized_key_entry()?;
+                }
+
+                for mapping in config.system().mappings() {
+                    mapping.write_authorized_key_entry()?;
+                }
+            }
+
             Ok(())
         }
     }
@@ -68,8 +80,14 @@ mod impl_none {
         ///
         /// # Errors
         ///
-        /// Never returns an error.
-        pub fn apply(&self, _config: &Config) -> Result<(), Error> {
+        /// Returns an error if an `authorized_keys` file for a user cannot be written.
+        pub fn apply(&self, config: &Config) -> Result<(), crate::Error> {
+            if self.create_ssh_authorized_keys {
+                for mapping in config.system().mappings() {
+                    mapping.write_authorized_key_entry()?;
+                }
+            }
+
             Ok(())
         }
     }
@@ -659,6 +677,9 @@ pub struct SystemUserConfig {
     /// Whether to create the secrets for each system user with at least one backend user.
     #[cfg(any(feature = "nethsm", feature = "yubihsm2"))]
     pub create_secrets: bool,
+
+    /// Whether to create the SSH authorized keys file for system users.
+    pub create_ssh_authorized_keys: bool,
 }
 
 /// Configuration for how and where to provide a Signstar configuration file.
