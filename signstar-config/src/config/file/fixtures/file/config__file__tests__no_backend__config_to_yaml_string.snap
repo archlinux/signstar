@@ -1,6 +1,6 @@
 ---
 source: signstar-config/src/config/file/mod.rs
-description: "Configuration with system-wide, NetHSM and YubiHSM2 configuration"
+description: Configuration with only system-wide configuration
 expression: config_str
 ---
 system:

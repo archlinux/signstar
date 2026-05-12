@@ -893,6 +893,59 @@ mod tests {
             Ok(ConfigBuilder::new(default_system_config?).finish()?)
         }
 
+        /// Create a [`Config`] using [`ConfigBuilder`].
+        #[rstest]
+        fn config_builder_new(default_system_config: TestResult<SystemConfig>) -> TestResult {
+            let _config = ConfigBuilder::new(default_system_config?).finish()?;
+
+            Ok(())
+        }
+
+        /// Ensures that a reference to the [`SystemConfig`] can be retrieved from [`Config`].
+        #[rstest]
+        fn config_system(default_system_config: TestResult<SystemConfig>) -> TestResult {
+            let system_config = default_system_config?;
+            let config = ConfigBuilder::new(system_config.clone()).finish()?;
+            assert_eq!(config.system(), &system_config);
+
+            Ok(())
+        }
+
+        /// Ensures, that a [`Config`] object leads to a specific YAML output.
+        ///
+        /// In this particular case, only a [`SystemConfig`] object are present.
+        #[rstest]
+        fn config_to_yaml_string(default_system_config: TestResult<SystemConfig>) -> TestResult {
+            let config = ConfigBuilder::new(default_system_config?).finish()?;
+            let config_str = config.to_yaml_string()?;
+
+            with_settings!({
+                description => "Configuration with only system-wide configuration",
+                snapshot_path => SNAPSHOT_PATH,
+                prepend_module_to_snapshot => false,
+            }, {
+                assert_snapshot!(current().name().expect("current thread should have a name").to_string().replace("::", "__"), config_str);
+            });
+
+            Ok(())
+        }
+
+        /// Ensures, that a valid [`Config`] can be created from a YAML file and turned back into
+        /// the same YAML string.
+        ///
+        /// The configuration file only describes a [`SystemConfig`] object.
+        #[rstest]
+        fn roundtrip_yaml_config(
+            #[files("../fixtures/config/no_backend/*.yaml")] path: PathBuf,
+        ) -> TestResult {
+            let config_string = read_to_string(&path)?;
+            let config = Config::from_file_path(&path)?;
+
+            assert_eq!(config.to_yaml_string()?, config_string);
+
+            Ok(())
+        }
+
         /// Ensures, that [`Config::authorized_key_entries`] returns SSH authorized key entries
         /// correctly.
         #[rstest]
@@ -3821,67 +3874,6 @@ mod tests {
                     non_admin_secret_handling
                 );
             }
-
-            Ok(())
-        }
-    }
-
-    /// Tests, that are only available when using no backends.
-    #[cfg(not(all(feature = "nethsm", feature = "yubihsm2")))]
-    mod no_backends {
-        use pretty_assertions::assert_eq;
-
-        use super::*;
-
-        /// Create a [`Config`] using [`ConfigBuilder`].
-        #[rstest]
-        fn config_builder_new(default_system_config: TestResult<SystemConfig>) -> TestResult {
-            let _config = ConfigBuilder::new(default_system_config?).finish()?;
-
-            Ok(())
-        }
-
-        /// Ensures that a reference to the [`SystemConfig`] can be retrieved from [`Config`].
-        #[rstest]
-        fn config_system(default_system_config: TestResult<SystemConfig>) -> TestResult {
-            let system_config = default_system_config?;
-            let config = ConfigBuilder::new(system_config.clone()).finish()?;
-            assert_eq!(config.system(), &system_config);
-
-            Ok(())
-        }
-
-        /// Ensures, that a [`Config`] object leads to a specific YAML output.
-        ///
-        /// In this particular case, only a [`SystemConfig`] object are present.
-        #[rstest]
-        fn config_to_yaml_string(default_system_config: TestResult<SystemConfig>) -> TestResult {
-            let config = ConfigBuilder::new(default_system_config?).finish()?;
-            let config_str = config.to_yaml_string()?;
-
-            with_settings!({
-                description => "Configuration with system-wide, NetHSM and YubiHSM2 configuration",
-                snapshot_path => SNAPSHOT_PATH,
-                prepend_module_to_snapshot => false,
-            }, {
-                assert_snapshot!(current().name().expect("current thread should have a name").to_string().replace("::", "__"), config_str);
-            });
-
-            Ok(())
-        }
-
-        /// Ensures, that a valid [`Config`] can be created from a YAML file and turned back into
-        /// the same YAML string.
-        ///
-        /// The configuration file only describes a [`SystemConfig`] object.
-        #[rstest]
-        fn roundtrip_yaml_config(
-            #[files("../fixtures/config/no_backend/*.yaml")] path: PathBuf,
-        ) -> TestResult {
-            let config_string = read_to_string(&path)?;
-            let config = Config::from_file_path(&path)?;
-
-            assert_eq!(config.to_yaml_string()?, config_string);
 
             Ok(())
         }
