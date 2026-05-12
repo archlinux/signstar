@@ -23,6 +23,7 @@ use crate::{
         ConfigBuilder,
         ConfigSystemUserData,
         ConfigSystemUserIds,
+        MappingAuthorizedKeyEntry,
         MappingBackendUserSecrets,
         MappingSystemUserId,
         SystemConfig,
@@ -117,6 +118,24 @@ impl UserBackendConnection {
                 mapping,
                 ..
             } => mapping.load_non_admin_backend_user_secrets(*non_admin_secret_handling, filter),
+        }
+    }
+}
+
+impl MappingSystemUserId for UserBackendConnection {
+    fn system_user_id(&self) -> Option<&SystemUserId> {
+        match self {
+            Self::NetHsm { mapping, .. } => mapping.system_user_id(),
+            Self::YubiHsm2 { mapping, .. } => mapping.system_user_id(),
+        }
+    }
+}
+
+impl MappingAuthorizedKeyEntry for UserBackendConnection {
+    fn authorized_key_entry(&self) -> Option<&AuthorizedKeyEntry> {
+        match self {
+            Self::NetHsm { mapping, .. } => mapping.authorized_key_entry(),
+            Self::YubiHsm2 { mapping, .. } => mapping.authorized_key_entry(),
         }
     }
 }

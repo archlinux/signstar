@@ -947,7 +947,10 @@ mod tests {
         use pretty_assertions::assert_eq;
 
         use super::*;
-        use crate::config::{SystemUserData, traits::ConfigSystemUserData};
+        use crate::config::{
+            SystemUserData,
+            traits::{ConfigSystemUserData, MappingAuthorizedKeyEntry, MappingSystemUserId},
+        };
 
         /// Creates a default [`Config`] for testing purposes.
         #[fixture]
@@ -970,6 +973,69 @@ mod tests {
             let mut data = raw_user_data_system?;
             data.extend(raw_user_data_nethsm?);
             Ok(data)
+        }
+
+        /// Ensures that [`MappingSystemUserId`] for [`UserBackendConnection`] works as intended.
+        #[rstest]
+        fn user_backend_connection_system_user_id(
+            raw_user_data_nethsm: TestResult<Vec<(SystemUserId, Option<AuthorizedKeyEntry>)>>,
+        ) -> TestResult {
+            let raw_user_data_nethsm = raw_user_data_nethsm?;
+            let data = UserBackendConnection::NetHsm {
+                admin_secret_handling: AdministrativeSecretHandling::Plaintext,
+                non_admin_secret_handling: NonAdministrativeSecretHandling::Plaintext,
+                connections: BTreeSet::from_iter([Connection::new(
+                    "https://nethsm1.example.org/".parse()?,
+                    ConnectionSecurity::Unsafe,
+                )]),
+                mapping: NetHsmUserMapping::Backup {
+                    backend_user: "backup".parse()?,
+                    ssh_authorized_key: raw_user_data_nethsm[1]
+                        .1
+                        .clone()
+                        .expect("to have an SSH authorized key"),
+                    system_user: raw_user_data_nethsm[1].0.clone(),
+                },
+            };
+            assert_eq!(data.system_user_id(), Some(&raw_user_data_nethsm[1].0));
+
+            Ok(())
+        }
+
+        /// Ensures that [`MappingAuthorizedKeyEntry`] for [`UserBackendConnection`] works as
+        /// intended.
+        #[rstest]
+        fn user_backend_connection_authorized_key_entry(
+            raw_user_data_nethsm: TestResult<Vec<(SystemUserId, Option<AuthorizedKeyEntry>)>>,
+        ) -> TestResult {
+            let raw_user_data_nethsm = raw_user_data_nethsm?;
+            let data = UserBackendConnection::NetHsm {
+                admin_secret_handling: AdministrativeSecretHandling::Plaintext,
+                non_admin_secret_handling: NonAdministrativeSecretHandling::Plaintext,
+                connections: BTreeSet::from_iter([Connection::new(
+                    "https://nethsm1.example.org/".parse()?,
+                    ConnectionSecurity::Unsafe,
+                )]),
+                mapping: NetHsmUserMapping::Backup {
+                    backend_user: "backup".parse()?,
+                    ssh_authorized_key: raw_user_data_nethsm[1]
+                        .1
+                        .clone()
+                        .expect("to have an SSH authorized key"),
+                    system_user: raw_user_data_nethsm[1].0.clone(),
+                },
+            };
+            assert_eq!(
+                data.authorized_key_entry(),
+                Some(
+                    raw_user_data_nethsm[1]
+                        .1
+                        .as_ref()
+                        .expect("to have an SSH authorized key")
+                )
+            );
+
+            Ok(())
         }
 
         /// Ensures, that [`ConfigBuilder::finish`] fails on issues with overlapping data in
@@ -1702,7 +1768,10 @@ mod tests {
         use pretty_assertions::assert_eq;
 
         use super::*;
-        use crate::config::{SystemUserData, traits::ConfigSystemUserData};
+        use crate::config::{
+            SystemUserData,
+            traits::{ConfigSystemUserData, MappingAuthorizedKeyEntry, MappingSystemUserId},
+        };
 
         /// Creates a default [`Config`] for testing purposes.
         #[fixture]
@@ -1725,6 +1794,67 @@ mod tests {
             let mut data = raw_user_data_system?;
             data.extend(raw_user_data_yubihsm2?);
             Ok(data)
+        }
+
+        /// Ensures that [`MappingSystemUserId`] for [`UserBackendConnection`] works as intended.
+        #[rstest]
+        fn user_backend_connection_system_user_id(
+            raw_user_data_yubihsm2: TestResult<Vec<(SystemUserId, Option<AuthorizedKeyEntry>)>>,
+        ) -> TestResult {
+            let raw_user_data_yubihsm2 = raw_user_data_yubihsm2?;
+            let data = UserBackendConnection::YubiHsm2 {
+                admin_secret_handling: AdministrativeSecretHandling::Plaintext,
+                non_admin_secret_handling: NonAdministrativeSecretHandling::Plaintext,
+                connections: BTreeSet::from_iter([YubiHsm2Connection::Usb {
+                    serial_number: "0123456789".parse()?,
+                }]),
+                mapping: YubiHsm2UserMapping::AuditLog {
+                    authentication_key_id: "1".parse()?,
+                    ssh_authorized_key: raw_user_data_yubihsm2[1]
+                        .1
+                        .clone()
+                        .expect("to have an SSH authorized key"),
+                    system_user: raw_user_data_yubihsm2[1].0.clone(),
+                },
+            };
+            assert_eq!(data.system_user_id(), Some(&raw_user_data_yubihsm2[1].0));
+
+            Ok(())
+        }
+
+        /// Ensures that [`MappingAuthorizedKeyEntry`] for [`UserBackendConnection`] works as
+        /// intended.
+        #[rstest]
+        fn user_backend_connection_authorized_key_entry(
+            raw_user_data_yubihsm2: TestResult<Vec<(SystemUserId, Option<AuthorizedKeyEntry>)>>,
+        ) -> TestResult {
+            let raw_user_data_yubihsm2 = raw_user_data_yubihsm2?;
+            let data = UserBackendConnection::YubiHsm2 {
+                admin_secret_handling: AdministrativeSecretHandling::Plaintext,
+                non_admin_secret_handling: NonAdministrativeSecretHandling::Plaintext,
+                connections: BTreeSet::from_iter([YubiHsm2Connection::Usb {
+                    serial_number: "0123456789".parse()?,
+                }]),
+                mapping: YubiHsm2UserMapping::AuditLog {
+                    authentication_key_id: "1".parse()?,
+                    ssh_authorized_key: raw_user_data_yubihsm2[1]
+                        .1
+                        .clone()
+                        .expect("to have an SSH authorized key"),
+                    system_user: raw_user_data_yubihsm2[1].0.clone(),
+                },
+            };
+            assert_eq!(
+                data.authorized_key_entry(),
+                Some(
+                    raw_user_data_yubihsm2[1]
+                        .1
+                        .as_ref()
+                        .expect("to have an SSH authorized key")
+                )
+            );
+
+            Ok(())
         }
 
         /// Ensures, that [`ConfigBuilder::finish`] fails on issues with overlapping data in
@@ -2482,7 +2612,12 @@ mod tests {
         use pretty_assertions::assert_eq;
 
         use super::*;
-        use crate::config::{SystemUserData, traits::ConfigSystemUserData};
+        use crate::config::{
+            MappingAuthorizedKeyEntry,
+            MappingSystemUserId,
+            SystemUserData,
+            traits::ConfigSystemUserData,
+        };
 
         /// Creates a default [`Config`] for testing purposes.
         #[fixture]
@@ -2509,6 +2644,115 @@ mod tests {
             data.extend(raw_user_data_nethsm?);
             data.extend(raw_user_data_yubihsm2?);
             Ok(data)
+        }
+
+        /// Ensures that [`MappingSystemUserId`] for [`UserBackendConnection`] works as intended.
+        #[rstest]
+        fn user_backend_connection_system_user_id(
+            raw_user_data_nethsm: TestResult<Vec<(SystemUserId, Option<AuthorizedKeyEntry>)>>,
+            raw_user_data_yubihsm2: TestResult<Vec<(SystemUserId, Option<AuthorizedKeyEntry>)>>,
+        ) -> TestResult {
+            let raw_user_data_nethsm = raw_user_data_nethsm?;
+            let data = UserBackendConnection::NetHsm {
+                admin_secret_handling: AdministrativeSecretHandling::Plaintext,
+                non_admin_secret_handling: NonAdministrativeSecretHandling::Plaintext,
+                connections: BTreeSet::from_iter([Connection::new(
+                    "https://nethsm1.example.org/".parse()?,
+                    ConnectionSecurity::Unsafe,
+                )]),
+                mapping: NetHsmUserMapping::Backup {
+                    backend_user: "backup".parse()?,
+                    ssh_authorized_key: raw_user_data_nethsm[1]
+                        .1
+                        .clone()
+                        .expect("to have an SSH authorized key"),
+                    system_user: raw_user_data_nethsm[1].0.clone(),
+                },
+            };
+            assert_eq!(data.system_user_id(), Some(&raw_user_data_nethsm[1].0));
+
+            let raw_user_data_yubihsm2 = raw_user_data_yubihsm2?;
+            let data = UserBackendConnection::YubiHsm2 {
+                admin_secret_handling: AdministrativeSecretHandling::Plaintext,
+                non_admin_secret_handling: NonAdministrativeSecretHandling::Plaintext,
+                connections: BTreeSet::from_iter([YubiHsm2Connection::Usb {
+                    serial_number: "0123456789".parse()?,
+                }]),
+                mapping: YubiHsm2UserMapping::AuditLog {
+                    authentication_key_id: "1".parse()?,
+                    ssh_authorized_key: raw_user_data_yubihsm2[1]
+                        .1
+                        .clone()
+                        .expect("to have an SSH authorized key"),
+                    system_user: raw_user_data_yubihsm2[1].0.clone(),
+                },
+            };
+            assert_eq!(data.system_user_id(), Some(&raw_user_data_yubihsm2[1].0));
+
+            Ok(())
+        }
+
+        /// Ensures that [`MappingAuthorizedKeyEntry`] for [`UserBackendConnection`] works as
+        /// intended.
+        #[rstest]
+        fn user_backend_connection_authorized_key_entry(
+            raw_user_data_nethsm: TestResult<Vec<(SystemUserId, Option<AuthorizedKeyEntry>)>>,
+            raw_user_data_yubihsm2: TestResult<Vec<(SystemUserId, Option<AuthorizedKeyEntry>)>>,
+        ) -> TestResult {
+            let raw_user_data_nethsm = raw_user_data_nethsm?;
+            let data = UserBackendConnection::NetHsm {
+                admin_secret_handling: AdministrativeSecretHandling::Plaintext,
+                non_admin_secret_handling: NonAdministrativeSecretHandling::Plaintext,
+                connections: BTreeSet::from_iter([Connection::new(
+                    "https://nethsm1.example.org/".parse()?,
+                    ConnectionSecurity::Unsafe,
+                )]),
+                mapping: NetHsmUserMapping::Backup {
+                    backend_user: "backup".parse()?,
+                    ssh_authorized_key: raw_user_data_nethsm[1]
+                        .1
+                        .clone()
+                        .expect("to have an SSH authorized key"),
+                    system_user: raw_user_data_nethsm[1].0.clone(),
+                },
+            };
+            assert_eq!(
+                data.authorized_key_entry(),
+                Some(
+                    raw_user_data_nethsm[1]
+                        .1
+                        .as_ref()
+                        .expect("to have an SSH authorized key")
+                )
+            );
+
+            let raw_user_data_yubihsm2 = raw_user_data_yubihsm2?;
+            let data = UserBackendConnection::YubiHsm2 {
+                admin_secret_handling: AdministrativeSecretHandling::Plaintext,
+                non_admin_secret_handling: NonAdministrativeSecretHandling::Plaintext,
+                connections: BTreeSet::from_iter([YubiHsm2Connection::Usb {
+                    serial_number: "0123456789".parse()?,
+                }]),
+                mapping: YubiHsm2UserMapping::AuditLog {
+                    authentication_key_id: "1".parse()?,
+                    ssh_authorized_key: raw_user_data_yubihsm2[1]
+                        .1
+                        .clone()
+                        .expect("to have an SSH authorized key"),
+                    system_user: raw_user_data_yubihsm2[1].0.clone(),
+                },
+            };
+            assert_eq!(
+                data.authorized_key_entry(),
+                Some(
+                    raw_user_data_yubihsm2[1]
+                        .1
+                        .as_ref()
+                        .expect("to have an SSH authorized key")
+                )
+            );
+
+            Ok(())
         }
 
         /// Ensures, that [`ConfigBuilder::finish`] fails on issues with overlapping data in
