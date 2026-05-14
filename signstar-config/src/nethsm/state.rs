@@ -1,7 +1,7 @@
 //! State representation for a [`NetHsmBackend`].
 //!
 //! Allows to create state representations of users ([`UserState`]) and keys ([`KeyState`] and
-//! [`KeyCertificateState`]) for [`NetHsm`] backends using the [`NetHsmState`] struct.
+//! [`KeyCertificateState`]) for [`NetHsm`] backends using the [`NetHsmBackendState`] struct.
 //! It implements the [`StateHandling`] trait which allows comparison with
 //! other implementations.
 
@@ -483,7 +483,8 @@ impl StateHandling for NetHsmConfigStateLegacy {
                         )
                     }
                     StateType::NetHsm => {
-                        let Some(other) = (other as &dyn Any).downcast_ref::<NetHsmState>() else {
+                        let Some(other) = (other as &dyn Any).downcast_ref::<NetHsmBackendState>()
+                        else {
                             warn!("Unexpectedly unable to find a {}", other.state_type());
                             return StateComparisonReport::Incompatible {
                                 self_state: self.state_type(),
@@ -588,19 +589,19 @@ impl From<&NetHsmConfig> for NetHsmConfigStateLegacy {
 /// Tracks a list of [`UserState`] and a list of [`KeyState`] data, which describes the overall
 /// state of the backend.
 #[derive(Debug)]
-pub struct NetHsmState {
+pub struct NetHsmBackendState {
     /// The user states.
     pub(crate) user_states: Vec<UserState>,
     /// The key states.
     pub(crate) key_states: Vec<KeyState>,
 }
 
-impl NetHsmState {
+impl NetHsmBackendState {
     /// The specific [`StateType`] of this state.
     const STATE_TYPE: StateType = StateType::NetHsm;
 }
 
-impl StateHandling for NetHsmState {
+impl StateHandling for NetHsmBackendState {
     fn state_type(&self) -> StateType {
         Self::STATE_TYPE
     }
@@ -650,7 +651,8 @@ impl StateHandling for NetHsmState {
                         )
                     }
                     StateType::NetHsm => {
-                        let Some(other) = (other as &dyn Any).downcast_ref::<NetHsmState>() else {
+                        let Some(other) = (other as &dyn Any).downcast_ref::<NetHsmBackendState>()
+                        else {
                             return StateComparisonReport::Incompatible {
                                 self_state: self.state_type(),
                                 other_state: other.state_type(),
@@ -710,10 +712,10 @@ impl StateHandling for NetHsmState {
     }
 }
 
-impl<'a, 'b> TryFrom<&NetHsmBackend<'a, 'b>> for NetHsmState {
+impl<'a, 'b> TryFrom<&NetHsmBackend<'a, 'b>> for NetHsmBackendState {
     type Error = crate::Error;
 
-    /// Creates a new [`NetHsmState`] from a [`NetHsmBackend`].
+    /// Creates a new [`NetHsmBackendState`] from a [`NetHsmBackend`].
     ///
     /// # Note
     ///
@@ -1101,7 +1103,7 @@ mod tests {
     /// [`SignstarConfigNetHsmState`] containing the same data.
     #[rstest]
     #[case::nethsm_vs_config_empty(
-        NetHsmState {
+        NetHsmBackendState {
             user_states: Vec::new(),
             key_states: Vec::new(),
         },
@@ -1121,17 +1123,17 @@ mod tests {
         },
     )]
     #[case::nethsm_vs_nethsm_empty(
-        NetHsmState {
+        NetHsmBackendState {
             user_states: Vec::new(),
             key_states: Vec::new(),
         },
-        NetHsmState {
+        NetHsmBackendState {
             user_states: Vec::new(),
             key_states: Vec::new(),
         },
     )]
     #[case::nethsm_vs_config_with_users_and_keys(
-        NetHsmState {
+        NetHsmBackendState {
             user_states: vec![
                 UserState{
                     name: "operator1".parse()?,
@@ -1251,7 +1253,7 @@ mod tests {
         },
     )]
     #[case::nethsm_vs_nethsm_with_users_and_keys(
-        NetHsmState {
+        NetHsmBackendState {
             user_states: vec![
                 UserState{
                     name: "operator1".parse()?,
@@ -1280,7 +1282,7 @@ mod tests {
                 },
             ],
         },
-        NetHsmState {
+        NetHsmBackendState {
             user_states: vec![
                 UserState{
                     name: "operator1".parse()?,
@@ -1358,7 +1360,7 @@ mod tests {
                 },
             ],
         },
-        NetHsmState {
+        NetHsmBackendState {
             user_states: Vec::new(),
             key_states: Vec::new(),
         },
@@ -1402,7 +1404,7 @@ key1 (tags: tag1; type: Curve25519; mechanisms: EdDsaSignature; context: OpenPGP
                 },
             ],
         },
-        NetHsmState {
+        NetHsmBackendState {
             user_states: vec![
                 UserState{
                     name: "operator2".parse()?,
@@ -1485,7 +1487,7 @@ key3 (tags: tag3; type: Curve25519; mechanisms: EdDsaSignature; context: OpenPGP
                 },
             ],
         },
-        NetHsmState {
+        NetHsmBackendState {
             user_states: vec![
                 UserState{
                     name: "operator1".parse()?,
@@ -1597,7 +1599,7 @@ B: key1 (tags: tag1; type: Curve25519; mechanisms: EdDsaSignature; context: Raw)
     )]
     #[case::dummy_and_nethsm_state(
         DummyYubiHsm2ConfigBackend::new(),
-        NetHsmState {
+        NetHsmBackendState {
             user_states: vec![
                 UserState{
                     name: "operator1".parse()?,
@@ -1655,7 +1657,7 @@ B: key1 (tags: tag1; type: Curve25519; mechanisms: EdDsaSignature; context: Raw)
         DummyYubiHsm2ConfigBackend::new(),
     )]
     #[case::nethsm_state_and_dummy(
-        NetHsmState {
+        NetHsmBackendState {
             user_states: vec![
                 UserState{
                     name: "operator1".parse()?,

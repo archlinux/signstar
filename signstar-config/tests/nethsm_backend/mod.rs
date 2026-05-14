@@ -5,7 +5,7 @@ use nethsm::{Connection, NetHsm, SystemState, UserId, UserRole, test::create_con
 use rstest::rstest;
 use signstar_common::logging::setup_logging;
 use signstar_config::{
-    nethsm::{NetHsmBackend, NetHsmConfigStateLegacy, NetHsmState, NetHsmUserMapping},
+    nethsm::{NetHsmBackend, NetHsmConfigStateLegacy, NetHsmBackendState, NetHsmUserMapping},
     state::StateHandling,
     test::{
         ConfigFileConfig,
@@ -87,14 +87,14 @@ async fn sync_unprovisioned_backend(
     assert_eq!(nethsm_backend.nethsm().state()?, SystemState::Locked);
 
     debug!("Retrieve state of NetHSM");
-    let initial_nethsm_state = NetHsmState::try_from(&nethsm_backend)?;
+    let initial_nethsm_state = NetHsmBackendState::try_from(&nethsm_backend)?;
 
     debug!("Compare state of NetHSM with that of the Signstar config");
     initial_nethsm_state.compare(&signstar_state);
 
     debug!("Rerunning sync");
     nethsm_backend.sync(&user_credentials)?;
-    let nethsm_state = NetHsmState::try_from(&nethsm_backend)?;
+    let nethsm_state = NetHsmBackendState::try_from(&nethsm_backend)?;
     debug!("Compare state of NetHSM with that of the Signstar config");
     nethsm_state.compare(&signstar_state);
     assert_eq!(nethsm_backend.nethsm().state()?, SystemState::Operational);

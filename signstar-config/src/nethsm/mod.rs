@@ -19,4 +19,4 @@ pub use config::{
     NetHsmUserMapping,
 };
 pub use error::Error;
-pub use state::{KeyState, NetHsmConfigStateLegacy, NetHsmState, UserState};
+pub use state::{KeyState, NetHsmBackendState, NetHsmConfigStateLegacy, UserState};
