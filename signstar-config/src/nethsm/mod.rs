@@ -12,6 +12,7 @@ pub use config::{
     Error as NetHsmConfigError,
     FilterUserKeys,
     NetHsmConfig,
+    NetHsmConfigState,
     NetHsmConfigUserData,
     NetHsmConfigUserKeyData,
     NetHsmMetricsUsers,

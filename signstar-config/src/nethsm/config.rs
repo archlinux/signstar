@@ -44,7 +44,7 @@ use crate::{
         duplicate_key_ids,
         duplicate_system_user_ids,
     },
-    nethsm::{KeyState, UserState},
+    nethsm::{KeyState, NetHsmBackendState, UserState},
 };
 
 /// An error that may occur when using NetHsm config objects.
@@ -1119,11 +1119,95 @@ impl ConfigSystemUserIds for NetHsmConfig {
     }
 }
 
+/// The state of a NetHSM configuration.
+///
+/// Tracks the available backend users, their roles and assigned tags, as well as the key setups
+/// associated with users.
+#[derive(Debug, Eq, PartialEq)]
+pub struct NetHsmConfigState<'a> {
+    /// The user states.
+    pub(crate) user_data: Vec<NetHsmConfigUserData<'a>>,
+    /// The key states.
+    pub(crate) key_data: Vec<NetHsmConfigUserKeyData<'a>>,
+}
+
+impl<'a> From<&'a NetHsmConfig> for NetHsmConfigState<'a> {
+    fn from(value: &'a NetHsmConfig) -> Self {
+        let (key_data, user_data) = {
+            let mut key_data = Vec::new();
+            let mut user_data = Vec::new();
+
+            for mapping in value.mappings() {
+                if let Some(user_key_data) =
+                    mapping.nethsm_config_user_key_data(NetHsmUserKeysFilter::All)
+                {
+                    key_data.push(user_key_data)
+                }
+                user_data.extend(mapping.nethsm_config_user_data());
+            }
+
+            (key_data, user_data)
+        };
+
+        Self {
+            user_data,
+            key_data,
+        }
+    }
+}
+
+impl<'a> PartialEq<NetHsmBackendState> for NetHsmConfigState<'a> {
+    fn eq(&self, other: &NetHsmBackendState) -> bool {
+        if self.user_data.len() != other.user_states.len()
+            || self.key_data.len() != other.key_states.len()
+        {
+            return false;
+        }
+
+        {
+            let mut remaining_other_user_states: HashSet<&UserState> =
+                HashSet::from_iter(other.user_states.iter());
+            'outer: for self_user_data in self.user_data.iter() {
+                for other_user_state in remaining_other_user_states.iter() {
+                    if self_user_data == *other_user_state {
+                        remaining_other_user_states.remove(*other_user_state);
+                        continue 'outer;
+                    }
+                }
+                return false;
+            }
+            if !remaining_other_user_states.is_empty() {
+                return false;
+            }
+        }
+
+        {
+            let mut remaining_other_key_states: HashSet<&KeyState> =
+                HashSet::from_iter(other.key_states.iter());
+            'outer: for self_key_data in self.key_data.iter() {
+                for other_user_state in remaining_other_key_states.iter() {
+                    if self_key_data == *other_user_state {
+                        remaining_other_key_states.remove(*other_user_state);
+                        continue 'outer;
+                    }
+                }
+                return false;
+            }
+            if !remaining_other_key_states.is_empty() {
+                return false;
+            }
+        }
+
+        true
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use std::thread::current;
 
     use insta::{assert_snapshot, with_settings};
+    use log::debug;
     use rstest::{fixture, rstest};
     use signstar_crypto::{
         key::{CryptographicKeyContext, KeyMechanism, KeyType, SignatureType, SigningKeySetup},
@@ -3094,6 +3178,52 @@ mod tests {
         }, {
             assert_snapshot!(current().name().expect("current thread should have a name").to_string().replace("::", "__"), error_msg);
         });
+        Ok(())
+    }
+
+    /// Ensures that [`NetHsmConfigState`] can be created from [`NetHsmConfig`].
+    #[rstest]
+    fn nethsm_config_state_from_config(
+        nethsm_config: TestResult<NetHsmConfig>,
+        nethsm_config_mappings: TestResult<BTreeSet<NetHsmUserMapping>>,
+    ) -> TestResult {
+        let nethsm_config = nethsm_config?;
+        let nethsm_config_mappings = nethsm_config_mappings?;
+        let state = NetHsmConfigState::from(&nethsm_config);
+
+        for user_id in nethsm_config_mappings
+            .iter()
+            .flat_map(|mapping| mapping.nethsm_user_ids())
+        {
+            debug!(
+                "Ensuring that the NetHSM user ID {user_id} can be found in the NetHSM user state."
+            );
+            assert!(
+                state
+                    .user_data
+                    .iter()
+                    .any(|user_data| user_data.user == &user_id)
+            );
+        }
+
+        for user_id in nethsm_config_mappings.iter().filter_map(|mapping| {
+            if let NetHsmUserMapping::Signing { backend_user, .. } = mapping {
+                Some(backend_user)
+            } else {
+                None
+            }
+        }) {
+            debug!(
+                "Ensuring that the NetHSM user ID {user_id} can be found in the NetHSM key state."
+            );
+            assert!(
+                state
+                    .key_data
+                    .iter()
+                    .any(|user_data| user_data.user == user_id)
+            );
+        }
+
         Ok(())
     }
 }
