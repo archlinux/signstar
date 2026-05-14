@@ -420,19 +420,19 @@ impl<'a> Display for KeyStates<'a> {
 ///
 /// [`NetHsmConfig`] objects are used in [`Config`] objects.
 #[derive(Debug, Eq, PartialEq)]
-pub struct NetHsmConfigState {
+pub struct NetHsmConfigStateLegacy {
     /// The user states.
     pub(crate) user_states: Vec<UserState>,
     /// The key states.
     pub(crate) key_states: Vec<KeyState>,
 }
 
-impl NetHsmConfigState {
+impl NetHsmConfigStateLegacy {
     /// The specific [`StateType`] of this state.
     const STATE_TYPE: StateType = StateType::SignstarConfigNetHsm;
 }
 
-impl StateHandling for NetHsmConfigState {
+impl StateHandling for NetHsmConfigStateLegacy {
     fn state_type(&self) -> StateType {
         Self::STATE_TYPE
     }
@@ -454,7 +454,8 @@ impl StateHandling for NetHsmConfigState {
             let (self_user_states, other_user_states, self_key_states, other_key_states) =
                 match other.state_type() {
                     StateType::SignstarConfigNetHsm => {
-                        let Some(other) = (other as &dyn Any).downcast_ref::<NetHsmConfigState>()
+                        let Some(other) =
+                            (other as &dyn Any).downcast_ref::<NetHsmConfigStateLegacy>()
                         else {
                             warn!("Unexpectedly unable to find a {}", other.state_type());
                             return StateComparisonReport::Incompatible {
@@ -543,7 +544,7 @@ impl StateHandling for NetHsmConfigState {
     }
 }
 
-impl From<&NetHsmConfig> for NetHsmConfigState {
+impl From<&NetHsmConfig> for NetHsmConfigStateLegacy {
     fn from(value: &NetHsmConfig) -> Self {
         let mut key_states: Vec<KeyState> = Vec::new();
         let mut user_states: Vec<UserState> = Vec::new();
@@ -575,7 +576,7 @@ impl From<&NetHsmConfig> for NetHsmConfigState {
             }
         }
 
-        NetHsmConfigState {
+        NetHsmConfigStateLegacy {
             user_states,
             key_states,
         }
@@ -621,7 +622,8 @@ impl StateHandling for NetHsmState {
             let (self_user_states, other_user_states, self_key_states, other_key_states) =
                 match other.state_type() {
                     StateType::SignstarConfigNetHsm => {
-                        let Some(other) = (other as &dyn Any).downcast_ref::<NetHsmConfigState>()
+                        let Some(other) =
+                            (other as &dyn Any).downcast_ref::<NetHsmConfigStateLegacy>()
                         else {
                             return StateComparisonReport::Incompatible {
                                 self_state: self.state_type(),
@@ -829,7 +831,7 @@ mod tests {
                 },
             ]),
         )?,
-        NetHsmConfigState {
+        NetHsmConfigStateLegacy {
             user_states: vec![
                 UserState {
                     name: "admin".parse()?,
@@ -865,7 +867,7 @@ mod tests {
                 NetHsmUserMapping::Admin("admin".parse()?),
             ]),
         )?,
-        NetHsmConfigState {
+        NetHsmConfigStateLegacy {
             user_states: vec![
                 UserState {
                     name: "admin".parse()?,
@@ -878,9 +880,9 @@ mod tests {
     )]
     fn signstar_state_nethsm_from_nethsm_config(
         #[case] input: NetHsmConfig,
-        #[case] expected: NetHsmConfigState,
+        #[case] expected: NetHsmConfigStateLegacy,
     ) -> TestResult {
-        assert_eq!(expected, NetHsmConfigState::from(&input));
+        assert_eq!(expected, NetHsmConfigStateLegacy::from(&input));
 
         Ok(())
     }
@@ -1103,17 +1105,17 @@ mod tests {
             user_states: Vec::new(),
             key_states: Vec::new(),
         },
-        NetHsmConfigState {
+        NetHsmConfigStateLegacy {
             user_states: Vec::new(),
             key_states: Vec::new(),
         },
     )]
     #[case::config_vs_config_empty(
-        NetHsmConfigState {
+        NetHsmConfigStateLegacy {
             user_states: Vec::new(),
             key_states: Vec::new(),
         },
-        NetHsmConfigState {
+        NetHsmConfigStateLegacy {
             user_states: Vec::new(),
             key_states: Vec::new(),
         },
@@ -1158,7 +1160,7 @@ mod tests {
                 },
             ],
         },
-        NetHsmConfigState {
+        NetHsmConfigStateLegacy {
             user_states: vec![
                 UserState{
                     name: "operator1".parse()?,
@@ -1189,7 +1191,7 @@ mod tests {
         },
     )]
     #[case::config_vs_config_with_users_and_keys(
-        NetHsmConfigState {
+        NetHsmConfigStateLegacy {
             user_states: vec![
                 UserState{
                     name: "operator1".parse()?,
@@ -1218,7 +1220,7 @@ mod tests {
                 },
             ],
         },
-        NetHsmConfigState {
+        NetHsmConfigStateLegacy {
             user_states: vec![
                 UserState{
                     name: "operator1".parse()?,
@@ -1327,7 +1329,7 @@ mod tests {
     /// [`SignstarConfigNetHsmState`] containing differing data.
     #[rstest]
     #[case::one_empty(
-        NetHsmConfigState {
+        NetHsmConfigStateLegacy {
             user_states: vec![
                 UserState{
                     name: "operator1".parse()?,
@@ -1371,7 +1373,7 @@ key1 (tags: tag1; type: Curve25519; mechanisms: EdDsaSignature; context: OpenPGP
 "#,
     )]
     #[case::differing_users_and_keys(
-        NetHsmConfigState {
+        NetHsmConfigStateLegacy {
             user_states: vec![
                 UserState{
                     name: "operator1".parse()?,
@@ -1454,7 +1456,7 @@ key3 (tags: tag3; type: Curve25519; mechanisms: EdDsaSignature; context: OpenPGP
 "#,
     )]
     #[case::user_and_key_mismatch(
-        NetHsmConfigState {
+        NetHsmConfigStateLegacy {
             user_states: vec![
                 UserState{
                     name: "operator1".parse()?,
@@ -1563,7 +1565,7 @@ B: key1 (tags: tag1; type: Curve25519; mechanisms: EdDsaSignature; context: Raw)
     #[rstest]
     #[case::dummy_and_signstar_config_nethsm_state(
         DummyYubiHsm2ConfigBackend::new(),
-        NetHsmConfigState {
+        NetHsmConfigStateLegacy {
             user_states: vec![
                 UserState{
                     name: "operator1".parse()?,
@@ -1621,7 +1623,7 @@ B: key1 (tags: tag1; type: Curve25519; mechanisms: EdDsaSignature; context: Raw)
         },
     )]
     #[case::signstar_config_nethsm_state_and_dummy(
-        NetHsmConfigState {
+        NetHsmConfigStateLegacy {
             user_states: vec![
                 UserState{
                     name: "operator1".parse()?,

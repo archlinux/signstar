@@ -5,7 +5,7 @@ use nethsm::{Connection, NetHsm, SystemState, UserId, UserRole, test::create_con
 use rstest::rstest;
 use signstar_common::logging::setup_logging;
 use signstar_config::{
-    nethsm::{NetHsmBackend, NetHsmConfigState, NetHsmState, NetHsmUserMapping},
+    nethsm::{NetHsmBackend, NetHsmConfigStateLegacy, NetHsmState, NetHsmUserMapping},
     state::StateHandling,
     test::{
         ConfigFileConfig,
@@ -45,7 +45,7 @@ async fn sync_unprovisioned_backend(
         panic!("This test requires a NetHSM configuration object in the Signstar config");
     };
     // Derive the acclaimed NetHSM state from the Signstar config
-    let signstar_state = NetHsmConfigState::from(nethsm_config);
+    let signstar_state = NetHsmConfigStateLegacy::from(nethsm_config);
     let nethsm_admin_credentials = nethsm_admin_credentials(creds_data)?;
 
     let container = create_container().await?;
