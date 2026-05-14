@@ -331,7 +331,7 @@ impl<'a> BackupDecryptor<'a> {
         scrypt(
             passphrase,
             &backup.salt,
-            &Params::new(14, 8, 16, 32).map_err(|e| {
+            &Params::new(14, 8, 16).map_err(|e| {
                 error!("Scrypt parameters are invalid. This should not happen as they are statically chosen: {e:?}");
                 Error::InvalidScryptParams
             })?,
