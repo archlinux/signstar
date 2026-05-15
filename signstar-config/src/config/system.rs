@@ -4,18 +4,24 @@ use std::collections::{BTreeSet, HashSet};
 
 use garde::Validate;
 use serde::{Deserialize, Serialize};
+use signstar_common::system_user::get_home_base_dir_path;
 use signstar_crypto::{AdministrativeSecretHandling, NonAdministrativeSecretHandling};
 
-use crate::config::{
-    AuthorizedKeyEntry,
-    ConfigAuthorizedKeyEntries,
-    ConfigSystemUserIds,
-    MappingAuthorizedKeyEntry,
-    MappingSystemUserId,
-    SystemUserData,
-    SystemUserId,
-    duplicate_authorized_keys,
-    duplicate_system_user_ids,
+use crate::{
+    config::{
+        AuthorizedKeyEntry,
+        ConfigAuthorizedKeyEntries,
+        ConfigSystemUserIds,
+        MappingAuthorizedKeyEntry,
+        MappingSystemUserId,
+        SystemUserConfigState,
+        SystemUserData,
+        SystemUserHostState,
+        SystemUserId,
+        duplicate_authorized_keys,
+        duplicate_system_user_ids,
+    },
+    state::{StateDiff, StateDiffFailure, StateDiffFailureTarget, StateDiffReport},
 };
 
 /// Mappings for system users.
@@ -275,6 +281,85 @@ impl ConfigSystemUserIds for SystemConfig {
             .iter()
             .filter_map(|mapping| mapping.system_user_id())
             .collect()
+    }
+}
+
+/// The diff between [`SystemUserConfigState`] and [`SystemUserHostState`].
+#[derive(Debug)]
+pub struct SystemUserDiff<'a, 'b> {
+    /// The state of system users according to a configuration.
+    pub config: &'a SystemUserConfigState<'a>,
+
+    /// The state of system users on the host.
+    pub system: &'b SystemUserHostState<'b>,
+}
+
+impl<'a, 'b> StateDiff<'a, 'b> for SystemUserDiff<'a, 'b> {
+    fn diff(&self) -> StateDiffReport<'a, 'b> {
+        let user_state_discrepancies = {
+            let mut matched_config_states = Vec::new();
+            let mut state_discrepancies = Vec::new();
+
+            'outer: for host_user_state in self.system.system_user_data.iter() {
+                for config_user_state in self.config.system_user_data.iter() {
+                    // The `SystemUserData` on the host side are unknown but fully map to an
+                    // existing system user in the configuration.
+                    if let &SystemUserData::Unknown {
+                        system_user,
+                        ssh_authorized_keys,
+                        home_dir,
+                    } = &host_user_state
+                        && config_user_state.system_user() == system_user
+                        && config_user_state.ssh_authorized_keys()
+                            == ssh_authorized_keys.iter().collect::<Vec<_>>()
+                        && *home_dir
+                            == get_home_base_dir_path()
+                                .join(config_user_state.system_user().as_ref())
+                    {
+                        matched_config_states.push(config_user_state);
+                        continue 'outer;
+                    }
+
+                    // The unique system user name matches, but not the remaining data.
+                    if host_user_state.system_user() == config_user_state.system_user() {
+                        matched_config_states.push(config_user_state);
+                        state_discrepancies.push(StateDiffFailure::Mismatch {
+                            one_state: host_user_state.to_string(),
+                            one: Box::new(self.config),
+                            other_state: config_user_state.to_string(),
+                            other: Box::new(self.system),
+                        });
+                        continue 'outer;
+                    }
+                }
+                // NOTE: We ignore unmatched users on the host, as they are not relevant to the
+                // Signstar system.
+            }
+
+            // Unmatched other states.
+            self.config
+                .system_user_data
+                .iter()
+                .filter(|data| !matched_config_states.contains(data))
+                .for_each(|data| {
+                    state_discrepancies.push(StateDiffFailure::DoesNotExist {
+                        one: Box::new(self.config),
+                        other: Box::new(self.system),
+                        target: StateDiffFailureTarget::Other,
+                        state: data.to_string(),
+                    })
+                });
+
+            state_discrepancies
+        };
+
+        if user_state_discrepancies.is_empty() {
+            return StateDiffReport::Success;
+        }
+
+        StateDiffReport::Failure {
+            messages: user_state_discrepancies,
+        }
     }
 }
 

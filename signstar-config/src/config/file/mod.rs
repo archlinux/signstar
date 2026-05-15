@@ -31,11 +31,14 @@ use strum::{AsRefStr, VariantNames};
 
 #[cfg(any(feature = "nethsm", feature = "yubihsm2"))]
 use crate::config::{ConfigAuthorizedKeyEntries, ConfigSystemUserIds};
-use crate::config::{ConfigSystemUserData, Error, SystemConfig, SystemUserData};
 #[cfg(feature = "nethsm")]
 use crate::nethsm::{NetHsmConfig, NetHsmUserMapping};
 #[cfg(feature = "yubihsm2")]
 use crate::yubihsm2::{YubiHsm2Config, YubiHsm2UserMapping};
+use crate::{
+    config::{ConfigSystemUserData, Error, SystemConfig, SystemUserData},
+    state::{StateOrigin, StateOriginInfo},
+};
 
 /// Backend specific data for a user mapping.
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -551,11 +554,26 @@ pub struct SystemUserConfigState<'a> {
     pub(crate) system_user_data: HashSet<SystemUserData<'a>>,
 }
 
+impl<'a> SystemUserConfigState<'a> {
+    /// The name of the origin for the state.
+    pub const STATE_NAME: &'static str = "config";
+}
+
 impl<'a> From<&'a Config> for SystemUserConfigState<'a> {
     fn from(value: &'a Config) -> Self {
         Self {
             system_user_data: value.system_user_data(),
         }
+    }
+}
+
+impl<'a> StateOriginInfo for SystemUserConfigState<'a> {
+    fn state_name(&self) -> &str {
+        Self::STATE_NAME
+    }
+
+    fn state_origin(&self) -> StateOrigin {
+        StateOrigin::Config
     }
 }
 

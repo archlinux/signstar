@@ -9,7 +9,11 @@ use ssh_key::authorized_keys::Entry;
 use uzers::all_users;
 use zeroize::Zeroize;
 
-use crate::{config::Error, utils::get_current_system_user};
+use crate::{
+    config::Error,
+    state::{StateOrigin, StateOriginInfo},
+    utils::get_current_system_user,
+};
 
 /// The name of a user on a Unix system
 ///
@@ -393,6 +397,9 @@ pub struct SystemUserHostState<'a> {
 }
 
 impl<'a> SystemUserHostState<'a> {
+    /// The name of the origin for the state.
+    pub const STATE_NAME: &'static str = "system";
+
     /// Creates a new [`SystemUserHostState`] from system users and associated data on the host.
     ///
     /// # Note
@@ -472,6 +479,16 @@ impl<'a> SystemUserHostState<'a> {
     /// Returns a reference to the set of [`SystemUserData`].
     pub fn system_user_data(&self) -> &HashSet<SystemUserData<'a>> {
         &self.system_user_data
+    }
+}
+
+impl<'a> StateOriginInfo for SystemUserHostState<'a> {
+    fn state_name(&self) -> &str {
+        Self::STATE_NAME
+    }
+
+    fn state_origin(&self) -> StateOrigin {
+        StateOrigin::System
     }
 }
 

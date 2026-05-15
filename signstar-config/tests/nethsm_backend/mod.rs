@@ -5,8 +5,9 @@ use nethsm::{Connection, NetHsm, SystemState, UserId, UserRole, test::create_con
 use rstest::rstest;
 use signstar_common::logging::setup_logging;
 use signstar_config::{
-    nethsm::{NetHsmBackend, NetHsmConfigStateLegacy, NetHsmBackendState, NetHsmUserMapping},
-    state::StateHandling,
+    config::{SystemUserConfigState, SystemUserDiff, SystemUserHostState},
+    nethsm::{NetHsmBackend, NetHsmBackendState, NetHsmConfigStateLegacy, NetHsmUserMapping},
+    state::{StateDiff, StateDiffReport, StateHandling},
     test::{
         ConfigFileConfig,
         ConfigFileVariant,
@@ -47,6 +48,30 @@ async fn sync_unprovisioned_backend(
     // Derive the acclaimed NetHSM state from the Signstar config
     let signstar_state = NetHsmConfigStateLegacy::from(nethsm_config);
     let nethsm_admin_credentials = nethsm_admin_credentials(creds_data)?;
+
+    // Check the system user state.
+    let system_user_config_state = SystemUserConfigState::from(&signstar_config);
+    let system_user_host_state = SystemUserHostState::new()?;
+    let system_user_diff = SystemUserDiff {
+        config: &system_user_config_state,
+        system: &system_user_host_state,
+    };
+    debug!("Compare the state of system user config with that of the host before sync.");
+    match system_user_diff.diff() {
+        StateDiffReport::Failure { messages } => {
+            debug!(
+                "The state is supposed to be different, and these are the failures:\n{}",
+                messages
+                    .iter()
+                    .map(ToString::to_string)
+                    .collect::<Vec<_>>()
+                    .join("\n")
+            );
+        }
+        StateDiffReport::Success => {
+            panic!("The system should not be setup to have Signstar users!")
+        }
+    }
 
     let container = create_container().await?;
     let url = container.url().await?;

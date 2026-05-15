@@ -18,7 +18,7 @@ pub use file::{
     UserBackendConnectionFilter,
 };
 pub use state::KeyCertificateState;
-pub use system::{SystemConfig, SystemUserMapping};
+pub use system::{SystemConfig, SystemUserDiff, SystemUserMapping};
 pub use traits::{
     BackendDomainFilter,
     BackendKeyIdFilter,

@@ -76,7 +76,8 @@ fn config_first_existing_system_path_fails_on_missing_config() -> TestResult {
 #[cfg(all(not(feature = "nethsm"), not(feature = "yubihsm2")))]
 mod no_backend {
     use signstar_config::{
-        config::{SystemUserData, SystemUserHostState},
+        config::{SystemUserConfigState, SystemUserData, SystemUserDiff, SystemUserHostState},
+        state::{StateDiff, StateDiffReport},
         test::{
             ConfigFileConfig,
             ConfigFileLocation,
@@ -120,6 +121,100 @@ mod no_backend {
 
         for expected in expected_system_user_data.iter() {
             assert!(system_user_host_state.system_user_data().contains(expected));
+        }
+
+        Ok(())
+    }
+
+    /// Ensures, that [`SystemUserDiff::diff`] successfully matches for a config and a properly
+    /// setup host.
+    #[test]
+    fn system_user_diff_diff_matches() -> TestResult {
+        setup_logging(LevelFilter::Debug)?;
+
+        let prepare_config = SystemPrepareConfig {
+            machine_id: false,
+            credentials_socket: false,
+            signstar_config: ConfigFileConfig {
+                location: Some(ConfigFileLocation::UsrShare),
+                variant: ConfigFileVariant::NoBackendAdminPlaintextNonAdminPlaintext,
+                system_user_config: Some(SystemUserConfig {
+                    create_ssh_authorized_keys: true,
+                }),
+            },
+        };
+        prepare_config.apply()?;
+        let config = prepare_config.signstar_config.variant.to_config()?;
+        let system_user_config_state = SystemUserConfigState::from(&config);
+
+        let system_user_host_state = SystemUserHostState::new()?;
+
+        let system_user_diff = SystemUserDiff {
+            config: &system_user_config_state,
+            system: &system_user_host_state,
+        };
+
+        debug!("Compare the system user state of the config with that of the host...");
+        match system_user_diff.diff() {
+            StateDiffReport::Success => {
+                debug!("The state diff matches.")
+            }
+            StateDiffReport::Failure { messages } => {
+                panic!(
+                    "The diff between config and host contained the following failures:\n{}",
+                    messages
+                        .iter()
+                        .map(ToString::to_string)
+                        .collect::<Vec<_>>()
+                        .join("\n")
+                );
+            }
+        }
+
+        Ok(())
+    }
+
+    /// Ensures, that [`SystemUserDiff::diff`] does not matches for a config and a host where no
+    /// specific users have been setup.
+    #[test]
+    fn system_user_diff_diff_missing_system_users() -> TestResult {
+        setup_logging(LevelFilter::Debug)?;
+
+        let prepare_config = SystemPrepareConfig {
+            machine_id: false,
+            credentials_socket: false,
+            signstar_config: ConfigFileConfig {
+                location: Some(ConfigFileLocation::UsrShare),
+                variant: ConfigFileVariant::NoBackendAdminPlaintextNonAdminPlaintext,
+                system_user_config: None,
+            },
+        };
+        prepare_config.apply()?;
+        let config = prepare_config.signstar_config.variant.to_config()?;
+        let system_user_config_state = SystemUserConfigState::from(&config);
+
+        let system_user_host_state = SystemUserHostState::new()?;
+
+        let system_user_diff = SystemUserDiff {
+            config: &system_user_config_state,
+            system: &system_user_host_state,
+        };
+
+        debug!("Compare the system user state of the config with that of the host...");
+        match system_user_diff.diff() {
+            StateDiffReport::Success => {
+                panic!("No system users have been created on the host, but the state diff matches!")
+            }
+            StateDiffReport::Failure { messages } => {
+                debug!(
+                    "The diff between config and host should not match and contains the following failures:\n{}",
+                    messages
+                        .iter()
+                        .map(ToString::to_string)
+                        .collect::<Vec<_>>()
+                        .join("\n")
+                );
+            }
         }
 
         Ok(())
@@ -337,6 +432,18 @@ mod yubihsm2_backend {
 /// Tests for when using all backends at the same time.
 #[cfg(all(feature = "nethsm", feature = "yubihsm2"))]
 mod all_backends {
+    use signstar_config::{
+        config::{SystemUserConfigState, SystemUserDiff, SystemUserHostState},
+        state::{StateDiff, StateDiffReport},
+        test::{
+            ConfigFileConfig,
+            ConfigFileLocation,
+            ConfigFileVariant,
+            SystemPrepareConfig,
+            SystemUserConfig,
+        },
+    };
+
     use super::*;
 
     /// Creates secrets for all configured non-administrative backend users.
@@ -432,6 +539,61 @@ mod all_backends {
             }
 
             collect_coverage_files("/tmp")?;
+        }
+
+        Ok(())
+    }
+
+    /// Ensures, that [`SystemUserDiff::diff`] successfully matches for a config and a properly
+    /// setup host.
+    #[test]
+    fn system_user_diff_mismatching_users() -> TestResult {
+        setup_logging(LevelFilter::Debug)?;
+
+        // setup the system with one backend...
+        let prepare_config = SystemPrepareConfig {
+            machine_id: false,
+            credentials_socket: false,
+            signstar_config: ConfigFileConfig {
+                location: Some(ConfigFileLocation::UsrShare),
+                variant: ConfigFileVariant::OnlyNetHsmBackendAdminPlaintextNonAdminPlaintext,
+                system_user_config: Some(SystemUserConfig {
+                    create_secrets: false,
+                    create_ssh_authorized_keys: true,
+                }),
+            },
+        };
+        prepare_config.apply()?;
+
+        // .. but then use another for comparison.
+        let config =
+            ConfigFileVariant::OnlyYubiHsm2BackendAdminPlaintextNonAdminPlaintext.to_config()?;
+        let system_user_config_state = SystemUserConfigState::from(&config);
+
+        let system_user_host_state = SystemUserHostState::new()?;
+
+        let system_user_diff = SystemUserDiff {
+            config: &system_user_config_state,
+            system: &system_user_host_state,
+        };
+
+        debug!("Compare the system user state of the config with that of the host...");
+        match system_user_diff.diff() {
+            StateDiffReport::Success => {
+                panic!(
+                    "The setup of the host has been done with a different config from the one we are comparing with, yet the state diff matches!"
+                )
+            }
+            StateDiffReport::Failure { messages } => {
+                debug!(
+                    "The diff between config and host contained the following failures:\n{}",
+                    messages
+                        .iter()
+                        .map(ToString::to_string)
+                        .collect::<Vec<_>>()
+                        .join("\n")
+                );
+            }
         }
 
         Ok(())
