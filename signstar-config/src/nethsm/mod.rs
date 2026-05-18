@@ -21,4 +21,4 @@ pub use config::{
     NetHsmUserMapping,
 };
 pub use error::Error;
-pub use state::NetHsmConfigStateLegacy;
+pub use state::{NetHsmConfigStateLegacy, NetHsmDiff};

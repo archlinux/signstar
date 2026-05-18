@@ -1,0 +1,17 @@
+---
+source: signstar-config/tests/nethsm_backend/mod.rs
+description: Mismatches between NetHSM config state and NetHSM backend state
+expression: output
+---
+Different in A (NetHSM config) and B (NetHSM backend):
+A: hermetickeymetrics (role: Metrics)
+B: hermetickeymetrics (role: Operator)
+Different in A (NetHSM config) and B (NetHSM backend):
+A: hermeticmetrics (role: Operator)
+B: hermeticmetrics (role: Metrics)
+Present in A (NetHSM backend) but not in B (NetHSM config): ns1~admin (role: Administrator)
+Present in A (NetHSM backend) but not in B (NetHSM config): ns1~signing (role: Operator; tags: signing1)
+Different in A (NetHSM config) and B (NetHSM backend):
+A: signing (tag: signing1; type: EcP521; mechanisms: EcdsaSignature; context: OpenPGP (Version: 4; User IDs: "BarFoo Fooface <barfoo@fooface.org>"))
+B: signing1 (tags: signing1; type: Curve25519; mechanisms: EdDsaSignature; context: OpenPGP (Version: 4; User IDs: "Foobar McFooface <foobar@mcfooface.org>"))
+Present in A (NetHSM backend) but not in B (NetHSM config): signing1 (namespace: ns1; tags: signing1; type: Curve25519; mechanisms: EdDsaSignature; context: OpenPGP (Version: 4; User IDs: "Barfoo McBarface <barfoo@mcbarface.org>"))
