@@ -1,0 +1,6 @@
+---
+source: signstar-request-signature/src/ssh/client.rs
+expression: error_msg
+---
+users: The SSH public key used for a user cannot be used for another user:
+Public key ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMPF9G0NQMEIBWR0NBc7sVBc2uxkKwY3SWvzRWQAtLPp is shared by these users: test-user, test-user2

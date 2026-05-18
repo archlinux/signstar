@@ -1,0 +1,9 @@
+---
+source: signstar-request-signature/src/ssh/client.rs
+expression: error_msg
+---
+TOML parse error at line 5, column 19
+  |
+5 | user_public_key = "ssh-ed25519 broken"
+  |                   ^^^^^^^^^^^^^^^^^^^^
+Base64 encoding error: invalid Base64 encoding

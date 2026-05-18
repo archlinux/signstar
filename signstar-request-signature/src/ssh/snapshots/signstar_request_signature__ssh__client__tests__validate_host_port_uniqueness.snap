@@ -1,0 +1,6 @@
+---
+source: signstar-request-signature/src/ssh/client.rs
+expression: error_msg
+---
+hosts: Two connections cannot have the same host:port combinations:
+Host 127.0.0.1:22 is shared by these hosts: local, local2

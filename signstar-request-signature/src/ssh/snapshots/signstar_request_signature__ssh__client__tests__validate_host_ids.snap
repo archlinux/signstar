@@ -1,0 +1,6 @@
+---
+source: signstar-request-signature/src/ssh/client.rs
+expression: error_msg
+---
+User test-user is using host_id which is not defined: test
+User test-user2 is using host_id which is not defined: test

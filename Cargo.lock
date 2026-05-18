@@ -2997,9 +2997,9 @@ dependencies = [
 
 [[package]]
 name = "md5"
-version = "0.8.0"
+version = "0.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ae960838283323069879657ca3de837e9f7bbb4c7bf6ea7f1b290d5e9476d2e0"
+checksum = "7ebb8d8732c6a6df3d8f032a82911cfc747e00efb95cc46e8d0acd5b5b88570c"
 
 [[package]]
 name = "memchr"
@@ -3548,7 +3548,7 @@ dependencies = [
  "ecdsa 0.17.0",
  "elliptic-curve 0.14.1",
  "primefield",
- "primeorder 0.14.0-rc.15",
+ "primeorder 0.14.0",
  "sha2 0.11.0",
 ]
 
@@ -3574,7 +3574,7 @@ dependencies = [
  "elliptic-curve 0.14.1",
  "fiat-crypto 0.3.0",
  "primefield",
- "primeorder 0.14.0-rc.15",
+ "primeorder 0.14.0",
  "sha2 0.11.0",
 ]
 
@@ -3602,7 +3602,7 @@ dependencies = [
  "ecdsa 0.17.0",
  "elliptic-curve 0.14.1",
  "primefield",
- "primeorder 0.14.0-rc.15",
+ "primeorder 0.14.0",
  "sha2 0.11.0",
 ]
 
@@ -4039,9 +4039,9 @@ dependencies = [
 
 [[package]]
 name = "primeorder"
-version = "0.14.0-rc.15"
+version = "0.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "478aa2e499c7164b21b4c5e8610018e5b83a284da5f9e0896907dd4749cd76c9"
+checksum = "5c9f42978c78a00e3d68f69fc03e57a234debae69da4020a4fb588fcdcd07b06"
 dependencies = [
  "elliptic-curve 0.14.1",
  "once_cell",
@@ -4457,9 +4457,9 @@ dependencies = [
 
 [[package]]
 name = "russh"
-version = "0.62.1"
+version = "0.62.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "20d2039c3e50abb1ec3bdadea27098679da12a33befa9ab4e62adad9a13ebcb2"
+checksum = "ca6c3c1dd0a9ad3a9915a2f6e907d158f9a7e9ac32ddc772b003faafc027d9a8"
 dependencies = [
  "aes 0.9.1",
  "aws-lc-rs",
@@ -5178,7 +5178,9 @@ dependencies = [
  "clap",
  "clap-verbosity-flag",
  "digest-io",
+ "garde",
  "hmac 0.13.0",
+ "insta",
  "log",
  "rand 0.10.1",
  "rand 0.8.6",
@@ -5197,6 +5199,7 @@ dependencies = [
  "testresult",
  "thiserror 2.0.18",
  "tokio",
+ "toml 1.1.0+spec-1.1.0",
 ]
 
 [[package]]
@@ -5480,6 +5483,7 @@ dependencies = [
  "rand_core 0.10.1",
  "rsa 0.10.0-rc.18",
  "sec1 0.8.1",
+ "serde",
  "sha1 0.11.0",
  "sha2 0.11.0",
  "signature 3.0.0",
@@ -5739,7 +5743,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "32497e9a4c7b38532efcdebeef879707aa9f794296a4f0244f6f69e9bc8574bd"
 dependencies = [
  "fastrand",
- "getrandom 0.4.3",
+ "getrandom 0.3.4",
  "once_cell",
  "rustix",
  "windows-sys 0.61.2",

@@ -13,6 +13,8 @@ use sha2::Digest;
 pub use sha2::Sha512;
 use sha2::digest::common::hazmat::{DeserializeStateError, SerializableState};
 
+use crate::ssh::client::ConnectConfig;
+
 #[cfg(feature = "cli")]
 pub mod cli;
 pub mod ssh;
@@ -68,6 +70,26 @@ pub enum Error {
     /// Requesting signing via SSH failed.
     #[error("SSH client error: {0}")]
     SshClient(#[from] crate::ssh::client::Error),
+
+    /// TOML deserialization error.
+    #[error("TOML deserialization error: {0}")]
+    Toml(#[from] toml::de::Error),
+
+    /// No configuration files present.
+    #[error("No configuration files present in any of the default paths:\n {paths}", paths = ConnectConfig::CONFIG_ORDER.iter().map(|path| format!("- {path}")).collect::<Vec<_>>().join("\n"))]
+    ConfigMissing,
+
+    /// A garde validation error occurred.
+    #[error("Validation error while {context}: {source}")]
+    Validation {
+        /// The context in which the error occurred.
+        ///
+        /// This is meant to complete the sentence "Validation error while ".
+        context: String,
+
+        /// The error source.
+        source: garde::Report,
+    },
 }
 
 /// Type of the input hash.

@@ -1,0 +1,6 @@
+---
+source: signstar-request-signature/src/ssh/client.rs
+expression: error_msg
+---
+hosts: The known host entry used for a host cannot be used for another host:
+Entry test1 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOh8eDowbkS5cA/50DhIsOUI5bDf5Kx0sSJZDQgfoRAd is shared by these hosts: local, local2
