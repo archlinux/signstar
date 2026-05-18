@@ -1,0 +1,9 @@
+---
+source: signstar-request-signature/src/ssh/client.rs
+expression: error_msg
+---
+TOML parse error at line 6, column 16
+  |
+6 | known_hosts = [42]
+  |                ^^
+invalid type: integer `42`, expected a string

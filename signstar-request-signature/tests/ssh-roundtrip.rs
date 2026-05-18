@@ -123,15 +123,17 @@ async fn ssh_roundtrip() -> TestResult {
     let mut key = vec![];
     ids[0].credential.key_data().encode(&mut key)?;
     agent_key.extend(Base64::encode_string(&key).as_bytes());
-    let agent_key = String::from_utf8_lossy(&agent_key);
 
-    info!("Client's public key: {agent_key}");
+    info!("Client's public key: {agent_key:?}");
 
-    let options = ConnectOptions::target(setup.server_host.0, setup.server_host.1)
-        .append_known_hosts_from_file(known_hosts)?
-        .client_auth_agent_sock(setup.agent_socket)
-        .client_auth_public_key(agent_key)?
-        .user("test");
+    let options = ConnectOptions::new(
+        setup.server_host.0,
+        setup.server_host.1,
+        String::from_utf8_lossy(&agent_key),
+    )?
+    .append_known_hosts_from_file(known_hosts)?
+    .agent_socket(setup.agent_socket)
+    .user("test");
 
     let mut ssh = options.connect().await?;
     info!("Connected");

@@ -11,12 +11,11 @@
 //! use signstar_request_signature::Request;
 //! use signstar_request_signature::ssh::client::ConnectOptions;
 //!
-//! let options = ConnectOptions::target("localhost".into(), 22)
+//! let client_pk =
+//!     "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILHCXBJYlPPkrt2WYyP3SZoMx43lDBB5QALjE762EQlc";
+//! let options = ConnectOptions::new("localhost".into(), 22, client_pk)?
 //!     .append_known_hosts_from_file(known_hosts)?
-//!     .client_auth_agent_sock(std::env::var("SSH_AUTH_SOCK")?)
-//!     .client_auth_public_key(
-//!         "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILHCXBJYlPPkrt2WYyP3SZoMx43lDBB5QALjE762EQlc",
-//!     )?
+//!     .agent_socket(std::env::var("SSH_AUTH_SOCK")?)
 //!     .user("signstar");
 //!
 //! let mut session = options.connect().await?;
@@ -25,14 +24,19 @@
 //! // process response
 //! #     Ok(()) }
 //! ```
+use std::fs::File;
+use std::io::{ErrorKind, Read as _};
 use std::path::Path;
+use std::str::FromStr;
 use std::{path::PathBuf, sync::Arc, time::Duration};
 
+use rand::{Rng, thread_rng};
 use russh::client::AuthResult;
 use russh::keys::agent::client::AgentClient;
 use russh::keys::ssh_key::known_hosts::Entry;
 use russh::keys::ssh_key::{HashAlg, KnownHosts, PublicKey};
 use russh::{ChannelMsg, Disconnect, MethodSet, client};
+use serde::{Deserialize, Deserializer};
 use tokio::net::UnixStream;
 
 use crate::{Request, Response};
@@ -98,6 +102,136 @@ pub enum Error {
 
 type Result<T> = std::result::Result<T, Error>;
 
+/// The default config file below "/usr/".
+pub const DEFAULT_CONFIG: &str = "usr/share/signstar/request-signature.toml";
+
+/// The override config file below "/run/".
+pub const RUN_OVERRIDE_CONFIG: &str = "run/signstar/request-signature.toml";
+
+/// The override config file below "/etc/".
+pub const ETC_OVERRIDE_CONFIG: &str = "etc/signstar/request-signature.toml";
+
+/// The order of configuration files.
+///
+/// The following files are inspected, in descending priority:
+/// - `/etc/signstar/request-signature.toml`
+/// - `/run/signstar/request-signature.toml`
+/// - `/usr/share/signstar/request-signature.toml`
+pub const CONFIG_ORDER: &[&str] = &[ETC_OVERRIDE_CONFIG, RUN_OVERRIDE_CONFIG, DEFAULT_CONFIG];
+
+/// Connection configuration for sending a signature request.
+///
+/// The configuration tracks a list of all valid targets for connecting.
+#[derive(Debug, Default, Deserialize)]
+pub struct ConnectConfig {
+    targets: Vec<ConnectOptions>,
+}
+
+impl ConnectConfig {
+    /// Appends connection options to the list of targets.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # fn sign() -> testresult::TestResult {
+    /// use signstar_request_signature::ssh::client::{ConnectConfig, ConnectOptions};
+    ///
+    /// let local_target = ConnectOptions::new("localhost".into(), 22, "ssh-ed25519 ...")?;
+    /// let config = ConnectConfig::default().append_target(local_target);
+    /// # Ok(()) }
+    /// ```
+    pub fn append_target(mut self, target: ConnectOptions) -> Self {
+        self.targets.push(target);
+        self
+    }
+
+    /// Connects to a random target over SSH and returns a [`Session`] object.
+    ///
+    /// This function sets up an authenticated, bidirectional channel
+    /// between the client and the server. No signing requests are exchanged at this point but any
+    /// number of them can be issued later using [`Session::send`] function.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # async fn sign() -> testresult::TestResult {
+    /// use signstar_request_signature::ssh::client::{ConnectConfig, ConnectOptions};
+    ///
+    /// let local_target = ConnectOptions::new("localhost".into(), 22, "ssh-ed25519 ...")?;
+    /// let config = ConnectConfig::default().append_target(local_target);
+    ///
+    /// let mut session = config.connect(None).await?;
+    /// // use session to send signing requests
+    /// #     Ok(()) }
+    /// ```
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - the client public key is not set,
+    /// - the server public key is not present in the provided SSH `known_hosts` data,
+    /// - the client public key is not recognized by the server,
+    /// - the client authentication with the agent fails,
+    /// - an SSH protocol error is encountered,
+    /// - the list of targets is empty.
+    pub async fn connect(self, user: Option<&str>) -> Result<Session> {
+        let targets = self.targets;
+        if user.is_none() && targets.len() > 1 {
+            return Err(Error::InvalidOptions(
+                "no user specified and there are multiple targets".into(),
+            ));
+        }
+        let targets = targets
+            .into_iter()
+            .filter(|target| user.is_none_or(|user| target.user == user))
+            .collect::<Vec<_>>();
+        if targets.is_empty() {
+            return Err(Error::InvalidOptions("no targets specified".into()));
+        }
+        let index = thread_rng().gen_range(0..targets.len());
+        let target = {
+            let mut targets = targets;
+            targets.remove(index)
+        };
+
+        target.connect().await
+    }
+
+    /// Reads and returns the contents of the configuration file.
+    ///
+    /// If the `path` parameter is set then it has the highest precedence, otherwise [configuration
+    /// paths][`CONFIG_ORDER`] are checked in that order.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error ([`Error::Io`]) if reading the config fails or no configuration files exist
+    /// ([`crate::Error::ConfigMissing`]).
+    pub fn read_config_file(
+        root: impl AsRef<Path>,
+        path: Option<PathBuf>,
+    ) -> std::result::Result<Self, crate::Error> {
+        let root = root.as_ref();
+        let candidates = path.into_iter().chain(CONFIG_ORDER.iter().map(Into::into));
+        for file in candidates {
+            let file = root.join(file);
+            match File::open(&file) {
+                Ok(mut reader) => {
+                    let mut buf = vec![];
+                    reader
+                        .read_to_end(&mut buf)
+                        .map_err(|source| Error::Io { file, source })?;
+                    return Ok(toml::from_slice(&buf)?);
+                }
+                Err(e) if e.kind() == ErrorKind::NotFound => continue,
+                Err(source) => {
+                    return Err(crate::Error::Io { file, source });
+                }
+            }
+        }
+        Err(crate::Error::ConfigMissing)
+    }
+}
+
 /// Connection options for sending a signature request.
 ///
 /// The options capture target host parameters and all necessary
@@ -111,24 +245,24 @@ type Result<T> = std::result::Result<T, Error>;
 /// # fn main() -> testresult::TestResult {
 /// use signstar_request_signature::ssh::client::ConnectOptions;
 ///
-/// let options = ConnectOptions::target("localhost".into(), 22)
+/// let options = ConnectOptions::new("localhost".into(), 22, "ssh-ed25519 ...")?
 ///     .append_known_hosts_from_file("/home/user/.ssh/known_hosts")?
-///     .client_auth_agent_sock(std::env::var("SSH_AUTH_SOCK")?)
-///     .client_auth_public_key("ssh-ed25519 ...")?
+///     .agent_socket(std::env::var("SSH_AUTH_SOCK")?)
 ///     .user("signstar");
 /// # Ok(()) }
 /// ```
-#[derive(Debug, Default)]
+#[derive(Debug, Deserialize)]
 pub struct ConnectOptions {
+    #[serde(deserialize_with = "deserialize_entries")]
     known_hosts: Vec<Entry>,
 
-    client_auth_agent_sock: PathBuf,
+    agent_socket: PathBuf,
 
-    client_auth_public_key: Option<PublicKey>,
+    user_public_key: PublicKey,
 
     user: String,
 
-    hostname: String,
+    host: String,
 
     port: u16,
 }
@@ -155,8 +289,8 @@ impl ConnectOptions {
     }
 
     /// Sets the path to an OpenSSH agent socket for client authentication.
-    pub fn client_auth_agent_sock(mut self, agent_sock: impl Into<PathBuf>) -> Self {
-        self.client_auth_agent_sock = agent_sock.into();
+    pub fn agent_socket(mut self, agent_socket: impl Into<PathBuf>) -> Self {
+        self.agent_socket = agent_socket.into();
         self
     }
 
@@ -168,11 +302,9 @@ impl ConnectOptions {
     /// # fn main() -> testresult::TestResult {
     /// use signstar_request_signature::ssh::client::ConnectOptions;
     ///
-    /// let options = ConnectOptions::target("localhost".into(), 22)
-    ///     .client_auth_public_key(
-    ///         "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILHCXBJYlPPkrt2WYyP3SZoMx43lDBB5QALjE762EQlc",
-    ///     )?
-    ///     .user("signstar");
+    /// let client_pk =
+    ///     "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILHCXBJYlPPkrt2WYyP3SZoMx43lDBB5QALjE762EQlc";
+    /// let options = ConnectOptions::new("localhost".into(), 22, client_pk)?.user("signstar");
     /// #     Ok(()) }
     /// ```
     ///
@@ -183,9 +315,9 @@ impl ConnectOptions {
     /// [`authorized_keys` file format].
     ///
     /// [`authorized_keys` file format]: https://man.archlinux.org/man/core/openssh/sshd.8.en#AUTHORIZED_KEYS_FILE_FORMAT.
-    pub fn client_auth_public_key(mut self, public_key: impl Into<String>) -> Result<Self> {
-        self.client_auth_public_key =
-            Some(PublicKey::from_openssh(&public_key.into()).map_err(russh::keys::Error::SshKey)?);
+    pub fn user_public_key(mut self, user_public_key: impl Into<String>) -> Result<Self> {
+        self.user_public_key =
+            PublicKey::from_openssh(&user_public_key.into()).map_err(russh::keys::Error::SshKey)?;
         Ok(self)
     }
 
@@ -195,16 +327,18 @@ impl ConnectOptions {
         self
     }
 
-    /// Sets the target host and a port number to use when connecting.
-    pub fn target(hostname: String, port: u16) -> Self {
-        Self {
-            hostname,
+    /// Constructs a new [`ConnectOptions`] with target host and client public key.
+    pub fn new(host: String, port: u16, client_auth_public_key: impl AsRef<str>) -> Result<Self> {
+        let client_auth_public_key = PublicKey::from_openssh(client_auth_public_key.as_ref())
+            .map_err(russh::keys::Error::SshKey)?;
+        Ok(Self {
+            host,
             port,
             known_hosts: Default::default(),
-            client_auth_agent_sock: Default::default(),
-            client_auth_public_key: Default::default(),
+            agent_socket: Default::default(),
+            user_public_key: client_auth_public_key,
             user: Default::default(),
-        }
+        })
     }
 
     /// Connects to a host over SSH and returns a [`Session`] object.
@@ -219,7 +353,7 @@ impl ConnectOptions {
     /// # async fn sign() -> testresult::TestResult {
     /// use signstar_request_signature::ssh::client::ConnectOptions;
     ///
-    /// let options = ConnectOptions::target("localhost".into(), 22);
+    /// let options = ConnectOptions::new("localhost".into(), 22, "ssh-ed25519 ...")?;
     ///
     /// let mut session = options.connect().await?;
     /// // use session to send signing requests
@@ -235,29 +369,25 @@ impl ConnectOptions {
     /// - the client authentication with the agent fails,
     /// - an SSH protocol error is encountered.
     pub async fn connect(self) -> Result<Session> {
-        let Some(client_auth_public_key) = self.client_auth_public_key else {
-            return Err(Error::InvalidOptions(
-                "Public key for client authentication has not been set but is required.".into(),
-            ));
-        };
+        let client_auth_public_key = self.user_public_key;
 
         let config = Arc::new(client::Config {
             inactivity_timeout: Some(Duration::from_secs(5)),
             ..Default::default()
         });
 
-        let stream = UnixStream::connect(&self.client_auth_agent_sock)
+        let stream = UnixStream::connect(&self.agent_socket)
             .await
             .map_err(|source| Error::Io {
-                file: self.client_auth_agent_sock,
+                file: self.agent_socket,
                 source,
             })?;
         let mut future = AgentClient::connect(stream);
         let mut session = client::connect(
             config,
-            (self.hostname.clone(), self.port),
+            (self.host.clone(), self.port),
             KeyValidator {
-                host: self.hostname.clone(),
+                host: self.host.clone(),
                 port: self.port,
                 entries: self.known_hosts,
             },
@@ -285,10 +415,20 @@ impl ConnectOptions {
 
         Ok(Session {
             session,
-            host: self.hostname,
+            host: self.host,
             port: self.port,
         })
     }
+}
+
+fn deserialize_entries<'de, D>(deserializer: D) -> std::result::Result<Vec<Entry>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    Vec::<String>::deserialize(deserializer)?
+        .into_iter()
+        .map(|entry: String| Entry::from_str(&entry).map_err(serde::de::Error::custom))
+        .collect::<std::result::Result<_, _>>()
 }
 
 /// Validator for a host's SSH keys and a list of `known_hosts` entries.
@@ -349,7 +489,7 @@ impl Session {
     /// use signstar_request_signature::Request;
     /// use signstar_request_signature::ssh::client::ConnectOptions;
     ///
-    /// let options = ConnectOptions::target("localhost".into(), 22);
+    /// let options = ConnectOptions::new("localhost".into(), 22, "ssh-ed25519 ...")?;
     ///
     /// let mut session = options.connect().await?;
     /// let request = Request::for_file("package")?;
@@ -443,6 +583,279 @@ impl Session {
                 "en",
             )
             .await?;
+        Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::{assert_matches, fs::write};
+
+    use insta::assert_snapshot;
+    use rstest::rstest;
+    use testresult::TestResult;
+
+    use super::*;
+
+    #[test]
+    fn parsing_config() -> TestResult {
+        let config = r#"host = "127.0.0.1"
+port = 2222
+user = "signstar-sign"
+agent_socket = "/agent/path"
+user_public_key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMPF9G0NQMEIBWR0NBc7sVBc2uxkKwY3SWvzRWQAtLPp"
+known_hosts = ["127.0.0.1 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOh8eDowbkS5cA/50DhIsOUI5bDf5Kx0sSJZDQgfoRAd"]
+"#;
+        let _: ConnectOptions = toml::from_str(config)?;
+        Ok(())
+    }
+
+    #[test]
+    fn parsing_config_broken_key() -> TestResult {
+        let config = r#"host = "127.0.0.1"
+port = 2222
+user = "signstar-sign"
+agent_socket = "/agent/path"
+user_public_key = "ssh-ed25519 broken"
+known_hosts = ["127.0.0.1 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOh8eDowbkS5cA/50DhIsOUI5bDf5Kx0sSJZDQgfoRAd"]
+"#;
+        let result: std::result::Result<ConnectOptions, _> = toml::from_str(config);
+        let Err(e) = result else {
+            panic!("Result was OK when expecting an error");
+        };
+
+        let error_msg = e.to_string();
+        assert_snapshot!(error_msg);
+        Ok(())
+    }
+
+    #[test]
+    fn parsing_config_known_hosts_bad_format_string_literal() -> TestResult {
+        let config = r#"host = "127.0.0.1"
+port = 2222
+user = "signstar-sign"
+agent_socket = "/agent/path"
+user_public_key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMPF9G0NQMEIBWR0NBc7sVBc2uxkKwY3SWvzRWQAtLPp"
+known_hosts = [yes]
+"#;
+        let result: std::result::Result<ConnectOptions, _> = toml::from_str(config);
+        let Err(e) = result else {
+            panic!("Result was OK when expecting an error");
+        };
+
+        let error_msg = e.to_string();
+        assert_snapshot!(error_msg);
+        Ok(())
+    }
+
+    #[test]
+    fn parsing_config_known_hosts_bad_format_number() -> TestResult {
+        let config = r#"host = "127.0.0.1"
+port = 2222
+user = "signstar-sign"
+agent_socket = "/agent/path"
+user_public_key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMPF9G0NQMEIBWR0NBc7sVBc2uxkKwY3SWvzRWQAtLPp"
+known_hosts = [42]
+"#;
+        let result: std::result::Result<ConnectOptions, _> = toml::from_str(config);
+        let Err(e) = result else {
+            panic!("Result was OK when expecting an error");
+        };
+
+        let error_msg = e.to_string();
+        assert_snapshot!(error_msg);
+        Ok(())
+    }
+
+    #[test]
+    fn reading_missing_config() {
+        assert_matches!(
+            ConnectConfig::read_config_file("", None),
+            Err(crate::Error::ConfigMissing)
+        );
+    }
+
+    /// Creates directory hierarchy for `usr`, `etc` and `run` subdirectories within a `root`
+    /// directory.
+    fn create_test_hierarchy(root: impl AsRef<Path>) -> TestResult {
+        let root = root.as_ref();
+        let etc = root.join(ETC_OVERRIDE_CONFIG);
+        let etc_dir = etc
+            .parent()
+            .expect("etc config override to have a parent dir");
+        std::fs::create_dir_all(etc_dir)?;
+
+        let usr = root.join(DEFAULT_CONFIG);
+        let usr_dir = usr
+            .parent()
+            .expect("usr config override to have a parent dir");
+        std::fs::create_dir_all(usr_dir)?;
+
+        let run = root.join(RUN_OVERRIDE_CONFIG);
+        let run_dir = run
+            .parent()
+            .expect("run config override to have a parent dir");
+        std::fs::create_dir_all(run_dir)?;
+        Ok(())
+    }
+
+    #[rstest]
+    #[case::etc(ETC_OVERRIDE_CONFIG)]
+    #[case::usr(DEFAULT_CONFIG)]
+    #[case::run(RUN_OVERRIDE_CONFIG)]
+    fn reading_single_location_config(#[case] subdir: &str) -> TestResult {
+        let root = tempfile::tempdir()?;
+        create_test_hierarchy(&root)?;
+        let config_file = root.as_ref().join(subdir);
+
+        let config = r#"[[targets]]
+host = "127.0.0.1"
+port = 2222
+user = "signstar-sign"
+agent_socket = "/agent/path"
+user_public_key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMPF9G0NQMEIBWR0NBc7sVBc2uxkKwY3SWvzRWQAtLPp"
+known_hosts = ["127.0.0.1 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOh8eDowbkS5cA/50DhIsOUI5bDf5Kx0sSJZDQgfoRAd"]
+"#;
+        write(config_file, config)?;
+        let config = ConnectConfig::read_config_file(root, None)?;
+        assert_eq!(1, config.targets.len());
+        assert_eq!("signstar-sign", config.targets[0].user);
+        Ok(())
+    }
+
+    const ETC_CONFIG: &str = r#"[[targets]]
+host = "127.0.0.1"
+port = 2222
+user = "signstar-sign-etc"
+agent_socket = "/agent/path"
+user_public_key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMPF9G0NQMEIBWR0NBc7sVBc2uxkKwY3SWvzRWQAtLPp"
+known_hosts = ["127.0.0.1 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOh8eDowbkS5cA/50DhIsOUI5bDf5Kx0sSJZDQgfoRAd"]
+"#;
+
+    const USR_CONFIG: &str = r#"[[targets]]
+host = "127.0.0.1"
+port = 2222
+user = "signstar-sign-usr"
+agent_socket = "/agent/path"
+user_public_key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMPF9G0NQMEIBWR0NBc7sVBc2uxkKwY3SWvzRWQAtLPp"
+known_hosts = ["127.0.0.1 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOh8eDowbkS5cA/50DhIsOUI5bDf5Kx0sSJZDQgfoRAd"]
+"#;
+
+    const RUN_CONFIG: &str = r#"[[targets]]
+host = "127.0.0.1"
+port = 2222
+user = "signstar-sign-run"
+agent_socket = "/agent/path"
+user_public_key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMPF9G0NQMEIBWR0NBc7sVBc2uxkKwY3SWvzRWQAtLPp"
+known_hosts = ["127.0.0.1 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOh8eDowbkS5cA/50DhIsOUI5bDf5Kx0sSJZDQgfoRAd"]
+"#;
+
+    #[test]
+    fn reading_all_locations() -> TestResult {
+        let root = tempfile::tempdir()?;
+        create_test_hierarchy(&root)?;
+
+        write(root.as_ref().join(ETC_OVERRIDE_CONFIG), ETC_CONFIG)?;
+        write(root.as_ref().join(RUN_OVERRIDE_CONFIG), RUN_CONFIG)?;
+        write(root.as_ref().join(DEFAULT_CONFIG), USR_CONFIG)?;
+
+        let config = ConnectConfig::read_config_file(root, None)?;
+        assert_eq!(1, config.targets.len());
+        assert_eq!("signstar-sign-etc", config.targets[0].user);
+        Ok(())
+    }
+
+    #[test]
+    fn override_usr_with_run() -> TestResult {
+        let root = tempfile::tempdir()?;
+        create_test_hierarchy(&root)?;
+
+        write(root.as_ref().join(RUN_OVERRIDE_CONFIG), RUN_CONFIG)?;
+        write(root.as_ref().join(DEFAULT_CONFIG), USR_CONFIG)?;
+
+        let config = ConnectConfig::read_config_file(root, None)?;
+        assert_eq!(1, config.targets.len());
+        assert_eq!("signstar-sign-run", config.targets[0].user);
+        Ok(())
+    }
+
+    #[test]
+    fn override_usr_with_etc() -> TestResult {
+        let root = tempfile::tempdir()?;
+        create_test_hierarchy(&root)?;
+
+        write(root.as_ref().join(ETC_OVERRIDE_CONFIG), ETC_CONFIG)?;
+        write(root.as_ref().join(DEFAULT_CONFIG), USR_CONFIG)?;
+
+        let config = ConnectConfig::read_config_file(root, None)?;
+        assert_eq!(1, config.targets.len());
+        assert_eq!("signstar-sign-etc", config.targets[0].user);
+        Ok(())
+    }
+
+    #[test]
+    fn override_run_with_etc() -> TestResult {
+        let root = tempfile::tempdir()?;
+        create_test_hierarchy(&root)?;
+
+        write(root.as_ref().join(ETC_OVERRIDE_CONFIG), ETC_CONFIG)?;
+        write(root.as_ref().join(RUN_OVERRIDE_CONFIG), RUN_CONFIG)?;
+
+        let config = ConnectConfig::read_config_file(root, None)?;
+        assert_eq!(1, config.targets.len());
+        assert_eq!("signstar-sign-etc", config.targets[0].user);
+        Ok(())
+    }
+
+    #[test]
+    fn mask_etc() -> TestResult {
+        let root = tempfile::tempdir()?;
+        create_test_hierarchy(&root)?;
+
+        // empty /etc/ masks other configurations
+        write(root.as_ref().join(ETC_OVERRIDE_CONFIG), "")?;
+        write(root.as_ref().join(RUN_OVERRIDE_CONFIG), RUN_CONFIG)?;
+        write(root.as_ref().join(DEFAULT_CONFIG), USR_CONFIG)?;
+
+        // but the targets field is required so it returns an error
+        assert_matches!(
+            ConnectConfig::read_config_file(root, None),
+            Err(crate::Error::Toml(_))
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn mask_run() -> TestResult {
+        let root = tempfile::tempdir()?;
+        create_test_hierarchy(&root)?;
+
+        write(root.as_ref().join(ETC_OVERRIDE_CONFIG), ETC_CONFIG)?;
+        // masking /run
+        write(root.as_ref().join(RUN_OVERRIDE_CONFIG), "")?;
+        write(root.as_ref().join(DEFAULT_CONFIG), USR_CONFIG)?;
+
+        // etc still takes precedence
+        let config = ConnectConfig::read_config_file(root, None)?;
+        assert_eq!(1, config.targets.len());
+        assert_eq!("signstar-sign-etc", config.targets[0].user);
+        Ok(())
+    }
+
+    #[test]
+    fn mask_run_no_etc() -> TestResult {
+        let root = tempfile::tempdir()?;
+        create_test_hierarchy(&root)?;
+
+        // empty /run/ masks /usr
+        write(root.as_ref().join(RUN_OVERRIDE_CONFIG), "")?;
+        write(root.as_ref().join(DEFAULT_CONFIG), USR_CONFIG)?;
+
+        // but the targets field is required so it returns an error
+        assert_matches!(
+            ConnectConfig::read_config_file(root, None),
+            Err(crate::Error::Toml(_))
+        );
         Ok(())
     }
 }

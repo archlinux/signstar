@@ -38,29 +38,43 @@ set +x
 counter=0
 until ssh-keyscan -p 2222 127.0.0.1 2> /dev/null; do
   printf "Test container is not ready, waiting (try %d)...\n" "$counter"
-  sleep 1
+  sleep 2
   counter=$(( counter + 1 ))
   # we need a high value here since the entire openssh server installation and setup
   # is happening while we wait
   if (( counter > 50 )); then
-    printf "Test container is not up even after 30 tries. Aborting."
+    printf "Test container is not up even after 50 tries. Aborting."
     set -x
     exit 2
   fi
 done
 set -x
 
-known_hosts=$(mktemp)
-ssh-keyscan -p 2222 127.0.0.1 > "$known_hosts"
+known_host_entry="$(ssh-keyscan -q -t ed25519 -p 2222 127.0.0.1)"
+
+config="$(mktemp)"
+cat > "$config" << EOF
+[[targets]]
+host = "127.0.0.1"
+port = 2222
+user = "signstar-sign"
+agent_socket = "$agent"
+user_public_key = "$(cat tests/sshd/authorized_keys)"
+known_hosts = ["$known_host_entry"]
+EOF
 ```
 -->
 `send` subcommand requires parameters related to SSH session:
 
 ```bash
-signstar-request-signature send --host 127.0.0.1 --port 2222 --user signstar-sign \
-  --agent-socket "$agent" --user-public-key "$(cat tests/sshd/authorized_keys)" \
-  --known-hosts "$known_hosts" Cargo.toml | jq
+signstar-request-signature send --config "$config" --user signstar-sign Cargo.toml | jq
 ```
+
+<!--
+```bash
+rm "$config"
+```
+-->
 
 ## Features
 

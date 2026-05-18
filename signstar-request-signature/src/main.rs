@@ -9,7 +9,7 @@ use signstar_request_signature::{
     Request,
     Response,
     cli::{Cli, Command, SendCommand},
-    ssh::client::ConnectOptions,
+    ssh::client::ConnectConfig,
 };
 
 /// Sends a signing request over SSH.
@@ -23,12 +23,8 @@ use signstar_request_signature::{
 /// - receiving a signature for a signing request fails,
 /// - closing the SSH connection fails.
 async fn send_request_via_ssh(send_command: SendCommand) -> Result<Response, Error> {
-    let options = ConnectOptions::target(send_command.host, send_command.port)
-        .append_known_hosts_from_file(send_command.known_hosts)?
-        .client_auth_agent_sock(send_command.agent_socket)
-        .client_auth_public_key(send_command.user_public_key)?
-        .user(send_command.user);
-    let mut session = options.connect().await?;
+    let options = ConnectConfig::read_config_file("/", send_command.config)?;
+    let mut session = options.connect(send_command.user.as_deref()).await?;
     let response: Response = session
         .send(&Request::for_file(send_command.input)?)
         .await?;
