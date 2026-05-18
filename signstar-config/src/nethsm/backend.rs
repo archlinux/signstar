@@ -41,7 +41,7 @@ use crate::{
         error::Error,
         state::{KeyStates, UserStates},
     },
-    state::{StateComparisonReport, StateHandling, StateType},
+    state::{StateComparisonReport, StateHandling, StateOrigin, StateOriginInfo, StateType},
 };
 
 /// Creates all _R-Administrators_ on a [`NetHsm`].
@@ -1826,6 +1826,19 @@ pub struct NetHsmBackendState {
 impl NetHsmBackendState {
     /// The specific [`StateType`] of this state.
     const STATE_TYPE: StateType = StateType::NetHsm;
+
+    /// The name of the origin for the state.
+    pub const STATE_NAME: &'static str = "NetHSM backend";
+}
+
+impl StateOriginInfo for NetHsmBackendState {
+    fn state_name(&self) -> &str {
+        Self::STATE_NAME
+    }
+
+    fn state_origin(&self) -> StateOrigin {
+        StateOrigin::Backend
+    }
 }
 
 impl StateHandling for NetHsmBackendState {
