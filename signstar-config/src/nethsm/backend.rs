@@ -1815,7 +1815,7 @@ impl Display for KeyState {
 ///
 /// This tracks the available backend users, their roles and assigned tags, and the key setups
 /// associated with users.
-#[derive(Debug)]
+#[derive(Debug, Eq, PartialEq)]
 pub struct NetHsmBackendState {
     /// The user states.
     pub(crate) user_states: Vec<UserState>,
