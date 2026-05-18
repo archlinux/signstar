@@ -46,6 +46,7 @@ use crate::{
         duplicate_system_user_ids,
     },
     nethsm::{KeyState, NetHsmBackendState, UserState},
+    state::{StateOrigin, StateOriginInfo},
 };
 
 /// An error that may occur when using NetHSM config objects.
@@ -1169,6 +1170,11 @@ pub struct NetHsmConfigState<'a> {
     pub(crate) key_data: Vec<NetHsmConfigUserKeyData<'a>>,
 }
 
+impl<'a> NetHsmConfigState<'a> {
+    /// The name of the origin for the state
+    pub const STATE_NAME: &'static str = "NetHSM config";
+}
+
 impl<'a> From<&'a NetHsmConfig> for NetHsmConfigState<'a> {
     fn from(value: &'a NetHsmConfig) -> Self {
         let (key_data, user_data) = {
@@ -1191,6 +1197,16 @@ impl<'a> From<&'a NetHsmConfig> for NetHsmConfigState<'a> {
             user_data,
             key_data,
         }
+    }
+}
+
+impl<'a> StateOriginInfo for NetHsmConfigState<'a> {
+    fn state_name(&self) -> &str {
+        Self::STATE_NAME
+    }
+
+    fn state_origin(&self) -> StateOrigin {
+        StateOrigin::Config
     }
 }
 
