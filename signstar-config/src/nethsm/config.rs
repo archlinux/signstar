@@ -294,6 +294,31 @@ pub struct NetHsmConfigUserKeyData<'a> {
     pub tag: &'a str,
 }
 
+impl<'a> Display for NetHsmConfigUserKeyData<'a> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{} (", self.user)?;
+        if let Some(namespace) = self.user.namespace() {
+            write!(f, "namespace: {namespace}; ")?;
+        }
+        write!(f, "tag: {}; ", self.tag)?;
+        write!(f, "type: {}; ", self.key_setup.key_type())?;
+        write!(
+            f,
+            "mechanisms: {}; ",
+            self.key_setup
+                .key_mechanisms()
+                .iter()
+                .map(|mechanism| mechanism.to_string())
+                .collect::<Vec<String>>()
+                .join(", ")
+        )?;
+        write!(f, "context: {}", self.key_setup.key_context())?;
+        write!(f, ")")?;
+
+        Ok(())
+    }
+}
+
 impl<'a> PartialEq<KeyState> for NetHsmConfigUserKeyData<'a> {
     /// Evaluates equality with a backend key state.
     ///
