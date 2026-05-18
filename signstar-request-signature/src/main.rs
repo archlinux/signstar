@@ -1,6 +1,6 @@
 //! Application for the creation of signing requests and their optional sending via SSH.
 
-use std::process::ExitCode;
+use std::{fs::read_to_string, process::ExitCode};
 
 use clap::Parser;
 use signstar_common::logging::setup_logging;
@@ -23,11 +23,12 @@ use signstar_request_signature::{
 /// - receiving a signature for a signing request fails,
 /// - closing the SSH connection fails.
 async fn send_request_via_ssh(send_command: SendCommand) -> Result<Response, Error> {
-    let options = ConnectOptions::target(send_command.host, send_command.port)
-        .append_known_hosts_from_file(send_command.known_hosts)?
-        .client_auth_agent_sock(send_command.agent_socket)
-        .client_auth_public_key(send_command.user_public_key)?
-        .user(send_command.user);
+    let options: ConnectOptions = toml::from_str(&read_to_string(&send_command.config).map_err(
+        |source| Error::Io {
+            file: send_command.config,
+            source,
+        },
+    )?)?;
     let mut session = options.connect().await?;
     let response: Response = session
         .send(&Request::for_file(send_command.input)?)

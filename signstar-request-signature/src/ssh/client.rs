@@ -26,6 +26,7 @@
 //! #     Ok(()) }
 //! ```
 use std::path::Path;
+use std::str::FromStr;
 use std::{path::PathBuf, sync::Arc, time::Duration};
 
 use russh::client::AuthResult;
@@ -33,6 +34,7 @@ use russh::keys::agent::client::AgentClient;
 use russh::keys::ssh_key::known_hosts::Entry;
 use russh::keys::ssh_key::{HashAlg, KnownHosts, PublicKey};
 use russh::{ChannelMsg, Disconnect, MethodSet, client};
+use serde::{Deserialize, Deserializer};
 use tokio::net::UnixStream;
 
 use crate::{Request, Response};
@@ -118,16 +120,20 @@ type Result<T> = std::result::Result<T, Error>;
 ///     .user("signstar");
 /// # Ok(()) }
 /// ```
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Deserialize)]
 pub struct ConnectOptions {
+    #[serde(deserialize_with = "deserialize_entries", rename = "known-hosts")]
     known_hosts: Vec<Entry>,
 
+    #[serde(rename = "agent-socket")]
     client_auth_agent_sock: PathBuf,
 
+    #[serde(rename = "user-public-key")]
     client_auth_public_key: Option<PublicKey>,
 
     user: String,
 
+    #[serde(rename = "host")]
     hostname: String,
 
     port: u16,
@@ -291,6 +297,16 @@ impl ConnectOptions {
     }
 }
 
+fn deserialize_entries<'de, D>(deserializer: D) -> std::result::Result<Vec<Entry>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    Vec::<String>::deserialize(deserializer)?
+        .into_iter()
+        .map(|entry: String| Entry::from_str(&entry).map_err(serde::de::Error::custom))
+        .collect::<std::result::Result<_, _>>()
+}
+
 /// Validator for a host's SSH keys and a list of `known_hosts` entries.
 ///
 /// Tracks a `host` and its `port`, as well as a list of `entries` in the [SSH `known_hosts` file
@@ -443,6 +459,84 @@ impl Session {
                 "en",
             )
             .await?;
+        Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use insta::assert_snapshot;
+    use testresult::TestResult;
+
+    use super::*;
+
+    #[test]
+    fn parsing_config() -> TestResult {
+        let config = r#"host = "127.0.0.1"
+port = 2222
+user = "signstar-sign"
+agent-socket = "/agent/path"
+user-public-key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMPF9G0NQMEIBWR0NBc7sVBc2uxkKwY3SWvzRWQAtLPp"
+known-hosts = ["127.0.0.1 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOh8eDowbkS5cA/50DhIsOUI5bDf5Kx0sSJZDQgfoRAd"]
+"#;
+        let _: ConnectOptions = toml::from_str(config)?;
+        Ok(())
+    }
+
+    #[test]
+    fn parsing_config_broken_key() -> TestResult {
+        let config = r#"host = "127.0.0.1"
+port = 2222
+user = "signstar-sign"
+agent-socket = "/agent/path"
+user-public-key = "ssh-ed25519 broken"
+known-hosts = ["127.0.0.1 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOh8eDowbkS5cA/50DhIsOUI5bDf5Kx0sSJZDQgfoRAd"]
+"#;
+        let result: std::result::Result<ConnectOptions, _> = toml::from_str(config);
+        let Err(e) = result else {
+            panic!("Result was OK when expecting an error");
+        };
+
+        let error_msg = e.to_string();
+        assert_snapshot!(error_msg);
+        Ok(())
+    }
+
+    #[test]
+    fn parsing_config_known_hosts_bad_format_string_literal() -> TestResult {
+        let config = r#"host = "127.0.0.1"
+port = 2222
+user = "signstar-sign"
+agent-socket = "/agent/path"
+user-public-key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMPF9G0NQMEIBWR0NBc7sVBc2uxkKwY3SWvzRWQAtLPp"
+known-hosts = [yes]
+"#;
+        let result: std::result::Result<ConnectOptions, _> = toml::from_str(config);
+        let Err(e) = result else {
+            panic!("Result was OK when expecting an error");
+        };
+
+        let error_msg = e.to_string();
+        assert_snapshot!(error_msg);
+        Ok(())
+    }
+
+    #[test]
+    fn parsing_config_known_hosts_bad_format_number() -> TestResult {
+        let config = r#"host = "127.0.0.1"
+port = 2222
+user = "signstar-sign"
+agent-socket = "/agent/path"
+user-public-key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMPF9G0NQMEIBWR0NBc7sVBc2uxkKwY3SWvzRWQAtLPp"
+known-hosts = [42]
+"#;
+        let result: std::result::Result<ConnectOptions, _> = toml::from_str(config);
+        let Err(e) = result else {
+            panic!("Result was OK when expecting an error");
+        };
+
+        let error_msg = e.to_string();
+        assert_snapshot!(error_msg);
         Ok(())
     }
 }

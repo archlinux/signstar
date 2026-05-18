@@ -72,6 +72,10 @@ pub enum Error {
     /// Requesting signing via SSH failed.
     #[error("SSH client error: {0}")]
     SshClient(#[from] crate::ssh::client::Error),
+
+    /// TOML deserialization error.
+    #[error("TOML deserialization error: {0}")]
+    Toml(#[from] toml::de::Error),
 }
 
 /// Type of the input hash.
