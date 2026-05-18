@@ -7,44 +7,25 @@
 
 use std::{any::Any, fmt::Display};
 
-use log::{debug, trace, warn};
+use log::{trace, warn};
 #[cfg(doc)]
 use nethsm::NetHsm;
-use nethsm::{KeyId, NamespaceId, SystemState, UserId, UserRole};
-use signstar_crypto::key::{CryptographicKeyContext, KeyMechanism, KeyType};
+use signstar_crypto::key::CryptographicKeyContext;
 
 #[cfg(doc)]
-use crate::{config::Config, nethsm::NetHsmAdminCredentials};
+use crate::{
+    config::Config,
+    nethsm::{NetHsmAdminCredentials, NetHsmBackend},
+};
 use crate::{
     config::KeyCertificateState,
-    nethsm::{NetHsmConfig, NetHsmUserKeysFilter, backend::NetHsmBackend},
+    nethsm::{
+        NetHsmConfig,
+        NetHsmUserKeysFilter,
+        backend::{KeyState, NetHsmBackendState, UserState},
+    },
     state::{StateComparisonReport, StateHandling, StateType},
 };
-
-/// The state of a user.
-///
-/// State may be derived e.g. from a [`NetHsm`] backend or a Signstar configuration file.
-#[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
-pub struct UserState {
-    /// The name of the user.
-    pub name: UserId,
-    /// The role of the user.
-    pub role: UserRole,
-    /// The zero or more tags assigned to the user.
-    pub tags: Vec<String>,
-}
-
-impl Display for UserState {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{} (role: {}", self.name, self.role)?;
-        if !self.tags.is_empty() {
-            write!(f, "; tags: {}", self.tags.join(", "))?;
-        }
-        write!(f, ")")?;
-
-        Ok(())
-    }
-}
 
 /// A failure that can occur when comparing two sets of [`UserState`].
 #[derive(Debug)]
@@ -110,7 +91,7 @@ impl Display for UserStateComparisonFailure {
 
 /// A set of [`UserState`].
 #[derive(Debug)]
-struct UserStates<'a> {
+pub(crate) struct UserStates<'a> {
     /// The type of state the users are used in.
     pub state_type: StateType,
     /// The user states.
@@ -261,54 +242,9 @@ impl Display for KeyStateComparisonFailure {
     }
 }
 
-/// The state of a key.
-///
-/// State may be derived e.g. from a [`NetHsm`] backend or a Signstar configuration file.
-#[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
-pub struct KeyState {
-    /// The name of the key.
-    pub name: KeyId,
-    /// The optional namespace the key is used in.
-    pub namespace: Option<NamespaceId>,
-    /// The zero or more tags assigned to the key.
-    pub tags: Vec<String>,
-    /// The key type of the key.
-    pub key_type: KeyType,
-    /// The mechanisms supported by the key.
-    pub mechanisms: Vec<KeyMechanism>,
-    /// The context in which the key is used.
-    pub key_cert_state: KeyCertificateState,
-}
-
-impl Display for KeyState {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{} (", self.name)?;
-        if let Some(namespace) = self.namespace.as_ref() {
-            write!(f, "namespace: {namespace}; ")?;
-        }
-        if !self.tags.is_empty() {
-            write!(f, "tags: {}; ", self.tags.join(", "))?;
-        }
-        write!(f, "type: {}; ", self.key_type)?;
-        write!(
-            f,
-            "mechanisms: {}; ",
-            self.mechanisms
-                .iter()
-                .map(|mechanism| mechanism.to_string())
-                .collect::<Vec<String>>()
-                .join(", ")
-        )?;
-        write!(f, "context: {}", self.key_cert_state)?;
-        write!(f, ")")?;
-
-        Ok(())
-    }
-}
-
 /// A set of [`KeyState`]s used in the same [`StateType`].
 #[derive(Debug)]
-struct KeyStates<'a> {
+pub(crate) struct KeyStates<'a> {
     /// The type of state the keys are used in.
     pub state_type: StateType,
     /// The key states.
@@ -584,203 +520,6 @@ impl From<&NetHsmConfig> for NetHsmConfigStateLegacy {
     }
 }
 
-/// The state of a NetHSM backend.
-///
-/// Tracks a list of [`UserState`] and a list of [`KeyState`] data, which describes the overall
-/// state of the backend.
-#[derive(Debug)]
-pub struct NetHsmBackendState {
-    /// The user states.
-    pub(crate) user_states: Vec<UserState>,
-    /// The key states.
-    pub(crate) key_states: Vec<KeyState>,
-}
-
-impl NetHsmBackendState {
-    /// The specific [`StateType`] of this state.
-    const STATE_TYPE: StateType = StateType::NetHsm;
-}
-
-impl StateHandling for NetHsmBackendState {
-    fn state_type(&self) -> StateType {
-        Self::STATE_TYPE
-    }
-
-    fn compare(&self, other: &dyn StateHandling) -> StateComparisonReport {
-        if !self.is_comparable(other) {
-            trace!(
-                "{} is not compatible with {}",
-                self.state_type(),
-                other.state_type()
-            );
-            return StateComparisonReport::Incompatible {
-                self_state: self.state_type(),
-                other_state: other.state_type(),
-            };
-        }
-
-        let (user_failures, key_failures) = {
-            let (self_user_states, other_user_states, self_key_states, other_key_states) =
-                match other.state_type() {
-                    StateType::SignstarConfigNetHsm => {
-                        let Some(other) =
-                            (other as &dyn Any).downcast_ref::<NetHsmConfigStateLegacy>()
-                        else {
-                            return StateComparisonReport::Incompatible {
-                                self_state: self.state_type(),
-                                other_state: other.state_type(),
-                            };
-                        };
-                        (
-                            UserStates {
-                                state_type: self.state_type(),
-                                users: &self.user_states,
-                            },
-                            UserStates {
-                                state_type: other.state_type(),
-                                users: &other.user_states,
-                            },
-                            KeyStates {
-                                state_type: self.state_type(),
-                                keys: &self.key_states,
-                            },
-                            KeyStates {
-                                state_type: other.state_type(),
-                                keys: &other.key_states,
-                            },
-                        )
-                    }
-                    StateType::NetHsm => {
-                        let Some(other) = (other as &dyn Any).downcast_ref::<NetHsmBackendState>()
-                        else {
-                            return StateComparisonReport::Incompatible {
-                                self_state: self.state_type(),
-                                other_state: other.state_type(),
-                            };
-                        };
-                        (
-                            UserStates {
-                                state_type: self.state_type(),
-                                users: &self.user_states,
-                            },
-                            UserStates {
-                                state_type: other.state_type(),
-                                users: &other.user_states,
-                            },
-                            KeyStates {
-                                state_type: self.state_type(),
-                                keys: &self.key_states,
-                            },
-                            KeyStates {
-                                state_type: other.state_type(),
-                                keys: &other.key_states,
-                            },
-                        )
-                    }
-                    StateType::SignstarConfigYubiHsm2 | StateType::YubiHsm2 => {
-                        return StateComparisonReport::Incompatible {
-                            self_state: self.state_type(),
-                            other_state: other.state_type(),
-                        };
-                    }
-                };
-
-            let user_failures = self_user_states.compare(&other_user_states);
-            let key_failures = self_key_states.compare(&other_key_states);
-
-            (user_failures, key_failures)
-        };
-
-        let failures = {
-            let mut failures: Vec<String> = Vec::new();
-
-            for user_failure in user_failures.iter() {
-                failures.push(user_failure.to_string());
-            }
-            for key_failure in key_failures.iter() {
-                failures.push(key_failure.to_string());
-            }
-
-            failures
-        };
-
-        if !failures.is_empty() {
-            return StateComparisonReport::Failure(failures);
-        }
-
-        StateComparisonReport::Success
-    }
-}
-
-impl<'a, 'b> TryFrom<&NetHsmBackend<'a, 'b>> for NetHsmBackendState {
-    type Error = crate::Error;
-
-    /// Creates a new [`NetHsmBackendState`] from a [`NetHsmBackend`].
-    ///
-    /// # Note
-    ///
-    /// Uses the [`NetHsm`] backend with the [default
-    /// _R-Administrator_][`NetHsmAdminCredentials::get_default_administrator`], but may switch to a
-    /// namespace-specific _N-Administrator_ for individual operations.
-    /// If this function succeeds, the `nethsm` is guaranteed to use the [default
-    /// _R-Administrator_][`NetHsmAdminCredentials::get_default_administrator`] again.
-    /// If this function fails, the `nethsm` may still use a namespace-specific _N-Administrator_.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if
-    ///
-    /// - retrieving the system state of the [`NetHsm`] backend fails,
-    /// - unlocking a locked [`NetHsm`] backend fails,
-    /// - or retrieving the state of users or keys on the tracked [`NetHsm`] backend fails.
-    fn try_from(value: &NetHsmBackend) -> Result<Self, Self::Error> {
-        debug!(
-            "Retrieve state of the NetHSM backend at {}",
-            value.nethsm().get_url()
-        );
-
-        let (user_states, key_states) = match value.nethsm().state()? {
-            SystemState::Unprovisioned => {
-                debug!(
-                    "Unprovisioned NetHSM backend detected at {}.\nSync should be run!",
-                    value.nethsm().get_url()
-                );
-
-                (Vec::new(), Vec::new())
-            }
-            SystemState::Locked => {
-                debug!(
-                    "Locked NetHSM backend detected at {}",
-                    value.nethsm().get_url()
-                );
-
-                value.unlock_nethsm()?;
-
-                let user_states = value.user_states()?;
-                let key_states = value.key_states()?;
-
-                (user_states, key_states)
-            }
-            SystemState::Operational => {
-                debug!(
-                    "Operational NetHSM backend detected at {}",
-                    value.nethsm().get_url()
-                );
-
-                let user_states = value.user_states()?;
-                let key_states = value.key_states()?;
-
-                (user_states, key_states)
-            }
-        };
-
-        Ok(Self {
-            user_states,
-            key_states,
-        })
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use std::collections::BTreeSet;
@@ -789,9 +528,12 @@ mod tests {
     use nethsm::{
         Connection,
         ConnectionSecurity,
+        KeyMechanism,
+        KeyType,
         OpenPgpUserIdList,
         OpenPgpVersion,
         SignatureType,
+        UserRole,
     };
     use rstest::rstest;
     use signstar_common::logging::setup_logging;
@@ -886,145 +628,6 @@ mod tests {
     ) -> TestResult {
         assert_eq!(expected, NetHsmConfigStateLegacy::from(&input));
 
-        Ok(())
-    }
-
-    /// Ensures that [`UserState::to_string`] shows correctly.
-    #[rstest]
-    #[case(
-        UserState{
-            name: "testuser".parse()?,
-            role: UserRole::Operator,
-            tags: vec!["tag1".to_string(), "tag2".to_string()]
-        },
-        "testuser (role: Operator; tags: tag1, tag2)",
-    )]
-    #[case(
-        UserState{
-            name: "testuser".parse()?,
-            role: UserRole::Operator,
-            tags: Vec::new(),
-        },
-        "testuser (role: Operator)",
-    )]
-    #[case(
-        UserState{
-            name: "testuser".parse()?,
-            role: UserRole::Metrics,
-            tags: Vec::new(),
-        },
-        "testuser (role: Metrics)",
-    )]
-    #[case(
-        UserState{
-            name: "testuser".parse()?,
-            role: UserRole::Backup,
-            tags: Vec::new(),
-        },
-        "testuser (role: Backup)",
-    )]
-    #[case(
-        UserState{name:
-            "testuser".parse()?,
-            role: UserRole::Administrator,
-            tags: Vec::new(),
-        },
-        "testuser (role: Administrator)",
-    )]
-    fn user_state_to_string(#[case] user_state: UserState, #[case] expected: &str) -> TestResult {
-        setup_logging(LevelFilter::Debug)?;
-
-        assert_eq!(user_state.to_string(), expected);
-        Ok(())
-    }
-
-    /// Ensures that [`KeyState::to_string`] shows correctly.
-    #[rstest]
-    #[case::namespaced_key_with_openpgp_v4_cert(
-        KeyState{
-            name: "key1".parse()?,
-            namespace: Some("ns1".parse()?),
-            tags: vec!["tag1".to_string(), "tag2".to_string()],
-            key_type: KeyType::Curve25519,
-            mechanisms: vec![KeyMechanism::EdDsaSignature],
-            key_cert_state: KeyCertificateState::KeyContext(
-                CryptographicKeyContext::OpenPgp {
-                    user_ids: OpenPgpUserIdList::new(vec!["John Doe <john@example.org>".parse()?])?,
-                    version: OpenPgpVersion::V4,
-                })
-        },
-        "key1 (namespace: ns1; tags: tag1, tag2; type: Curve25519; mechanisms: EdDsaSignature; context: OpenPGP (Version: 4; User IDs: \"John Doe <john@example.org>\"))",
-    )]
-    #[case::namespaced_key_with_raw_cert(
-        KeyState{
-            name: "key1".parse()?,
-            namespace: Some("ns1".parse()?),
-            tags: vec!["tag1".to_string(), "tag2".to_string()],
-            key_type: KeyType::Curve25519,
-            mechanisms: vec![KeyMechanism::EdDsaSignature],
-            key_cert_state: KeyCertificateState::KeyContext(CryptographicKeyContext::Raw)
-        },
-        "key1 (namespace: ns1; tags: tag1, tag2; type: Curve25519; mechanisms: EdDsaSignature; context: Raw)",
-    )]
-    #[case::namespaced_key_with_no_cert(
-        KeyState{
-            name: "key1".parse()?,
-            namespace: Some("ns1".parse()?),
-            tags: vec!["tag1".to_string(), "tag2".to_string()],
-            key_type: KeyType::Curve25519,
-            mechanisms: vec![KeyMechanism::EdDsaSignature],
-            key_cert_state: KeyCertificateState::Empty
-        },
-        "key1 (namespace: ns1; tags: tag1, tag2; type: Curve25519; mechanisms: EdDsaSignature; context: Empty)",
-    )]
-    #[case::namespaced_key_with_cert_error(
-        KeyState{
-            name: "key1".parse()?,
-            namespace: Some("ns1".parse()?),
-            tags: vec!["tag1".to_string(), "tag2".to_string()],
-            key_type: KeyType::Curve25519,
-            mechanisms: vec![KeyMechanism::EdDsaSignature],
-            key_cert_state: KeyCertificateState::Error { message: "the dog ate it".to_string() }
-        },
-        "key1 (namespace: ns1; tags: tag1, tag2; type: Curve25519; mechanisms: EdDsaSignature; context: Error retrieving key certificate - the dog ate it)",
-    )]
-    #[case::namespaced_key_with_not_a_cert_context(
-        KeyState{
-            name: "key1".parse()?,
-            namespace: Some("ns1".parse()?),
-            tags: vec!["tag1".to_string(), "tag2".to_string()],
-            key_type: KeyType::Curve25519,
-            mechanisms: vec![KeyMechanism::EdDsaSignature],
-            key_cert_state: KeyCertificateState::NotACryptographicKeyContext { message: "failed to convert".to_string() }
-        },
-        "key1 (namespace: ns1; tags: tag1, tag2; type: Curve25519; mechanisms: EdDsaSignature; context: Not a cryptographic key context - \"failed to convert\")",
-    )]
-    #[case::namespaced_key_with_not_an_openpgp_cert(
-        KeyState{
-            name: "key1".parse()?,
-            namespace: Some("ns1".parse()?),
-            tags: vec!["tag1".to_string(), "tag2".to_string()],
-            key_type: KeyType::Curve25519,
-            mechanisms: vec![KeyMechanism::EdDsaSignature],
-            key_cert_state: KeyCertificateState::NotAnOpenPgpCertificate { message: "it's a blob".to_string() }
-        },
-        "key1 (namespace: ns1; tags: tag1, tag2; type: Curve25519; mechanisms: EdDsaSignature; context: Not an OpenPGP certificate - \"it's a blob\")",
-    )]
-    #[case::system_wide_key_with_no_cert_and_no_tags_and_raw_cert(
-        KeyState{
-            name: "key1".parse()?,
-            namespace: None,
-            tags: Vec::new(),
-            key_type: KeyType::Curve25519,
-            mechanisms: vec![KeyMechanism::EdDsaSignature],
-            key_cert_state: KeyCertificateState::KeyContext(CryptographicKeyContext::Raw)
-        },
-        "key1 (type: Curve25519; mechanisms: EdDsaSignature; context: Raw)",
-    )]
-    fn key_state_to_string(#[case] key_state: KeyState, #[case] expected: &str) -> TestResult {
-        setup_logging(LevelFilter::Debug)?;
-
-        assert_eq!(key_state.to_string(), expected);
         Ok(())
     }
 
