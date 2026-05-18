@@ -5,6 +5,8 @@ use std::path::PathBuf;
 use clap::Parser;
 use clap_verbosity_flag::Verbosity;
 
+use crate::ssh::client::CONFIG_ORDER;
+
 /// Command line arguments for signing.
 #[derive(Debug, Parser)]
 pub struct Cli {
@@ -38,30 +40,19 @@ pub struct PrepareCommand {
 /// Sending signing request input parameters.
 #[derive(Debug, Parser)]
 pub struct SendCommand {
-    /// Signstar host.
-    #[arg(long)]
-    pub host: String,
+    /// Configuration file to use.
+    #[arg(long, env = "SIGNSTAR_REQUEST_CONFIG", long_help = format!("Configuration file to use.
 
-    /// Signstar port.
-    #[clap(default_value_t = 22)]
-    #[arg(long)]
-    pub port: u16,
+If unspecified, one of the following configuration files is used if it exists, in the following order:
 
-    /// Signstar user.
-    #[arg(long)]
-    pub user: String,
+{paths}", paths = CONFIG_ORDER.iter().map(|path| format!("- {path}")).collect::<Vec<_>>().join("\n")))]
+    pub config: Option<PathBuf>,
 
-    /// Path to the agent socket used for user authentication.
+    /// The user to use for connecting.
+    ///
+    /// If this option is set only connections with matching username are considered.
     #[arg(long)]
-    pub agent_socket: PathBuf,
-
-    /// Public key of a user.
-    #[arg(long)]
-    pub user_public_key: String,
-
-    /// Path of a known hosts file which contains public keys of the serevr.
-    #[arg(long)]
-    pub known_hosts: PathBuf,
+    pub user: Option<String>,
 
     /// The path to a file being signed
     #[arg(env = "SIGNSTAR_REQUEST_FILE")]

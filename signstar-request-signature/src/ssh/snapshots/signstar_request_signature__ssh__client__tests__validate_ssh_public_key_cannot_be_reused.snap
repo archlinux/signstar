@@ -1,0 +1,7 @@
+---
+source: signstar-request-signature/src/ssh/client.rs
+expression: error_msg
+---
+users: The SSH public key used for a user cannot be used for another user:
+First: ConnectOptions { agent_socket: "", user_public_key: PublicKey { key_data: Ed25519(Ed25519PublicKey([195, 197, 244, 109, 13, 64, 193, 8, 5, 100, 116, 52, 23, 59, 177, 80, 92, 218, 236, 100, 43, 6, 55, 73, 107, 243, 69, 100, 0, 180, 179, 233])), comment: Comment([]) }, host: "test" }
+Second: ConnectOptions { agent_socket: "", user_public_key: PublicKey { key_data: Ed25519(Ed25519PublicKey([195, 197, 244, 109, 13, 64, 193, 8, 5, 100, 116, 52, 23, 59, 177, 80, 92, 218, 236, 100, 43, 6, 55, 73, 107, 243, 69, 100, 0, 180, 179, 233])), comment: Comment([]) }, host: "test" }

@@ -24,7 +24,7 @@ use russh::server::{self, Msg, Server as _, Session as ServerSession};
 use russh::{Channel, ChannelId};
 use signstar_common::logging::setup_logging;
 use signstar_request_signature::Request;
-use signstar_request_signature::ssh::client::ConnectOptions;
+use signstar_request_signature::ssh::client::ConnectConfig;
 use ssh_agent_lib::ssh_encoding::Encode as _;
 use testresult::TestResult;
 use tokio::net::TcpListener;
@@ -123,17 +123,33 @@ async fn ssh_roundtrip() -> TestResult {
     let mut key = vec![];
     ids[0].credential.key_data().encode(&mut key)?;
     agent_key.extend(Base64::encode_string(&key).as_bytes());
-    let agent_key = String::from_utf8_lossy(&agent_key);
 
-    info!("Client's public key: {agent_key}");
+    info!("Client's public key: {agent_key:?}");
 
-    let options = ConnectOptions::target(setup.server_host.0, setup.server_host.1)
-        .append_known_hosts_from_file(known_hosts)?
-        .client_auth_agent_sock(setup.agent_socket)
-        .client_auth_public_key(agent_key)?
-        .user("test");
+    let config = format!(
+        r#"
+[hosts.local]
+host = "{host}"
+port = {port}
+known_hosts = ["{host} {public_key}"]
 
-    let mut ssh = options.connect().await?;
+[users.signstar-sign]
+host = "local"
+user_public_key = "{agent_key}"
+agent_socket = "{agent_socket}"
+"#,
+        host = setup.server_host.0,
+        port = setup.server_host.1,
+        public_key = setup.public_key,
+        agent_key = String::from_utf8_lossy(&agent_key),
+        agent_socket = setup.agent_socket.display()
+    );
+
+    info!("Using config: {config}");
+
+    let config: ConnectConfig = toml::from_str(&config)?;
+
+    let mut ssh = config.connect("signstar-sign").await?;
     info!("Connected");
 
     // send the first request

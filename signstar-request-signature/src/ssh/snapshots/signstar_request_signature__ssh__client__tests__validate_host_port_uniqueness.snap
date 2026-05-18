@@ -1,0 +1,7 @@
+---
+source: signstar-request-signature/src/ssh/client.rs
+expression: error_msg
+---
+hosts: Two connections have the same host:port combination:
+First: local2 - SignstarHost { host: "127.0.0.1", port: 22, known_hosts: [] }
+Second: local - SignstarHost { host: "127.0.0.1", port: 22, known_hosts: [] }
