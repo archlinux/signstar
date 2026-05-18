@@ -1,6 +1,9 @@
 //! [`NetHsm`] specific integration for the [`crate::config`] module.
 
-use std::collections::{BTreeSet, HashSet};
+use std::{
+    collections::{BTreeSet, HashSet},
+    fmt::Display,
+};
 
 use garde::Validate;
 #[cfg(doc)]
@@ -224,6 +227,18 @@ pub struct NetHsmConfigUserData<'a> {
 
     /// The optional tag assigned to the user.
     pub tag: Option<&'a str>,
+}
+
+impl<'a> Display for NetHsmConfigUserData<'a> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{} (role: {}", self.user, self.role)?;
+        if let Some(tag) = self.tag {
+            write!(f, "; tag: {tag}")?;
+        }
+        write!(f, ")")?;
+
+        Ok(())
+    }
 }
 
 impl<'a> PartialEq<UserState> for NetHsmConfigUserData<'a> {
