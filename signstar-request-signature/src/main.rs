@@ -9,7 +9,7 @@ use signstar_request_signature::{
     Request,
     Response,
     cli::{Cli, Command, SendCommand},
-    ssh::client::ConnectOptions,
+    ssh::client::ConnectConfig,
 };
 
 /// Sends a signing request over SSH.
@@ -23,7 +23,7 @@ use signstar_request_signature::{
 /// - receiving a signature for a signing request fails,
 /// - closing the SSH connection fails.
 async fn send_request_via_ssh(send_command: SendCommand) -> Result<Response, Error> {
-    let options: ConnectOptions = toml::from_str(&read_to_string(&send_command.config).map_err(
+    let options: ConnectConfig = toml::from_str(&read_to_string(&send_command.config).map_err(
         |source| Error::Io {
             file: send_command.config,
             source,

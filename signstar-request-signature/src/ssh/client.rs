@@ -29,6 +29,7 @@ use std::path::Path;
 use std::str::FromStr;
 use std::{path::PathBuf, sync::Arc, time::Duration};
 
+use rand::{Rng, thread_rng};
 use russh::client::AuthResult;
 use russh::keys::agent::client::AgentClient;
 use russh::keys::ssh_key::known_hosts::Entry;
@@ -99,6 +100,72 @@ pub enum Error {
 }
 
 type Result<T> = std::result::Result<T, Error>;
+
+/// Connection configuration for sending a signature request.
+///
+/// The configuration tracks a list of all valid targets for connecting.
+#[derive(Debug, Default, Deserialize)]
+pub struct ConnectConfig {
+    targets: Vec<ConnectOptions>,
+}
+
+impl ConnectConfig {
+    /// Appends connection options to the list of targets.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # fn sign() -> testresult::TestResult {
+    /// use signstar_request_signature::ssh::client::{ConnectConfig, ConnectOptions};
+    ///
+    /// let local_target = ConnectOptions::target("localhost".into(), 22);
+    /// let config = ConnectConfig::default().append_target(local_target);
+    /// # Ok(()) }
+    /// ```
+    pub fn append_target(mut self, target: ConnectOptions) -> Self {
+        self.targets.push(target);
+        self
+    }
+
+    /// Connects to a random target over SSH and returns a [`Session`] object.
+    ///
+    /// This function sets up an authenticated, bidirectional channel
+    /// between the client and the server. No signing requests are exchanged at this point but any
+    /// number of them can be issued later using [`Session::send`] function.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # async fn sign() -> testresult::TestResult {
+    /// use signstar_request_signature::ssh::client::{ConnectConfig, ConnectOptions};
+    ///
+    /// let local_target = ConnectOptions::target("localhost".into(), 22);
+    /// let config = ConnectConfig::default().append_target(local_target);
+    ///
+    /// let mut session = config.connect(None).await?;
+    /// // use session to send signing requests
+    /// #     Ok(()) }
+    /// ```
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - the client public key is not set,
+    /// - the server public key is not present in the provided SSH `known_hosts` data,
+    /// - the client public key is not recognized by the server,
+    /// - the client authentication with the agent fails,
+    /// - an SSH protocol error is encountered,
+    /// - the list of targets is empty.
+    pub async fn connect(mut self) -> Result<Session> {
+        if self.targets.is_empty() {
+            return Err(Error::InvalidOptions("no targets specified".into()));
+        }
+        let index = thread_rng().gen_range(0..self.targets.len());
+        let target = self.targets.remove(index);
+
+        target.connect().await
+    }
+}
 
 /// Connection options for sending a signature request.
 ///

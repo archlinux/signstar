@@ -54,6 +54,7 @@ known_host_entry="$(ssh-keyscan -q -t ed25519 -p 2222 127.0.0.1)"
 
 config="$(mktemp)"
 cat > "$config" << EOF
+[[targets]]
 host = "127.0.0.1"
 port = 2222
 user = "signstar-sign"
