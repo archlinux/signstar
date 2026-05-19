@@ -68,11 +68,14 @@ use crate::{
 fn add_system_wide_admins(
     nethsm: &NetHsm,
     admin_credentials: &NetHsmAdminCredentials,
+    nethsm_config: &NetHsmConfig,
 ) -> Result<(), crate::Error> {
     debug!(
         "Setup system-wide administrators (R-Administrators) on NetHSM backend at {}",
         nethsm.get_url()
     );
+
+    let user_list = admin_credentials.administrators_in_config(nethsm_config);
 
     let default_admin = &admin_credentials.get_default_administrator()?.name;
     nethsm.use_credentials(default_admin)?;
@@ -86,7 +89,7 @@ fn add_system_wide_admins(
             .join(", ")
     );
 
-    for user in admin_credentials.get_administrators().iter() {
+    for user in user_list {
         // Only add if user doesn't exist yet, else set passphrase
         if !available_users.contains(&user.name) {
             nethsm.add_user(
@@ -200,11 +203,14 @@ fn get_first_available_namespace_admin(
 fn add_namespace_admins(
     nethsm: &NetHsm,
     admin_credentials: &NetHsmAdminCredentials,
+    nethsm_config: &NetHsmConfig,
 ) -> Result<(), crate::Error> {
     debug!(
         "Setup namespace administrators (N-Administrators) on NetHSM backend at {}",
         nethsm.get_url()
     );
+
+    let user_list = admin_credentials.namespace_administrators_in_config(nethsm_config);
 
     // Use the default R-Administrator for authentication to the backend by default.
     let default_admin = &admin_credentials.get_default_administrator()?.name;
@@ -233,7 +239,7 @@ fn add_namespace_admins(
 
     // Extract the namespace from each namespace administrator found in the administrative
     // credentials.
-    for user in admin_credentials.get_namespace_administrators() {
+    for user in user_list {
         let Some(namespace) = user.name.namespace() else {
             return Err(Error::NamespaceAdminHasNoNamespace {
                 user: user.name.clone(),
@@ -1694,7 +1700,7 @@ impl<'a, 'b> NetHsmBackend<'a, 'b> {
         }
 
         // Add any missing users and keys.
-        add_system_wide_admins(&self.nethsm, self.admin_credentials)?;
+        add_system_wide_admins(&self.nethsm, self.admin_credentials, self.nethsm_config)?;
         add_system_wide_keys(&self.nethsm, self.admin_credentials, &non_admin_users)?;
         add_non_administrative_users(
             &self.nethsm,
@@ -1707,7 +1713,7 @@ impl<'a, 'b> NetHsmBackend<'a, 'b> {
             self.admin_credentials,
             &non_admin_users,
         )?;
-        add_namespace_admins(&self.nethsm, self.admin_credentials)?;
+        add_namespace_admins(&self.nethsm, self.admin_credentials, self.nethsm_config)?;
         add_namespaced_keys(&self.nethsm, self.admin_credentials, &non_admin_users)?;
         add_namespaced_non_administrative_users(
             &self.nethsm,
