@@ -1,4 +1,4 @@
-//! [`NetHsm`] specific integration for the [`crate::config`] module.
+//! NetHSM specific integration for the [`crate::config`] module.
 
 use std::{
     collections::{BTreeSet, HashSet},
@@ -6,8 +6,6 @@ use std::{
 };
 
 use garde::Validate;
-#[cfg(doc)]
-use nethsm::NetHsm;
 use nethsm::{
     Connection,
     FullCredentials,
@@ -50,7 +48,7 @@ use crate::{
     nethsm::{KeyState, NetHsmBackendState, UserState},
 };
 
-/// An error that may occur when using NetHsm config objects.
+/// An error that may occur when using NetHSM config objects.
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
     /// A [`UserId`] is used both for a user in the [`Metrics`][`nethsm::UserRole::Metrics`] and
@@ -355,7 +353,7 @@ impl<'a> PartialEq<KeyState> for NetHsmConfigUserKeyData<'a> {
 #[derive(Clone, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum NetHsmUserMapping {
-    /// A NetHsm user in the Administrator role, without a system user mapped to it.
+    /// A NetHSM user in the Administrator role, without a system user mapped to it.
     Admin(UserId),
 
     /// A system user, with SSH access, mapped to a system-wide NetHSM user in the Backup role.
@@ -369,7 +367,7 @@ pub enum NetHsmUserMapping {
     },
 
     /// A system user, without SSH access, mapped to a system-wide NetHSM
-    /// user in the Metrics role and one or more NetHsm users in the Operator role with
+    /// user in the Metrics role and one or more NetHSM users in the Operator role with
     /// read-only access to zero or more keys.
     HermeticMetrics {
         /// The NetHSM users in the [`Metrics`][`UserRole::Metrics`] and
