@@ -103,7 +103,12 @@ async fn sync_unprovisioned_backend(
     )?;
     assert_eq!(nethsm.state()?, SystemState::Unprovisioned);
 
-    let nethsm_backend = NetHsmBackend::new(nethsm, &nethsm_admin_credentials, &signstar_config)?;
+    let Some(nethsm_backend) =
+        NetHsmBackend::new(nethsm, &nethsm_admin_credentials, &signstar_config)?
+    else {
+        panic!("The Signstar configuration must have a NetHSM config object.");
+    };
+
     debug!("Running sync");
     nethsm_backend.sync(&user_credentials)?;
     assert_eq!(nethsm_backend.nethsm().state()?, SystemState::Operational);

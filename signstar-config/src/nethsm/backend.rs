@@ -33,11 +33,13 @@ use nethsm::{
 use pgp::composed::{Deserializable, SignedPublicKey};
 
 use crate::{
-    config::{Config, KeyCertificateState, UserBackendConnection, UserBackendConnectionFilter},
+    config::{Config, KeyCertificateState},
     nethsm::{
         NetHsmAdminCredentials,
+        NetHsmConfig,
         NetHsmConfigStateLegacy,
         NetHsmUserKeysFilter,
+        NetHsmUserMapping,
         error::Error,
         state::{KeyStates, UserStates},
     },
@@ -304,7 +306,7 @@ fn add_namespace_admins(
 fn add_non_administrative_users(
     nethsm: &NetHsm,
     admin_credentials: &NetHsmAdminCredentials,
-    users: &[UserBackendConnection],
+    user_mappings: &[&NetHsmUserMapping],
     user_credentials: &[FullCredentials],
 ) -> Result<(), crate::Error> {
     debug!(
@@ -317,28 +319,35 @@ fn add_non_administrative_users(
     let available_users = nethsm.get_users()?;
     debug!("Available users: {available_users:?}");
 
-    let user_data_list = users
+    let user_data_list = user_mappings
         .iter()
-        .filter_map(|user_backend_connection| match user_backend_connection {
-            UserBackendConnection::NetHsm { mapping, .. } => {
-                let mut user_data_set = mapping.nethsm_config_user_data();
-                // We are only interested in mappings that define at least one system-wide,
-                // non-administrative NetHSM backend user.
-                user_data_set.retain(|data| {
-                    !data.user.is_namespaced() && data.role != UserRole::Administrator
-                });
-                if user_data_set.is_empty() {
-                    return None;
-                }
-
-                Some(user_data_set)
+        .filter_map(|user_mapping| {
+            let mut user_data_set = user_mapping.nethsm_config_user_data();
+            // We are only interested in mappings that define at least one system-wide,
+            // non-administrative NetHSM backend user.
+            user_data_set
+                .retain(|data| !data.user.is_namespaced() && data.role != UserRole::Administrator);
+            if user_data_set.is_empty() {
+                return None;
             }
-            // We are only interested in user mappings for NetHSM.
-            #[cfg(feature = "yubihsm2")]
-            _ => None,
+
+            Some(user_data_set)
         })
         .flatten()
         .collect::<Vec<_>>();
+
+    if user_data_list.is_empty() {
+        debug!(
+            "No non-administrative, system-wide users to setup on NetHSM backend at {}",
+            nethsm.get_url()
+        );
+        return Ok(());
+    }
+
+    let default_admin = &admin_credentials.get_default_administrator()?.name;
+    nethsm.use_credentials(default_admin)?;
+    let available_users = nethsm.get_users()?;
+    debug!("Available users: {available_users:?}");
 
     for user_data in user_data_list {
         let Some(creds) = user_credentials
@@ -406,7 +415,7 @@ fn add_non_administrative_users(
 fn add_namespaced_non_administrative_users(
     nethsm: &NetHsm,
     admin_credentials: &NetHsmAdminCredentials,
-    users: &[UserBackendConnection],
+    user_mappings: &[&NetHsmUserMapping],
     user_credentials: &[FullCredentials],
 ) -> Result<(), crate::Error> {
     debug!(
@@ -420,25 +429,19 @@ fn add_namespaced_non_administrative_users(
 
     let available_users = nethsm.get_users()?;
     let available_namespaces = nethsm.get_namespaces()?;
-    let user_data_list = users
+    let user_data_list = user_mappings
         .iter()
-        .filter_map(|user_backend_connection| match user_backend_connection {
-            UserBackendConnection::NetHsm { mapping, .. } => {
-                let mut user_data_set = mapping.nethsm_config_user_data();
-                // We are only interested in mappings that define at least one namespaced,
-                // non-administrative NetHSM backend user.
-                user_data_set.retain(|data| {
-                    data.user.is_namespaced() && data.role != UserRole::Administrator
-                });
-                if user_data_set.is_empty() {
-                    return None;
-                }
-
-                Some(user_data_set)
+        .filter_map(|user_mapping| {
+            let mut user_data_set = user_mapping.nethsm_config_user_data();
+            // We are only interested in mappings that define at least one namespaced,
+            // non-administrative NetHSM backend user.
+            user_data_set
+                .retain(|data| data.user.is_namespaced() && data.role != UserRole::Administrator);
+            if user_data_set.is_empty() {
+                return None;
             }
-            // We are only interested in user mappings for NetHSM.
-            #[cfg(feature = "yubihsm2")]
-            _ => None,
+
+            Some(user_data_set)
         })
         .flatten()
         .collect::<Vec<_>>();
@@ -510,8 +513,8 @@ fn add_namespaced_non_administrative_users(
 
 /// Comparable components of a key setup between a [`NetHsm`] backend and a Signstar config.
 struct KeySetupComparison {
-    /// The type of state, that the data originates from.
-    pub state_type: StateType,
+    /// The origin of the state.
+    pub state_origin: StateOrigin,
     /// The key type of the setup.
     pub key_type: KeyType,
     /// The key mechanisms of the setup.
@@ -538,16 +541,16 @@ fn compare_key_setups(
     };
     debug!(
         "Compare key setup of key \"{key_id}\"{namespace} in {} (A) and {} (B)",
-        key_setup_a.state_type, key_setup_b.state_type
+        key_setup_a.state_origin, key_setup_b.state_origin
     );
 
     // Compare key type and warn about mismatches.
     if key_setup_b.key_type != key_setup_a.key_type {
         warn!(
             "Key type mismatch of key \"{key_id}\"{namespace}:\n{} (A): {}\n{} (B) backend: {}!",
-            key_setup_a.state_type,
+            key_setup_a.state_origin,
             key_setup_a.key_type,
-            key_setup_b.state_type,
+            key_setup_b.state_origin,
             key_setup_b.key_type
         );
     }
@@ -556,14 +559,14 @@ fn compare_key_setups(
     if key_setup_b.key_mechanisms != key_setup_a.key_mechanisms {
         warn!(
             "Key mechanisms mismatch for key \"{key_id}\"{namespace}:\n{} (A): {}\n{} (B): {}!",
-            key_setup_a.state_type,
+            key_setup_a.state_origin,
             key_setup_a
                 .key_mechanisms
                 .iter()
                 .map(|mechanism| mechanism.to_string())
                 .collect::<Vec<String>>()
                 .join(", "),
-            key_setup_b.state_type,
+            key_setup_b.state_origin,
             key_setup_b
                 .key_mechanisms
                 .iter()
@@ -605,7 +608,7 @@ fn compare_key_setups(
 fn add_system_wide_keys(
     nethsm: &NetHsm,
     admin_credentials: &NetHsmAdminCredentials,
-    users: &[UserBackendConnection],
+    user_mappings: &[&NetHsmUserMapping],
 ) -> Result<(), crate::Error> {
     debug!(
         "Setup system-wide cryptographic keys on NetHSM backend at {}",
@@ -618,21 +621,12 @@ fn add_system_wide_keys(
 
     let available_keys = nethsm.get_keys(None)?;
 
-    for user_backend_connection in users {
-        let user_key_data = match user_backend_connection {
-            UserBackendConnection::NetHsm { mapping, .. } => {
-                let Some(user_key_data) =
-                    mapping.nethsm_config_user_key_data(NetHsmUserKeysFilter::SystemWide)
-                else {
-                    // We are only interested in mappings that define key data.
-                    continue;
-                };
-
-                user_key_data
-            }
-            // We are only interested in user mappings for NetHSM.
-            #[cfg(feature = "yubihsm2")]
-            _ => continue,
+    for user_mapping in user_mappings {
+        let Some(user_key_data) =
+            user_mapping.nethsm_config_user_key_data(NetHsmUserKeysFilter::SystemWide)
+        else {
+            // We are only interested in mappings that define key data.
+            continue;
         };
 
         if available_keys.contains(user_key_data.key_id) {
@@ -644,14 +638,14 @@ fn add_system_wide_keys(
                 user_key_data.key_id,
                 None,
                 KeySetupComparison {
-                    state_type: StateType::SignstarConfigNetHsm,
+                    state_origin: StateOrigin::Config,
                     key_type: user_key_data.key_setup.key_type(),
                     key_mechanisms: HashSet::from_iter(
                         user_key_data.key_setup.key_mechanisms().to_vec(),
                     ),
                 },
                 KeySetupComparison {
-                    state_type: StateType::NetHsm,
+                    state_origin: StateOrigin::Backend,
                     key_type: info
                         .r#type
                         .try_into()
@@ -732,7 +726,7 @@ fn add_system_wide_keys(
 fn add_namespaced_keys(
     nethsm: &NetHsm,
     admin_credentials: &NetHsmAdminCredentials,
-    users: &[UserBackendConnection],
+    user_mappings: &[&NetHsmUserMapping],
 ) -> Result<(), crate::Error> {
     debug!(
         "Setup namespaced cryptographic keys on NetHSM backend at {}",
@@ -745,23 +739,14 @@ fn add_namespaced_keys(
 
     let available_users = nethsm.get_users()?;
 
-    for user_backend_connection in users {
-        let user_key_data = match user_backend_connection {
-            UserBackendConnection::NetHsm { mapping, .. } => {
-                let Some(user_key_data) =
-                    mapping.nethsm_config_user_key_data(NetHsmUserKeysFilter::Namespaced)
-                else {
-                    // We are only interested in mappings that define key data.
-                    continue;
-                };
+    let all_user_key_data = user_mappings
+        .iter()
+        .filter_map(|user_mapping| {
+            user_mapping.nethsm_config_user_key_data(NetHsmUserKeysFilter::Namespaced)
+        })
+        .collect::<Vec<_>>();
 
-                user_key_data
-            }
-            // We are only interested in user mappings for NetHSM.
-            #[cfg(feature = "yubihsm2")]
-            _ => continue,
-        };
-
+    for user_key_data in all_user_key_data {
         debug!(
             "Set up key \"{}\" with tag {} for user {}",
             user_key_data.key_id, user_key_data.tag, user_key_data.user
@@ -796,14 +781,14 @@ fn add_namespaced_keys(
                 user_key_data.key_id,
                 Some(namespace),
                 KeySetupComparison {
-                    state_type: StateType::SignstarConfigNetHsm,
+                    state_origin: StateOrigin::Config,
                     key_type: user_key_data.key_setup.key_type(),
                     key_mechanisms: HashSet::from_iter(
                         user_key_data.key_setup.key_mechanisms().to_vec(),
                     ),
                 },
                 KeySetupComparison {
-                    state_type: StateType::NetHsm,
+                    state_origin: StateOrigin::Backend,
                     key_type: key_info
                         .r#type
                         .try_into()
@@ -901,7 +886,7 @@ fn add_namespaced_keys(
 fn add_system_wide_openpgp_certificates(
     nethsm: &NetHsm,
     admin_credentials: &NetHsmAdminCredentials,
-    users: &[UserBackendConnection],
+    user_mappings: &[&NetHsmUserMapping],
 ) -> Result<(), crate::Error> {
     debug!(
         "Setup OpenPGP certificates for system-wide cryptographic keys on NetHSM backend at {}",
@@ -914,23 +899,14 @@ fn add_system_wide_openpgp_certificates(
 
     let available_users = nethsm.get_users()?;
 
-    for user_backend_connection in users {
-        let user_key_data = match user_backend_connection {
-            UserBackendConnection::NetHsm { mapping, .. } => {
-                let Some(user_key_data) =
-                    mapping.nethsm_config_user_key_data(NetHsmUserKeysFilter::SystemWide)
-                else {
-                    // We are only interested in mappings that define key data.
-                    continue;
-                };
+    let all_user_key_data = user_mappings
+        .iter()
+        .filter_map(|user_mapping| {
+            user_mapping.nethsm_config_user_key_data(NetHsmUserKeysFilter::SystemWide)
+        })
+        .collect::<Vec<_>>();
 
-                user_key_data
-            }
-            // We are only interested in user mappings for NetHSM.
-            #[cfg(feature = "yubihsm2")]
-            _ => continue,
-        };
-
+    for user_key_data in all_user_key_data {
         // Get OpenPGP User IDs and version or continue to the next user/key setup if the
         // mapping is not used for OpenPGP signing.
         let CryptographicKeyContext::OpenPgp { user_ids, version } =
@@ -1070,7 +1046,7 @@ fn add_system_wide_openpgp_certificates(
 fn add_namespaced_openpgp_certificates(
     nethsm: &NetHsm,
     admin_credentials: &NetHsmAdminCredentials,
-    users: &[UserBackendConnection],
+    user_mappings: &[&NetHsmUserMapping],
 ) -> Result<(), crate::Error> {
     debug!(
         "Setup OpenPGP certificates for namespaced cryptographic keys on NetHSM backend at {}",
@@ -1083,29 +1059,24 @@ fn add_namespaced_openpgp_certificates(
 
     let available_users = nethsm.get_users()?;
 
-    let nethsm_user_key_data_list = users
+    let nethsm_user_key_data_list = user_mappings
         .iter()
-        .filter_map(|user_backend_connection| match user_backend_connection {
-            UserBackendConnection::NetHsm { mapping, .. } => {
-                let Some(user_key_data) =
-                    mapping.nethsm_config_user_key_data(NetHsmUserKeysFilter::Namespaced)
-                else {
-                    // We are only interested in mappings that define key data.
-                    return None;
-                };
-                // We are only interested in mappings that define OpenPGP key data.
-                if !matches!(
-                    user_key_data.key_setup.key_context(),
-                    CryptographicKeyContext::OpenPgp { .. }
-                ) {
-                    return None;
-                }
-
-                Some(user_key_data)
+        .filter_map(|user_mapping| {
+            let Some(user_key_data) =
+                user_mapping.nethsm_config_user_key_data(NetHsmUserKeysFilter::Namespaced)
+            else {
+                // We are only interested in mappings that define key data.
+                return None;
+            };
+            // We are only interested in mappings that define OpenPGP key data.
+            if !matches!(
+                user_key_data.key_setup.key_context(),
+                CryptographicKeyContext::OpenPgp { .. }
+            ) {
+                return None;
             }
-            // We are only interested in user mappings for NetHSM.
-            #[cfg(feature = "yubihsm2")]
-            _ => None,
+
+            Some(user_key_data)
         })
         .collect::<Vec<_>>();
 
@@ -1228,11 +1199,13 @@ fn add_namespaced_openpgp_certificates(
 pub struct NetHsmBackend<'a, 'b> {
     nethsm: NetHsm,
     admin_credentials: &'a NetHsmAdminCredentials,
-    signstar_config: &'b Config,
+    nethsm_config: &'b NetHsmConfig,
 }
 
 impl<'a, 'b> NetHsmBackend<'a, 'b> {
     /// Creates a new [`NetHsmBackend`].
+    ///
+    /// Returns `Some(None)` if `signstar_config` contains no [`NetHsmConfig`].
     ///
     /// # Errors
     ///
@@ -1362,11 +1335,15 @@ impl<'a, 'b> NetHsmBackend<'a, 'b> {
         nethsm: NetHsm,
         admin_credentials: &'a NetHsmAdminCredentials,
         signstar_config: &'b Config,
-    ) -> Result<Self, crate::Error> {
+    ) -> Result<Option<Self>, crate::Error> {
         debug!(
             "Create a new NetHSM backend for Signstar config at {}",
             nethsm.get_url()
         );
+
+        let Some(nethsm_config) = signstar_config.nethsm() else {
+            return Ok(None);
+        };
 
         // Ensure that the iterations of administrative credentials and signstar config match.
         if admin_credentials.get_iteration() != signstar_config.system().iteration() {
@@ -1377,22 +1354,22 @@ impl<'a, 'b> NetHsmBackend<'a, 'b> {
             .into());
         }
 
-        // Add all system-wide Administrators for the connection
-        for user in admin_credentials.get_administrators() {
+        // Add all available system-wide Administrators for the connection
+        for user in admin_credentials.administrators_in_config(nethsm_config) {
             nethsm.add_credentials(user.into());
         }
-        // Add all namespace Administrators for the connection
-        for user in admin_credentials.get_namespace_administrators() {
+        // Add all available namespace Administrators for the connection
+        for user in admin_credentials.namespace_administrators_in_config(nethsm_config) {
             nethsm.add_credentials(user.into());
         }
         // Use the default administrator
         nethsm.use_credentials(&admin_credentials.get_default_administrator()?.name)?;
 
-        Ok(Self {
+        Ok(Some(Self {
             nethsm,
             admin_credentials,
-            signstar_config,
-        })
+            nethsm_config,
+        }))
     }
 
     /// Returns a reference to the tracked [`NetHsm`].
@@ -1670,10 +1647,13 @@ impl<'a, 'b> NetHsmBackend<'a, 'b> {
             self.nethsm.get_url()
         );
 
-        // Extract the user backend connections.
+        // Extract user mappings for non-administrative users.
         let non_admin_users = self
-            .signstar_config
-            .user_backend_connections(UserBackendConnectionFilter::NonAdmin);
+            .nethsm_config
+            .mappings()
+            .iter()
+            .filter(|mapping| !matches!(mapping, NetHsmUserMapping::Admin(..)))
+            .collect::<Vec<_>>();
 
         match self.nethsm.state()? {
             SystemState::Unprovisioned => {
