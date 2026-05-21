@@ -31,7 +31,7 @@ base64ct.workspace = true
 rsa = { workspace = true, features = ["sha1", "sha2"] }
 rstest.workspace = true
 signstar-common = { features = ["logging"], workspace = true }
-ssh-agent-lib = "0.5.1"
+ssh-agent-lib = "0.6.0"
 tempfile.workspace = true
 testdir.workspace = true
 testresult.workspace = true

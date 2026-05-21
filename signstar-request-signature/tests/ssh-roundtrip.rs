@@ -112,10 +112,16 @@ async fn ssh_roundtrip() -> TestResult {
         ssh_agent_lib::client::connect(UnixStream::connect(&setup.agent_socket)?.into())?;
     let ids = session.request_identities().await?;
     assert_eq!(ids.len(), 1);
-    let mut agent_key = ids[0].pubkey.algorithm().to_string().as_bytes().to_vec();
+    let mut agent_key = ids[0]
+        .credential
+        .key_data()
+        .algorithm()
+        .to_string()
+        .as_bytes()
+        .to_vec();
     agent_key.push(b' ');
     let mut key = vec![];
-    ids[0].pubkey.encode(&mut key)?;
+    ids[0].credential.key_data().encode(&mut key)?;
     agent_key.extend(Base64::encode_string(&key).as_bytes());
     let agent_key = String::from_utf8_lossy(&agent_key);
 

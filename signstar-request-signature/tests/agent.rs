@@ -65,7 +65,8 @@ impl AgentSession for RandomKey {
         use ssh_agent_lib::ssh_key::public::RsaPublicKey as SshPK;
         let identity = self.private_key.lock().unwrap();
         Ok(vec![Identity {
-            pubkey: KeyData::from(SshPK::try_from(RsaPublicKey::from(&*identity)).unwrap()),
+            credential: KeyData::from(SshPK::try_from(RsaPublicKey::from(&*identity)).unwrap())
+                .into(),
             comment: "randomly generated RSA key".into(),
         }])
     }
