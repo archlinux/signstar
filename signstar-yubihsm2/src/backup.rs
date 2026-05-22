@@ -543,7 +543,7 @@ pub struct InnerFormat<'a> {
     pub wrap_algorithm: WrapAlgorithm,
 
     /// Capabilities of the wrapped object.
-    pub capabilities: &'a [u8; 8],
+    pub capabilities: Capabilities,
 
     /// Identifier of the wrapped object.
     pub object_id: ObjectId,
@@ -580,7 +580,7 @@ impl<'a> InnerFormat<'a> {
         let mut reader = BeReader::new(raw);
 
         let wrap_algorithm = WrapAlgorithm::from(reader.read_u8()?);
-        let capabilities = reader.read()?;
+        let capabilities = Capabilities::from(*reader.read::<8>()?);
         let id = reader.read_u16()?;
         let datalen = reader.read_u16()?;
         let domains = reader.read_u16()?.into();
@@ -617,7 +617,7 @@ impl<'a> InnerFormat<'a> {
     /// Serializes this format into a list of bytes.
     pub fn serialize_into(&self, buffer: &mut Vec<u8>) {
         buffer.push(self.wrap_algorithm.into());
-        buffer.extend_from_slice(self.capabilities);
+        buffer.extend_from_slice(&<[u8; 8]>::from(&self.capabilities));
         buffer.extend_from_slice(&u16::from(self.object_id.id()).to_be_bytes());
         buffer.extend_from_slice(&(self.key_data.len() as u16).to_be_bytes());
         buffer.extend_from_slice(&self.domains.to_be_bytes());
@@ -789,7 +789,10 @@ mod tests {
         inner.serialize_into(&mut buffer);
         assert_eq!(decrypted, buffer);
         assert_eq!(inner.object_type, ObjectType::Aes128Auth);
-        assert_eq!(inner.capabilities, &[0, 0, 0, 0, 0, 1, 0, 0]);
+        assert_eq!(
+            inner.capabilities,
+            Capabilities::from(&[Capability::Exportable][..])
+        );
         assert_eq!(inner.domains, Domain::One.into());
         assert_eq!(u16::from(inner.object_id.id()), 14);
         assert_eq!(
@@ -819,7 +822,10 @@ mod tests {
         inner.serialize_into(&mut buffer);
         assert_eq!(decrypted, buffer);
         assert_eq!(inner.object_type, ObjectType::Opaque);
-        assert_eq!(inner.capabilities, &[0, 0, 0, 0, 0, 1, 0, 0]);
+        assert_eq!(
+            inner.capabilities,
+            Capabilities::from(&[Capability::Exportable][..])
+        );
         assert_eq!(inner.domains, Domain::One.into());
         assert_eq!(u16::from(inner.object_id.id()), 13);
         assert_eq!(inner.key_data, WrappedPayload::Opaque(&[1, 2, 3]));
