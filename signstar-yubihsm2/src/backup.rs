@@ -93,6 +93,15 @@ pub enum Error {
     /// Parsing failed because the buffer does not contain enough data.
     #[error("Parsing buffer: not enough data.")]
     InsufficientDataInBuffer,
+
+    /// Label length error.
+    #[error(
+        "The string '{label}' could not be converted to a label as it exceeds the 40 bytes limit."
+    )]
+    LabelLength {
+        /// The label string that exceeded the 40-byte limit.
+        label: String,
+    },
 }
 
 /// The representation of data about to be wrapped (encrypted) with key.
@@ -536,6 +545,134 @@ impl<'a> BeReader<'a> {
     }
 }
 
+/// 40-bytes long textual description of the object.
+///
+/// # Examples
+///
+/// Converting a string to a [`Label`]:
+///
+/// ```
+/// # fn main() -> testresult::TestResult {
+/// use signstar_yubihsm2::backup::Label;
+///
+/// let label: Label = "test".parse()?;
+///
+/// assert_eq!(label.to_string(), "test");
+/// # Ok(()) }
+/// ```
+#[derive(Clone, Debug)]
+pub struct Label([u8; 40]);
+
+impl FromStr for Label {
+    type Err = Error;
+
+    /// Creates a new [`Label`] from a string slice.
+    ///
+    /// The text must be no longer than 40 bytes and may be empty.
+    ///
+    /// # Examples
+    ///
+    /// Converting a string to [`Label`]:
+    ///
+    /// ```
+    /// # fn main() -> testresult::TestResult {
+    /// use signstar_yubihsm2::backup::{Error, Label};
+    ///
+    /// let label: Label = "test".parse()?;
+    ///
+    /// assert_eq!(label.to_string(), "test");
+    ///
+    /// // When the string is too long [`Error::LabelLength`] is returned:
+    ///
+    /// assert!(matches!(
+    ///     "a".repeat(50).parse::<Label>(),
+    ///     Err(Error::LabelLength { .. })
+    /// ));
+    /// # Ok(()) }
+    /// ```
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the string is longer than 40 bytes.
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        if s.len() > 40 {
+            return Err(Error::LabelLength { label: s.into() });
+        }
+        let mut buf = [0; 40];
+        buf[..s.len()].copy_from_slice(s.as_bytes());
+        Ok(Self(buf))
+    }
+}
+
+impl From<&[u8; 40]> for Label {
+    /// Creates a new [`Label`] from a slice of 40 bytes.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # fn main() -> testresult::TestResult {
+    /// use signstar_yubihsm2::backup::Label;
+    ///
+    /// let label = Label::from(&[0; 40]);
+    ///
+    /// assert_eq!(label.to_string(), "");
+    /// # Ok(()) }
+    /// ```
+    fn from(value: &[u8; 40]) -> Self {
+        let mut buf = [0; 40];
+        buf.copy_from_slice(value);
+        Self(buf)
+    }
+}
+
+impl AsRef<[u8; 40]> for Label {
+    /// Returns a reference to the underlying buffer.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # fn main() -> testresult::TestResult {
+    /// use signstar_yubihsm2::backup::Label;
+    ///
+    /// let label: Label = "test".parse()?;
+    ///
+    /// assert_eq!(label.as_ref().len(), 40);
+    /// # Ok(()) }
+    /// ```
+    fn as_ref(&self) -> &[u8; 40] {
+        &self.0
+    }
+}
+
+impl Display for Label {
+    /// Converts the label to a string and writes it to a given formatter.
+    ///
+    /// Note that if the underlying buffer does not contain valid UTF-8 data, the conversion is
+    /// lossy.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # fn main() -> testresult::TestResult {
+    /// use std::fmt::Write;
+    ///
+    /// use signstar_yubihsm2::backup::Label;
+    ///
+    /// let label: Label = "test".parse()?;
+    ///
+    /// let mut str = String::new();
+    /// write!(str, "{label}")?;
+    ///
+    /// assert_eq!(str, "test");
+    /// # Ok(()) }
+    /// ```
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let len = self.0.iter().position(|&b| b == 0).unwrap_or(self.0.len());
+        let label = String::from_utf8_lossy(&self.0[..len]);
+        write!(f, "{label}")
+    }
+}
+
 /// Parsed representation of the backup's inner format.
 #[derive(Debug)]
 pub struct InnerFormat<'a> {
@@ -561,7 +698,7 @@ pub struct InnerFormat<'a> {
     pub origin: u8,
 
     /// Key label.
-    pub label: String,
+    pub label: Label,
 
     /// Payload of the key.
     pub key_data: WrappedPayload<'a>,
@@ -592,9 +729,7 @@ impl<'a> InnerFormat<'a> {
         let sequence = reader.read_u8()?;
         let origin = reader.read_u8()?;
 
-        let label = reader.read::<40>()?;
-        let len = label.iter().position(|&b| b == 0).unwrap_or(label.len());
-        let label = String::from_utf8_lossy(&label[..len]).into();
+        let label = reader.read::<40>()?.into();
 
         // check if the datalen is consistent with the buffer's length
         if reader.position() + datalen as usize != raw.len() {
@@ -625,10 +760,7 @@ impl<'a> InnerFormat<'a> {
         buffer.push(self.object_type.into());
         buffer.push(self.sequence);
         buffer.push(self.origin);
-        let mut label: [u8; 40] = [0; 40];
-        let slice_len = self.label.len().min(label.len());
-        label[..slice_len].copy_from_slice(self.label.as_bytes());
-        buffer.extend_from_slice(&label);
+        buffer.extend_from_slice(self.label.as_ref());
         self.key_data.serialize_into(buffer);
     }
 }
@@ -661,7 +793,7 @@ mod tests {
         assert_eq!(inner.domains, Domain::One.into());
         assert_eq!(inner.sequence, 0);
         assert_eq!(inner.origin, 2);
-        assert_eq!(inner.label, "Ed25519_Key");
+        assert_eq!(inner.label.to_string(), "Ed25519_Key");
         let WrappedPayload::ExpandedEd25519(key_data) = inner.key_data else {
             panic!("Expected Ed25519 key data");
         };
@@ -714,7 +846,7 @@ mod tests {
         assert_eq!(inner.domains, Domains::all());
         assert_eq!(inner.sequence, 0);
         assert_eq!(inner.origin, 1);
-        assert_eq!(inner.label, "Signature_Key_Ed_2");
+        assert_eq!(inner.label.to_string(), "Signature_Key_Ed_2");
         let WrappedPayload::SeedEd25519(key_data) = inner.key_data.clone() else {
             panic!("Expected Ed25519 key data");
         };
@@ -806,7 +938,7 @@ mod tests {
             })
         );
         assert_eq!(inner.object_id.object_type(), Type::AuthenticationKey);
-        assert_eq!(inner.label, "");
+        assert_eq!(inner.label.to_string(), "");
         assert_eq!(inner.origin, 2);
         assert_eq!(inner.sequence, 0);
         Ok(())
@@ -830,7 +962,7 @@ mod tests {
         assert_eq!(u16::from(inner.object_id.id()), 13);
         assert_eq!(inner.key_data, WrappedPayload::Opaque(&[1, 2, 3]));
         assert_eq!(inner.object_id.object_type(), Type::Opaque);
-        assert_eq!(inner.label, "random");
+        assert_eq!(inner.label.to_string(), "random");
         assert_eq!(inner.origin, 2);
         assert_eq!(inner.sequence, 0);
         Ok(())
