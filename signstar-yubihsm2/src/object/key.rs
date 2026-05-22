@@ -51,30 +51,61 @@ pub enum Domain {
     Sixteen = 16,
 }
 
+impl Domain {
+    fn as_str(&self) -> &'static str {
+        match self {
+            Self::One => "1",
+            Self::Two => "2",
+            Self::Three => "3",
+            Self::Four => "4",
+            Self::Five => "5",
+            Self::Six => "6",
+            Self::Seven => "7",
+            Self::Eight => "8",
+            Self::Nine => "9",
+            Self::Ten => "10",
+            Self::Eleven => "11",
+            Self::Twelve => "12",
+            Self::Thirteen => "13",
+            Self::Fourteen => "14",
+            Self::Fifteen => "15",
+            Self::Sixteen => "16",
+        }
+    }
+}
+
 impl Display for Domain {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "{}",
-            match self {
-                Self::One => "1",
-                Self::Two => "2",
-                Self::Three => "3",
-                Self::Four => "4",
-                Self::Five => "5",
-                Self::Six => "6",
-                Self::Seven => "7",
-                Self::Eight => "8",
-                Self::Nine => "9",
-                Self::Ten => "10",
-                Self::Eleven => "11",
-                Self::Twelve => "12",
-                Self::Thirteen => "13",
-                Self::Fourteen => "14",
-                Self::Fifteen => "15",
-                Self::Sixteen => "16",
-            }
-        )
+        f.write_str(self.as_str())
+    }
+}
+
+#[cfg(feature = "cli")]
+impl clap::ValueEnum for Domain {
+    fn value_variants<'a>() -> &'a [Self] {
+        static VARIANTS: &[Domain] = &[
+            Domain::One,
+            Domain::Two,
+            Domain::Three,
+            Domain::Four,
+            Domain::Five,
+            Domain::Six,
+            Domain::Seven,
+            Domain::Eight,
+            Domain::Nine,
+            Domain::Ten,
+            Domain::Eleven,
+            Domain::Twelve,
+            Domain::Thirteen,
+            Domain::Fourteen,
+            Domain::Fifteen,
+            Domain::Sixteen,
+        ];
+        VARIANTS
+    }
+
+    fn to_possible_value(&self) -> Option<clap::builder::PossibleValue> {
+        Some(clap::builder::PossibleValue::new(self.as_str()))
     }
 }
 
@@ -158,10 +189,9 @@ impl From<Domain> for Domains {
     }
 }
 
-impl From<u16> for Domains {
-    fn from(value: u16) -> Self {
+impl From<yubihsm::Domain> for Domains {
+    fn from(value: yubihsm::Domain) -> Self {
         let mut domains = HashSet::new();
-        let yubi_domain = yubihsm::Domain::from_bits_retain(value);
         for (yubi_dom, dom) in [
             (yubihsm::Domain::DOM1, Domain::One),
             (yubihsm::Domain::DOM2, Domain::Two),
@@ -180,12 +210,24 @@ impl From<u16> for Domains {
             (yubihsm::Domain::DOM15, Domain::Fifteen),
             (yubihsm::Domain::DOM16, Domain::Sixteen),
         ] {
-            if yubi_domain.contains(yubi_dom) {
+            if value.contains(yubi_dom) {
                 domains.insert(dom);
             }
         }
 
         Domains(domains)
+    }
+}
+
+impl From<u16> for Domains {
+    fn from(value: u16) -> Self {
+        yubihsm::Domain::from_bits_retain(value).into()
+    }
+}
+
+impl From<&[Domain]> for Domains {
+    fn from(value: &[Domain]) -> Self {
+        Self(value.iter().copied().collect())
     }
 }
 
