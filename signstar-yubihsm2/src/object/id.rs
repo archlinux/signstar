@@ -133,7 +133,7 @@ impl From<Id> for u16 {
 /// The YubiHSM2 provides several different types of objects.
 /// Each object type serves as a namespace, which means that an object of a specific type is
 /// isolated from objects of a different type.
-#[derive(Debug)]
+#[derive(Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 #[cfg_attr(
     feature = "serde",
