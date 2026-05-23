@@ -14,7 +14,7 @@
 
 use std::{collections::HashSet, fmt::Display, str::FromStr};
 
-use log::{debug, trace, warn};
+use log::{debug, info, trace, warn};
 use nethsm::{
     CryptographicKeyContext,
     FullCredentials,
@@ -1404,6 +1404,10 @@ impl<'a, 'b> NetHsmBackend<'a, 'b> {
     /// - retrieving information about a specific NetHSM user fails,
     /// - or retrieving the tags of an *Operator* user fails.
     pub(crate) fn user_states(&self) -> Result<Vec<UserState>, crate::Error> {
+        info!(
+            "Retrieve all user states from NetHSM backend at \"{}\"",
+            self.nethsm.get_url()
+        );
         // Use the default R-Administrator.
         self.nethsm
             .use_credentials(&self.admin_credentials.get_default_administrator()?.name)?;
@@ -1413,16 +1417,28 @@ impl<'a, 'b> NetHsmBackend<'a, 'b> {
 
             for user_id in self.nethsm.get_users()? {
                 let user_data = self.nethsm.get_user(&user_id)?;
-                let tags = if user_data.role == UserRole::Operator.into() {
-                    self.nethsm.get_user_tags(&user_id)?
-                } else {
-                    Vec::new()
+                let tag = {
+                    // Only Operator users can have tags assigned to them.
+                    if user_data.role == UserRole::Operator.into() {
+                        let user_tags = self.nethsm.get_user_tags(&user_id)?;
+                        match user_tags.len() {
+                            0 => None,
+                            1 => user_tags.first().cloned(),
+                            number => {
+                                return Err(
+                                    Error::UserUnexpectedNumberOfTags { user_id, number }.into()
+                                );
+                            }
+                        }
+                    } else {
+                        None
+                    }
                 };
 
                 users.push(UserState {
                     name: user_id,
                     role: user_data.role.into(),
-                    tags,
+                    tag,
                 });
             }
 
@@ -1453,6 +1469,10 @@ impl<'a, 'b> NetHsmBackend<'a, 'b> {
         } else {
             "".to_string()
         };
+        info!(
+            "Retrieve the key certificate state for key {key_id}{namespace} from NetHSM backend at \"{}\"",
+            self.nethsm.get_url()
+        );
 
         match self.nethsm.get_key_certificate(key_id) {
             Ok(Some(key_cert)) => {
@@ -1514,6 +1534,10 @@ impl<'a, 'b> NetHsmBackend<'a, 'b> {
     /// - retrieving the names of all namespaced keys on the backend fails,
     /// - or retrieving information on a specific namespaced key on the backend fails.
     pub(crate) fn key_states(&self) -> Result<Vec<KeyState>, crate::Error> {
+        info!(
+            "Retrieve all key states from NetHSM backend at \"{}\"",
+            self.nethsm.get_url()
+        );
         // Use the default administrator
         let default_admin = &self.admin_credentials.get_default_administrator()?.name;
         self.nethsm.use_credentials(default_admin)?;
@@ -1523,11 +1547,27 @@ impl<'a, 'b> NetHsmBackend<'a, 'b> {
         for key_id in self.nethsm.get_keys(None)? {
             let key = self.nethsm.get_key(&key_id)?;
             let key_context = self.key_certificate_state(&key_id, None);
+            let tag = {
+                let tags = key.restrictions.tags.unwrap_or_default();
+                if tags.len() > 1 {
+                    return Err(Error::KeyUnexpectedNumberOfTags {
+                        key_id,
+                        number: tags.len(),
+                    }
+                    .into());
+                }
+
+                if let Some(tag) = tags.first() {
+                    tag.clone()
+                } else {
+                    return Err(Error::KeyUnexpectedNumberOfTags { key_id, number: 0 }.into());
+                }
+            };
 
             keys.push(KeyState {
                 name: key_id,
                 namespace: None,
-                tags: key.restrictions.tags.unwrap_or_default(),
+                tag,
                 key_type: key
                     .r#type
                     .try_into()
@@ -1567,11 +1607,27 @@ impl<'a, 'b> NetHsmBackend<'a, 'b> {
             for key_id in self.nethsm.get_keys(None)? {
                 let key = self.nethsm.get_key(&key_id)?;
                 let key_context = self.key_certificate_state(&key_id, Some(namespace));
+                let tag = {
+                    let tags = key.restrictions.tags.unwrap_or_default();
+                    if tags.len() > 1 {
+                        return Err(Error::KeyUnexpectedNumberOfTags {
+                            key_id,
+                            number: tags.len(),
+                        }
+                        .into());
+                    }
+
+                    if let Some(tag) = tags.first() {
+                        tag.clone()
+                    } else {
+                        return Err(Error::KeyUnexpectedNumberOfTags { key_id, number: 0 }.into());
+                    }
+                };
 
                 keys.push(KeyState {
                     name: key_id,
                     namespace: Some(namespace.clone()),
-                    tags: key.restrictions.tags.unwrap_or_default(),
+                    tag,
                     key_type: key
                         .r#type
                         .try_into()
@@ -1736,15 +1792,15 @@ pub(crate) struct UserState {
     pub name: UserId,
     /// The role of the user.
     pub role: UserRole,
-    /// The zero or more tags assigned to the user.
-    pub tags: Vec<String>,
+    /// The optional tag assigned to the user.
+    pub tag: Option<String>,
 }
 
 impl Display for UserState {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{} (role: {}", self.name, self.role)?;
-        if !self.tags.is_empty() {
-            write!(f, "; tags: {}", self.tags.join(", "))?;
+        if let Some(tag) = self.tag.as_ref() {
+            write!(f, "; tag: {tag}")?;
         }
         write!(f, ")")?;
 
@@ -1759,8 +1815,8 @@ pub(crate) struct KeyState {
     pub name: KeyId,
     /// The optional namespace the key is used in.
     pub namespace: Option<NamespaceId>,
-    /// The zero or more tags assigned to the key.
-    pub tags: Vec<String>,
+    /// The tag assigned to the key.
+    pub tag: String,
     /// The key type of the key.
     pub key_type: KeyType,
     /// The mechanisms supported by the key.
@@ -1775,9 +1831,7 @@ impl Display for KeyState {
         if let Some(namespace) = self.namespace.as_ref() {
             write!(f, "namespace: {namespace}; ")?;
         }
-        if !self.tags.is_empty() {
-            write!(f, "tags: {}; ", self.tags.join(", "))?;
-        }
+        write!(f, "tag: {}; ", self.tag)?;
         write!(f, "type: {}; ", self.key_type)?;
         write!(
             f,
@@ -1980,15 +2034,15 @@ mod tests {
         UserState{
             name: "testuser".parse()?,
             role: UserRole::Operator,
-            tags: vec!["tag1".to_string(), "tag2".to_string()]
+            tag: Some("tag1".to_string())
         },
-        "testuser (role: Operator; tags: tag1, tag2)",
+        "testuser (role: Operator; tag: tag1)",
     )]
     #[case(
         UserState{
             name: "testuser".parse()?,
             role: UserRole::Operator,
-            tags: Vec::new(),
+            tag: None,
         },
         "testuser (role: Operator)",
     )]
@@ -1996,7 +2050,7 @@ mod tests {
         UserState{
             name: "testuser".parse()?,
             role: UserRole::Metrics,
-            tags: Vec::new(),
+            tag: None,
         },
         "testuser (role: Metrics)",
     )]
@@ -2004,7 +2058,7 @@ mod tests {
         UserState{
             name: "testuser".parse()?,
             role: UserRole::Backup,
-            tags: Vec::new(),
+            tag: None,
         },
         "testuser (role: Backup)",
     )]
@@ -2012,7 +2066,7 @@ mod tests {
         UserState{name:
             "testuser".parse()?,
             role: UserRole::Administrator,
-            tags: Vec::new(),
+            tag: None,
         },
         "testuser (role: Administrator)",
     )]
@@ -2029,7 +2083,7 @@ mod tests {
         KeyState{
             name: "key1".parse()?,
             namespace: Some("ns1".parse()?),
-            tags: vec!["tag1".to_string(), "tag2".to_string()],
+            tag: "tag1".to_string(),
             key_type: KeyType::Curve25519,
             mechanisms: vec![KeyMechanism::EdDsaSignature],
             key_cert_state: KeyCertificateState::KeyContext(
@@ -2038,73 +2092,73 @@ mod tests {
                     version: OpenPgpVersion::V4,
                 })
         },
-        "key1 (namespace: ns1; tags: tag1, tag2; type: Curve25519; mechanisms: EdDsaSignature; context: OpenPGP (Version: 4; User IDs: \"John Doe <john@example.org>\"))",
+        "key1 (namespace: ns1; tag: tag1; type: Curve25519; mechanisms: EdDsaSignature; context: OpenPGP (Version: 4; User IDs: \"John Doe <john@example.org>\"))",
     )]
     #[case::namespaced_key_with_raw_cert(
         KeyState{
             name: "key1".parse()?,
             namespace: Some("ns1".parse()?),
-            tags: vec!["tag1".to_string(), "tag2".to_string()],
+            tag: "tag1".to_string(),
             key_type: KeyType::Curve25519,
             mechanisms: vec![KeyMechanism::EdDsaSignature],
             key_cert_state: KeyCertificateState::KeyContext(CryptographicKeyContext::Raw)
         },
-        "key1 (namespace: ns1; tags: tag1, tag2; type: Curve25519; mechanisms: EdDsaSignature; context: Raw)",
+        "key1 (namespace: ns1; tag: tag1; type: Curve25519; mechanisms: EdDsaSignature; context: Raw)",
     )]
     #[case::namespaced_key_with_no_cert(
         KeyState{
             name: "key1".parse()?,
             namespace: Some("ns1".parse()?),
-            tags: vec!["tag1".to_string(), "tag2".to_string()],
+            tag: "tag1".to_string(),
             key_type: KeyType::Curve25519,
             mechanisms: vec![KeyMechanism::EdDsaSignature],
             key_cert_state: KeyCertificateState::Empty
         },
-        "key1 (namespace: ns1; tags: tag1, tag2; type: Curve25519; mechanisms: EdDsaSignature; context: Empty)",
+        "key1 (namespace: ns1; tag: tag1; type: Curve25519; mechanisms: EdDsaSignature; context: Empty)",
     )]
     #[case::namespaced_key_with_cert_error(
         KeyState{
             name: "key1".parse()?,
             namespace: Some("ns1".parse()?),
-            tags: vec!["tag1".to_string(), "tag2".to_string()],
+            tag: "tag1".to_string(),
             key_type: KeyType::Curve25519,
             mechanisms: vec![KeyMechanism::EdDsaSignature],
             key_cert_state: KeyCertificateState::Error { message: "the dog ate it".to_string() }
         },
-        "key1 (namespace: ns1; tags: tag1, tag2; type: Curve25519; mechanisms: EdDsaSignature; context: Error retrieving key certificate - the dog ate it)",
+        "key1 (namespace: ns1; tag: tag1; type: Curve25519; mechanisms: EdDsaSignature; context: Error retrieving key certificate - the dog ate it)",
     )]
     #[case::namespaced_key_with_not_a_cert_context(
         KeyState{
             name: "key1".parse()?,
             namespace: Some("ns1".parse()?),
-            tags: vec!["tag1".to_string(), "tag2".to_string()],
+            tag: "tag1".to_string(),
             key_type: KeyType::Curve25519,
             mechanisms: vec![KeyMechanism::EdDsaSignature],
             key_cert_state: KeyCertificateState::NotACryptographicKeyContext { message: "failed to convert".to_string() }
         },
-        "key1 (namespace: ns1; tags: tag1, tag2; type: Curve25519; mechanisms: EdDsaSignature; context: Not a cryptographic key context - \"failed to convert\")",
+        "key1 (namespace: ns1; tag: tag1; type: Curve25519; mechanisms: EdDsaSignature; context: Not a cryptographic key context - \"failed to convert\")",
     )]
     #[case::namespaced_key_with_not_an_openpgp_cert(
         KeyState{
             name: "key1".parse()?,
             namespace: Some("ns1".parse()?),
-            tags: vec!["tag1".to_string(), "tag2".to_string()],
+            tag: "tag1".to_string(),
             key_type: KeyType::Curve25519,
             mechanisms: vec![KeyMechanism::EdDsaSignature],
             key_cert_state: KeyCertificateState::NotAnOpenPgpCertificate { message: "it's a blob".to_string() }
         },
-        "key1 (namespace: ns1; tags: tag1, tag2; type: Curve25519; mechanisms: EdDsaSignature; context: Not an OpenPGP certificate - \"it's a blob\")",
+        "key1 (namespace: ns1; tag: tag1; type: Curve25519; mechanisms: EdDsaSignature; context: Not an OpenPGP certificate - \"it's a blob\")",
     )]
     #[case::system_wide_key_with_no_cert_and_no_tags_and_raw_cert(
         KeyState{
             name: "key1".parse()?,
             namespace: None,
-            tags: Vec::new(),
+            tag: "tag1".to_string(),
             key_type: KeyType::Curve25519,
             mechanisms: vec![KeyMechanism::EdDsaSignature],
             key_cert_state: KeyCertificateState::KeyContext(CryptographicKeyContext::Raw)
         },
-        "key1 (type: Curve25519; mechanisms: EdDsaSignature; context: Raw)",
+        "key1 (tag: tag1; type: Curve25519; mechanisms: EdDsaSignature; context: Raw)",
     )]
     fn key_state_to_string(#[case] key_state: KeyState, #[case] expected: &str) -> TestResult {
         setup_logging(LevelFilter::Debug)?;

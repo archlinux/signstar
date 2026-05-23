@@ -248,19 +248,8 @@ impl<'a> PartialEq<UserState> for NetHsmConfigUserData<'a> {
     /// - the [`UserId`] of `self` and `other` match,
     /// - the [`UserRole`] of `self` and `other` match,
     /// - the tags of `self` and `other` match
-    ///
-    /// # Note
-    ///
-    /// [`NetHsmConfigUserData`] only tracks an optional tag and therefore if it is
-    /// [`None`] it is treated as an empty list to allow for comparison with a backend user state.
     fn eq(&self, other: &UserState) -> bool {
-        self.user == &other.name
-            && self.role == other.role
-            && if let Some(tag) = self.tag {
-                vec![tag]
-            } else {
-                Vec::new()
-            } == other.tags.iter().collect::<Vec<_>>()
+        self.user == &other.name && self.role == other.role && self.tag == other.tag.as_deref()
     }
 }
 
@@ -331,9 +320,6 @@ impl<'a> PartialEq<KeyState> for NetHsmConfigUserKeyData<'a> {
     ///
     /// # Note
     ///
-    /// Currently [`NetHsmConfigUserKeyData`] only tracks a single tag while backend key states
-    /// track zero or more.
-    ///
     /// As a backend key state represents data in a backend, its [`KeyCertificateState`] is more
     /// featureful than that of [`NetHsmConfigUserKeyData`].
     fn eq(&self, other: &KeyState) -> bool {
@@ -341,7 +327,7 @@ impl<'a> PartialEq<KeyState> for NetHsmConfigUserKeyData<'a> {
             && self.key_id == &other.name
             && self.key_setup.key_type() == other.key_type
             && self.key_setup.key_mechanisms() == other.mechanisms
-            && vec![self.tag] == other.tags.iter().collect::<Vec<_>>()
+            && self.tag == other.tag
             && if let KeyCertificateState::KeyContext(context) = &other.key_cert_state {
                 self.key_setup.key_context() == context
             } else {

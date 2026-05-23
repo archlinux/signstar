@@ -39,6 +39,18 @@ pub enum Error {
         key_id: KeyId,
     },
 
+    /// A key has an unexpected number of tags assigned to it.
+    #[error(
+        "The key {key_id} has an unexpected number of tags assigned to it ({number} instead of 1)"
+    )]
+    KeyUnexpectedNumberOfTags {
+        /// The [`KeyId`] of the key that has an unexpected number of tags.
+        key_id: KeyId,
+
+        /// The encountered number of tags.
+        number: usize,
+    },
+
     /// A namespace admin is not in a namespace.
     #[error("The NetHSM namespace administrator is not in a namespace: {user}")]
     NamespaceAdminHasNoNamespace {
@@ -163,5 +175,17 @@ pub enum Error {
     UserMissing {
         /// The [`UserId`] of the missing user.
         user_id: UserId,
+    },
+
+    /// A user has an unexpected number of tags assigned to it.
+    #[error(
+        "The Operator user {user_id} has an unexpected number of tags assigned to it ({number} instead of 0 or 1)"
+    )]
+    UserUnexpectedNumberOfTags {
+        /// The [`UserId`] of the user that has an unexpected number of tags assigned to it.
+        user_id: UserId,
+
+        /// The encountered number of tags.
+        number: usize,
     },
 }
