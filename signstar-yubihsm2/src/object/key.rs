@@ -126,7 +126,7 @@ impl TryFrom<HashSet<Domain>> for Domains {
 impl Domains {
     /// Converts this object into raw big-endian bytes.
     pub fn to_be_bytes(&self) -> [u8; 2] {
-        yubihsm::Domain::from(self).bits().to_be_bytes()
+        self.bits().to_be_bytes()
     }
 
     /// Returns set of domains containing all available domains.
