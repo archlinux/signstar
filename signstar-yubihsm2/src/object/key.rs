@@ -133,6 +133,11 @@ impl Domains {
     pub fn all() -> Self {
         yubihsm::Domain::all().bits().into()
     }
+
+    /// Returns the underlying bits value.
+    pub fn bits(&self) -> u16 {
+        yubihsm::Domain::from(self).bits()
+    }
 }
 
 impl From<&Domains> for yubihsm::Domain {
