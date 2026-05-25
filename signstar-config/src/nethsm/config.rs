@@ -949,8 +949,12 @@ fn validate_nethsm_config_mappings(
     );
 
     // Collect all duplicate system-wide tags.
-    let duplicate_system_wide_tags =
-        duplicate_domains(value, None, Some(" system-wide".to_string()), Some("tag"));
+    let duplicate_system_wide_tags = duplicate_domains(
+        &value.iter().collect::<BTreeSet<_>>(),
+        None,
+        Some(" system-wide".to_string()),
+        Some("tag"),
+    );
 
     // Collect all namespace IDs.
     let all_namespaces = {
@@ -1026,7 +1030,7 @@ fn validate_nethsm_config_mappings(
 
         for namespace in all_namespaces.iter() {
             let mut duplicates = duplicate_domains(
-                value,
+                &value.iter().collect::<BTreeSet<_>>(),
                 Some(&NetHsmConfigDomainFilter {
                     namespace: Some(namespace),
                 }),

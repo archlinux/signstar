@@ -9,7 +9,7 @@ use signstar_crypto::{key::SigningKeySetup, passphrase::Passphrase, traits::User
 use signstar_yubihsm2::{
     Connection,
     Credentials,
-    object::{Domain, Id},
+    object::{Domain, Domains, Id},
     yubihsm::{Capability, Code},
 };
 
@@ -349,16 +349,14 @@ impl YubiHsm2UserMapping {
     /// [capability]: https://docs.yubico.com/hardware/yubihsm-2/hsm-2-user-guide/hsm2-core-concepts.html#capability-protocol-details
     pub const CAP_SIGNING: &[Capability] = &[Capability::SIGN_EDDSA];
 
-    /// Returns the optional [`Domain`] of the [`YubiHsm2UserMapping`].
-    pub fn domain(&self) -> Option<&Domain> {
+    /// Returns the optional [`Domains`] of the [`YubiHsm2UserMapping`].
+    pub fn domains(&self) -> Option<Domains> {
         match self {
-            Self::Admin { .. }
-            | Self::Backup { .. }
-            | Self::AuditLog { .. }
-            | Self::HermeticAuditLog { .. } => None,
+            Self::Admin { .. } | Self::Backup { .. } => Some(Domains::all()),
+            Self::AuditLog { .. } | Self::HermeticAuditLog { .. } => None,
             Self::Signing {
                 domain: key_domain, ..
-            } => Some(key_domain),
+            } => Some(Domains::from(*key_domain)),
         }
     }
 
@@ -670,7 +668,7 @@ impl BackendDomainFilter for YubiHsm2DomainFilter {}
 
 impl MappingBackendDomain<YubiHsm2DomainFilter> for YubiHsm2UserMapping {
     fn backend_domain(&self, _filter: Option<&YubiHsm2DomainFilter>) -> Option<String> {
-        self.domain().map(|domain| domain.to_string())
+        self.domains().map(|domains| domains.bits().to_string())
     }
 }
 
@@ -854,7 +852,21 @@ fn validate_yubihsm2_config_mappings(
     );
 
     // Collect all duplicate domains.
-    let duplicate_domains = duplicate_domains(value, None, None, None);
+    //
+    // NOTE: We are not looking for duplicate domains in `YubiHsm2Mapping::Admin` and
+    // `YubiHsm2Mapping::Backup`, as those are (implicitly) always in all domains.
+    let duplicate_domains = duplicate_domains(
+        &value
+            .iter()
+            .filter(|mapping| {
+                !matches!(mapping, YubiHsm2UserMapping::Admin { .. })
+                    && !matches!(mapping, YubiHsm2UserMapping::Backup { .. })
+            })
+            .collect::<BTreeSet<_>>(),
+        None,
+        None,
+        None,
+    );
 
     let messages = [
         duplicate_system_user_ids,

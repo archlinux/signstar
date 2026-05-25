@@ -178,7 +178,7 @@ where
 /// sentence "the duplicate{domain_context} {domain_name}".
 #[cfg(any(feature = "nethsm", feature = "yubihsm2"))]
 pub(crate) fn duplicate_domains<T>(
-    mappings: &BTreeSet<impl MappingBackendDomain<T>>,
+    mappings: &BTreeSet<&impl MappingBackendDomain<T>>,
     filter: Option<&T>,
     domain_context: Option<String>,
     domain_name: Option<&str>,
