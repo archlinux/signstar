@@ -7,7 +7,20 @@ use serde::{Deserialize, Serialize};
 use strum::{Display, EnumIter, EnumString, IntoEnumIterator, IntoStaticStr};
 
 /// A capability of an object stored on a YubiHSM2.
-#[derive(Clone, Copy, Debug, Display, EnumIter, EnumString, Eq, Hash, IntoStaticStr, PartialEq)]
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    Display,
+    EnumIter,
+    EnumString,
+    Eq,
+    Hash,
+    IntoStaticStr,
+    Ord,
+    PartialEq,
+    PartialOrd,
+)]
 #[cfg_attr(feature = "cli", derive(clap::ValueEnum))]
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 #[cfg_attr(feature = "serde", serde(rename_all = "kebab-case"))]
