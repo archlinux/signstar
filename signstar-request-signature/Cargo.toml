@@ -16,7 +16,7 @@ digest-io = "0.1.0"
 hmac = { version = "0.13.0" }
 log.workspace = true
 rand.workspace = true
-russh = { version = "0.59.0" }
+russh = { version = "0.61.0" }
 semver = { version = "1.0.23", features = ["serde"] }
 serde.workspace = true
 serde_json.workspace = true
@@ -28,6 +28,7 @@ tokio = { workspace = true, features = ["full"] }
 
 [dev-dependencies]
 base64ct.workspace = true
+rand_010 = { version = "0.10", package = "rand" }
 rsa = { workspace = true, features = ["sha1", "sha2"] }
 rstest.workspace = true
 signstar-common = { features = ["logging"], workspace = true }
