@@ -135,7 +135,7 @@ impl From<Domain> for yubihsm::Domain {
 /// A set of domains of an object on a YubiHSM2.
 ///
 /// Each object is assigned to at least one [`Domain`].
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
 #[cfg_attr(
     feature = "serde",
     derive(Serialize, Deserialize),
