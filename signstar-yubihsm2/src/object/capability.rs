@@ -1,6 +1,6 @@
 //! YubiHSM2 object capabilities.
 
-use std::{collections::HashSet, hash::Hash};
+use std::{collections::BTreeSet, hash::Hash};
 
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
@@ -58,7 +58,7 @@ impl From<&Capability> for yubihsm::Capability {
 /// A set of capabilities of an object on a YubiHSM2.
 #[derive(Clone, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
-pub struct Capabilities(HashSet<Capability>);
+pub struct Capabilities(BTreeSet<Capability>);
 
 impl From<[u8; 8]> for Capabilities {
     fn from(bytes: [u8; 8]) -> Self {
