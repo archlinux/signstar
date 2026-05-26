@@ -991,7 +991,7 @@ mod tests {
         assert_eq!(inner.object_type, ObjectType::Aes128Auth);
         assert_eq!(
             inner.capabilities,
-            Capabilities::from(&[Capability::Exportable][..])
+            Capabilities::from(&[Capability::ExportableUnderWrap][..])
         );
         assert_eq!(inner.domains, Domain::One.into());
         assert_eq!(u16::from(inner.object_id.id()), 14);
@@ -1024,7 +1024,7 @@ mod tests {
         assert_eq!(inner.object_type, ObjectType::Opaque);
         assert_eq!(
             inner.capabilities,
-            Capabilities::from(&[Capability::Exportable][..])
+            Capabilities::from(&[Capability::ExportableUnderWrap][..])
         );
         assert_eq!(inner.domains, Domain::One.into());
         assert_eq!(u16::from(inner.object_id.id()), 13);
@@ -1073,7 +1073,7 @@ mod tests {
             wrapping_key_file,
             object_id,
             Domains::all(),
-            Capabilities::from(&[Capability::Sign][..]),
+            Capabilities::from(&[Capability::SignEddsa][..]),
             "test".parse()?,
         )?;
 

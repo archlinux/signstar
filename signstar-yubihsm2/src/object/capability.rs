@@ -25,32 +25,34 @@ use strum::{Display, EnumIter, EnumString, IntoEnumIterator, IntoStaticStr};
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 #[cfg_attr(feature = "serde", serde(rename_all = "kebab-case"))]
 pub enum Capability {
-    /// The key can sign data.
-    Sign,
-
     /// The object can be exported under wrap (encrypted).
-    Exportable,
+    ExportableUnderWrap,
 
     /// The key can be used to export other objects under wrap.
     ///
     /// Note that both the authentication key used for export *and* the wrapping key need to be
     /// capable of export.
-    Export,
+    ExportWrapped,
 
     /// The key can be used to import other objects under wrap.
     ///
     /// Note that both the authentication key used for import *and* the wrapping key need to be
     /// capable of import.
-    Import,
+    ImportWrapped,
+
+    /// The key can create [EdDSA] data signatures.
+    ///
+    /// [EdDSA]: https://en.wikipedia.org/wiki/EdDSA
+    SignEddsa,
 }
 
 impl From<&Capability> for yubihsm::Capability {
     fn from(value: &Capability) -> Self {
         match *value {
-            Capability::Sign => yubihsm::Capability::SIGN_EDDSA,
-            Capability::Exportable => yubihsm::Capability::EXPORTABLE_UNDER_WRAP,
-            Capability::Export => yubihsm::Capability::EXPORT_WRAPPED,
-            Capability::Import => yubihsm::Capability::IMPORT_WRAPPED,
+            Capability::ExportableUnderWrap => yubihsm::Capability::EXPORTABLE_UNDER_WRAP,
+            Capability::ExportWrapped => yubihsm::Capability::EXPORT_WRAPPED,
+            Capability::ImportWrapped => yubihsm::Capability::IMPORT_WRAPPED,
+            Capability::SignEddsa => yubihsm::Capability::SIGN_EDDSA,
         }
     }
 }

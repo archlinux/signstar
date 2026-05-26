@@ -18,8 +18,8 @@
                 "key_id": 7,
                 "domains": [1],
                 "caps": [
-                    "sign",
-                    "exportable"
+                    "sign-eddsa",
+                    "exportable-under-wrap"
                 ]
             }
         },
