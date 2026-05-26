@@ -9,7 +9,7 @@
                 "key_id": 4,
                 "domains": [1],
                 "caps": [
-                    "sign"
+                    "sign-eddsa"
                 ],
                 "delegated_caps": [],
                 "passphrase_file": "tests/scenarios/keys/auth-key"
@@ -20,7 +20,7 @@
                 "key_id": 4,
                 "domains": [1],
                 "caps": [
-                    "sign"
+                    "sign-eddsa"
                 ]
             }
         },

@@ -9,11 +9,11 @@
                 "key_id": 6,
                 "domains": [1],
                 "caps": [
-                    "import"
+                    "import-wrapped"
                 ],
                 "delegated_caps": [
-                    "sign",
-                    "exportable"
+                    "sign-eddsa",
+                    "export-wrapped"
                 ],
                 "passphrase_file": "tests/scenarios/keys/wrap-key"
             }
@@ -23,7 +23,7 @@
                 "key_id": 6,
                 "domains": [1],
                 "caps": [
-                    "import"
+                    "import-wrapped"
                 ],
                 "delegated_caps": [],
                 "passphrase_file": "tests/scenarios/keys/auth-key"
@@ -64,7 +64,7 @@
                 "key_id": 6,
                 "domains": [1],
                 "caps": [
-                    "sign"
+                    "sign-eddsa"
                 ],
                 "delegated_caps": [],
                 "passphrase_file": "tests/scenarios/keys/auth-key"

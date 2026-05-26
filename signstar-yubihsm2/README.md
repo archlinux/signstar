@@ -97,7 +97,7 @@ wrapped_key="$(mktemp --suffix '-private.key' --dry-run)"
 -->
 
 ```bash
-signstar-yubihsm backup wrap-ed25519 --capabilities sign,export --domains 1,2 --label test --id 3 "$private_key" "$wrap_key" --output "$wrapped_key"
+signstar-yubihsm backup wrap-ed25519 --capabilities sign-eddsa,export-wrapped --domains 1,2 --label test --id 3 "$private_key" "$wrap_key" --output "$wrapped_key"
 ```
 
 <!--
