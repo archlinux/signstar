@@ -183,16 +183,13 @@ impl From<&Domains> for yubihsm::Domain {
 
 impl From<Domain> for Domains {
     fn from(value: Domain) -> Self {
-        let mut domains = BTreeSet::new();
-        domains.insert(value);
-        Self(domains)
+        Self(BTreeSet::from_iter([value]))
     }
 }
 
 impl From<yubihsm::Domain> for Domains {
     fn from(value: yubihsm::Domain) -> Self {
-        let mut domains = BTreeSet::new();
-        for (yubi_dom, dom) in [
+        let lookup = [
             (yubihsm::Domain::DOM1, Domain::One),
             (yubihsm::Domain::DOM2, Domain::Two),
             (yubihsm::Domain::DOM3, Domain::Three),
@@ -209,13 +206,17 @@ impl From<yubihsm::Domain> for Domains {
             (yubihsm::Domain::DOM14, Domain::Fourteen),
             (yubihsm::Domain::DOM15, Domain::Fifteen),
             (yubihsm::Domain::DOM16, Domain::Sixteen),
-        ] {
-            if value.contains(yubi_dom) {
-                domains.insert(dom);
-            }
-        }
+        ];
 
-        Domains(domains)
+        Domains(BTreeSet::from_iter(lookup.iter().filter_map(
+            |(yubi_dom, dom)| {
+                if value.contains(*yubi_dom) {
+                    Some(*dom)
+                } else {
+                    None
+                }
+            },
+        )))
     }
 }
 
