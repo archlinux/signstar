@@ -56,7 +56,7 @@ impl From<&Capability> for yubihsm::Capability {
 }
 
 /// A set of capabilities of an object on a YubiHSM2.
-#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
+#[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct Capabilities(BTreeSet<Capability>);
 
