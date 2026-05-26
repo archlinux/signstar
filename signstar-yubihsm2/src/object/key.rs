@@ -1,6 +1,6 @@
 //! YubiHSM2 key metadata.
 
-use std::{collections::HashSet, fmt::Display, hash::Hash};
+use std::{collections::BTreeSet, fmt::Display, hash::Hash};
 
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
@@ -139,14 +139,14 @@ impl From<Domain> for yubihsm::Domain {
 #[cfg_attr(
     feature = "serde",
     derive(Serialize, Deserialize),
-    serde(try_from = "HashSet<Domain>")
+    serde(try_from = "BTreeSet<Domain>")
 )]
-pub struct Domains(HashSet<Domain>);
+pub struct Domains(BTreeSet<Domain>);
 
-impl TryFrom<HashSet<Domain>> for Domains {
+impl TryFrom<BTreeSet<Domain>> for Domains {
     type Error = crate::object::Error;
 
-    fn try_from(domains: HashSet<Domain>) -> Result<Self, Self::Error> {
+    fn try_from(domains: BTreeSet<Domain>) -> Result<Self, Self::Error> {
         if domains.is_empty() {
             return Err(Self::Error::EmptySetOfDomains);
         }
@@ -183,7 +183,7 @@ impl From<&Domains> for yubihsm::Domain {
 
 impl From<Domain> for Domains {
     fn from(value: Domain) -> Self {
-        let mut domains = HashSet::new();
+        let mut domains = BTreeSet::new();
         domains.insert(value);
         Self(domains)
     }
@@ -191,7 +191,7 @@ impl From<Domain> for Domains {
 
 impl From<yubihsm::Domain> for Domains {
     fn from(value: yubihsm::Domain) -> Self {
-        let mut domains = HashSet::new();
+        let mut domains = BTreeSet::new();
         for (yubi_dom, dom) in [
             (yubihsm::Domain::DOM1, Domain::One),
             (yubihsm::Domain::DOM2, Domain::Two),
