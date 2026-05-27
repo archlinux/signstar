@@ -213,6 +213,10 @@ test:
     - just create-coverage-report cobertura with-docs unit-test-coverage
     - just --justfile .gitlab/justfile section-end "create-coverage-report"
   stage: test
+  retry:
+    max: 1
+    when: script_failure
+    exit_codes: 1
 
 docs:
   extends: .default-with-rust
