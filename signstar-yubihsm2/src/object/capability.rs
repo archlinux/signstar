@@ -4,10 +4,11 @@ use std::{collections::BTreeSet, hash::Hash};
 
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
-use strum::{Display, EnumIter, EnumString, IntoEnumIterator, IntoStaticStr};
+use strum::{AsRefStr, Display, EnumIter, EnumString, IntoEnumIterator, IntoStaticStr};
 
 /// A capability of an object stored on a YubiHSM2.
 #[derive(
+    AsRefStr,
     Clone,
     Copy,
     Debug,
@@ -24,6 +25,7 @@ use strum::{Display, EnumIter, EnumString, IntoEnumIterator, IntoStaticStr};
 #[cfg_attr(feature = "cli", derive(clap::ValueEnum))]
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 #[cfg_attr(feature = "serde", serde(rename_all = "kebab-case"))]
+#[strum(serialize_all = "kebab-case")]
 pub enum Capability {
     /// The object can be exported under wrap (encrypted).
     ExportableUnderWrap,
