@@ -1,6 +1,6 @@
 //! YubiHSM2 key metadata.
 
-use std::{collections::BTreeSet, hash::Hash};
+use std::{collections::BTreeSet, fmt::Display, hash::Hash};
 
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
@@ -161,6 +161,24 @@ impl Domains {
     }
 }
 
+impl Display for Domains {
+    /// Formats a [`Domains`] as a string.
+    ///
+    /// Here, the domains in `self` are represented as a comma-separated list (e.g. `1, 2, 3` or
+    /// `1`).
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            self.0
+                .iter()
+                .map(|domain| domain.as_ref())
+                .collect::<Vec<_>>()
+                .join(", ")
+        )
+    }
+}
+
 impl From<Domain> for Domains {
     fn from(value: Domain) -> Self {
         Self(BTreeSet::from_iter([value]))
@@ -251,4 +269,21 @@ pub struct KeyInfo {
 
     /// Capabilities of this key.
     pub caps: Capabilities,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Ensures that [`Domains::to_string`] works as expected.
+    #[test]
+    fn domains_to_string() {
+        let domain_list = vec![Domain::One];
+        let domains = Domains::from(domain_list.as_slice());
+        assert_eq!("1", domains.to_string());
+
+        let domain_list = vec![Domain::One, Domain::Two];
+        let domains = Domains::from(domain_list.as_slice());
+        assert_eq!("1, 2", domains.to_string());
+    }
 }
