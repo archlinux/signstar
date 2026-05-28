@@ -1,11 +1,12 @@
 //! YubiHSM2 key metadata.
 
-use std::{collections::BTreeSet, fmt::Display, hash::Hash};
+use std::{collections::BTreeSet, hash::Hash};
 
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 #[cfg(feature = "serde")]
 use serde_repr::{Deserialize_repr, Serialize_repr};
+use strum::{AsRefStr, IntoStaticStr};
 
 use crate::object::{Capabilities, Id};
 
@@ -13,71 +14,70 @@ use crate::object::{Capabilities, Id};
 ///
 /// Objects can belong to one or many domains on the YubiHSM2.
 /// See [Core Concepts - Domains](https://docs.yubico.com/hardware/yubihsm-2/hsm-2-user-guide/hsm2-core-concepts.html#domains) for more details.
-#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+#[derive(
+    AsRefStr,
+    Clone,
+    Copy,
+    Debug,
+    strum::Display,
+    Eq,
+    Hash,
+    IntoStaticStr,
+    Ord,
+    PartialEq,
+    PartialOrd,
+)]
 #[cfg_attr(feature = "serde", derive(Deserialize_repr, Serialize_repr))]
 #[repr(u8)]
 pub enum Domain {
     /// First domain.
+    #[strum(serialize = "1")]
     One = 1,
     /// Second domain.
+    #[strum(serialize = "2")]
     Two = 2,
     /// Third domain.
+    #[strum(serialize = "3")]
     Three = 3,
     /// Fourth domain.
+    #[strum(serialize = "4")]
     Four = 4,
     /// Fifth domain.
+    #[strum(serialize = "5")]
     Five = 5,
     /// Sixth domain.
+    #[strum(serialize = "6")]
     Six = 6,
     /// Seventh domain.
+    #[strum(serialize = "7")]
     Seven = 7,
     /// Eighth domain.
+    #[strum(serialize = "8")]
     Eight = 8,
     /// Ninth domain.
+    #[strum(serialize = "9")]
     Nine = 9,
     /// Tenth domain.
+    #[strum(serialize = "10")]
     Ten = 10,
     /// Eleventh domain.
+    #[strum(serialize = "11")]
     Eleven = 11,
     /// Twelfth domain.
+    #[strum(serialize = "12")]
     Twelve = 12,
     /// Thirteenth domain.
+    #[strum(serialize = "13")]
     Thirteen = 13,
     /// Fourteenth domain.
+    #[strum(serialize = "14")]
     Fourteen = 14,
     /// Fifteenth domain.
+    #[strum(serialize = "15")]
     Fifteen = 15,
     /// Sixteenth domain.
+    #[strum(serialize = "16")]
     Sixteen = 16,
-}
-
-impl Domain {
-    fn as_str(&self) -> &'static str {
-        match self {
-            Self::One => "1",
-            Self::Two => "2",
-            Self::Three => "3",
-            Self::Four => "4",
-            Self::Five => "5",
-            Self::Six => "6",
-            Self::Seven => "7",
-            Self::Eight => "8",
-            Self::Nine => "9",
-            Self::Ten => "10",
-            Self::Eleven => "11",
-            Self::Twelve => "12",
-            Self::Thirteen => "13",
-            Self::Fourteen => "14",
-            Self::Fifteen => "15",
-            Self::Sixteen => "16",
-        }
-    }
-}
-
-impl Display for Domain {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str(self.as_str())
-    }
 }
 
 #[cfg(feature = "cli")]
@@ -105,7 +105,8 @@ impl clap::ValueEnum for Domain {
     }
 
     fn to_possible_value(&self) -> Option<clap::builder::PossibleValue> {
-        Some(clap::builder::PossibleValue::new(self.as_str()))
+        let str: &'static str = self.into();
+        Some(clap::builder::PossibleValue::new(str))
     }
 }
 
