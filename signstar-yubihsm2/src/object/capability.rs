@@ -416,6 +416,190 @@ impl From<[u8; 8]> for Capabilities {
     }
 }
 
+impl From<yubihsm::Capability> for Capabilities {
+    fn from(value: yubihsm::Capability) -> Self {
+        let lookup = [
+            (
+                yubihsm::Capability::CHANGE_AUTHENTICATION_KEY,
+                Capability::ChangeAuthenticationKey,
+            ),
+            (
+                yubihsm::Capability::CREATE_OTP_AEAD,
+                Capability::CreateOtpAead,
+            ),
+            // NOTE: This capability is not yet understood by the underlying library.
+            (
+                yubihsm::Capability::UNKNOWN_CAPABILITY_52,
+                Capability::DecryptCbc,
+            ),
+            // NOTE: This capability is not yet understood by the underlying library.
+            (
+                yubihsm::Capability::UNKNOWN_CAPABILITY_50,
+                Capability::DecryptEcb,
+            ),
+            (yubihsm::Capability::DECRYPT_OAEP, Capability::DecryptOaep),
+            (yubihsm::Capability::DECRYPT_OTP, Capability::DecryptOtp),
+            (yubihsm::Capability::DECRYPT_PKCS, Capability::DecryptPkcs),
+            (
+                yubihsm::Capability::DELETE_ASYMMETRIC_KEY,
+                Capability::DeleteAsymmetricKey,
+            ),
+            (
+                yubihsm::Capability::DELETE_AUTHENTICATION_KEY,
+                Capability::DeleteAuthenticationKey,
+            ),
+            (
+                yubihsm::Capability::DELETE_HMAC_KEY,
+                Capability::DeleteHmacKey,
+            ),
+            (yubihsm::Capability::DELETE_OPAQUE, Capability::DeleteOpaque),
+            (
+                yubihsm::Capability::DELETE_OTP_AEAD_KEY,
+                Capability::DeleteOtpAeadKey,
+            ),
+            // NOTE: This capability is not yet understood by the underlying library.
+            (
+                yubihsm::Capability::UNKNOWN_CAPABILITY_55,
+                Capability::DeletePublicWrapKey,
+            ),
+            // NOTE: This capability is not yet understood by the underlying library.
+            (
+                yubihsm::Capability::UNKNOWN_CAPABILITY_49,
+                Capability::DeleteSymmetricKey,
+            ),
+            (
+                yubihsm::Capability::DELETE_TEMPLATE,
+                Capability::DeleteTemplate,
+            ),
+            (
+                yubihsm::Capability::DELETE_WRAP_KEY,
+                Capability::DeleteWrapKey,
+            ),
+            (yubihsm::Capability::DERIVE_ECDH, Capability::DeriveEcdh),
+            // NOTE: This capability is not yet understood by the underlying library.
+            (
+                yubihsm::Capability::UNKNOWN_CAPABILITY_53,
+                Capability::EncryptCbc,
+            ),
+            // NOTE: This capability is not yet understood by the underlying library.
+            (
+                yubihsm::Capability::UNKNOWN_CAPABILITY_51,
+                Capability::EncryptEcb,
+            ),
+            (
+                yubihsm::Capability::EXPORTABLE_UNDER_WRAP,
+                Capability::ExportableUnderWrap,
+            ),
+            (
+                yubihsm::Capability::EXPORT_WRAPPED,
+                Capability::ExportWrapped,
+            ),
+            (
+                yubihsm::Capability::GENERATE_ASYMMETRIC_KEY,
+                Capability::GenerateAsymmetricKey,
+            ),
+            (
+                yubihsm::Capability::GENERATE_HMAC_KEY,
+                Capability::GenerateHmacKey,
+            ),
+            (
+                yubihsm::Capability::GENERATE_OTP_AEAD_KEY,
+                Capability::GenerateOtpAeadKey,
+            ),
+            // NOTE: This capability is not yet understood by the underlying library.
+            (
+                yubihsm::Capability::UNKNOWN_CAPABILITY_48,
+                Capability::GenerateSymmetricKey,
+            ),
+            (
+                yubihsm::Capability::GENERATE_WRAP_KEY,
+                Capability::GenerateWrapKey,
+            ),
+            (yubihsm::Capability::GET_OPAQUE, Capability::GetOpaque),
+            (yubihsm::Capability::GET_OPTION, Capability::GetOption),
+            (
+                yubihsm::Capability::GET_PSEUDO_RANDOM,
+                Capability::GetPseudoRandom,
+            ),
+            (
+                yubihsm::Capability::GET_LOG_ENTRIES,
+                Capability::GetLogEntries,
+            ),
+            (yubihsm::Capability::GET_TEMPLATE, Capability::GetTemplate),
+            (
+                yubihsm::Capability::IMPORT_WRAPPED,
+                Capability::ImportWrapped,
+            ),
+            (
+                yubihsm::Capability::PUT_ASYMMETRIC_KEY,
+                Capability::PutAsymmetricKey,
+            ),
+            (
+                yubihsm::Capability::PUT_AUTHENTICATION_KEY,
+                Capability::PutAuthenticationKey,
+            ),
+            (yubihsm::Capability::PUT_HMAC_KEY, Capability::PutHmacKey),
+            (yubihsm::Capability::PUT_OPAQUE, Capability::PutOpaque),
+            (
+                yubihsm::Capability::PUT_OTP_AEAD_KEY,
+                Capability::PutOtpAeadKey,
+            ),
+            // NOTE: This capability is not yet understood by the underlying library.
+            (
+                yubihsm::Capability::UNKNOWN_CAPABILITY_54,
+                Capability::PutPublicWrapKey,
+            ),
+            // NOTE: This capability is not yet understood by the underlying library.
+            (
+                yubihsm::Capability::UNKNOWN_CAPABILITY_47,
+                Capability::PutSymmetricKey,
+            ),
+            (yubihsm::Capability::PUT_TEMPLATE, Capability::PutTemplate),
+            (yubihsm::Capability::PUT_WRAP_KEY, Capability::PutWrapKey),
+            (
+                yubihsm::Capability::RANDOMIZE_OTP_AEAD,
+                Capability::RandomizeOtpAead,
+            ),
+            (
+                yubihsm::Capability::REWRAP_FROM_OTP_AEAD_KEY,
+                Capability::RewrapFromOtpAeadKey,
+            ),
+            (
+                yubihsm::Capability::REWRAP_TO_OTP_AEAD_KEY,
+                Capability::RewrapToOtpAeadKey,
+            ),
+            (yubihsm::Capability::RESET_DEVICE, Capability::ResetDevice),
+            (yubihsm::Capability::PUT_OPTION, Capability::SetOption),
+            (
+                yubihsm::Capability::SIGN_ATTESTATION_CERTIFICATE,
+                Capability::SignAttestationCertificate,
+            ),
+            (yubihsm::Capability::SIGN_ECDSA, Capability::SignEcdsa),
+            (yubihsm::Capability::SIGN_EDDSA, Capability::SignEddsa),
+            (yubihsm::Capability::SIGN_HMAC, Capability::SignHmac),
+            (yubihsm::Capability::SIGN_PKCS, Capability::SignPkcs),
+            (yubihsm::Capability::SIGN_PSS, Capability::SignPss),
+            (
+                yubihsm::Capability::SIGN_SSH_CERTIFICATE,
+                Capability::SignSshCertificate,
+            ),
+            (yubihsm::Capability::UNWRAP_DATA, Capability::UnwrapData),
+            (yubihsm::Capability::VERIFY_HMAC, Capability::VerifyHmac),
+            (yubihsm::Capability::WRAP_DATA, Capability::WrapData),
+        ];
+
+        Self(BTreeSet::from_iter(lookup.iter().filter_map(
+            |(yubi_cap, cap)| {
+                if value.contains(*yubi_cap) {
+                    Some(*cap)
+                } else {
+                    None
+                }
+            },
+        )))
+    }
+}
+
 impl From<&Capabilities> for [u8; 8] {
     fn from(value: &Capabilities) -> Self {
         yubihsm::Capability::from(value).bits().to_be_bytes()
