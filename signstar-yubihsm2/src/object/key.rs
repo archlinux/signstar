@@ -1,6 +1,6 @@
 //! YubiHSM2 key metadata.
 
-use std::{collections::BTreeSet, hash::Hash};
+use std::{collections::BTreeSet, fmt::Display, hash::Hash};
 
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
@@ -158,6 +158,20 @@ impl Domains {
     /// Returns the underlying bits value.
     pub fn bits(&self) -> u16 {
         yubihsm::Domain::from(self).bits()
+    }
+}
+
+impl Display for Domains {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            self.0
+                .iter()
+                .map(|domain| domain.as_ref())
+                .collect::<Vec<_>>()
+                .join(", ")
+        )
     }
 }
 
