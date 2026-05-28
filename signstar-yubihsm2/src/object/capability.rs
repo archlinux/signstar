@@ -1,6 +1,6 @@
 //! YubiHSM2 object capabilities.
 
-use std::{collections::BTreeSet, hash::Hash};
+use std::{collections::BTreeSet, fmt::Display, hash::Hash};
 
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
@@ -390,6 +390,25 @@ impl From<&Capability> for yubihsm::Capability {
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct Capabilities(BTreeSet<Capability>);
 
+impl Display for Capabilities {
+    /// Formats a [`Capabilities`] as a string.
+    ///
+    /// Here, the capabilities in `self` are represented as a comma-separated list (e.g.
+    /// `change-authentication-key, create-otp-aead, decrypt-cbc` or
+    /// `change-authentication-key`).
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            self.0
+                .iter()
+                .map(|capability| capability.as_ref())
+                .collect::<Vec<_>>()
+                .join(", ")
+        )
+    }
+}
+
 impl From<[u8; 8]> for Capabilities {
     fn from(bytes: [u8; 8]) -> Self {
         let numeric = u64::from_be_bytes(bytes);
@@ -421,5 +440,28 @@ impl From<&Capabilities> for yubihsm::Capability {
 impl From<&[Capability]> for Capabilities {
     fn from(value: &[Capability]) -> Self {
         Self(value.iter().copied().collect())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Ensures that [`Capabilities::to_string`] works as expected.
+    #[test]
+    fn capabilities_to_string() {
+        let capability_list = vec![Capability::ChangeAuthenticationKey];
+        let capabilities = Capabilities::from(capability_list.as_slice());
+        assert_eq!("change-authentication-key", capabilities.to_string());
+
+        let capability_list = vec![
+            Capability::ChangeAuthenticationKey,
+            Capability::CreateOtpAead,
+        ];
+        let capabilities = Capabilities::from(capability_list.as_slice());
+        assert_eq!(
+            "change-authentication-key, create-otp-aead",
+            capabilities.to_string()
+        );
     }
 }
