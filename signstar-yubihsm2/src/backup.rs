@@ -598,7 +598,7 @@ impl<'a> InnerFormat<'a> {
 
         // check if the datalen is consistent with the buffer's length
         if reader.position() + datalen as usize != raw.len() {
-            return Err(Error::InsufficientDataInBuffer)?;
+            Err(Error::InsufficientDataInBuffer)?;
         }
 
         Ok(Self {

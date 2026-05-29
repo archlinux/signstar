@@ -893,7 +893,7 @@ impl Config {
                 source: error,
             })?
         };
-        for (_label, device) in config.devices.borrow_mut().iter_mut() {
+        for device in config.devices.borrow_mut().values_mut() {
             device.set_config_interactivity(config_settings.interactivity);
         }
         config.set_config_settings(config_settings);

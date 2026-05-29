@@ -280,7 +280,7 @@ impl Backup {
                     break;
                 }
                 Err(error) => {
-                    return Err(error)?;
+                    Err(error)?;
                 }
             }
         }
