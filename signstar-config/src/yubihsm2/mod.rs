@@ -3,6 +3,13 @@
 pub mod admin_credentials;
 mod config;
 
-pub use config::{Error as YubiHSM2ConfigError, YubiHsm2Config, YubiHsm2UserMapping};
+pub use config::{
+    Error as YubiHSM2ConfigError,
+    YubiHsm2Config,
+    YubiHsm2ConfigState,
+    YubiHsm2ConfigUserData,
+    YubiHsm2ConfigUserKeyData,
+    YubiHsm2UserMapping,
+};
 // Re-export of types used from the signstar_yubihsm2 crate.
 pub use signstar_yubihsm2::object::Domain;
