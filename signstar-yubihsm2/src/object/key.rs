@@ -143,17 +143,6 @@ impl From<Domain> for yubihsm::Domain {
 )]
 pub struct Domains(BTreeSet<Domain>);
 
-impl TryFrom<BTreeSet<Domain>> for Domains {
-    type Error = crate::object::Error;
-
-    fn try_from(domains: BTreeSet<Domain>) -> Result<Self, Self::Error> {
-        if domains.is_empty() {
-            return Err(Self::Error::EmptySetOfDomains);
-        }
-        Ok(Self(domains))
-    }
-}
-
 impl Domains {
     /// Converts this object into raw big-endian bytes.
     pub fn to_be_bytes(&self) -> [u8; 2] {
@@ -168,16 +157,6 @@ impl Domains {
     /// Returns the underlying bits value.
     pub fn bits(&self) -> u16 {
         yubihsm::Domain::from(self).bits()
-    }
-}
-
-impl From<&Domains> for yubihsm::Domain {
-    fn from(value: &Domains) -> Self {
-        value
-            .0
-            .iter()
-            .map(|cap| yubihsm::Domain::from(*cap))
-            .fold(yubihsm::Domain::empty(), |acc, c| acc | c)
     }
 }
 
@@ -229,6 +208,27 @@ impl From<u16> for Domains {
 impl From<&[Domain]> for Domains {
     fn from(value: &[Domain]) -> Self {
         Self(value.iter().copied().collect())
+    }
+}
+
+impl TryFrom<BTreeSet<Domain>> for Domains {
+    type Error = crate::object::Error;
+
+    fn try_from(domains: BTreeSet<Domain>) -> Result<Self, Self::Error> {
+        if domains.is_empty() {
+            return Err(Self::Error::EmptySetOfDomains);
+        }
+        Ok(Self(domains))
+    }
+}
+
+impl From<&Domains> for yubihsm::Domain {
+    fn from(value: &Domains) -> Self {
+        value
+            .0
+            .iter()
+            .map(|cap| yubihsm::Domain::from(*cap))
+            .fold(yubihsm::Domain::empty(), |acc, c| acc | c)
     }
 }
 
