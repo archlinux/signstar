@@ -60,6 +60,7 @@ testdir = "0.10.0"
 testresult = "0.4.1"
 thiserror = "2.0.4"
 tokio = { version = "1.42.0", features = ["macros"] }
+toml = "1.0.0"
 ureq = "2.12.1"
 uuid = { version = "1.11.0", features = ["v7"] }
 zeroize = { version = "1.8.1", features = ["serde", "zeroize_derive"] }
