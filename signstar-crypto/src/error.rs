@@ -9,6 +9,19 @@ pub enum Error {
     #[error(transparent)]
     ChangeUserRun(#[from] change_user_run::Error),
 
+    /// An I/O error occurred for a file.
+    #[error("I/O error for file {path} while {context}: {source}")]
+    IoPath {
+        /// The path to the file for which the error occurred.
+        path: PathBuf,
+        /// The context in which the error occurs.
+        ///
+        /// This is meant to complete the sentence "I/O error for file {path} while ".
+        context: &'static str,
+        /// The error source.
+        source: std::io::Error,
+    },
+
     /// An error related to keys occurred.
     #[error("Key error: {0}")]
     Key(#[from] crate::key::Error),

@@ -1,6 +1,6 @@
 //! Passphrase handling.
 
-use std::{fmt::Display, str::FromStr};
+use std::{fmt::Display, fs::read_to_string, path::Path, str::FromStr};
 
 use rand::{Rng, distributions::Alphanumeric, thread_rng};
 use secrecy::{ExposeSecret, SecretString};
@@ -106,6 +106,26 @@ impl Serialize for Passphrase {
         S: serde::Serializer,
     {
         self.0.expose_secret().serialize(serializer)
+    }
+}
+
+impl TryFrom<&Path> for Passphrase {
+    type Error = crate::Error;
+
+    /// Creates a new [`Passphrase`] from the contents of a file.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the contents of the file at `path` cannot be read to a valid UTF-8
+    /// string.
+    fn try_from(path: &Path) -> Result<Self, Self::Error> {
+        Passphrase::from_str(
+            &read_to_string(path).map_err(|source| crate::Error::IoPath {
+                path: path.to_path_buf(),
+                context: "reading a passphrase from the file",
+                source,
+            })?,
+        )
     }
 }
 
