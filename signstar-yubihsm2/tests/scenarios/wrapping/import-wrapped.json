@@ -1,11 +1,11 @@
 {
-    "Auth": {
+    "auth": {
         "user": 1,
         "passphrase_file": "tests/scenarios/keys/default"
     },
-    "Steps": [
+    "steps": [
         {
-            "PutWrapKey": {
+            "put_wrap_key": {
                 "key_id": 6,
                 "domains": [1],
                 "caps": [
@@ -19,7 +19,7 @@
             }
         },
         {
-            "PutAuthKey": {
+            "put_auth_key": {
                 "key_id": 6,
                 "domains": [1],
                 "caps": [
@@ -30,37 +30,37 @@
             }
         },
         {
-            "Auth": {
+            "auth": {
                 "user": 6,
                 "passphrase_file": "tests/scenarios/keys/auth-key"
             }
         },
         {
-            "ImportWrapped": {
+            "import_wrapped": {
                 "wrap_key_id": 6,
                 "wrapped_file": "/tmp/wrapped"
             }
         },
         {
-            "GetInfo": {
+            "get_info": {
                 "object_type": "asymmetric-key",
                 "object_id": 5
             }
         },
         {
-            "Auth": {
+            "auth": {
                 "user": 1,
                 "passphrase_file": "tests/scenarios/keys/default"
             }
         },
         {
-            "Delete": {
+            "delete": {
                 "object_type": "authentication-key",
                 "object_id": 6
             }
         },
         {
-            "PutAuthKey": {
+            "put_auth_key": {
                 "key_id": 6,
                 "domains": [1],
                 "caps": [
@@ -71,13 +71,13 @@
             }
         },
         {
-            "Auth": {
+            "auth": {
                 "user": 6,
                 "passphrase_file": "tests/scenarios/keys/auth-key"
             }
         },
         {
-            "SignEd25519": {
+            "sign_ed25519": {
                 "key_id": 5,
                 "data": [
                     1,

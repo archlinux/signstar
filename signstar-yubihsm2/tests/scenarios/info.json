@@ -1,20 +1,20 @@
 {
-    "Auth": {
+    "auth": {
         "user": 1,
         "passphrase_file": "tests/scenarios/keys/default"
     },
-    "Steps": [
+    "steps": [
         {
-            "Info": null
+            "info": null
         },
         {
-            "Auth": {
+            "auth": {
                 "user": 1,
                 "passphrase_file": "tests/scenarios/keys/default"
             }
         },
         {
-            "Info": null
+            "info": null
         }
     ]
 }

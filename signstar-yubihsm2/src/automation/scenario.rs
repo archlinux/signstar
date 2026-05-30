@@ -13,7 +13,7 @@ use crate::automation::{Auth, Command};
 /// scenario.
 #[derive(Debug)]
 #[cfg_attr(feature = "serde", derive(Deserialize))]
-#[cfg_attr(feature = "serde", serde(rename_all = "PascalCase"))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 pub struct Scenario {
     /// Initial authentication data required to establish the connection to a YubiHSM2.
     pub auth: Auth,

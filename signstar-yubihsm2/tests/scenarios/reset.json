@@ -1,11 +1,11 @@
 {
-    "Auth": {
+    "auth": {
         "user": 1,
         "passphrase_file": "tests/scenarios/keys/default"
     },
-    "Steps": [
+    "steps": [
         {
-            "Reset": null
+            "reset": null
         }
     ]
 }
