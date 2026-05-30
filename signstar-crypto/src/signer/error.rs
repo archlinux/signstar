@@ -89,10 +89,6 @@ pub enum Error {
         public_params: Box<PublicParams>,
     },
 
-    /// A [`crate::key::Error`]  error.
-    #[error(transparent)]
-    SignstarCryptoKey(#[from] crate::key::Error),
-
     /// An HSM operation error.
     #[error("HSM operation failed while {context}:\n{source}")]
     Hsm {
@@ -104,8 +100,4 @@ pub enum Error {
         /// The source error.
         source: Box<dyn std::error::Error + 'static + Send + Sync>,
     },
-
-    /// An error that may occur when working with OpenPGP data.
-    #[error(transparent)]
-    OpenPgp(#[from] crate::openpgp::Error),
 }

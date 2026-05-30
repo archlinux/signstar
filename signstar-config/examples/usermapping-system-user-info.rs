@@ -50,13 +50,9 @@ pub enum Error {
     #[error(transparent)]
     SignstarConfig(#[from] signstar_config::Error),
 
-    /// A `signstar_crypto::openpgp::Error`.
+    /// A `signstar_crypto::Error`.
     #[error(transparent)]
-    SignstarCryptoOpenpgp(#[from] signstar_crypto::openpgp::Error),
-
-    /// A `signstar_crypto::key::Error`.
-    #[error(transparent)]
-    SignstarCryptoKey(#[from] signstar_crypto::key::Error),
+    SignstarCrypto(#[from] signstar_crypto::Error),
 
     /// A `signstar_yubihsm2::Error`.
     #[cfg(feature = "yubihsm2")]

@@ -3,7 +3,14 @@
 use log::debug;
 use signstar_crypto::{
     key::{KeyMechanism, PrivateKeyImport},
-    signer::openpgp::Timestamp,
+    signer::openpgp::{
+        Timestamp,
+        add_certificate,
+        extract_certificate,
+        sign,
+        sign_hasher_state,
+        tsk_to_private_key_import as sc_tsk_to_private_key_import,
+    },
 };
 
 #[cfg(doc)]
@@ -152,7 +159,7 @@ impl NetHsm {
 
         let raw_signer = NetHsmKey::new(self, key_id)?;
 
-        Ok(signstar_crypto::signer::openpgp::add_certificate(
+        Ok(add_certificate(
             &raw_signer,
             flags,
             user_id,
@@ -272,10 +279,7 @@ impl NetHsm {
         );
         let raw_signer = NetHsmKey::new(self, key_id)?;
 
-        Ok(signstar_crypto::signer::openpgp::sign(
-            &raw_signer,
-            message,
-        )?)
+        Ok(sign(&raw_signer, message)?)
     }
 
     /// Generates an armored OpenPGP signature based on provided hasher state.
@@ -385,11 +389,7 @@ impl NetHsm {
     /// [namespace]: https://docs.nitrokey.com/nethsm/administration#namespaces
     /// [role]: https://docs.nitrokey.com/nethsm/administration#roles
     /// [state]: https://docs.nitrokey.com/nethsm/administration#state
-    pub fn openpgp_sign_state(
-        &self,
-        key_id: &KeyId,
-        state: sha2::Sha512,
-    ) -> Result<String, crate::Error> {
+    pub fn openpgp_sign_state(&self, key_id: &KeyId, state: sha2::Sha512) -> Result<String, Error> {
         debug!(
             "Create an OpenPGP signature for a hasher state with key \"{key_id}\" on the NetHSM at {} using {}",
             self.url.borrow(),
@@ -397,10 +397,7 @@ impl NetHsm {
         );
         let raw_signer = NetHsmKey::new(self, key_id)?;
 
-        Ok(signstar_crypto::signer::openpgp::sign_hasher_state(
-            &raw_signer,
-            state,
-        )?)
+        Ok(sign_hasher_state(&raw_signer, state)?)
     }
 }
 
@@ -413,21 +410,19 @@ impl NetHsm {
 /// - a secret key cannot be decoded from `key_data`,
 /// - or writing a serialized certificate into a vector fails.
 pub fn extract_openpgp_certificate(key: SignedSecretKey) -> Result<Vec<u8>, Error> {
-    signstar_crypto::signer::openpgp::extract_certificate(key).map_err(Error::SignstarCryptoSigner)
+    extract_certificate(key).map_err(crate::Error::SignstarCrypto)
 }
 
 /// Converts an OpenPGP Transferable Secret Key into [`PrivateKeyImport`] object.
 ///
 /// # Errors
 ///
-/// Returns an [`Error::SignstarCryptoSigner`] if creating a [`PrivateKeyImport`] from `key_data` is
-/// not possible.
+/// Returns an error if creating a [`PrivateKeyImport`] from `key_data` is not possible.
 ///
 /// Returns an [`crate::Error::Key`] if `key_data` is an RSA public key and is shorter than
 /// [`signstar_crypto::key::MIN_RSA_BIT_LENGTH`].
 pub fn tsk_to_private_key_import(
     key: &SignedSecretKey,
 ) -> Result<(PrivateKeyImport, KeyMechanism), Error> {
-    signstar_crypto::signer::openpgp::tsk_to_private_key_import(key)
-        .map_err(Error::SignstarCryptoSigner)
+    sc_tsk_to_private_key_import(key).map_err(crate::Error::SignstarCrypto)
 }

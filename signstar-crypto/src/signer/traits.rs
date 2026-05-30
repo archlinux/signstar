@@ -1,6 +1,6 @@
 //! Traits and associated structures for low-level signer interface.
 
-use crate::signer::error::Error;
+use crate::Error;
 
 /// Represents a signing key for low-level operations.
 pub trait RawSigningKey {
@@ -17,7 +17,8 @@ pub trait RawSigningKey {
     /// # Errors
     ///
     /// If the operation fails, the implementation should return an appropriate error.
-    /// The [`Error::Hsm`] variant is appropriate for forwarding client-specific HSM errors.
+    /// The [`crate::signer::error::Error::Hsm`] variant is appropriate for forwarding
+    /// client-specific HSM errors.
     fn sign(&self, digest: &[u8]) -> Result<Vec<Vec<u8>>, Error>;
 
     /// Returns certificate bytes associated with this signing key, if any.
@@ -28,7 +29,8 @@ pub trait RawSigningKey {
     /// # Errors
     ///
     /// If the operation fails, the implementation should return an appropriate error.
-    /// The [`Error::Hsm`] variant is appropriate for forwarding client-specific HSM errors.
+    /// The [`crate::signer::error::Error::Hsm`] variant is appropriate for forwarding
+    /// client-specific HSM errors.
     fn certificate(&self) -> Result<Option<Vec<u8>>, Error>;
 
     /// Returns raw public parts of the signing key.
@@ -40,7 +42,8 @@ pub trait RawSigningKey {
     /// # Errors
     ///
     /// If the operation fails, the implementation should return an appropriate error.
-    /// The [`Error::Hsm`] variant is appropriate for forwarding client-specific HSM errors.
+    /// The [`crate::signer::error::Error::Hsm`] variant is appropriate for forwarding
+    /// client-specific HSM errors.
     fn public(&self) -> Result<RawPublicKey, Error>;
 }
 

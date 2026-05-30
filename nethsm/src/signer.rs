@@ -11,9 +11,12 @@ use picky_asn1_x509::{
     ShaVariant,
     signature::EcdsaSignatureValue,
 };
-use signstar_crypto::signer::{
-    error::Error,
-    traits::{RawPublicKey, RawSigningKey},
+use signstar_crypto::{
+    Error,
+    signer::{
+        error::Error as SignstarCryptoSignerError,
+        traits::{RawPublicKey, RawSigningKey},
+    },
 };
 
 use crate::{KeyId, NetHsm, SignatureType};
@@ -87,12 +90,15 @@ impl<'a, 'b> NetHsmKey<'a, 'b> {
 /// - `data` is [`None`],
 /// - or `data` provides invalid base64 encoding.
 fn ec_public_key_data_to_bytes(data: Option<&str>) -> Result<Vec<u8>, Error> {
-    Base64::decode_vec(data.ok_or(Error::InvalidPublicKeyData {
+    Base64::decode_vec(data.ok_or(SignstarCryptoSignerError::InvalidPublicKeyData {
         context: "EC public key data is missing".into(),
     })?)
-    .map_err(|e| Error::Hsm {
-        context: "deserializing EC data",
-        source: Box::new(e),
+    .map_err(|e| {
+        SignstarCryptoSignerError::Hsm {
+            context: "deserializing EC data",
+            source: Box::new(e),
+        }
+        .into()
     })
 }
 
@@ -110,7 +116,7 @@ impl RawSigningKey for NetHsmKey<'_, '_> {
             .sign_digest(self.key_id, self.signature_type, &request_data)
             .map_err(|e| {
                 error!("NetHsm::sign_digest failed: {e:?}");
-                Error::Hsm {
+                SignstarCryptoSignerError::Hsm {
                     context: "executing NetHsm::sign_digest",
                     source: e.into(),
                 }
@@ -120,42 +126,48 @@ impl RawSigningKey for NetHsmKey<'_, '_> {
     }
 
     fn certificate(&self) -> Result<Option<Vec<u8>>, Error> {
-        self.nethsm
-            .get_key_certificate(self.key_id)
-            .map_err(|e| Error::Hsm {
+        self.nethsm.get_key_certificate(self.key_id).map_err(|e| {
+            SignstarCryptoSignerError::Hsm {
                 context: "executing NetHsm::get_key_certificate",
                 source: e.into(),
-            })
+            }
+            .into()
+        })
     }
 
     fn public(&self) -> Result<RawPublicKey, Error> {
-        let pk = self.nethsm.get_key(self.key_id).map_err(|e| Error::Hsm {
-            context: "executing NetHsm::get_key",
-            source: e.into(),
-        })?;
+        let pk = self
+            .nethsm
+            .get_key(self.key_id)
+            .map_err(|e| SignstarCryptoSignerError::Hsm {
+                context: "executing NetHsm::get_key",
+                source: e.into(),
+            })?;
 
-        let public = &pk.public.ok_or(Error::InvalidPublicKeyData {
-            context: "public key data is missing".into(),
-        })?;
+        let public = &pk
+            .public
+            .ok_or(SignstarCryptoSignerError::InvalidPublicKeyData {
+                context: "public key data is missing".into(),
+            })?;
 
         let key_type: KeyType = pk.r#type;
         Ok(match key_type {
             KeyType::Rsa => RawPublicKey::Rsa {
                 modulus: Base64::decode_vec(public.modulus.as_ref().ok_or(
-                    Error::InvalidPublicKeyData {
+                    SignstarCryptoSignerError::InvalidPublicKeyData {
                         context: "RSA modulus is missing".into(),
                     },
                 )?)
-                .map_err(|e| Error::Hsm {
+                .map_err(|e| SignstarCryptoSignerError::Hsm {
                     context: "deserializing modulus",
                     source: Box::new(e),
                 })?,
                 exponent: Base64::decode_vec(public.public_exponent.as_ref().ok_or(
-                    Error::InvalidPublicKeyData {
+                    SignstarCryptoSignerError::InvalidPublicKeyData {
                         context: "RSA exponent is missing".into(),
                     },
                 )?)
-                .map_err(|e| Error::Hsm {
+                .map_err(|e| SignstarCryptoSignerError::Hsm {
                     context: "deserializing exponent",
                     source: Box::new(e),
                 })?,
@@ -174,9 +186,10 @@ impl RawSigningKey for NetHsmKey<'_, '_> {
             }
             KeyType::EcP224 | KeyType::Generic => {
                 warn!("Unsupported key type: {key_type}");
-                return Err(Error::InvalidPublicKeyData {
+                return Err(SignstarCryptoSignerError::InvalidPublicKeyData {
                     context: format!("Unsupported key type: {key_type}"),
-                });
+                }
+                .into());
             }
         })
     }
@@ -257,8 +270,12 @@ impl RawSigningKey for OwnedNetHsmKey {
 ///
 /// # Errors
 ///
-/// Returns a PKCS#1 encoding error wrapped in [`Error::Hsm`] in case the RSA-PKCS#1 signing scheme
-/// is used but the encoding of digest to the `DigestInfo` structure fails.
+/// Returns an error if
+///
+/// - the `signature_type` is [`SignatureType::Pkcs1`] and the encoding of the digest data fails,
+/// - or the `signature_type` is the unsupported [`SignatureType::PssSha1`],
+///   [`SignatureType::PssSha224`], [`SignatureType::PssSha256`], [`SignatureType::PssSha384`], or
+///   [`SignatureType::PssSha512`].
 fn prepare_digest_data_for_openpgp(
     signature_type: SignatureType,
     oid: AlgorithmIdentifier,
@@ -275,7 +292,7 @@ fn prepare_digest_data_for_openpgp(
         })
         .map_err(|e| {
             error!("Encoding signature to PKCS#1 format failed: {e:?}");
-            Error::Hsm {
+            SignstarCryptoSignerError::Hsm {
                 context: "preparing digest data",
                 source: Box::new(e),
             }
@@ -296,7 +313,9 @@ fn prepare_digest_data_for_openpgp(
         | SignatureType::PssSha256
         | SignatureType::PssSha384
         | SignatureType::PssSha512 => {
-            return Err(Error::UnsupportedSignatureAlgorithm(signature_type));
+            return Err(
+                SignstarCryptoSignerError::UnsupportedSignatureAlgorithm(signature_type).into(),
+            );
         }
     })
 }
@@ -321,7 +340,7 @@ fn raw_signature_to_mpis(sig_type: SignatureType, sig: &[u8]) -> Result<Vec<Vec<
         SignatureType::EcdsaP256 | SignatureType::EcdsaP384 | SignatureType::EcdsaP521 => {
             let sig: EcdsaSignatureValue = picky_asn1_der::from_bytes(sig).map_err(|e| {
                 error!("DER decoding error when parsing ECDSA signature: {e:?}");
-                Error::Hsm {
+                SignstarCryptoSignerError::Hsm {
                     context: "DER decoding ECDSA signature",
                     source: Box::new(e),
                 }
@@ -337,10 +356,11 @@ fn raw_signature_to_mpis(sig_type: SignatureType, sig: &[u8]) -> Result<Vec<Vec<
                     "Signature length should be exactly 64 bytes but is: {}",
                     sig.len()
                 );
-                return Err(Error::InvalidSignature {
+                return Err(SignstarCryptoSignerError::InvalidSignature {
                     context: "decoding EdDSA signature",
                     signature_type: sig_type,
-                });
+                }
+                .into());
             }
 
             vec![sig[..32].into(), sig[32..].into()]
@@ -355,10 +375,11 @@ fn raw_signature_to_mpis(sig_type: SignatureType, sig: &[u8]) -> Result<Vec<Vec<
         | SignatureType::PssSha384
         | SignatureType::PssSha512 => {
             error!("Unsupported signature type: {sig_type}");
-            return Err(Error::InvalidSignature {
+            return Err(SignstarCryptoSignerError::InvalidSignature {
                 context: "parsing signature",
                 signature_type: sig_type,
-            });
+            }
+            .into());
         }
     })
 }

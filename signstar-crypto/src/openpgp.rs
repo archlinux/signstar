@@ -93,7 +93,7 @@ impl AsRef<str> for OpenPgpVersion {
 }
 
 impl FromStr for OpenPgpVersion {
-    type Err = Error;
+    type Err = crate::Error;
 
     /// Creates an [`OpenPgpVersion`] from a string slice
     ///
@@ -127,9 +127,10 @@ impl FromStr for OpenPgpVersion {
             "4" | "v4" | "V4" | "OpenPGPv4" => Ok(Self::V4),
             "5" | "v5" | "V5" | "OpenPGPv5" => Err(Error::InvalidOpenPgpVersion(format!(
                 "{s} (\"we don't do these things around here\")"
-            ))),
+            ))
+            .into()),
             "6" | "v6" | "V6" | "OpenPGPv6" => Ok(Self::V6),
-            _ => Err(Error::InvalidOpenPgpVersion(s.to_string())),
+            _ => Err(Error::InvalidOpenPgpVersion(s.to_string()).into()),
         }
     }
 }
@@ -141,7 +142,7 @@ impl From<OpenPgpVersion> for String {
 }
 
 impl TryFrom<KeyVersion> for OpenPgpVersion {
-    type Error = Error;
+    type Error = crate::Error;
 
     /// Creates an [`OpenPgpVersion`] from a [`KeyVersion`].
     ///
@@ -153,16 +154,16 @@ impl TryFrom<KeyVersion> for OpenPgpVersion {
             KeyVersion::V4 => Self::V4,
             KeyVersion::V6 => Self::V6,
             _ => {
-                return Err(Error::InvalidOpenPgpVersion(
-                    Into::<u8>::into(value).to_string(),
-                ));
+                return Err(
+                    Error::InvalidOpenPgpVersion(Into::<u8>::into(value).to_string()).into(),
+                );
             }
         })
     }
 }
 
 impl TryFrom<String> for OpenPgpVersion {
-    type Error = Error;
+    type Error = crate::Error;
 
     fn try_from(value: String) -> Result<Self, Self::Error> {
         Self::from_str(&value)
@@ -251,9 +252,9 @@ impl OpenPgpUserId {
     /// # Ok(())
     /// # }
     /// ```
-    pub fn new(user_id: String) -> Result<Self, Error> {
+    pub fn new(user_id: String) -> Result<Self, crate::Error> {
         if user_id.len() > 4096 {
-            return Err(Error::UserIdTooLarge { user_id });
+            return Err(Error::UserIdTooLarge { user_id }.into());
         }
         if let Ok(email) = EmailAddress::parse_with_options(
             &user_id,
@@ -302,7 +303,7 @@ impl Display for OpenPgpUserId {
 }
 
 impl FromStr for OpenPgpUserId {
-    type Err = Error;
+    type Err = crate::Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         Self::new(s.to_string())
@@ -316,7 +317,7 @@ impl From<OpenPgpUserId> for String {
 }
 
 impl TryFrom<&SignedUser> for OpenPgpUserId {
-    type Error = Error;
+    type Error = crate::Error;
 
     /// Creates an [`OpenPgpUserId`] from [`SignedUser`].
     ///
@@ -335,7 +336,7 @@ impl TryFrom<&SignedUser> for OpenPgpUserId {
 }
 
 impl TryFrom<String> for OpenPgpUserId {
-    type Error = Error;
+    type Error = crate::Error;
 
     fn try_from(value: String) -> Result<Self, Self::Error> {
         Self::new(value)
@@ -378,13 +379,14 @@ impl OpenPgpUserIdList {
     /// # Ok(())
     /// # }
     /// ```
-    pub fn new(user_ids: Vec<OpenPgpUserId>) -> Result<Self, Error> {
+    pub fn new(user_ids: Vec<OpenPgpUserId>) -> Result<Self, crate::Error> {
         let mut set = HashSet::new();
         for user_id in user_ids.iter() {
             if !set.insert(user_id) {
                 return Err(Error::DuplicateUserId {
                     user_id: user_id.to_owned(),
-                });
+                }
+                .into());
             }
         }
         Ok(Self(user_ids))
@@ -417,7 +419,7 @@ impl From<OpenPgpUserIdList> for Vec<String> {
 }
 
 impl TryFrom<Vec<String>> for OpenPgpUserIdList {
-    type Error = Error;
+    type Error = crate::Error;
 
     fn try_from(value: Vec<String>) -> Result<Self, Self::Error> {
         let user_ids = {

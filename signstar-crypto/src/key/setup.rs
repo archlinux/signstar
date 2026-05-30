@@ -2,7 +2,6 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::key::Error;
 use crate::key::{
     CryptographicKeyContext,
     KeyMechanism,
@@ -94,7 +93,7 @@ impl SigningKeySetup {
         key_length: Option<u32>,
         signature_type: SignatureType,
         cryptographic_key_context: CryptographicKeyContext,
-    ) -> Result<Self, Error> {
+    ) -> Result<Self, crate::Error> {
         key_type_matches_mechanisms(key_type, &key_mechanisms)?;
         key_type_matches_length(key_type, key_length)?;
         key_type_and_mechanisms_match_signature_type(key_type, &key_mechanisms, signature_type)?;
@@ -145,6 +144,7 @@ mod tests {
     use testresult::TestResult;
 
     use super::*;
+    use crate::key::Error;
 
     #[test]
     fn signing_key_setup_new_succeeds() -> TestResult {
@@ -181,7 +181,7 @@ mod tests {
         );
 
         match result {
-            Err(Error::InvalidKeyMechanism { .. }) => {}
+            Err(crate::Error::Key(Error::InvalidKeyMechanism { .. })) => {}
             Err(error) => {
                 panic!("Expected an Error::InvalidKeyMechanism, but got {error}");
             }
@@ -212,7 +212,7 @@ mod tests {
         );
 
         match result {
-            Err(Error::KeyLengthUnsupported { .. }) => {}
+            Err(crate::Error::Key(Error::KeyLengthUnsupported { .. })) => {}
             Err(error) => {
                 panic!("Expected an Error::KeyLengthUnsupported, but got {error}");
             }
@@ -243,7 +243,8 @@ mod tests {
         );
 
         match result {
-            Err(Error::KeyLengthRequired { .. }) | Err(Error::InvalidKeyLengthRsa { .. }) => {}
+            Err(crate::Error::Key(Error::KeyLengthRequired { .. }))
+            | Err(crate::Error::Key(Error::InvalidKeyLengthRsa { .. })) => {}
             Err(error) => {
                 panic!(
                     "Expected an Error::KeyLengthRequired or Error::InvalidKeyLengthRsa, but got {error}"
@@ -276,8 +277,8 @@ mod tests {
         );
 
         match result {
-            Err(Error::InvalidKeyTypeForSignatureType { .. })
-            | Err(Error::InvalidKeyMechanismsForSignatureType { .. }) => {}
+            Err(crate::Error::Key(Error::InvalidKeyTypeForSignatureType { .. }))
+            | Err(crate::Error::Key(Error::InvalidKeyMechanismsForSignatureType { .. })) => {}
             Err(error) => {
                 panic!(
                     "Expected an Error::InvalidKeyTypeForSignatureType or Error::InvalidKeyMechanismsForSignatureType, but got {error}"

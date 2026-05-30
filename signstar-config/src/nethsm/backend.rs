@@ -653,7 +653,7 @@ fn add_system_wide_keys(
                     key_type: info
                         .r#type
                         .try_into()
-                        .map_err(nethsm::Error::SignstarCryptoKey)?,
+                        .map_err(nethsm::Error::SignstarCrypto)?,
                     key_mechanisms: info
                         .mechanisms
                         .iter()
@@ -796,7 +796,7 @@ fn add_namespaced_keys(
                     key_type: key_info
                         .r#type
                         .try_into()
-                        .map_err(nethsm::Error::SignstarCryptoKey)?,
+                        .map_err(nethsm::Error::SignstarCrypto)?,
                     key_mechanisms: key_info
                         .mechanisms
                         .iter()
@@ -1571,7 +1571,7 @@ impl<'a, 'b> NetHsmBackend<'a, 'b> {
                 key_type: key
                     .r#type
                     .try_into()
-                    .map_err(nethsm::Error::SignstarCryptoKey)?,
+                    .map_err(nethsm::Error::SignstarCrypto)?,
                 mechanisms: key
                     .mechanisms
                     .iter()
@@ -1631,7 +1631,7 @@ impl<'a, 'b> NetHsmBackend<'a, 'b> {
                     key_type: key
                         .r#type
                         .try_into()
-                        .map_err(nethsm::Error::SignstarCryptoKey)?,
+                        .map_err(nethsm::Error::SignstarCrypto)?,
                     mechanisms: key
                         .mechanisms
                         .iter()
@@ -1723,11 +1723,8 @@ impl<'a, 'b> NetHsmBackend<'a, 'b> {
                 );
 
                 self.nethsm.provision(
-                    Passphrase::from_str(self.admin_credentials.get_unlock_passphrase()).map_err(
-                        |source| {
-                            crate::Error::NetHsm(nethsm::Error::SignstarCryptoPassphrase(source))
-                        },
-                    )?,
+                    Passphrase::from_str(self.admin_credentials.get_unlock_passphrase())
+                        .map_err(crate::Error::SignstarCrypto)?,
                     self.admin_credentials
                         .get_default_administrator()?
                         .passphrase

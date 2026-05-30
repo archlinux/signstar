@@ -50,7 +50,7 @@ pub enum Error {
         context: &'static str,
 
         /// The source error.
-        source: signstar_crypto::signer::error::Error,
+        source: signstar_crypto::Error,
     },
 
     /// An I/O error occurred for a file.
@@ -131,4 +131,8 @@ pub enum Error {
     /// A YubiHSM2 backup error occurred.
     #[error(transparent)]
     Backup(#[from] crate::backup::Error),
+
+    /// A YubiHSM2-crypto error occurred.
+    #[error(transparent)]
+    SignstarCrypto(#[from] signstar_crypto::Error),
 }
