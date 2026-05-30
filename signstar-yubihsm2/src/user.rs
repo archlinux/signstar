@@ -1,8 +1,34 @@
 //! User handling for YubiHSM2 devices.
 
+use std::path::PathBuf;
+
 use signstar_crypto::{passphrase::Passphrase, traits::UserWithPassphrase};
 
 use crate::object::Id;
+
+/// Credentials for a YubiHSM2 device, that are backed by a UTF-8 encoded passphrase file.
+///
+/// Credentials are mapped to the authentication key ID and the passphrase file.
+/// The contents of the passphrase file are meant to be used as key derivation function (KDF) for an
+/// authentication key.
+#[derive(Debug)]
+pub struct FileBackedCredentials {
+    pub(crate) id: Id,
+    passphrase_file: PathBuf,
+}
+
+impl TryFrom<&FileBackedCredentials> for yubihsm::Credentials {
+    type Error = crate::Error;
+
+    fn try_from(value: &FileBackedCredentials) -> Result<Self, Self::Error> {
+        let passphrase = Passphrase::try_from(value.passphrase_file.as_path())?;
+
+        Ok(yubihsm::Credentials::from_password(
+            value.id.into(),
+            passphrase.expose_borrowed().as_bytes(),
+        ))
+    }
+}
 
 /// Credentials for a YubiHSM2 device.
 ///
@@ -50,6 +76,16 @@ impl From<&Credentials> for yubihsm::Credentials {
             value.id.into(),
             value.passphrase.expose_borrowed().as_bytes(),
         )
+    }
+}
+
+impl TryFrom<&FileBackedCredentials> for Credentials {
+    type Error = crate::Error;
+
+    fn try_from(value: &FileBackedCredentials) -> Result<Self, Self::Error> {
+        let passphrase = Passphrase::try_from(value.passphrase_file.as_path())?;
+
+        Ok(Credentials::new(value.id, passphrase))
     }
 }
 
