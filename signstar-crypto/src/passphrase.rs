@@ -1,6 +1,6 @@
 //! Passphrase handling.
 
-use std::{fmt::Display, str::FromStr};
+use std::{fmt::Display, fs::read_to_string, path::Path, str::FromStr};
 
 use rand::{Rng, distributions::Alphanumeric, thread_rng};
 use secrecy::{ExposeSecret, SecretString};
@@ -109,9 +109,32 @@ impl Serialize for Passphrase {
     }
 }
 
+impl TryFrom<&Path> for Passphrase {
+    type Error = crate::Error;
+
+    /// Creates a new [`Passphrase`] from the contents of a file.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the contents of the file at `path` cannot be read to a valid UTF-8
+    /// string.
+    fn try_from(path: &Path) -> Result<Self, Self::Error> {
+        Passphrase::from_str(
+            &read_to_string(path).map_err(|source| crate::Error::IoPath {
+                path: path.to_path_buf(),
+                context: "reading a passphrase from the file",
+                source,
+            })?,
+        )
+    }
+}
+
 #[cfg(test)]
 mod tests {
+    use std::io::Write;
+
     use rstest::rstest;
+    use tempfile::{NamedTempFile, TempDir};
     use testresult::TestResult;
 
     use super::*;
@@ -130,5 +153,27 @@ mod tests {
     fn passphrase_generate(#[case] input_length: Option<usize>, #[case] output_length: usize) {
         let passphrase = Passphrase::generate(input_length);
         assert_eq!(passphrase.expose_borrowed().len(), output_length);
+    }
+
+    /// Ensures, that a [`Passphrase`] can be read from a plaintext file.
+    #[test]
+    fn passphrase_try_from_path_succeeds() -> TestResult {
+        let temp_file = {
+            let mut temp_file = NamedTempFile::new()?;
+            temp_file.write_all("passphrase".as_bytes())?;
+            temp_file
+        };
+        let _passphrase = Passphrase::try_from(temp_file.path())?;
+
+        Ok(())
+    }
+
+    /// Ensures, that a [`Passphrase`] cannot be read from a directory.
+    #[test]
+    fn passphrase_try_from_path_fails_on_path_is_dir() -> TestResult {
+        let temp_file = TempDir::new()?;
+        assert!(Passphrase::try_from(temp_file.path()).is_err());
+
+        Ok(())
     }
 }
