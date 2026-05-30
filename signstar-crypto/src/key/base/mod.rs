@@ -386,7 +386,7 @@ impl CryptographicKeyContext {
         key_type: KeyType,
         key_mechanisms: &[KeyMechanism],
         signature_type: SignatureType,
-    ) -> Result<(), Error> {
+    ) -> Result<(), crate::Error> {
         match self {
             Self::Raw => match (key_type, signature_type) {
                 (KeyType::Curve25519, SignatureType::EdDsa)
@@ -414,7 +414,8 @@ impl CryptographicKeyContext {
                         key_type,
                         key_mechanisms: key_mechanisms.to_vec(),
                         signature_type,
-                    });
+                    }
+                    .into());
                 }
             },
             Self::OpenPgp {
@@ -436,7 +437,8 @@ impl CryptographicKeyContext {
                         key_type,
                         key_mechanisms: key_mechanisms.to_vec(),
                         signature_type,
-                    });
+                    }
+                    .into());
                 }
             },
         }
@@ -553,7 +555,7 @@ impl TryFrom<SignedPublicKey> for CryptographicKeyContext {
 pub fn key_type_matches_mechanisms(
     key_type: KeyType,
     mechanisms: &[KeyMechanism],
-) -> Result<(), Error> {
+) -> Result<(), crate::Error> {
     let valid_mechanisms: &[KeyMechanism] = match key_type {
         KeyType::Curve25519 => &KeyMechanism::curve25519_mechanisms(),
         KeyType::EcP256 | KeyType::EcP384 | KeyType::EcP521 => {
@@ -575,7 +577,8 @@ pub fn key_type_matches_mechanisms(
         Err(Error::InvalidKeyMechanism {
             key_type,
             invalid_mechanisms,
-        })
+        }
+        .into())
     }
 }
 
@@ -609,19 +612,21 @@ pub fn key_type_and_mechanisms_match_signature_type(
     key_type: KeyType,
     mechanisms: &[KeyMechanism],
     signature_type: SignatureType,
-) -> Result<(), Error> {
+) -> Result<(), crate::Error> {
     match signature_type {
         SignatureType::EcdsaP256 => {
             if key_type != KeyType::EcP256 {
                 return Err(Error::InvalidKeyTypeForSignatureType {
                     key_type,
                     signature_type,
-                });
+                }
+                .into());
             } else if !mechanisms.contains(&KeyMechanism::EcdsaSignature) {
                 return Err(Error::InvalidKeyMechanismsForSignatureType {
                     required_key_mechanism: KeyMechanism::EcdsaSignature,
                     signature_type,
-                });
+                }
+                .into());
             }
         }
         SignatureType::EcdsaP384 => {
@@ -629,12 +634,14 @@ pub fn key_type_and_mechanisms_match_signature_type(
                 return Err(Error::InvalidKeyTypeForSignatureType {
                     key_type,
                     signature_type,
-                });
+                }
+                .into());
             } else if !mechanisms.contains(&KeyMechanism::EcdsaSignature) {
                 return Err(Error::InvalidKeyMechanismsForSignatureType {
                     required_key_mechanism: KeyMechanism::EcdsaSignature,
                     signature_type,
-                });
+                }
+                .into());
             }
         }
         SignatureType::EcdsaP521 => {
@@ -642,12 +649,14 @@ pub fn key_type_and_mechanisms_match_signature_type(
                 return Err(Error::InvalidKeyTypeForSignatureType {
                     key_type,
                     signature_type,
-                });
+                }
+                .into());
             } else if !mechanisms.contains(&KeyMechanism::EcdsaSignature) {
                 return Err(Error::InvalidKeyMechanismsForSignatureType {
                     required_key_mechanism: KeyMechanism::EcdsaSignature,
                     signature_type,
-                });
+                }
+                .into());
             }
         }
         SignatureType::EdDsa => {
@@ -655,12 +664,14 @@ pub fn key_type_and_mechanisms_match_signature_type(
                 return Err(Error::InvalidKeyTypeForSignatureType {
                     key_type,
                     signature_type,
-                });
+                }
+                .into());
             } else if !mechanisms.contains(&KeyMechanism::EdDsaSignature) {
                 return Err(Error::InvalidKeyMechanismsForSignatureType {
                     required_key_mechanism: KeyMechanism::EdDsaSignature,
                     signature_type,
-                });
+                }
+                .into());
             }
         }
         SignatureType::Pkcs1 => {
@@ -668,12 +679,14 @@ pub fn key_type_and_mechanisms_match_signature_type(
                 return Err(Error::InvalidKeyTypeForSignatureType {
                     key_type,
                     signature_type,
-                });
+                }
+                .into());
             } else if !mechanisms.contains(&KeyMechanism::RsaSignaturePkcs1) {
                 return Err(Error::InvalidKeyMechanismsForSignatureType {
                     required_key_mechanism: KeyMechanism::RsaSignaturePkcs1,
                     signature_type,
-                });
+                }
+                .into());
             }
         }
         SignatureType::PssSha1 => {
@@ -681,12 +694,14 @@ pub fn key_type_and_mechanisms_match_signature_type(
                 return Err(Error::InvalidKeyTypeForSignatureType {
                     key_type,
                     signature_type,
-                });
+                }
+                .into());
             } else if !mechanisms.contains(&KeyMechanism::RsaSignaturePssSha1) {
                 return Err(Error::InvalidKeyMechanismsForSignatureType {
                     required_key_mechanism: KeyMechanism::RsaSignaturePssSha1,
                     signature_type,
-                });
+                }
+                .into());
             }
         }
         SignatureType::PssSha224 => {
@@ -694,12 +709,14 @@ pub fn key_type_and_mechanisms_match_signature_type(
                 return Err(Error::InvalidKeyTypeForSignatureType {
                     key_type,
                     signature_type,
-                });
+                }
+                .into());
             } else if !mechanisms.contains(&KeyMechanism::RsaSignaturePssSha224) {
                 return Err(Error::InvalidKeyMechanismsForSignatureType {
                     required_key_mechanism: KeyMechanism::RsaSignaturePssSha224,
                     signature_type,
-                });
+                }
+                .into());
             }
         }
         SignatureType::PssSha256 => {
@@ -707,12 +724,14 @@ pub fn key_type_and_mechanisms_match_signature_type(
                 return Err(Error::InvalidKeyTypeForSignatureType {
                     key_type,
                     signature_type,
-                });
+                }
+                .into());
             } else if !mechanisms.contains(&KeyMechanism::RsaSignaturePssSha256) {
                 return Err(Error::InvalidKeyMechanismsForSignatureType {
                     required_key_mechanism: KeyMechanism::RsaSignaturePssSha256,
                     signature_type,
-                });
+                }
+                .into());
             }
         }
         SignatureType::PssSha384 => {
@@ -720,12 +739,14 @@ pub fn key_type_and_mechanisms_match_signature_type(
                 return Err(Error::InvalidKeyTypeForSignatureType {
                     key_type,
                     signature_type,
-                });
+                }
+                .into());
             } else if !mechanisms.contains(&KeyMechanism::RsaSignaturePssSha384) {
                 return Err(Error::InvalidKeyMechanismsForSignatureType {
                     required_key_mechanism: KeyMechanism::RsaSignaturePssSha384,
                     signature_type,
-                });
+                }
+                .into());
             }
         }
         SignatureType::PssSha512 => {
@@ -733,12 +754,14 @@ pub fn key_type_and_mechanisms_match_signature_type(
                 return Err(Error::InvalidKeyTypeForSignatureType {
                     key_type,
                     signature_type,
-                });
+                }
+                .into());
             } else if !mechanisms.contains(&KeyMechanism::RsaSignaturePssSha512) {
                 return Err(Error::InvalidKeyMechanismsForSignatureType {
                     required_key_mechanism: KeyMechanism::RsaSignaturePssSha512,
                     signature_type,
-                });
+                }
+                .into());
             }
         }
     }
@@ -778,30 +801,30 @@ pub fn key_type_and_mechanisms_match_signature_type(
 /// # Ok(())
 /// # }
 /// ```
-pub fn key_type_matches_length(key_type: KeyType, length: Option<u32>) -> Result<(), Error> {
+pub fn key_type_matches_length(key_type: KeyType, length: Option<u32>) -> Result<(), crate::Error> {
     match key_type {
         KeyType::Curve25519 | KeyType::EcP256 | KeyType::EcP384 | KeyType::EcP521 => {
             if length.is_some() {
-                Err(Error::KeyLengthUnsupported { key_type })
+                Err(Error::KeyLengthUnsupported { key_type }.into())
             } else {
                 Ok(())
             }
         }
         KeyType::Generic => match length {
-            None => Err(Error::KeyLengthRequired { key_type }),
+            None => Err(Error::KeyLengthRequired { key_type }.into()),
             Some(length) => {
                 if ![128, 192, 256].contains(&length) {
-                    Err(Error::InvalidKeyLengthAes { key_length: length })
+                    Err(Error::InvalidKeyLengthAes { key_length: length }.into())
                 } else {
                     Ok(())
                 }
             }
         },
         KeyType::Rsa => match length {
-            None => Err(Error::KeyLengthRequired { key_type }),
+            None => Err(Error::KeyLengthRequired { key_type }.into()),
             Some(length) => {
                 if length < MIN_RSA_BIT_LENGTH {
-                    Err(Error::InvalidKeyLengthRsa { key_length: length })
+                    Err(Error::InvalidKeyLengthRsa { key_length: length }.into())
                 } else {
                     Ok(())
                 }
@@ -834,88 +857,88 @@ mod tests {
         KeyType::Curve25519,
         &[KeyMechanism::EdDsaSignature],
         SignatureType::EcdsaP256,
-        Some(Box::new(Error::InvalidKeyTypeForSignatureType {
+        Some(Box::new(crate::Error::Key(Error::InvalidKeyTypeForSignatureType {
             key_type: KeyType::Curve25519,
             signature_type: SignatureType::EcdsaP256
-        })
+        }))
     ))]
     #[case(
         KeyType::Curve25519,
         &[KeyMechanism::EcdsaSignature],
         SignatureType::EdDsa,
-        Some(Box::new(Error::InvalidKeyMechanismsForSignatureType {
+        Some(Box::new(crate::Error::Key(Error::InvalidKeyMechanismsForSignatureType {
             signature_type: SignatureType::EdDsa,
             required_key_mechanism: KeyMechanism::EdDsaSignature,
-        })
+        }))
     ))]
     #[case(
         KeyType::EcP256,
         &[KeyMechanism::EcdsaSignature],
         SignatureType::EdDsa,
-        Some(Box::new(Error::InvalidKeyTypeForSignatureType {
+        Some(Box::new(crate::Error::Key(Error::InvalidKeyTypeForSignatureType {
             key_type: KeyType::EcP256,
             signature_type: SignatureType::EdDsa,
-        })
+        }))
     ))]
     #[case(
         KeyType::EcP256,
         &[KeyMechanism::EdDsaSignature],
         SignatureType::EcdsaP256,
-        Some(Box::new(Error::InvalidKeyMechanismsForSignatureType {
+        Some(Box::new(crate::Error::Key(Error::InvalidKeyMechanismsForSignatureType {
             signature_type: SignatureType::EcdsaP256,
             required_key_mechanism: KeyMechanism::EcdsaSignature,
-        })
+        }))
     ))]
     #[case(
         KeyType::EcP384,
         &[KeyMechanism::EcdsaSignature],
         SignatureType::EdDsa,
-        Some(Box::new(Error::InvalidKeyTypeForSignatureType {
+        Some(Box::new(crate::Error::Key(Error::InvalidKeyTypeForSignatureType {
             key_type: KeyType::EcP384,
             signature_type: SignatureType::EdDsa,
-        })
+        }))
     ))]
     #[case(
         KeyType::EcP384,
         &[KeyMechanism::EdDsaSignature],
         SignatureType::EcdsaP384,
-        Some(Box::new(Error::InvalidKeyMechanismsForSignatureType {
+        Some(Box::new(crate::Error::Key(Error::InvalidKeyMechanismsForSignatureType {
             signature_type: SignatureType::EcdsaP384,
             required_key_mechanism: KeyMechanism::EcdsaSignature,
-        })
+        }))
     ))]
     #[case(
         KeyType::EcP521,
         &[KeyMechanism::EcdsaSignature],
         SignatureType::EdDsa,
-        Some(Box::new(Error::InvalidKeyTypeForSignatureType {
+        Some(Box::new(crate::Error::Key(Error::InvalidKeyTypeForSignatureType {
             key_type: KeyType::EcP521,
             signature_type: SignatureType::EdDsa,
-        })
+        }))
     ))]
     #[case(
         KeyType::EcP521,
         &[KeyMechanism::EdDsaSignature],
         SignatureType::EcdsaP521,
-        Some(Box::new(Error::InvalidKeyMechanismsForSignatureType {
+        Some(Box::new(crate::Error::Key(Error::InvalidKeyMechanismsForSignatureType {
             signature_type: SignatureType::EcdsaP521,
             required_key_mechanism: KeyMechanism::EcdsaSignature,
-        })
+        }))
     ))]
     #[case(
         KeyType::Rsa,
         &[KeyMechanism::RsaSignaturePkcs1],
         SignatureType::EdDsa,
-        Some(Box::new(Error::InvalidKeyTypeForSignatureType {
+        Some(Box::new(crate::Error::Key(Error::InvalidKeyTypeForSignatureType {
             key_type: KeyType::Rsa,
             signature_type: SignatureType::EdDsa,
-        })
+        }))
     ))]
     fn test_key_type_and_mechanisms_match_signature_type(
         #[case] key_type: KeyType,
         #[case] key_mechanisms: &[KeyMechanism],
         #[case] signature_type: SignatureType,
-        #[case] result: Option<Box<Error>>,
+        #[case] result: Option<Box<crate::Error>>,
     ) -> TestResult {
         if let Some(error) = result {
             if let Err(fn_error) = key_type_and_mechanisms_match_signature_type(

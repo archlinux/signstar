@@ -9,8 +9,13 @@ use log::{error, warn};
 pub use pgp::composed::{Deserializable, SignedSecretKey};
 pub use pgp::types::Timestamp;
 use pgp::{
-    composed::{ArmorOptions, DetachedSignature, SignedPublicKey},
-    crypto::{hash::HashAlgorithm, public_key::PublicKeyAlgorithm},
+    composed::{
+        ArmorOptions,
+        DetachedSignature,
+        KeyDetails as ComposedKeyDetails,
+        SignedPublicKey,
+    },
+    crypto::{ecdsa::SecretKey, hash::HashAlgorithm, public_key::PublicKeyAlgorithm},
     packet::{
         Notation,
         PacketTrait,
@@ -27,7 +32,9 @@ use pgp::{
     types::{
         CompressionAlgorithm,
         EcdsaPublicParams,
-        KeyDetails as _,
+        EddsaLegacyPublicParams,
+        Fingerprint,
+        KeyDetails,
         KeyId,
         KeyVersion,
         Mpi,
@@ -40,8 +47,8 @@ use pgp::{
         SigningKey as RpgpSigningKey,
     },
 };
-use rsa::BigUint;
-use rsa::traits::PublicKeyParts as _;
+use rand::thread_rng;
+use rsa::{BigUint, RsaPublicKey, traits::PublicKeyParts as _};
 use sha2::digest::Digest as _;
 
 use crate::{
@@ -104,22 +111,24 @@ impl<'a> SigningKey<'a> {
     /// - retrieval of the certificate from `raw_signer` fails
     /// - parsing of the certificate retrieved fails
     /// - the certificate is missing  ([`Error::OpenPpgCertificateMissing`])
-    fn new_provisioned(raw_signer: &'a dyn RawSigningKey) -> Result<Self, Error> {
+    fn new_provisioned(raw_signer: &'a dyn RawSigningKey) -> Result<Self, crate::Error> {
         let public_key = if let Some(cert) = raw_signer.certificate()?.as_ref() {
-            SignedPublicKey::from_bytes(Cursor::new(cert))?.primary_key
+            SignedPublicKey::from_bytes(Cursor::new(cert))
+                .map_err(Error::Pgp)?
+                .primary_key
         } else {
-            return Err(Error::OpenPpgCertificateMissing);
+            return Err(Error::OpenPpgCertificateMissing.into());
         };
         Ok(Self::new(raw_signer, public_key))
     }
 }
 
-impl pgp::types::KeyDetails for SigningKey<'_> {
+impl KeyDetails for SigningKey<'_> {
     fn version(&self) -> KeyVersion {
         self.public_key.version()
     }
 
-    fn fingerprint(&self) -> pgp::types::Fingerprint {
+    fn fingerprint(&self) -> Fingerprint {
         self.public_key.fingerprint()
     }
 
@@ -213,7 +222,7 @@ pub fn add_certificate(
     user_id: OpenPgpUserId,
     created_at: Timestamp,
     version: OpenPgpVersion,
-) -> Result<Vec<u8>, Error> {
+) -> Result<Vec<u8>, crate::Error> {
     if version != OpenPgpVersion::V4 {
         return Err(crate::openpgp::Error::InvalidOpenPgpVersion(version.to_string()).into());
     }
@@ -221,8 +230,8 @@ pub fn add_certificate(
     let signer = SigningKey::new(raw_signer, public_key.clone());
 
     let signed_pk = SignedPublicKey {
-        details: pgp::composed::KeyDetails::new(
-            Some(UserId::from_str(Default::default(), user_id.as_ref())?),
+        details: ComposedKeyDetails::new(
+            Some(UserId::from_str(Default::default(), user_id.as_ref()).map_err(Error::Pgp)?),
             vec![],
             vec![],
             flags.into(),
@@ -232,13 +241,14 @@ pub fn add_certificate(
             vec![CompressionAlgorithm::Uncompressed].into(),
             vec![].into(),
         )
-        .sign(rand::thread_rng(), &signer, &public_key, &Password::empty())?,
+        .sign(thread_rng(), &signer, &public_key, &Password::empty())
+        .map_err(Error::Pgp)?,
         primary_key: public_key,
         public_subkeys: vec![],
     };
 
     let mut buffer = vec![];
-    signed_pk.to_writer(&mut buffer)?;
+    signed_pk.to_writer(&mut buffer).map_err(Error::Pgp)?;
     Ok(buffer)
 }
 
@@ -253,16 +263,18 @@ pub fn add_certificate(
 /// shorter than [`crate::key::base::MIN_RSA_BIT_LENGTH`].
 pub fn tsk_to_private_key_import(
     key: &SignedSecretKey,
-) -> Result<(PrivateKeyImport, KeyMechanism), Error> {
+) -> Result<(PrivateKeyImport, KeyMechanism), crate::Error> {
     if !key.secret_subkeys.is_empty() {
         return Err(Error::OpenPgpTskContainsMultipleComponentKeys {
             fingerprint: key.fingerprint(),
-        });
+        }
+        .into());
     }
     let SecretParams::Plain(secret) = key.primary_key.secret_params() else {
         return Err(Error::OpenPgpTskIsPassphraseProtected {
             fingerprint: key.fingerprint(),
-        });
+        }
+        .into());
     };
     Ok(match (secret, key.public_key().public_params()) {
         (PlainSecretParams::RSA(secret), PublicParams::RSA(public)) => {
@@ -297,17 +309,15 @@ pub fn tsk_to_private_key_import(
                 return Err(Error::UnsupportedKeyFormat {
                     context: "converting non-ECDSA key to private key import",
                     public_params: Box::new(key.public_key().public_params().clone()),
-                });
+                }
+                .into());
             };
 
             let bytes = match secret_key {
-                pgp::crypto::ecdsa::SecretKey::P256(secret_key) => secret_key.to_bytes().to_vec(),
-                pgp::crypto::ecdsa::SecretKey::P384(secret_key) => secret_key.to_bytes().to_vec(),
-                pgp::crypto::ecdsa::SecretKey::P521(secret_key) => secret_key.to_bytes().to_vec(),
-
-                pgp::crypto::ecdsa::SecretKey::Secp256k1(secret_key) => {
-                    secret_key.to_bytes().to_vec()
-                }
+                SecretKey::P256(secret_key) => secret_key.to_bytes().to_vec(),
+                SecretKey::P384(secret_key) => secret_key.to_bytes().to_vec(),
+                SecretKey::P521(secret_key) => secret_key.to_bytes().to_vec(),
+                SecretKey::Secp256k1(secret_key) => secret_key.to_bytes().to_vec(),
                 secret_key => {
                     warn!("Unsupported secret key parameters: {secret_key:?}");
                     return Err(Error::UnsupportedKeyFormat {
@@ -318,20 +328,20 @@ pub fn tsk_to_private_key_import(
             };
 
             (
-                PrivateKeyImport::from_raw_bytes(ec, bytes).map_err(to_rpgp_error)?,
+                PrivateKeyImport::from_raw_bytes(ec, bytes)?,
                 KeyMechanism::EcdsaSignature,
             )
         }
         (PlainSecretParams::Ed25519Legacy(bytes), _) => (
-            PrivateKeyImport::from_raw_bytes(KeyType::Curve25519, bytes.as_bytes())
-                .map_err(to_rpgp_error)?,
+            PrivateKeyImport::from_raw_bytes(KeyType::Curve25519, bytes.as_bytes())?,
             KeyMechanism::EdDsaSignature,
         ),
         (_, public_params) => {
             return Err(Error::UnsupportedKeyFormat {
                 context: "converting unknown key format to private key import",
                 public_params: Box::new(public_params.clone()),
-            });
+            }
+            .into());
         }
     })
 }
@@ -354,33 +364,48 @@ pub fn tsk_to_private_key_import(
 ///
 /// [OpenPGP signature]: https://openpgp.dev/book/signing_data.html
 /// [OpenPGP data signature]: https://openpgp.dev/book/signing_data.html
-pub fn sign(raw_signer: &dyn RawSigningKey, message: &[u8]) -> Result<Vec<u8>, Error> {
+pub fn sign(raw_signer: &dyn RawSigningKey, message: &[u8]) -> Result<Vec<u8>, crate::Error> {
     let signer = SigningKey::new_provisioned(raw_signer)?;
 
     let mut sig_config =
         SignatureConfig::v4(SignatureType::Binary, signer.algorithm(), signer.hash_alg());
     sig_config.hashed_subpackets = vec![
-        Subpacket::regular(SubpacketData::SignatureCreationTime(Timestamp::now()))?,
-        Subpacket::regular(SubpacketData::IssuerKeyId(signer.legacy_key_id()))?,
-        Subpacket::regular(SubpacketData::IssuerFingerprint(signer.fingerprint()))?,
+        Subpacket::regular(SubpacketData::SignatureCreationTime(Timestamp::now()))
+            .map_err(Error::Pgp)?,
+        Subpacket::regular(SubpacketData::IssuerKeyId(signer.legacy_key_id()))
+            .map_err(Error::Pgp)?,
+        Subpacket::regular(SubpacketData::IssuerFingerprint(signer.fingerprint()))
+            .map_err(Error::Pgp)?,
     ];
 
-    let mut hasher = sig_config.hash_alg.new_hasher().map_err(to_rpgp_error)?;
-    sig_config.hash_data_to_sign(&mut hasher, message)?;
+    let mut hasher = sig_config
+        .hash_alg
+        .new_hasher()
+        .map_err(|source| Error::Pgp(to_rpgp_error(source)))?;
+    sig_config
+        .hash_data_to_sign(&mut hasher, message)
+        .map_err(Error::Pgp)?;
 
-    let len = sig_config.hash_signature_data(&mut hasher)?;
+    let len = sig_config
+        .hash_signature_data(&mut hasher)
+        .map_err(Error::Pgp)?;
 
-    hasher.update(&sig_config.trailer(len)?);
+    hasher.update(&sig_config.trailer(len).map_err(Error::Pgp)?);
 
     let hash = &hasher.finalize()[..];
 
     let signed_hash_value = [hash[0], hash[1]];
-    let raw_sig = signer.sign(&Password::empty(), sig_config.hash_alg, hash)?;
+    let raw_sig = signer
+        .sign(&Password::empty(), sig_config.hash_alg, hash)
+        .map_err(Error::Pgp)?;
 
-    let signature = Signature::from_config(sig_config, signed_hash_value, raw_sig)?;
+    let signature =
+        Signature::from_config(sig_config, signed_hash_value, raw_sig).map_err(Error::Pgp)?;
 
     let mut out = vec![];
-    signature.to_writer_with_header(&mut out)?;
+    signature
+        .to_writer_with_header(&mut out)
+        .map_err(Error::Pgp)?;
 
     Ok(out)
 }
@@ -464,7 +489,7 @@ impl DynDigest for Hasher {
 pub fn sign_hasher_state(
     raw_signer: &dyn RawSigningKey,
     state: sha2::Sha512,
-) -> Result<String, Error> {
+) -> Result<String, crate::Error> {
     let signer = SigningKey::new_provisioned(raw_signer)?;
     let hasher = state.clone();
 
@@ -474,34 +499,45 @@ pub fn sign_hasher_state(
         let mut sig_config =
             SignatureConfig::v4(SignatureType::Binary, signer.algorithm(), signer.hash_alg());
         sig_config.hashed_subpackets = vec![
-            Subpacket::regular(SubpacketData::SignatureCreationTime(Timestamp::now()))?,
-            Subpacket::regular(SubpacketData::IssuerKeyId(signer.legacy_key_id()))?,
-            Subpacket::regular(SubpacketData::IssuerFingerprint(signer.fingerprint()))?,
+            Subpacket::regular(SubpacketData::SignatureCreationTime(Timestamp::now()))
+                .map_err(Error::Pgp)?,
+            Subpacket::regular(SubpacketData::IssuerKeyId(signer.legacy_key_id()))
+                .map_err(Error::Pgp)?,
+            Subpacket::regular(SubpacketData::IssuerFingerprint(signer.fingerprint()))
+                .map_err(Error::Pgp)?,
             Subpacket::regular(SubpacketData::Notation(Notation {
                 readable: false,
                 name: "data-digest@archlinux.org".into(),
                 value: file_hash.into(),
-            }))?,
+            }))
+            .map_err(Error::Pgp)?,
         ];
         sig_config
     };
 
     let mut hasher = Box::new(Hasher(state.clone())) as Box<dyn DynDigest + Send>;
 
-    let len = sig_config.hash_signature_data(&mut hasher)?;
+    let len = sig_config
+        .hash_signature_data(&mut hasher)
+        .map_err(Error::Pgp)?;
 
-    hasher.update(&sig_config.trailer(len)?);
+    hasher.update(&sig_config.trailer(len).map_err(Error::Pgp)?);
 
     let hash = &hasher.finalize()[..];
 
     let signed_hash_value = [hash[0], hash[1]];
 
-    let raw_sig = signer.sign(&Password::empty(), sig_config.hash_alg, hash)?;
+    let raw_sig = signer
+        .sign(&Password::empty(), sig_config.hash_alg, hash)
+        .map_err(Error::Pgp)?;
 
-    let signature = pgp::packet::Signature::from_config(sig_config, signed_hash_value, raw_sig)?;
+    let signature =
+        Signature::from_config(sig_config, signed_hash_value, raw_sig).map_err(Error::Pgp)?;
 
     let signature = DetachedSignature { signature };
-    Ok(signature.to_armored_string(ArmorOptions::default())?)
+    Ok(signature
+        .to_armored_string(ArmorOptions::default())
+        .map_err(Error::Pgp)?)
 }
 
 /// Creates a [`PublicKey`] object from ECDSA parameters.
@@ -548,7 +584,7 @@ impl RawPublicKey {
                 created_at,
                 None,
                 PublicParams::RSA(RsaPublicParams {
-                    key: rsa::RsaPublicKey::new(
+                    key: RsaPublicKey::new(
                         BigUint::from_bytes_be(modulus),
                         BigUint::from_bytes_be(exponent),
                     )
@@ -561,7 +597,7 @@ impl RawPublicKey {
                 PublicKeyAlgorithm::EdDSALegacy,
                 created_at,
                 None,
-                PublicParams::EdDSALegacy(pgp::types::EddsaLegacyPublicParams::Ed25519 {
+                PublicParams::EdDSALegacy(EddsaLegacyPublicParams::Ed25519 {
                     key: VerifyingKey::from_bytes(&pubkey[..].try_into().map_err(to_rpgp_error)?)
                         .map_err(to_rpgp_error)?,
                 }),
@@ -603,10 +639,10 @@ impl RawPublicKey {
 ///
 /// - a secret key cannot be decoded from `key_data`,
 /// - or writing a serialized certificate into a vector fails.
-pub fn extract_certificate(key: SignedSecretKey) -> Result<Vec<u8>, Error> {
+pub fn extract_certificate(key: SignedSecretKey) -> Result<Vec<u8>, crate::Error> {
     let public: SignedPublicKey = key.into();
     let mut buffer = vec![];
-    public.to_writer(&mut buffer)?;
+    public.to_writer(&mut buffer).map_err(Error::Pgp)?;
     Ok(buffer)
 }
 
@@ -614,7 +650,7 @@ pub fn extract_certificate(key: SignedSecretKey) -> Result<Vec<u8>, Error> {
 mod tests {
     use ed25519_dalek::{Signer, SigningKey};
     use pgp::{
-        composed::SecretKeyParamsBuilder,
+        composed::{KeyType as ComposedKeyType, SecretKeyParamsBuilder},
         crypto::ecc_curve::ECCCurve,
         types::{EcdsaPublicParams, PublicParams},
     };
@@ -632,7 +668,7 @@ mod tests {
         ]);
 
         let pgp_key = hsm_key.to_openpgp_public_key(Timestamp::now())?;
-        let PublicParams::EdDSALegacy(pgp::types::EddsaLegacyPublicParams::Ed25519 { key }) =
+        let PublicParams::EdDSALegacy(EddsaLegacyPublicParams::Ed25519 { key }) =
             pgp_key.public_params()
         else {
             panic!("Wrong type of public params");
@@ -870,7 +906,7 @@ mod tests {
         /// # Errors
         ///
         /// This implementation never fails.
-        fn sign(&self, digest: &[u8]) -> Result<Vec<Vec<u8>>, Error> {
+        fn sign(&self, digest: &[u8]) -> Result<Vec<Vec<u8>>, crate::Error> {
             let signature = self.signing_key.sign(digest);
             Ok(vec![signature.r_bytes().into(), signature.s_bytes().into()])
         }
@@ -880,7 +916,7 @@ mod tests {
         /// # Errors
         ///
         /// This implementation never fails.
-        fn certificate(&self) -> Result<Option<Vec<u8>>, Error> {
+        fn certificate(&self) -> Result<Option<Vec<u8>>, crate::Error> {
             Ok(self.certificate.clone())
         }
 
@@ -889,7 +925,7 @@ mod tests {
         /// # Errors
         ///
         /// This implementation never fails.
-        fn public(&self) -> Result<RawPublicKey, Error> {
+        fn public(&self) -> Result<RawPublicKey, crate::Error> {
             Ok(RawPublicKey::Ed25519(
                 self.signing_key.verifying_key().to_bytes().into(),
             ))
@@ -925,11 +961,11 @@ mod tests {
     #[case::p521(ECCCurve::P521, KeyType::EcP521)]
     fn import_ecdsa(#[case] pgp_curve: ECCCurve, #[case] expected_type: KeyType) -> TestResult {
         let params = SecretKeyParamsBuilder::default()
-            .key_type(pgp::composed::KeyType::ECDSA(pgp_curve))
+            .key_type(ComposedKeyType::ECDSA(pgp_curve))
             .can_sign(true)
             .build()?;
 
-        let rng = rsa::rand_core::OsRng;
+        let rng = OsRng;
 
         let key = params.generate(rng)?;
         let actual_type = tsk_to_private_key_import(&key)?.0.key_type();
@@ -941,10 +977,10 @@ mod tests {
     #[test]
     fn test_unsupported_ecdsa_curve() -> TestResult {
         let key = SecretKeyParamsBuilder::default()
-            .key_type(pgp::composed::KeyType::ECDSA(ECCCurve::Secp256k1))
+            .key_type(ComposedKeyType::ECDSA(ECCCurve::Secp256k1))
             .can_sign(true)
             .build()?
-            .generate(rsa::rand_core::OsRng)?;
+            .generate(OsRng)?;
 
         assert!(tsk_to_private_key_import(&key).is_err());
 

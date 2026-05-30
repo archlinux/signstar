@@ -46,13 +46,9 @@ enum Error {
     #[error(transparent)]
     SignstarCommonLogging(#[from] signstar_common::logging::Error),
 
-    /// A signstar-crypto signer error.
+    /// A signstar-crypto error.
     #[error(transparent)]
-    SignstarCryptoSigner(#[from] signstar_crypto::signer::error::Error),
-
-    /// A signstar-crypto OpenPGP error.
-    #[error(transparent)]
-    SignstarCryptoOpenPgp(#[from] signstar_crypto::openpgp::Error),
+    SignstarCrypto(#[from] signstar_crypto::Error),
 
     /// YubiHSM error.
     #[cfg(feature = "yubihsm2")]

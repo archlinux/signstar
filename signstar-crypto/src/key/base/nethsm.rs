@@ -18,7 +18,8 @@ impl From<KeyType> for nethsm_sdk_rs::models::KeyType {
 }
 
 impl TryFrom<nethsm_sdk_rs::models::KeyType> for KeyType {
-    type Error = crate::key::Error;
+    type Error = crate::Error;
+
     /// Creates a [`KeyType`] from a [`nethsm_sdk_rs::models::KeyType`].
     ///
     /// # Panics

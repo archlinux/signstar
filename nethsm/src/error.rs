@@ -47,15 +47,7 @@ pub enum Error {
     #[error("User data error: {0}")]
     User(#[from] crate::user::Error),
 
-    /// A [`signstar_crypto::signer::error::Error`] occurred.
+    /// A [`signstar_crypto::Error`] occurred.
     #[error(transparent)]
-    SignstarCryptoSigner(#[from] signstar_crypto::signer::error::Error),
-
-    /// A signstar_crypto key error.
-    #[error("A signstar_crypto key error:\n{0}")]
-    SignstarCryptoKey(#[from] signstar_crypto::key::Error),
-
-    /// A signstar_crypto key error.
-    #[error("A signstar_crypto passphrase error:\n{0}")]
-    SignstarCryptoPassphrase(#[from] signstar_crypto::passphrase::Error),
+    SignstarCrypto(#[from] signstar_crypto::Error),
 }

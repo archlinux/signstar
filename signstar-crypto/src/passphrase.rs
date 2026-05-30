@@ -87,7 +87,7 @@ impl Display for Passphrase {
 }
 
 impl FromStr for Passphrase {
-    type Err = Error;
+    type Err = crate::Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         Ok(Self(SecretString::from(s.to_string())))

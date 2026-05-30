@@ -21,13 +21,18 @@ use cli::{
 };
 use cli::{KeyCertCommand, KeyCommand, NamespaceCommand, SystemCommand};
 use nethsm::{
+    Deserializable as _,
     DistinguishedName,
+    Error as NetHsmError,
     KeyFormat,
     KeyMechanism,
     NetworkConfig,
     OpenPgpKeyUsageFlags,
     Passphrase,
     PrivateKeyImport,
+    SignedSecretKey,
+    SignstarCryptoError,
+    SignstarCryptoSignerError,
     SystemState,
     Timestamp,
     UserId,
@@ -652,7 +657,7 @@ fn run_command(cli: Cli) -> Result<(), Error> {
                         &read_to_string(command.key_data)?,
                     ),
                 }
-                .map_err(nethsm::Error::SignstarCryptoKey)?;
+                .map_err(nethsm::Error::SignstarCrypto)?;
 
                 println!(
                     "{}",
@@ -850,10 +855,12 @@ fn run_command(cli: Cli) -> Result<(), Error> {
                         &cli.user,
                         &auth_passphrases,
                     )?;
-                use nethsm::Deserializable as _;
-                let private_key = nethsm::SignedSecretKey::from_file(command.tsk_file)
-                    .map_err(nethsm::SignstarCryptoSignerError::Pgp)
-                    .map_err(nethsm::Error::SignstarCryptoSigner)?;
+                let private_key =
+                    SignedSecretKey::from_file(command.tsk_file).map_err(|source| {
+                        NetHsmError::SignstarCrypto(SignstarCryptoError::Signer(
+                            SignstarCryptoSignerError::Pgp(source),
+                        ))
+                    })?;
                 let (key_data, key_mechanism) = nethsm::tsk_to_private_key_import(&private_key)?;
 
                 let key_id = nethsm.import_key(

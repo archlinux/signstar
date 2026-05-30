@@ -1,8 +1,11 @@
 //! Signing data with YubiHSM.
 
-use signstar_crypto::signer::{
-    error::Error as SignerError,
-    traits::{RawPublicKey, RawSigningKey},
+use signstar_crypto::{
+    Error as SignstarCryptoError,
+    signer::{
+        error::Error as SignstarCryptoSignerError,
+        traits::{RawPublicKey, RawSigningKey},
+    },
 };
 use yubihsm::{Connector, UsbConfig, asymmetric::Algorithm, client::Client, device::SerialNumber};
 
@@ -186,11 +189,11 @@ impl RawSigningKey for YubiHsm2SigningKey {
     /// If the operation fails the implementation returns a
     /// [`signstar_crypto::signer::error::Error::Hsm`], which wraps the client-specific HSM error
     /// in its `source` field.
-    fn sign(&self, digest: &[u8]) -> Result<Vec<Vec<u8>>, SignerError> {
+    fn sign(&self, digest: &[u8]) -> Result<Vec<Vec<u8>>, SignstarCryptoError> {
         let sig = self
             .yubihsm
             .sign_ed25519(self.key_id.into(), digest)
-            .map_err(|e| SignerError::Hsm {
+            .map_err(|e| SignstarCryptoSignerError::Hsm {
                 context: "calling yubihsm::sign_ed25519",
                 source: Box::new(e),
             })?;
@@ -206,11 +209,11 @@ impl RawSigningKey for YubiHsm2SigningKey {
     /// # Errors
     ///
     /// If the operation fails the implementation returns a
-    /// [`SignerError::Hsm`], which wraps the client-specific HSM error
+    /// [`SignstarCryptoSignerError::Hsm`], which wraps the client-specific HSM error
     /// in its `source` field.
-    fn certificate(&self) -> Result<Option<Vec<u8>>, SignerError> {
+    fn certificate(&self) -> Result<Option<Vec<u8>>, SignstarCryptoError> {
         Ok(Some(self.yubihsm.get_opaque(self.key_id.into()).map_err(
-            |e| SignerError::Hsm {
+            |e| SignstarCryptoSignerError::Hsm {
                 context: "retrieving the certificate for a signing key held in a YubiHSM2",
                 source: Box::new(e),
             },
@@ -225,20 +228,21 @@ impl RawSigningKey for YubiHsm2SigningKey {
     /// # Errors
     ///
     /// If the operation fails the implementation returns a
-    /// [`SignerError::Hsm`], which wraps the client-specific HSM error
+    /// [`SignstarCryptoSignerError::Hsm`], which wraps the client-specific HSM error
     /// in its `source` field.
-    fn public(&self) -> Result<RawPublicKey, SignerError> {
+    fn public(&self) -> Result<RawPublicKey, SignstarCryptoError> {
         let pk = self
             .yubihsm
             .get_public_key(self.key_id.into())
-            .map_err(|e| SignerError::Hsm {
+            .map_err(|e| SignstarCryptoSignerError::Hsm {
                 context: "retrieving the public key for a signing key held in a YubiHSM2",
                 source: Box::new(e),
             })?;
         if pk.algorithm != Algorithm::Ed25519 {
-            return Err(SignerError::InvalidPublicKeyData {
+            return Err(SignstarCryptoSignerError::InvalidPublicKeyData {
                 context: format!("algorithm of the HSM key {:?} is unsupported", pk.algorithm),
-            });
+            }
+            .into());
         }
         Ok(RawPublicKey::Ed25519(pk.bytes))
     }

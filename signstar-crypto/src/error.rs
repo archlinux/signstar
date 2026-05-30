@@ -1,5 +1,7 @@
 //! Error handling.
 
+use std::path::PathBuf;
+
 /// An error that may occur when working with cryptographic types for Signstar.
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
@@ -7,9 +9,17 @@ pub enum Error {
     #[error(transparent)]
     ChangeUserRun(#[from] change_user_run::Error),
 
+    /// An error related to keys occurred.
+    #[error("Key error: {0}")]
+    Key(#[from] crate::key::Error),
+
     /// An error related to OpenPGP occurred.
     #[error("OpenPGP error: {0}")]
     OpenPgp(#[from] crate::openpgp::Error),
+
+    /// An error related to passphrase handling occurred.
+    #[error("Passphrase error: {0}")]
+    Passphrase(#[from] crate::passphrase::Error),
 
     /// An error related to secret file reading or writing occurred.
     #[error("Secret file error: {0}")]

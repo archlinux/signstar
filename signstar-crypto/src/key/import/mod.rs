@@ -126,35 +126,39 @@ impl PrivateKeyImport {
     /// # Ok(())
     /// # }
     /// ```
-    pub fn new(key_type: KeyType, key_data: &[u8]) -> Result<Self, Error> {
+    pub fn new(key_type: KeyType, key_data: &[u8]) -> Result<Self, crate::Error> {
         Ok(match key_type {
             KeyType::Curve25519 => {
-                let key_pair = ed25519_dalek::pkcs8::KeypairBytes::from_pkcs8_der(key_data)?;
+                let key_pair = ed25519_dalek::pkcs8::KeypairBytes::from_pkcs8_der(key_data)
+                    .map_err(Error::Pkcs8)?;
                 Self {
                     key_data: PrivateKeyData::Curve25519(key_pair.secret_key.to_vec()),
                 }
             }
             KeyType::EcP256 => {
-                let private_key = p256::SecretKey::from_pkcs8_der(key_data)?;
+                let private_key =
+                    p256::SecretKey::from_pkcs8_der(key_data).map_err(Error::Pkcs8)?;
                 Self {
                     key_data: PrivateKeyData::EcP256(private_key.to_bytes().as_slice().to_owned()),
                 }
             }
             KeyType::EcP384 => {
-                let private_key = p384::SecretKey::from_pkcs8_der(key_data)?;
+                let private_key =
+                    p384::SecretKey::from_pkcs8_der(key_data).map_err(Error::Pkcs8)?;
                 Self {
                     key_data: PrivateKeyData::EcP384(private_key.to_bytes().as_slice().to_owned()),
                 }
             }
             KeyType::EcP521 => {
-                let private_key = p521::SecretKey::from_pkcs8_der(key_data)?;
+                let private_key =
+                    p521::SecretKey::from_pkcs8_der(key_data).map_err(Error::Pkcs8)?;
                 Self {
                     key_data: PrivateKeyData::EcP521(private_key.to_bytes().as_slice().to_owned()),
                 }
             }
-            KeyType::Generic => return Err(Error::UnsupportedKeyType(KeyType::Generic)),
+            KeyType::Generic => return Err(Error::UnsupportedKeyType(KeyType::Generic).into()),
             KeyType::Rsa => {
-                let private_key = RsaPrivateKey::from_pkcs8_der(key_data)?;
+                let private_key = RsaPrivateKey::from_pkcs8_der(key_data).map_err(Error::Pkcs8)?;
                 // ensure, that we have sufficient bit length
                 key_type_matches_length(key_type, Some(private_key.size() as u32 * 8))?;
                 Self {
@@ -211,35 +215,39 @@ impl PrivateKeyImport {
     /// # Ok(())
     /// # }
     /// ```
-    pub fn from_pkcs8_pem(key_type: KeyType, key_data: &str) -> Result<Self, Error> {
+    pub fn from_pkcs8_pem(key_type: KeyType, key_data: &str) -> Result<Self, crate::Error> {
         Ok(match key_type {
             KeyType::Curve25519 => {
-                let key_pair = ed25519_dalek::pkcs8::KeypairBytes::from_pkcs8_pem(key_data)?;
+                let key_pair = ed25519_dalek::pkcs8::KeypairBytes::from_pkcs8_pem(key_data)
+                    .map_err(Error::Pkcs8)?;
                 Self {
                     key_data: PrivateKeyData::Curve25519(key_pair.secret_key.to_vec()),
                 }
             }
             KeyType::EcP256 => {
-                let private_key = p256::SecretKey::from_pkcs8_pem(key_data)?;
+                let private_key =
+                    p256::SecretKey::from_pkcs8_pem(key_data).map_err(Error::Pkcs8)?;
                 Self {
                     key_data: PrivateKeyData::EcP256(private_key.to_bytes().as_slice().to_owned()),
                 }
             }
             KeyType::EcP384 => {
-                let private_key = p384::SecretKey::from_pkcs8_pem(key_data)?;
+                let private_key =
+                    p384::SecretKey::from_pkcs8_pem(key_data).map_err(Error::Pkcs8)?;
                 Self {
                     key_data: PrivateKeyData::EcP384(private_key.to_bytes().as_slice().to_owned()),
                 }
             }
             KeyType::EcP521 => {
-                let private_key = p521::SecretKey::from_pkcs8_pem(key_data)?;
+                let private_key =
+                    p521::SecretKey::from_pkcs8_pem(key_data).map_err(Error::Pkcs8)?;
                 Self {
                     key_data: PrivateKeyData::EcP521(private_key.to_bytes().as_slice().to_owned()),
                 }
             }
-            KeyType::Generic => return Err(Error::UnsupportedKeyType(KeyType::Generic)),
+            KeyType::Generic => return Err(Error::UnsupportedKeyType(KeyType::Generic).into()),
             KeyType::Rsa => {
-                let private_key = RsaPrivateKey::from_pkcs8_pem(key_data)?;
+                let private_key = RsaPrivateKey::from_pkcs8_pem(key_data).map_err(Error::Pkcs8)?;
                 // ensure, that we have sufficient bit length
                 key_type_matches_length(key_type, Some(private_key.size() as u32 * 8))?;
                 Self {
@@ -309,7 +317,7 @@ impl PrivateKeyImport {
     /// let _import = PrivateKeyImport::from_raw_bytes(KeyType::Curve25519, bytes)?;
     /// # Ok(()) }
     /// ```
-    pub fn from_raw_bytes(ec: KeyType, bytes: impl AsRef<[u8]>) -> Result<Self, Error> {
+    pub fn from_raw_bytes(ec: KeyType, bytes: impl AsRef<[u8]>) -> Result<Self, crate::Error> {
         let bytes = bytes.as_ref();
         Ok(Self {
             key_data: match ec {
@@ -317,7 +325,7 @@ impl PrivateKeyImport {
                 KeyType::EcP384 => PrivateKeyData::EcP384(pad(bytes, 48)?),
                 KeyType::EcP521 => PrivateKeyData::EcP521(pad(bytes, 66)?),
                 KeyType::Curve25519 => PrivateKeyData::Curve25519(pad(bytes, 32)?),
-                key_type => return Err(Error::UnsupportedKeyType(key_type)),
+                key_type => return Err(Error::UnsupportedKeyType(key_type).into()),
             },
         })
     }

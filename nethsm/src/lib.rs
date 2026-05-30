@@ -33,6 +33,7 @@ pub use nethsm_sdk_rs::models::{
 };
 // Publicly re-export signstar_crypto types that are used in the NetHsm API.
 pub use signstar_crypto::{
+    Error as SignstarCryptoError,
     key::{
         CryptographicKeyContext,
         DecryptMode,
