@@ -11,7 +11,7 @@ mod user;
 pub use connection::Connection;
 pub use error::Error;
 pub use signer::YubiHsm2SigningKey;
-pub use user::Credentials;
+pub use user::{Credentials, FileBackedCredentials};
 
 /// Re-exports of the upstream [`yubihsm`] library.
 pub mod yubihsm {
