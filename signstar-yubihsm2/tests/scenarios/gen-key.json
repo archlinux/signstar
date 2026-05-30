@@ -1,11 +1,11 @@
 {
-    "Auth": {
+    "auth": {
         "user": 1,
         "passphrase_file": "tests/scenarios/keys/default"
     },
-    "Steps": [
+    "steps": [
         {
-            "PutAuthKey": {
+            "put_auth_key": {
                 "key_id": 3,
                 "domains": [1],
                 "caps": [
@@ -16,7 +16,7 @@
             }
         },
         {
-            "GenerateKey": {
+            "generate_key": {
                 "key_id": 3,
                 "domains": [1],
                 "caps": [

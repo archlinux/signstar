@@ -1,11 +1,11 @@
 {
-    "Auth": {
+    "auth": {
         "user": 1,
         "passphrase_file": "tests/scenarios/keys/default"
     },
-    "Steps": [
+    "steps": [
         {
-            "GenerateKey": {
+            "generate_key": {
                 "key_id": 5,
                 "domains": [1],
                 "caps": [
@@ -15,7 +15,7 @@
             }
         },
         {
-            "PutWrapKey": {
+            "put_wrap_key": {
                 "key_id": 5,
                 "domains": [1],
                 "caps": [
@@ -29,7 +29,7 @@
             }
         },
         {
-            "PutAuthKey": {
+            "put_auth_key": {
                 "key_id": 5,
                 "domains": [1],
                 "caps": [
@@ -40,13 +40,13 @@
             }
         },
         {
-            "Auth": {
+            "auth": {
                 "user": 5,
                 "passphrase_file": "tests/scenarios/keys/auth-key"
             }
         },
         {
-            "ExportWrapped": {
+            "export_wrapped": {
                 "wrap_key_id": 5,
                 "object_type": "asymmetric-key",
                 "object_id": 5,
@@ -54,13 +54,13 @@
             }
         },
         {
-            "Auth": {
+            "auth": {
                 "user": 1,
                 "passphrase_file": "tests/scenarios/keys/default"
             }
         },
         {
-            "Delete": {
+            "delete": {
                 "object_type": "asymmetric-key",
                 "object_id": 5
             }

@@ -47,6 +47,7 @@ impl From<AuditOption> for yubihsm::AuditOption {
 /// A single command that is atomically executed against a YubiHSM2.
 #[derive(Debug)]
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 pub enum Command {
     /// Query the device state.
     Info,
