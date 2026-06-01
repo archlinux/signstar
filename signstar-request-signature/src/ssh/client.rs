@@ -11,12 +11,11 @@
 //! use signstar_request_signature::Request;
 //! use signstar_request_signature::ssh::client::ConnectOptions;
 //!
-//! let options = ConnectOptions::target("localhost".into(), 22)
+//! let client_pk =
+//!     "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILHCXBJYlPPkrt2WYyP3SZoMx43lDBB5QALjE762EQlc";
+//! let options = ConnectOptions::new("localhost".into(), 22, client_pk)?
 //!     .append_known_hosts_from_file(known_hosts)?
 //!     .client_auth_agent_sock(std::env::var("SSH_AUTH_SOCK")?)
-//!     .client_auth_public_key(
-//!         "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILHCXBJYlPPkrt2WYyP3SZoMx43lDBB5QALjE762EQlc",
-//!     )?
 //!     .user("signstar");
 //!
 //! let mut session = options.connect().await?;
@@ -118,7 +117,7 @@ impl ConnectConfig {
     /// # fn sign() -> testresult::TestResult {
     /// use signstar_request_signature::ssh::client::{ConnectConfig, ConnectOptions};
     ///
-    /// let local_target = ConnectOptions::target("localhost".into(), 22);
+    /// let local_target = ConnectOptions::new("localhost".into(), 22, "ssh-ed25519 ...")?;
     /// let config = ConnectConfig::default().append_target(local_target);
     /// # Ok(()) }
     /// ```
@@ -139,7 +138,7 @@ impl ConnectConfig {
     /// # async fn sign() -> testresult::TestResult {
     /// use signstar_request_signature::ssh::client::{ConnectConfig, ConnectOptions};
     ///
-    /// let local_target = ConnectOptions::target("localhost".into(), 22);
+    /// let local_target = ConnectOptions::new("localhost".into(), 22, "ssh-ed25519 ...")?;
     /// let config = ConnectConfig::default().append_target(local_target);
     ///
     /// let mut session = config.connect(None).await?;
@@ -180,14 +179,13 @@ impl ConnectConfig {
 /// # fn main() -> testresult::TestResult {
 /// use signstar_request_signature::ssh::client::ConnectOptions;
 ///
-/// let options = ConnectOptions::target("localhost".into(), 22)
+/// let options = ConnectOptions::new("localhost".into(), 22, "ssh-ed25519 ...")?
 ///     .append_known_hosts_from_file("/home/user/.ssh/known_hosts")?
 ///     .client_auth_agent_sock(std::env::var("SSH_AUTH_SOCK")?)
-///     .client_auth_public_key("ssh-ed25519 ...")?
 ///     .user("signstar");
 /// # Ok(()) }
 /// ```
-#[derive(Debug, Default, Deserialize)]
+#[derive(Debug, Deserialize)]
 pub struct ConnectOptions {
     #[serde(deserialize_with = "deserialize_entries", rename = "known-hosts")]
     known_hosts: Vec<Entry>,
@@ -196,7 +194,7 @@ pub struct ConnectOptions {
     client_auth_agent_sock: PathBuf,
 
     #[serde(rename = "user-public-key")]
-    client_auth_public_key: Option<PublicKey>,
+    client_auth_public_key: PublicKey,
 
     user: String,
 
@@ -241,11 +239,9 @@ impl ConnectOptions {
     /// # fn main() -> testresult::TestResult {
     /// use signstar_request_signature::ssh::client::ConnectOptions;
     ///
-    /// let options = ConnectOptions::target("localhost".into(), 22)
-    ///     .client_auth_public_key(
-    ///         "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILHCXBJYlPPkrt2WYyP3SZoMx43lDBB5QALjE762EQlc",
-    ///     )?
-    ///     .user("signstar");
+    /// let client_pk =
+    ///     "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILHCXBJYlPPkrt2WYyP3SZoMx43lDBB5QALjE762EQlc";
+    /// let options = ConnectOptions::new("localhost".into(), 22, client_pk)?.user("signstar");
     /// #     Ok(()) }
     /// ```
     ///
@@ -258,7 +254,7 @@ impl ConnectOptions {
     /// [`authorized_keys` file format]: https://man.archlinux.org/man/core/openssh/sshd.8.en#AUTHORIZED_KEYS_FILE_FORMAT.
     pub fn client_auth_public_key(mut self, public_key: impl Into<String>) -> Result<Self> {
         self.client_auth_public_key =
-            Some(PublicKey::from_openssh(&public_key.into()).map_err(russh::keys::Error::SshKey)?);
+            PublicKey::from_openssh(&public_key.into()).map_err(russh::keys::Error::SshKey)?;
         Ok(self)
     }
 
@@ -268,16 +264,22 @@ impl ConnectOptions {
         self
     }
 
-    /// Sets the target host and a port number to use when connecting.
-    pub fn target(hostname: String, port: u16) -> Self {
-        Self {
+    /// Constructs a new [`ConnectOptions`] with target host and client public key.
+    pub fn new(
+        hostname: String,
+        port: u16,
+        client_auth_public_key: impl AsRef<str>,
+    ) -> Result<Self> {
+        let client_auth_public_key = PublicKey::from_openssh(client_auth_public_key.as_ref())
+            .map_err(russh::keys::Error::SshKey)?;
+        Ok(Self {
             hostname,
             port,
             known_hosts: Default::default(),
             client_auth_agent_sock: Default::default(),
-            client_auth_public_key: Default::default(),
+            client_auth_public_key,
             user: Default::default(),
-        }
+        })
     }
 
     /// Connects to a host over SSH and returns a [`Session`] object.
@@ -292,7 +294,7 @@ impl ConnectOptions {
     /// # async fn sign() -> testresult::TestResult {
     /// use signstar_request_signature::ssh::client::ConnectOptions;
     ///
-    /// let options = ConnectOptions::target("localhost".into(), 22);
+    /// let options = ConnectOptions::new("localhost".into(), 22, "ssh-ed25519 ...")?;
     ///
     /// let mut session = options.connect().await?;
     /// // use session to send signing requests
@@ -308,11 +310,7 @@ impl ConnectOptions {
     /// - the client authentication with the agent fails,
     /// - an SSH protocol error is encountered.
     pub async fn connect(self) -> Result<Session> {
-        let Some(client_auth_public_key) = self.client_auth_public_key else {
-            return Err(Error::InvalidOptions(
-                "Public key for client authentication has not been set but is required.".into(),
-            ));
-        };
+        let client_auth_public_key = self.client_auth_public_key;
 
         let config = Arc::new(client::Config {
             inactivity_timeout: Some(Duration::from_secs(5)),
@@ -432,7 +430,7 @@ impl Session {
     /// use signstar_request_signature::Request;
     /// use signstar_request_signature::ssh::client::ConnectOptions;
     ///
-    /// let options = ConnectOptions::target("localhost".into(), 22);
+    /// let options = ConnectOptions::new("localhost".into(), 22, "ssh-ed25519 ...")?;
     ///
     /// let mut session = options.connect().await?;
     /// let request = Request::for_file("package")?;
