@@ -48,6 +48,12 @@ If unspecified, one of the following configuration files is used if it exists, i
 {paths}", paths = CONFIG_ORDER.iter().map(|path| format!("- {path}")).collect::<Vec<_>>().join("\n")))]
     pub config: Option<PathBuf>,
 
+    /// The user to use for connecting.
+    ///
+    /// If this option is set only connections with matching username are considered.
+    #[arg(long)]
+    pub user: Option<String>,
+
     /// The path to a file being signed
     #[arg(env = "SIGNSTAR_REQUEST_FILE")]
     pub input: PathBuf,

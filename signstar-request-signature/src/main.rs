@@ -25,7 +25,7 @@ use signstar_request_signature::{
 /// - closing the SSH connection fails.
 async fn send_request_via_ssh(send_command: SendCommand) -> Result<Response, Error> {
     let options: ConnectConfig = toml::from_slice(&read_config_file(send_command.config)?)?;
-    let mut session = options.connect().await?;
+    let mut session = options.connect(send_command.user.as_deref()).await?;
     let response: Response = session
         .send(&Request::for_file(send_command.input)?)
         .await?;

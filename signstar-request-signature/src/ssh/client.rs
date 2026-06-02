@@ -155,12 +155,20 @@ impl ConnectConfig {
     /// - the client authentication with the agent fails,
     /// - an SSH protocol error is encountered,
     /// - the list of targets is empty.
-    pub async fn connect(mut self) -> Result<Session> {
-        if self.targets.is_empty() {
+    pub async fn connect(self, user: Option<&str>) -> Result<Session> {
+        let targets = self.targets;
+        let targets = targets
+            .into_iter()
+            .filter(|target| user.is_none_or(|user| target.user == user))
+            .collect::<Vec<_>>();
+        if targets.is_empty() {
             return Err(Error::InvalidOptions("no targets specified".into()));
         }
-        let index = thread_rng().gen_range(0..self.targets.len());
-        let target = self.targets.remove(index);
+        let index = thread_rng().gen_range(0..targets.len());
+        let target = {
+            let mut targets = targets;
+            targets.remove(index)
+        };
 
         target.connect().await
     }

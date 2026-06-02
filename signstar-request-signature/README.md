@@ -67,7 +67,7 @@ EOF
 `send` subcommand requires parameters related to SSH session:
 
 ```bash
-signstar-request-signature send --config "$config" Cargo.toml | jq
+signstar-request-signature send --config "$config" --user signstar-sign Cargo.toml | jq
 ```
 
 <!--
