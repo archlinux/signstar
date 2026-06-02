@@ -2,16 +2,19 @@
 
 use std::{fmt::Debug, fs::read_to_string, path::Path};
 #[cfg(feature = "serde")]
-use std::{io::Write, time::Duration};
+use std::{fs::write, io::Write, time::Duration};
 
 #[cfg(feature = "serde")]
 use log::info;
 #[cfg(feature = "serde")]
 use serde::Serialize;
 use signstar_crypto::passphrase::Passphrase;
+use yubihsm::{Client, Connector, Credentials, authentication::Key, ed25519::Signature};
 #[cfg(feature = "serde")]
-use yubihsm::wrap::{self, Message};
-use yubihsm::{Client, Connector, Credentials, authentication, ed25519::Signature};
+use yubihsm::{
+    asymmetric::Algorithm as AsymmetricAlgorithm,
+    wrap::{Algorithm as WrapAlgorithm, Message},
+};
 
 use crate::{Error, automation::Auth};
 #[cfg(feature = "serde")]
@@ -25,14 +28,14 @@ use crate::{
 /// # Errors
 ///
 /// Returns an error if `path` cannot be read to [`String`].
-fn derive_key_from_file(path: impl AsRef<Path>) -> Result<authentication::Key, Error> {
+fn derive_key_from_file(path: impl AsRef<Path>) -> Result<Key, Error> {
     let passphrase = read_to_string(&path).map_err(|source| Error::IoPath {
         path: path.as_ref().into(),
         context: "reading key from file",
         source,
     })?;
     let passphrase = Passphrase::new(passphrase);
-    let key = authentication::Key::derive_from_password(passphrase.expose_borrowed().as_bytes());
+    let key = Key::derive_from_password(passphrase.expose_borrowed().as_bytes());
     Ok(key)
 }
 
@@ -221,7 +224,7 @@ impl ScenarioRunner {
                         Default::default(),
                         domains.into(),
                         caps.into(),
-                        yubihsm::asymmetric::Algorithm::Ed25519,
+                        AsymmetricAlgorithm::Ed25519,
                     )
                     .map_err(|source| Error::Client {
                         context: "generating asymmetric key",
@@ -256,7 +259,7 @@ impl ScenarioRunner {
                         domains.into(),
                         caps.into(),
                         delegated_caps.into(),
-                        wrap::Algorithm::Aes256Ccm,
+                        WrapAlgorithm::Aes256Ccm,
                         key.as_secret_slice(),
                     )
                     .map_err(|source| Error::Client {
@@ -278,12 +281,10 @@ impl ScenarioRunner {
                     })?;
 
                 serialize_with_newline(writer, &wrapped)?;
-                std::fs::write(wrapped_file, wrapped.into_vec()).map_err(|source| {
-                    Error::IoPath {
-                        context: "writing wrapped file",
-                        source,
-                        path: wrapped_file.into(),
-                    }
+                write(wrapped_file, wrapped.into_vec()).map_err(|source| Error::IoPath {
+                    context: "writing wrapped file",
+                    source,
+                    path: wrapped_file.into(),
                 })?;
             }
             Command::ImportWrapped {
