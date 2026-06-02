@@ -5,6 +5,8 @@ use std::path::PathBuf;
 use clap::Parser;
 use clap_verbosity_flag::Verbosity;
 
+use crate::config::CONFIG_ORDER;
+
 /// Command line arguments for signing.
 #[derive(Debug, Parser)]
 pub struct Cli {
@@ -39,8 +41,12 @@ pub struct PrepareCommand {
 #[derive(Debug, Parser)]
 pub struct SendCommand {
     /// Configuration file to use.
-    #[arg(long)]
-    pub config: PathBuf,
+    #[arg(long, env = "SIGNSTAR_REQUEST_CONFIG", long_help = format!("Configuration file to use.
+
+If unspecified, one of the following configuration files is used if it exists, in the following order:
+
+{paths}", paths = CONFIG_ORDER.iter().map(|path| format!("- {path}")).collect::<Vec<_>>().join("\n")))]
+    pub config: Option<PathBuf>,
 
     /// The path to a file being signed
     #[arg(env = "SIGNSTAR_REQUEST_FILE")]

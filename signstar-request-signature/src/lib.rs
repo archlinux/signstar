@@ -19,6 +19,7 @@ use sha2::digest::common::hazmat::{DeserializeStateError, SerializableState};
 
 #[cfg(feature = "cli")]
 pub mod cli;
+pub mod config;
 pub mod ssh;
 
 /// Signature request processing error.
@@ -76,6 +77,10 @@ pub enum Error {
     /// TOML deserialization error.
     #[error("TOML deserialization error: {0}")]
     Toml(#[from] toml::de::Error),
+
+    /// No configuration files present.
+    #[error("No configuration files present.")]
+    ConfigMissing,
 }
 
 /// Type of the input hash.
