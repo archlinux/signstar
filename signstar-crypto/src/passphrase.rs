@@ -78,6 +78,16 @@ impl Passphrase {
     pub fn expose_borrowed(&self) -> &str {
         self.0.expose_secret()
     }
+
+    /// Returns the length of the passphrase.
+    pub fn len(&self) -> usize {
+        self.expose_borrowed().len()
+    }
+
+    /// Signals whether the passphrase is empty.
+    pub fn is_empty(&self) -> bool {
+        self.expose_borrowed().is_empty()
+    }
 }
 
 impl Display for Passphrase {
@@ -175,5 +185,19 @@ mod tests {
         assert!(Passphrase::try_from(temp_file.path()).is_err());
 
         Ok(())
+    }
+
+    #[rstest]
+    #[case::with_len(Passphrase::new("foo".to_string()), 3)]
+    #[case::empty(Passphrase::new("".to_string()), 0)]
+    fn passphrase_len(#[case] passphrase: Passphrase, #[case] len: usize) {
+        assert_eq!(passphrase.len(), len);
+    }
+
+    #[rstest]
+    #[case::with_len(Passphrase::new("foo".to_string()), false)]
+    #[case::empty(Passphrase::new("".to_string()), true)]
+    fn passphrase_is_empty(#[case] passphrase: Passphrase, #[case] is_empty: bool) {
+        assert_eq!(passphrase.is_empty(), is_empty);
     }
 }
