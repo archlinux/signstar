@@ -174,6 +174,7 @@ install-alpm-package-set set:
         jq
     )
     readonly format=(
+        biome
         cargo-sort-derives
         mado
         taplo
@@ -549,8 +550,9 @@ check-dependencies: dry-update
 # Checks source code formatting
 [group('check')]
 check-formatting:
-    just ensure-command mado rustup taplo
+    just ensure-command biome mado rustup taplo
     just --fmt --check
+    find . -type f \( -iname "*.json" -and ! -iname "*bad-not-json.json" \) -exec biome check --indent-style=space --expand=always {} \;
     # We're using nightly to properly group imports, see rustfmt.toml
     cargo +nightly fmt -- --check
 
@@ -668,7 +670,7 @@ fix:
     #!/usr/bin/env bash
     set -euo pipefail
 
-    just ensure-command cargo-clippy codespell git rustup
+    just ensure-command biome cargo-clippy codespell git rustup
 
     if ! git diff-files --quiet ; then
         echo "Working tree has changes. Please stage them: git add ."
@@ -677,6 +679,7 @@ fix:
 
     codespell --write-changes
     just --fmt
+    find . -type f \( -iname "*.json" -and ! -iname "*bad-not-json.json" \) -exec biome format --write --indent-style=space --expand=always {} \;
     cargo clippy --fix --allow-staged
     taplo format
 
