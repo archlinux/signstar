@@ -1,12 +1,14 @@
 //! YubiHSM2 key metadata.
 
-use std::{collections::BTreeSet, fmt::Display, hash::Hash};
+use std::{collections::BTreeSet, fmt::Display, fs::read_to_string, hash::Hash, path::Path};
 
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 #[cfg(feature = "serde")]
 use serde_repr::{Deserialize_repr, Serialize_repr};
+use signstar_crypto::passphrase::{Passphrase, PassphrasePolicy};
 use strum::{AsRefStr, IntoStaticStr};
+use yubihsm::authentication::Key as YubiHsmAuthenticationKey;
 
 use crate::object::{Capabilities, Id};
 
@@ -251,6 +253,82 @@ impl From<&Domains> for yubihsm::Domain {
     }
 }
 
+/// An authentication key.
+#[derive(Debug)]
+pub struct AuthenticationKey(YubiHsmAuthenticationKey);
+
+impl AuthenticationKey {
+    /// The default [`PassphrasePolicy`] for an [`AuthenticationKey`].
+    pub const PASSPHRASE_POLICY: PassphrasePolicy = PassphrasePolicy { minimum_length: 30 };
+}
+
+impl AsRef<YubiHsmAuthenticationKey> for AuthenticationKey {
+    fn as_ref(&self) -> &YubiHsmAuthenticationKey {
+        &self.0
+    }
+}
+
+impl From<AuthenticationKey> for YubiHsmAuthenticationKey {
+    fn from(value: AuthenticationKey) -> Self {
+        value.0
+    }
+}
+
+impl From<&AuthenticationKey> for YubiHsmAuthenticationKey {
+    fn from(value: &AuthenticationKey) -> Self {
+        value.0.clone()
+    }
+}
+
+impl TryFrom<&Path> for AuthenticationKey {
+    type Error = crate::Error;
+
+    /// Creates a new [`AuthenticationKey`] from the contents of `file`.
+    ///
+    /// The contents of `file` must be a valid UTF-8 string that satisfies the default
+    /// [`PassphrasePolicy`].
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if
+    ///
+    /// - the contents of `file` cannot be read to a valid UTF-8 encoded string
+    /// - the contents of `file` do not satisfy the requirements of [`Self::PASSPHRASE_POLICY`]
+    fn try_from(file: &Path) -> Result<Self, Self::Error> {
+        let passphrase = Passphrase::new_with_policy(
+            read_to_string(file).map_err(|source| crate::Error::IoPath {
+                path: file.into(),
+                context: "reading the passphrase for an authentication key derivation from file",
+                source,
+            })?,
+            &Self::PASSPHRASE_POLICY,
+        )?;
+
+        Ok(Self(YubiHsmAuthenticationKey::derive_from_password(
+            passphrase.expose_borrowed().as_bytes(),
+        )))
+    }
+}
+
+impl TryFrom<&Passphrase> for AuthenticationKey {
+    type Error = crate::Error;
+
+    /// Creates a new [`AuthenticationKey`] from a [`Passphrase`].
+    ///
+    /// # Errors
+    ///
+    /// Returns an error, if
+    ///
+    /// - the `passphrase` does not satisfy the requirements of [`Self::PASSPHRASE_POLICY`]
+    fn try_from(passphrase: &Passphrase) -> Result<Self, Self::Error> {
+        passphrase.check_against_policy(&Self::PASSPHRASE_POLICY)?;
+
+        Ok(Self(YubiHsmAuthenticationKey::derive_from_password(
+            passphrase.expose_borrowed().as_bytes(),
+        )))
+    }
+}
+
 /// Metadata about a key stored on a YubiHSM2.
 ///
 /// This struct stores common parameters of keys regardless of their usage may describe
@@ -273,6 +351,15 @@ pub struct KeyInfo {
 
 #[cfg(test)]
 mod tests {
+    use std::io::Write;
+
+    use rand::{
+        distributions::{Alphanumeric, DistString},
+        thread_rng,
+    };
+    use tempfile::{NamedTempFile, TempDir};
+    use testresult::TestResult;
+
     use super::*;
 
     /// Ensures that [`Domains::to_string`] works as expected.
@@ -285,5 +372,92 @@ mod tests {
         let domain_list = vec![Domain::One, Domain::Two];
         let domains = Domains::from(domain_list.as_slice());
         assert_eq!("1, 2", domains.to_string());
+    }
+
+    #[test]
+    fn authentication_key_try_from_path_succeeds() -> TestResult {
+        let file = {
+            let mut file = NamedTempFile::new()?;
+            let passphrase = Alphanumeric.sample_string(&mut thread_rng(), 30);
+            file.write_all(passphrase.as_bytes())?;
+            file
+        };
+
+        match AuthenticationKey::try_from(file.path()) {
+            Ok(_) => {}
+            Err(error) => panic!(
+                "Expected to create an authentication key from the contents of a file, but got an error instead: {error}"
+            ),
+        }
+
+        Ok(())
+    }
+
+    #[test]
+    fn authentication_key_try_from_path_fails_on_short_passphrase() -> TestResult {
+        let file = {
+            let mut file = NamedTempFile::new()?;
+            let passphrase = Alphanumeric.sample_string(&mut thread_rng(), 10);
+            file.write_all(passphrase.as_bytes())?;
+            file
+        };
+
+        match AuthenticationKey::try_from(file.path()) {
+            Ok(_) => panic!(
+                "Expected to fail with Error::Length, but succeeded in creating an authentication key from a passphrase file instead."
+            ),
+            Err(crate::Error::SignstarCrypto(signstar_crypto::Error::Passphrase(_))) => {}
+            Err(error) => panic!(
+                "Expected to fail with Error::Length, but failed with a different error instead: {error}"
+            ),
+        }
+
+        Ok(())
+    }
+
+    #[test]
+    fn authentication_key_try_from_path_fails_on_file_is_dir() -> TestResult {
+        let file = TempDir::new()?;
+
+        match AuthenticationKey::try_from(file.path()) {
+            Ok(_) => panic!(
+                "Expected to fail with Error::IoPath, but succeeded in creating an authentication key from a passphrase file instead."
+            ),
+            Err(crate::Error::IoPath { .. }) => {}
+            Err(error) => panic!(
+                "Expected to fail with Error::IoPath, but failed with a different error instead: {error}"
+            ),
+        }
+
+        Ok(())
+    }
+
+    #[test]
+    fn authentication_key_try_from_passphrase_succeeds() -> TestResult {
+        let passphrase = Passphrase::generate(Some(30));
+
+        match AuthenticationKey::try_from(&passphrase) {
+            Ok(_) => {}
+            Err(error) => panic!(
+                "Expected to create an authentication key from a passphrase, but got an error instead: {error}"
+            ),
+        }
+
+        Ok(())
+    }
+
+    #[test]
+    fn authentication_key_try_from_passphrase_fails_on_passphrase_too_short() -> TestResult {
+        let passphrase = Passphrase::new("passphrase".to_string());
+
+        match AuthenticationKey::try_from(&passphrase) {
+            Ok(_) => panic!("Expected to fail with Error::Length, but succeeded instead."),
+            Err(crate::Error::SignstarCrypto(signstar_crypto::Error::Passphrase(_))) => {}
+            Err(error) => panic!(
+                "Expected to fail with Error::Length, but failed with a different error instead: {error}"
+            ),
+        }
+
+        Ok(())
     }
 }

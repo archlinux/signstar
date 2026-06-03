@@ -5227,6 +5227,7 @@ dependencies = [
  "ed25519-dalek 2.2.0",
  "log",
  "num_enum",
+ "rand 0.8.6",
  "rstest",
  "serde",
  "serde_json",
