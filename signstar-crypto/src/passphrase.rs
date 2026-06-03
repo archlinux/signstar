@@ -95,15 +95,10 @@ impl Passphrase {
         passphrase: String,
         policy: &PassphrasePolicy,
     ) -> Result<Self, crate::Error> {
-        if passphrase.len() < policy.minimum_length {
-            return Err(Error::Length {
-                length: passphrase.len(),
-                required_length: policy.minimum_length,
-            }
-            .into());
-        }
+        let passphrase = Self::new(passphrase);
+        passphrase.check_against_policy(policy)?;
 
-        Ok(Self::new(passphrase))
+        Ok(passphrase)
     }
 
     /// Generates a new [`Passphrase`].
@@ -136,6 +131,52 @@ impl Passphrase {
                 .map(char::from)
                 .collect(),
         )
+    }
+
+    /// Checks whether the passphrase adheres to a [`PassphrasePolicy`].
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if `self` does not adhere to `policy`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use signstar_crypto::passphrase::{Passphrase, PassphrasePolicy};
+    ///
+    /// # fn main() -> testresult::TestResult {
+    /// let passphrase = Passphrase::new_with_policy(
+    ///     "passphrase".to_string(),
+    ///     &PassphrasePolicy { minimum_length: 10 },
+    /// )?;
+    ///
+    /// // The passphrase "passphrase" matches a policy of ten characters.
+    /// assert!(
+    ///     Passphrase::new_with_policy(
+    ///         "passphrase".to_string(),
+    ///         &PassphrasePolicy { minimum_length: 10 }
+    ///     )
+    ///     .is_ok()
+    /// );
+    ///
+    /// // The passphrase "passphrase" is too short for the default policy.
+    /// assert!(
+    ///     Passphrase::new_with_policy("passphrase".to_string(), &PassphrasePolicy::default())
+    ///         .is_err()
+    /// );
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn check_against_policy(&self, policy: &PassphrasePolicy) -> Result<(), crate::Error> {
+        if self.len() < policy.minimum_length {
+            return Err(Error::Length {
+                length: self.len(),
+                required_length: policy.minimum_length,
+            }
+            .into());
+        }
+
+        Ok(())
     }
 
     /// Exposes the secret passphrase as owned [`String`]
@@ -295,6 +336,30 @@ mod tests {
         #[case] policy: PassphrasePolicy,
     ) -> TestResult {
         match Passphrase::new_with_policy(passphrase.to_string(), &policy) {
+            Ok(_) => panic!("Expected to fail with an error, but succeeded instead."),
+            Err(crate::Error::Passphrase(Error::Length { .. })) => {}
+            Err(error) => panic!(
+                "Expected to fail with Error::Length, but failed with different error: {error}"
+            ),
+        }
+
+        Ok(())
+    }
+
+    #[test]
+    fn passphrase_check_against_policy() -> TestResult {
+        let passphrase = Passphrase::new("passphrase".to_string());
+        let policy = PassphrasePolicy { minimum_length: 10 };
+
+        match passphrase.check_against_policy(&policy) {
+            Ok(_) => {}
+            Err(error) => panic!(
+                "Expected to successfully check the passphrase against the policy {policy:?}, but got error: {error}"
+            ),
+        }
+
+        let policy = PassphrasePolicy::default();
+        match passphrase.check_against_policy(&policy) {
             Ok(_) => panic!("Expected to fail with an error, but succeeded instead."),
             Err(crate::Error::Passphrase(Error::Length { .. })) => {}
             Err(error) => panic!(
