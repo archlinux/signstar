@@ -14,6 +14,23 @@ pub enum Error {
     Passphrase,
 }
 
+/// A policy for [`Passphrase`].
+///
+/// Policies encode e.g. the minimum required length for a passphrase.
+#[derive(Clone, Debug)]
+pub struct PassphrasePolicy {
+    /// The minimum length a passphrase needs to have.
+    pub minimum_length: usize,
+}
+
+impl Default for PassphrasePolicy {
+    fn default() -> Self {
+        Self {
+            minimum_length: Passphrase::DEFAULT_LENGTH,
+        }
+    }
+}
+
 /// A secret passphrase
 ///
 /// The passphrase is held by a [`SecretString`], which guarantees zeroing of memory on
