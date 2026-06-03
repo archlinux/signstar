@@ -1,20 +1,24 @@
-{
-  "auth": {
-    "user": 1,
-    "passphrase_file": "tests/scenarios/keys/default"
-  },
-  "steps": [
-    {
-      "info": null
+[
+  {
+    "auth": {
+      "user": 1,
+      "passphrase_file": "tests/scenarios/keys/default"
     },
-    {
-      "auth": {
-        "user": 1,
-        "passphrase_file": "tests/scenarios/keys/default"
+    "commands": [
+      {
+        "info": null
       }
+    ]
+  },
+  {
+    "auth": {
+      "user": 1,
+      "passphrase_file": "tests/scenarios/keys/default"
     },
-    {
-      "info": null
-    }
-  ]
-}
+    "commands": [
+      {
+        "info": null
+      }
+    ]
+  }
+]

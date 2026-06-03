@@ -3,21 +3,15 @@
 #[cfg(feature = "serde")]
 use serde::Deserialize;
 
-use crate::automation::{Auth, Command};
+use crate::automation::command::AuthenticatedCommandChain;
 
-/// Describes a series of commands to be executed against a YubiHSM2.
-///
-/// The `auth` parameter indicates initial authentication data.
-/// The set of commands to be executed is processed in a sequential manner.
-/// The additional [Auth] command may be used to re-authenticate as another user while executing the
-/// scenario.
+/// A list of authenticated chains of commands executed against a YubiHSM2.
 #[derive(Debug)]
 #[cfg_attr(feature = "serde", derive(Deserialize))]
-#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
-pub struct Scenario {
-    /// Initial authentication data required to establish the connection to a YubiHSM2.
-    pub auth: Auth,
+pub struct Scenario(Vec<AuthenticatedCommandChain>);
 
-    /// Commands to be executed.
-    pub steps: Vec<Command>,
+impl AsRef<[AuthenticatedCommandChain]> for Scenario {
+    fn as_ref(&self) -> &[AuthenticatedCommandChain] {
+        self.0.as_slice()
+    }
 }

@@ -174,8 +174,8 @@ fn run_scenario(serial_number: Option<SerialNumber>, scenario_file: PathBuf) -> 
             context: "parsing scenario file",
             source,
         })?;
-    let mut runner = ScenarioRunner::new(connector, scenario.auth)?;
-    runner.run_steps(&scenario.steps, &mut stdout())?;
+    let runner = ScenarioRunner::new(connector);
+    runner.run_steps(scenario.as_ref(), &mut stdout())?;
 
     Ok(())
 }

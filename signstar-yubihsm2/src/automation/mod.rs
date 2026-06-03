@@ -4,6 +4,6 @@ mod command;
 mod runner;
 mod scenario;
 
-pub use command::{AuditOption, Auth, Command};
+pub use command::{AuditOption, Auth, AuthenticatedCommandChain, Command};
 pub use runner::ScenarioRunner;
 pub use scenario::Scenario;

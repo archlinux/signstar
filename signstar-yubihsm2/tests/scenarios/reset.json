@@ -1,11 +1,13 @@
-{
-  "auth": {
-    "user": 1,
-    "passphrase_file": "tests/scenarios/keys/default"
-  },
-  "steps": [
-    {
-      "reset": null
-    }
-  ]
-}
+[
+  {
+    "auth": {
+      "user": 1,
+      "passphrase_file": "tests/scenarios/keys/default"
+    },
+    "commands": [
+      {
+        "reset": null
+      }
+    ]
+  }
+]

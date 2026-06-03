@@ -1,25 +1,29 @@
 //! Scenario runner
 
-use std::{fmt::Debug, fs::read_to_string, path::Path};
+use std::fmt::Debug;
 #[cfg(feature = "serde")]
-use std::{fs::write, io::Write, time::Duration};
+use std::{fs::read_to_string, fs::write, io::Write, path::Path, time::Duration};
 
 #[cfg(feature = "serde")]
 use log::info;
 #[cfg(feature = "serde")]
 use serde::Serialize;
+#[cfg(feature = "serde")]
 use signstar_crypto::passphrase::Passphrase;
-use yubihsm::{Client, Connector, Credentials, authentication::Key, ed25519::Signature};
 #[cfg(feature = "serde")]
 use yubihsm::{
+    Client,
+    Credentials,
     asymmetric::Algorithm as AsymmetricAlgorithm,
+    authentication::Key,
     wrap::{Algorithm as WrapAlgorithm, Message},
 };
+use yubihsm::{Connector, ed25519::Signature};
 
-use crate::{Error, automation::Auth};
 #[cfg(feature = "serde")]
 use crate::{
-    automation::Command,
+    Error,
+    automation::{Command, command::AuthenticatedCommandChain},
     object::{KeyInfo, ObjectId},
 };
 
@@ -28,6 +32,7 @@ use crate::{
 /// # Errors
 ///
 /// Returns an error if `path` cannot be read to [`String`].
+#[cfg(feature = "serde")]
 fn derive_key_from_file(path: impl AsRef<Path>) -> Result<Key, Error> {
     let passphrase = read_to_string(&path).map_err(|source| Error::IoPath {
         path: path.as_ref().into(),
@@ -102,7 +107,7 @@ pub struct ScenarioRunner {
         ),
         allow(unused)
     )]
-    client: Client,
+    connector: Connector,
 }
 
 impl Debug for ScenarioRunner {
@@ -113,26 +118,12 @@ impl Debug for ScenarioRunner {
 }
 
 impl ScenarioRunner {
-    /// Creates a new [`ScenarioRunner`] for given `connector` and `auth`.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if
-    /// - deriving authentication key fails
-    /// - opening the connection to the client fails
-    pub fn new(connector: Connector, auth: Auth) -> Result<Self, Error> {
-        let user = auth.user;
-        let passphrase_file = auth.passphrase_file;
-        let credentials = Credentials::new(user.into(), derive_key_from_file(passphrase_file)?);
-        let client =
-            Client::open(connector, credentials, true).map_err(|source| Error::Client {
-                context: "connecting to client for running a scenario",
-                source,
-            })?;
-        Ok(Self { client })
+    /// Creates a new [`ScenarioRunner`] for a [`Connector`].
+    pub fn new(connector: Connector) -> Self {
+        Self { connector }
     }
 
-    /// Runs a list of [`Command`] objects.
+    /// Runs a list of [`AuthenticatedCommandChain`] objects.
     ///
     /// The `writer` will receive [JSONL]-formatted responses for commands which generate them.
     ///
@@ -143,10 +134,29 @@ impl ScenarioRunner {
     ///
     /// [JSONL]: https://jsonlines.org/
     #[cfg(feature = "serde")]
-    pub fn run_steps(&mut self, steps: &[Command], writer: &mut dyn Write) -> Result<(), Error> {
-        for command in steps.iter() {
-            info!("Executing {command:?}");
-            self.run_command(command, writer)?;
+    pub fn run_steps(
+        &self,
+        chains: &[AuthenticatedCommandChain],
+        writer: &mut dyn Write,
+    ) -> Result<(), Error> {
+        for authenticated_commands in chains.iter() {
+            let credentials = Credentials::new(
+                authenticated_commands.auth().user.into(),
+                derive_key_from_file(&authenticated_commands.auth().passphrase_file)?,
+            );
+
+            let mut client =
+                Client::open(self.connector.clone(), credentials, true).map_err(|source| {
+                    Error::Client {
+                        context: "opening new client",
+                        source,
+                    }
+                })?;
+
+            for command in authenticated_commands.commands().iter() {
+                info!("Executing {command:?}");
+                self.run_command(&mut client, command, writer)?;
+            }
         }
         Ok(())
     }
@@ -165,19 +175,24 @@ impl ScenarioRunner {
     ///
     /// [JSONL]: https://jsonlines.org/
     #[cfg(feature = "serde")]
-    fn run_command(&mut self, command: &Command, writer: &mut dyn Write) -> Result<(), Error> {
+    fn run_command(
+        &self,
+        client: &mut Client,
+        command: &Command,
+        writer: &mut dyn Write,
+    ) -> Result<(), Error> {
         match command {
             Command::Info => {
                 serialize_with_newline(
                     writer,
-                    &self.client.device_info().map_err(|source| Error::Client {
+                    &client.device_info().map_err(|source| Error::Client {
                         context: "executing device info command",
                         source,
                     })?,
                 )?;
             }
             Command::Reset => {
-                self.client
+                client
                     .reset_device_and_reconnect(Duration::from_secs(2))
                     .map_err(|source| Error::Client {
                         context: "executing device info command",
@@ -195,7 +210,7 @@ impl ScenarioRunner {
                 passphrase_file,
             } => {
                 let key = derive_key_from_file(passphrase_file)?;
-                self.client
+                client
                     .put_authentication_key(
                         key_id.into(),
                         Default::default(),
@@ -218,7 +233,7 @@ impl ScenarioRunner {
                         caps,
                     },
             } => {
-                self.client
+                client
                     .generate_asymmetric_key(
                         key_id.into(),
                         Default::default(),
@@ -232,8 +247,7 @@ impl ScenarioRunner {
                     })?;
             }
             Command::SignEd25519 { key_id, data } => {
-                let sig = self
-                    .client
+                let sig = client
                     .sign_ed25519(key_id.into(), &data[..])
                     .map_err(|source| Error::Client {
                         context: "signing with ed25519 key",
@@ -252,7 +266,7 @@ impl ScenarioRunner {
                 passphrase_file,
             } => {
                 let key = derive_key_from_file(passphrase_file)?;
-                self.client
+                client
                     .put_wrap_key(
                         key_id.into(),
                         Default::default(),
@@ -272,8 +286,7 @@ impl ScenarioRunner {
                 object,
                 wrapped_file,
             } => {
-                let wrapped = self
-                    .client
+                let wrapped = client
                     .export_wrapped(wrap_key_id.into(), object.object_type(), object.id().into())
                     .map_err(|source| Error::Client {
                         context: "exporting wrapped key",
@@ -302,31 +315,18 @@ impl ScenarioRunner {
                     context: "reading the wrapped file",
                     source,
                 })?;
-                let imported = self
-                    .client
-                    .import_wrapped(wrap_key_id.into(), wrapped)
-                    .map_err(|source| Error::Client {
-                        context: "importing wrapped key",
-                        source,
-                    })?;
+                let imported =
+                    client
+                        .import_wrapped(wrap_key_id.into(), wrapped)
+                        .map_err(|source| Error::Client {
+                            context: "importing wrapped key",
+                            source,
+                        })?;
 
                 serialize_with_newline(writer, ObjectId::try_from(imported)?)?;
             }
-            Command::Auth(Auth {
-                user,
-                passphrase_file,
-            }) => {
-                let credentials =
-                    Credentials::new(user.into(), derive_key_from_file(passphrase_file)?);
-
-                self.client = Client::open(self.client.connector().clone(), credentials, true)
-                    .map_err(|source| Error::Client {
-                        context: "opening new client",
-                        source,
-                    })?;
-            }
             Command::Delete(object) => {
-                self.client
+                client
                     .delete_object(object.id().into(), object.object_type())
                     .map_err(|source| Error::Client {
                         context: "deleting object",
@@ -334,8 +334,7 @@ impl ScenarioRunner {
                     })?;
             }
             Command::GetInfo(object) => {
-                let info = self
-                    .client
+                let info = client
                     .get_object_info(object.id().into(), object.object_type())
                     .map_err(|source| Error::Client {
                         context: "getting object info",
@@ -345,7 +344,7 @@ impl ScenarioRunner {
                 serialize_with_newline(writer, &info)?;
             }
             Command::ForceAudit(setting) => {
-                self.client
+                client
                     .set_force_audit_option((*setting).into())
                     .map_err(|source| Error::Client {
                         context: "setting force audit option",
@@ -353,7 +352,7 @@ impl ScenarioRunner {
                     })?;
             }
             Command::CommandAudit { command, setting } => {
-                self.client
+                client
                     .set_command_audit_option(*command, (*setting).into())
                     .map_err(|source| Error::Client {
                         context: "setting command audit option",
@@ -361,13 +360,10 @@ impl ScenarioRunner {
                     })?;
             }
             Command::GetLog => {
-                let log = self
-                    .client
-                    .get_log_entries()
-                    .map_err(|source| Error::Client {
-                        context: "getting log entries",
-                        source,
-                    })?;
+                let log = client.get_log_entries().map_err(|source| Error::Client {
+                    context: "getting log entries",
+                    source,
+                })?;
 
                 serialize_with_newline(writer, &log)?;
             }
@@ -410,8 +406,8 @@ mod tests {
                 scenario_file = scenario_file.display()
             );
             let scenario: Scenario = serde_json::from_reader(File::open(scenario_file)?)?;
-            let mut runner = ScenarioRunner::new(Connector::mockhsm(), scenario.auth)?;
-            runner.run_steps(&scenario.steps, &mut stdout())?;
+            let runner = ScenarioRunner::new(Connector::mockhsm());
+            runner.run_steps(scenario.as_ref(), &mut stdout())?;
             Ok(())
         }
 

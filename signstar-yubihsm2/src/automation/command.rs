@@ -61,12 +61,6 @@ pub enum Command {
     /// Query the command log of the device and print it to standard output.
     GetLog,
 
-    /// Authenticate against the device.
-    ///
-    /// This command *must* be used as a first command in the scenario file as it is not possible to
-    /// connect to the device without any credentials.
-    Auth(Auth),
-
     /// Change audit settings.
     ///
     /// This mode prevents the device from performing additional operations when the Logs and Error
@@ -166,4 +160,29 @@ pub enum Command {
 
     /// Query data about the object and print it to standard output.
     GetInfo(ObjectId),
+}
+
+/// A list of [`Command`]s that are run with a specific authentication.
+#[derive(Debug)]
+#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
+pub struct AuthenticatedCommandChain {
+    auth: Auth,
+    commands: Vec<Command>,
+}
+
+impl AuthenticatedCommandChain {
+    /// Creates a new [`AuthenticatedCommandChain`] from authentication data and a list of commands.
+    pub fn new(auth: Auth, commands: Vec<Command>) -> Self {
+        Self { auth, commands }
+    }
+
+    /// Returns the authentication details for the authenticated commands.
+    pub fn auth(&self) -> &Auth {
+        &self.auth
+    }
+
+    /// Returns the commands for the authenticated commands.
+    pub fn commands(&self) -> &[Command] {
+        &self.commands
+    }
 }
