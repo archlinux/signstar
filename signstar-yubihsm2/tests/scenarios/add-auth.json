@@ -1,19 +1,21 @@
 {
-    "auth": {
-        "user": 1,
-        "passphrase_file": "tests/scenarios/keys/default"
-    },
-    "steps": [
-        {
-            "put_auth_key": {
-                "key_id": 2,
-                "domains": [1],
-                "caps": [
-                    "sign-eddsa"
-                ],
-                "delegated_caps": [],
-                "passphrase_file": "tests/scenarios/keys/auth-key"
-            }
-        }
-    ]
+  "auth": {
+    "user": 1,
+    "passphrase_file": "tests/scenarios/keys/default"
+  },
+  "steps": [
+    {
+      "put_auth_key": {
+        "key_id": 2,
+        "domains": [
+          1
+        ],
+        "caps": [
+          "sign-eddsa"
+        ],
+        "delegated_caps": [],
+        "passphrase_file": "tests/scenarios/keys/auth-key"
+      }
+    }
+  ]
 }

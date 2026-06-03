@@ -1,69 +1,75 @@
 {
-    "auth": {
+  "auth": {
+    "user": 1,
+    "passphrase_file": "tests/scenarios/keys/default"
+  },
+  "steps": [
+    {
+      "generate_key": {
+        "key_id": 5,
+        "domains": [
+          1
+        ],
+        "caps": [
+          "sign-eddsa",
+          "exportable-under-wrap"
+        ]
+      }
+    },
+    {
+      "put_wrap_key": {
+        "key_id": 5,
+        "domains": [
+          1
+        ],
+        "caps": [
+          "export-wrapped"
+        ],
+        "delegated_caps": [
+          "sign-eddsa",
+          "exportable-under-wrap"
+        ],
+        "passphrase_file": "tests/scenarios/keys/wrap-key"
+      }
+    },
+    {
+      "put_auth_key": {
+        "key_id": 5,
+        "domains": [
+          1
+        ],
+        "caps": [
+          "export-wrapped"
+        ],
+        "delegated_caps": [],
+        "passphrase_file": "tests/scenarios/keys/auth-key"
+      }
+    },
+    {
+      "auth": {
+        "user": 5,
+        "passphrase_file": "tests/scenarios/keys/auth-key"
+      }
+    },
+    {
+      "export_wrapped": {
+        "wrap_key_id": 5,
+        "object_type": "asymmetric-key",
+        "object_id": 5,
+        "wrapped_file": "/tmp/wrapped"
+      }
+    },
+    {
+      "auth": {
         "user": 1,
         "passphrase_file": "tests/scenarios/keys/default"
+      }
     },
-    "steps": [
-        {
-            "generate_key": {
-                "key_id": 5,
-                "domains": [1],
-                "caps": [
-                    "sign-eddsa",
-                    "exportable-under-wrap"
-                ]
-            }
-        },
-        {
-            "put_wrap_key": {
-                "key_id": 5,
-                "domains": [1],
-                "caps": [
-                    "export-wrapped"
-                ],
-                "delegated_caps": [
-                    "sign-eddsa",
-                    "exportable-under-wrap"
-                ],
-                "passphrase_file": "tests/scenarios/keys/wrap-key"
-            }
-        },
-        {
-            "put_auth_key": {
-                "key_id": 5,
-                "domains": [1],
-                "caps": [
-                    "export-wrapped"
-                ],
-                "delegated_caps": [],
-                "passphrase_file": "tests/scenarios/keys/auth-key"
-            }
-        },
-        {
-            "auth": {
-                "user": 5,
-                "passphrase_file": "tests/scenarios/keys/auth-key"
-            }
-        },
-        {
-            "export_wrapped": {
-                "wrap_key_id": 5,
-                "object_type": "asymmetric-key",
-                "object_id": 5,
-                "wrapped_file": "/tmp/wrapped"
-            }
-        },
-        {
-            "auth": {
-                "user": 1,
-                "passphrase_file": "tests/scenarios/keys/default"
-            }
-        },
-        {
-            "delete": {
-                "object_type": "asymmetric-key",
-                "object_id": 5
-            }
-        }
-    ]
+    {
+      "delete": {
+        "object_type": "asymmetric-key",
+        "object_id": 5
+      }
+    }
+  ]
 }

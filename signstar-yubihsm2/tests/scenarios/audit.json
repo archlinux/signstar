@@ -1,87 +1,89 @@
 {
-    "auth": {
-        "user": 1,
-        "passphrase_file": "tests/scenarios/keys/default"
+  "auth": {
+    "user": 1,
+    "passphrase_file": "tests/scenarios/keys/default"
+  },
+  "steps": [
+    {
+      "command_audit": {
+        "command": 106,
+        "setting": "on"
+      }
     },
-    "steps": [
-        {
-            "command_audit": {
-                "command": 106,
-                "setting": "on"
-            }
-        },
-        {
-            "force_audit": "on"
-        },
-        {
-            "generate_key": {
-                "key_id": 7,
-                "domains": [1],
-                "caps": [
-                    "sign-eddsa",
-                    "exportable-under-wrap"
-                ]
-            }
-        },
-        {
-            "sign_ed25519": {
-                "key_id": 7,
-                "data": [
-                    1,
-                    2,
-                    3,
-                    4,
-                    5,
-                    6,
-                    7,
-                    8,
-                    9,
-                    10,
-                    11,
-                    12
-                ]
-            }
-        },
-        {
-            "sign_ed25519": {
-                "key_id": 7,
-                "data": [
-                    1,
-                    2,
-                    3,
-                    4,
-                    5,
-                    6,
-                    7,
-                    8,
-                    9,
-                    10,
-                    11,
-                    12
-                ]
-            }
-        },
-        {
-            "sign_ed25519": {
-                "key_id": 7,
-                "data": [
-                    1,
-                    2,
-                    3,
-                    4,
-                    5,
-                    6,
-                    7,
-                    8,
-                    9,
-                    10,
-                    11,
-                    12
-                ]
-            }
-        },
-        {
-            "get_log": null
-        }
-    ]
+    {
+      "force_audit": "on"
+    },
+    {
+      "generate_key": {
+        "key_id": 7,
+        "domains": [
+          1
+        ],
+        "caps": [
+          "sign-eddsa",
+          "exportable-under-wrap"
+        ]
+      }
+    },
+    {
+      "sign_ed25519": {
+        "key_id": 7,
+        "data": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12
+        ]
+      }
+    },
+    {
+      "sign_ed25519": {
+        "key_id": 7,
+        "data": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12
+        ]
+      }
+    },
+    {
+      "sign_ed25519": {
+        "key_id": 7,
+        "data": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12
+        ]
+      }
+    },
+    {
+      "get_log": null
+    }
+  ]
 }

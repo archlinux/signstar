@@ -3,7 +3,10 @@
   "addLabels": [
     "scope::deps"
   ],
-  "assignees": ["dvzrv", "wiktor"],
+  "assignees": [
+    "dvzrv",
+    "wiktor"
+  ],
   "commitMessageLowerCase": "never",
   "extends": [
     "config:base",
