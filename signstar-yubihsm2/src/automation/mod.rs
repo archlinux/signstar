@@ -6,4 +6,4 @@ mod scenario;
 
 pub use command::{AuditOption, AuthenticatedCommandChain, Command};
 pub use runner::ScenarioRunner;
-pub use scenario::Scenario;
+pub use scenario::{FileBackedScenario, Scenario};

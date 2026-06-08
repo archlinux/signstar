@@ -20,7 +20,7 @@ use yubihsm::{Connector, ed25519::Signature};
 #[cfg(feature = "serde")]
 use crate::{
     Error,
-    automation::{Command, command::AuthenticatedCommandChain},
+    automation::{Command, Scenario},
     object::{AuthenticationKey, KeyInfo, ObjectId},
 };
 
@@ -103,7 +103,7 @@ impl ScenarioRunner {
         Self { connector }
     }
 
-    /// Runs a list of [`AuthenticatedCommandChain`] objects.
+    /// Runs a [`Scenario`].
     ///
     /// The `writer` will receive [JSONL]-formatted responses for commands which generate them.
     ///
@@ -114,21 +114,17 @@ impl ScenarioRunner {
     ///
     /// [JSONL]: https://jsonlines.org/
     #[cfg(feature = "serde")]
-    pub fn run_steps(
-        &self,
-        chains: &[AuthenticatedCommandChain],
-        writer: &mut dyn Write,
-    ) -> Result<(), Error> {
-        for authenticated_commands in chains.iter() {
-            let credentials = Credentials::try_from(authenticated_commands.auth())?;
-
-            let mut client =
-                Client::open(self.connector.clone(), credentials, true).map_err(|source| {
-                    Error::Client {
-                        context: "opening new client",
-                        source,
-                    }
-                })?;
+    pub fn run(&self, scenario: &Scenario, writer: &mut dyn Write) -> Result<(), Error> {
+        for authenticated_commands in scenario.as_ref().iter() {
+            let mut client = Client::open(
+                self.connector.clone(),
+                Credentials::from(authenticated_commands.auth()),
+                true,
+            )
+            .map_err(|source| Error::Client {
+                context: "opening new client",
+                source,
+            })?;
 
             for command in authenticated_commands.commands().iter() {
                 info!("Executing {command:?}");
@@ -379,14 +375,16 @@ mod tests {
 
         #[cfg(all(feature = "_yubihsm2-mockhsm", feature = "serde"))]
         fn run_scenario(scenario_file: impl AsRef<Path>) -> TestResult {
+            use crate::automation::scenario::FileBackedScenario;
+
             let scenario_file = scenario_file.as_ref();
             eprintln!(
                 "Running scenario file {scenario_file}",
                 scenario_file = scenario_file.display()
             );
-            let scenario: Scenario = serde_json::from_reader(File::open(scenario_file)?)?;
+            let scenario: FileBackedScenario = serde_json::from_reader(File::open(scenario_file)?)?;
             let runner = ScenarioRunner::new(Connector::mockhsm());
-            runner.run_steps(scenario.as_ref(), &mut stdout())?;
+            runner.run(&Scenario::try_from(scenario)?, &mut stdout())?;
             Ok(())
         }
 

@@ -7,6 +7,7 @@ use serde::{Deserialize, Serialize};
 use yubihsm::command::Code;
 
 use crate::{
+    Credentials,
     object::{Capabilities, Id, KeyInfo, ObjectId},
     user::FileBackedCredentials,
 };
@@ -155,21 +156,23 @@ pub enum Command {
 }
 
 /// A list of [`Command`]s that are run with a specific authentication.
+///
+/// A single [`Credentials`] is used for authentication of each command towards the YubiHSM2
+/// backend.
 #[derive(Debug)]
-#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct AuthenticatedCommandChain {
-    auth: FileBackedCredentials,
+    auth: Credentials,
     commands: Vec<Command>,
 }
 
 impl AuthenticatedCommandChain {
     /// Creates a new [`AuthenticatedCommandChain`] from authentication data and a list of commands.
-    pub fn new(auth: FileBackedCredentials, commands: Vec<Command>) -> Self {
+    pub fn new(auth: Credentials, commands: Vec<Command>) -> Self {
         Self { auth, commands }
     }
 
     /// Returns the authentication details for the authenticated commands.
-    pub fn auth(&self) -> &FileBackedCredentials {
+    pub fn auth(&self) -> &Credentials {
         &self.auth
     }
 
@@ -177,4 +180,15 @@ impl AuthenticatedCommandChain {
     pub fn commands(&self) -> &[Command] {
         &self.commands
     }
+}
+
+/// A list of [`Command`]s that are run with a specific authentication.
+///
+/// A single [`FileBackedCredentials`] is used for authentication of each command towards the
+/// YubiHSM2 backend.
+#[derive(Debug)]
+#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
+pub struct FileBackedAuthenticatedCommandChain {
+    pub(crate) auth: FileBackedCredentials,
+    pub(crate) commands: Vec<Command>,
 }

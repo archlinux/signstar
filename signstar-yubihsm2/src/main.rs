@@ -61,7 +61,7 @@ use log::error;
 use signstar_common::logging::setup_logging;
 use signstar_yubihsm2::{
     Error,
-    automation::{Scenario, ScenarioRunner},
+    automation::{FileBackedScenario, Scenario, ScenarioRunner},
     backup::{InnerFormat, Label, YubiHsm2Wrap, wrap_ed25519},
     object::{Capabilities, Capability, Domain, Domains, Id},
 };
@@ -164,7 +164,7 @@ enum BackupSubcommands {
 fn run_scenario(serial_number: Option<SerialNumber>, scenario_file: PathBuf) -> Result<(), Error> {
     let connector = get_connector(serial_number)?;
 
-    let scenario: Scenario =
+    let scenario: FileBackedScenario =
         serde_json::from_reader(File::open(&scenario_file).map_err(|source| Error::IoPath {
             context: "reading scenario file",
             path: scenario_file,
@@ -175,7 +175,7 @@ fn run_scenario(serial_number: Option<SerialNumber>, scenario_file: PathBuf) -> 
             source,
         })?;
     let runner = ScenarioRunner::new(connector);
-    runner.run_steps(scenario.as_ref(), &mut stdout())?;
+    runner.run(&Scenario::try_from(scenario)?, &mut stdout())?;
 
     Ok(())
 }
