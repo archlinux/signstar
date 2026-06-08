@@ -6,18 +6,10 @@ use std::path::PathBuf;
 use serde::{Deserialize, Serialize};
 use yubihsm::command::Code;
 
-use crate::object::{Capabilities, Id, KeyInfo, ObjectId};
-
-/// Authentication data: login and a location of the passphrase file.
-#[derive(Debug)]
-#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
-pub struct Auth {
-    /// The identifier of the authentication key to use.
-    pub user: Id,
-
-    /// The file containing passphrase of the authenticating user.
-    pub passphrase_file: PathBuf,
-}
+use crate::{
+    object::{Capabilities, Id, KeyInfo, ObjectId},
+    user::FileBackedCredentials,
+};
 
 /// Indicates the setting of the auditing.
 #[derive(Clone, Copy, Debug)]
@@ -166,18 +158,18 @@ pub enum Command {
 #[derive(Debug)]
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct AuthenticatedCommandChain {
-    auth: Auth,
+    auth: FileBackedCredentials,
     commands: Vec<Command>,
 }
 
 impl AuthenticatedCommandChain {
     /// Creates a new [`AuthenticatedCommandChain`] from authentication data and a list of commands.
-    pub fn new(auth: Auth, commands: Vec<Command>) -> Self {
+    pub fn new(auth: FileBackedCredentials, commands: Vec<Command>) -> Self {
         Self { auth, commands }
     }
 
     /// Returns the authentication details for the authenticated commands.
-    pub fn auth(&self) -> &Auth {
+    pub fn auth(&self) -> &FileBackedCredentials {
         &self.auth
     }
 

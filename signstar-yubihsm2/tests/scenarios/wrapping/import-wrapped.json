@@ -1,7 +1,7 @@
 [
   {
     "auth": {
-      "user": 1,
+      "id": 1,
       "passphrase_file": "tests/scenarios/keys/default"
     },
     "commands": [
@@ -38,7 +38,7 @@
   },
   {
     "auth": {
-      "user": 6,
+      "id": 6,
       "passphrase_file": "tests/scenarios/keys/auth-key"
     },
     "commands": [
@@ -58,7 +58,7 @@
   },
   {
     "auth": {
-      "user": 1,
+      "id": 1,
       "passphrase_file": "tests/scenarios/keys/default"
     },
     "commands": [
@@ -85,7 +85,7 @@
   },
   {
     "auth": {
-      "user": 6,
+      "id": 6,
       "passphrase_file": "tests/scenarios/keys/auth-key"
     },
     "commands": [

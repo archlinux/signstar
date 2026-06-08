@@ -140,10 +140,7 @@ impl ScenarioRunner {
         writer: &mut dyn Write,
     ) -> Result<(), Error> {
         for authenticated_commands in chains.iter() {
-            let credentials = Credentials::new(
-                authenticated_commands.auth().user.into(),
-                derive_key_from_file(&authenticated_commands.auth().passphrase_file)?,
-            );
+            let credentials = Credentials::try_from(authenticated_commands.auth())?;
 
             let mut client =
                 Client::open(self.connector.clone(), credentials, true).map_err(|source| {
