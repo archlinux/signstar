@@ -2,20 +2,17 @@
 
 use std::fmt::Debug;
 #[cfg(feature = "serde")]
-use std::{fs::read_to_string, fs::write, io::Write, path::Path, time::Duration};
+use std::{fs::write, io::Write, time::Duration};
 
 #[cfg(feature = "serde")]
 use log::info;
 #[cfg(feature = "serde")]
 use serde::Serialize;
 #[cfg(feature = "serde")]
-use signstar_crypto::passphrase::Passphrase;
-#[cfg(feature = "serde")]
 use yubihsm::{
     Client,
     Credentials,
     asymmetric::Algorithm as AsymmetricAlgorithm,
-    authentication::Key,
     wrap::{Algorithm as WrapAlgorithm, Message},
 };
 use yubihsm::{Connector, ed25519::Signature};
@@ -24,25 +21,8 @@ use yubihsm::{Connector, ed25519::Signature};
 use crate::{
     Error,
     automation::{Command, command::AuthenticatedCommandChain},
-    object::{KeyInfo, ObjectId},
+    object::{AuthenticationKey, KeyInfo, ObjectId},
 };
-
-/// Derives an authentication key from a UTF-8-encoded file.
-///
-/// # Errors
-///
-/// Returns an error if `path` cannot be read to [`String`].
-#[cfg(feature = "serde")]
-fn derive_key_from_file(path: impl AsRef<Path>) -> Result<Key, Error> {
-    let passphrase = read_to_string(&path).map_err(|source| Error::IoPath {
-        path: path.as_ref().into(),
-        context: "reading key from file",
-        source,
-    })?;
-    let passphrase = Passphrase::new(passphrase);
-    let key = Key::derive_from_password(passphrase.expose_borrowed().as_bytes());
-    Ok(key)
-}
 
 /// Signature made using the ed25519 signing algorithm.
 #[derive(Debug)]
@@ -206,7 +186,7 @@ impl ScenarioRunner {
                 delegated_caps,
                 passphrase_file,
             } => {
-                let key = derive_key_from_file(passphrase_file)?;
+                let key = AuthenticationKey::try_from(passphrase_file.as_path())?;
                 client
                     .put_authentication_key(
                         key_id.into(),
@@ -262,7 +242,7 @@ impl ScenarioRunner {
                 delegated_caps,
                 passphrase_file,
             } => {
-                let key = derive_key_from_file(passphrase_file)?;
+                let key = AuthenticationKey::try_from(passphrase_file.as_path())?;
                 client
                     .put_wrap_key(
                         key_id.into(),
@@ -271,7 +251,7 @@ impl ScenarioRunner {
                         caps.into(),
                         delegated_caps.into(),
                         WrapAlgorithm::Aes256Ccm,
-                        key.as_secret_slice(),
+                        key.as_ref().as_secret_slice(),
                     )
                     .map_err(|source| Error::Client {
                         context: "putting wrap key",
@@ -371,7 +351,6 @@ impl ScenarioRunner {
 
 #[cfg(test)]
 mod tests {
-
     use super::*;
 
     #[test]
@@ -386,8 +365,11 @@ mod tests {
 
     #[cfg(all(feature = "_yubihsm2-mockhsm", feature = "serde"))]
     mod scenario {
-        use std::path::PathBuf;
-        use std::{fs::File, io::stdout};
+        use std::{
+            fs::File,
+            io::stdout,
+            path::{Path, PathBuf},
+        };
 
         use rstest::rstest;
         use testresult::TestResult;
