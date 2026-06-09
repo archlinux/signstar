@@ -61,6 +61,7 @@ thiserror = "2.0.4"
 tokio = { version = "1.42.0", features = ["macros"] }
 ureq = "2.12.1"
 uuid = { version = "1.11.0", features = ["v7"] }
+yubihsm = { version = "0.42.1", features = ["usb"] }
 zeroize = { version = "1.8.1", features = ["serde", "zeroize_derive"] }
 
 [workspace.lints.rust]
