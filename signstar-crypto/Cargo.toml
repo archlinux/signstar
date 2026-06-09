@@ -18,6 +18,7 @@ email_address = "0.2.9"
 log.workspace = true
 nethsm-sdk-rs = { workspace = true, optional = true }
 nix.workspace = true
+p224.workspace = true
 p256.workspace = true
 p384.workspace = true
 p521.workspace = true

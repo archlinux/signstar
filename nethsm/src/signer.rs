@@ -301,6 +301,7 @@ fn prepare_digest_data_for_openpgp(
 
         // ECDSA may need to truncate the digest if it's too long
         // See: https://www.rfc-editor.org/rfc/rfc9580#section-5.2.3.2
+        SignatureType::EcdsaP224 => digest[..usize::min(28, digest.len())].into(),
         SignatureType::EcdsaP256 => digest[..usize::min(32, digest.len())].into(),
         SignatureType::EcdsaP384 => digest[..usize::min(48, digest.len())].into(),
 
@@ -337,7 +338,10 @@ fn prepare_digest_data_for_openpgp(
 fn raw_signature_to_mpis(sig_type: SignatureType, sig: &[u8]) -> Result<Vec<Vec<u8>>, Error> {
     use SignatureType;
     Ok(match sig_type {
-        SignatureType::EcdsaP256 | SignatureType::EcdsaP384 | SignatureType::EcdsaP521 => {
+        SignatureType::EcdsaP224
+        | SignatureType::EcdsaP256
+        | SignatureType::EcdsaP384
+        | SignatureType::EcdsaP521 => {
             let sig: EcdsaSignatureValue = picky_asn1_der::from_bytes(sig).map_err(|e| {
                 error!("DER decoding error when parsing ECDSA signature: {e:?}");
                 SignstarCryptoSignerError::Hsm {

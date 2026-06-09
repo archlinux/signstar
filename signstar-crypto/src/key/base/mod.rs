@@ -145,6 +145,9 @@ pub enum KeyType {
     #[default]
     Curve25519,
 
+    /// An elliptic-curve key over a prime field for a prime of size 224 bit
+    EcP224,
+
     /// An elliptic-curve key over a prime field for a prime of size 256 bit
     EcP256,
 
@@ -296,6 +299,10 @@ impl KeyMechanism {
 )]
 #[strum(ascii_case_insensitive)]
 pub enum SignatureType {
+    /// Elliptic Curve Digital Signature Algorithm (ECDSA) signing using a key over a prime field
+    /// for a prime of size 224 bit
+    EcdsaP224,
+
     /// Elliptic Curve Digital Signature Algorithm (ECDSA) signing using a key over a prime field
     /// for a prime of size 256 bit
     EcdsaP256,
@@ -558,7 +565,7 @@ pub fn key_type_matches_mechanisms(
 ) -> Result<(), crate::Error> {
     let valid_mechanisms: &[KeyMechanism] = match key_type {
         KeyType::Curve25519 => &KeyMechanism::curve25519_mechanisms(),
-        KeyType::EcP256 | KeyType::EcP384 | KeyType::EcP521 => {
+        KeyType::EcP224 | KeyType::EcP256 | KeyType::EcP384 | KeyType::EcP521 => {
             &KeyMechanism::elliptic_curve_mechanisms()
         }
         KeyType::Generic => &KeyMechanism::generic_mechanisms(),
@@ -614,6 +621,21 @@ pub fn key_type_and_mechanisms_match_signature_type(
     signature_type: SignatureType,
 ) -> Result<(), crate::Error> {
     match signature_type {
+        SignatureType::EcdsaP224 => {
+            if key_type != KeyType::EcP224 {
+                return Err(Error::InvalidKeyTypeForSignatureType {
+                    key_type,
+                    signature_type,
+                }
+                .into());
+            } else if !mechanisms.contains(&KeyMechanism::EcdsaSignature) {
+                return Err(Error::InvalidKeyMechanismsForSignatureType {
+                    required_key_mechanism: KeyMechanism::EcdsaSignature,
+                    signature_type,
+                }
+                .into());
+            }
+        }
         SignatureType::EcdsaP256 => {
             if key_type != KeyType::EcP256 {
                 return Err(Error::InvalidKeyTypeForSignatureType {
@@ -803,7 +825,11 @@ pub fn key_type_and_mechanisms_match_signature_type(
 /// ```
 pub fn key_type_matches_length(key_type: KeyType, length: Option<u32>) -> Result<(), crate::Error> {
     match key_type {
-        KeyType::Curve25519 | KeyType::EcP256 | KeyType::EcP384 | KeyType::EcP521 => {
+        KeyType::Curve25519
+        | KeyType::EcP224
+        | KeyType::EcP256
+        | KeyType::EcP384
+        | KeyType::EcP521 => {
             if length.is_some() {
                 Err(Error::KeyLengthUnsupported { key_type }.into())
             } else {

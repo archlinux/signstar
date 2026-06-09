@@ -18,7 +18,8 @@ impl From<PrivateKeyImport> for KeyPrivateData {
                 public_exponent: Some(Base64::encode_string(&public_exponent)),
                 data: None,
             },
-            PrivateKeyData::EcP256(data)
+            PrivateKeyData::EcP224(data)
+            | PrivateKeyData::EcP256(data)
             | PrivateKeyData::EcP384(data)
             | PrivateKeyData::EcP521(data)
             | PrivateKeyData::Curve25519(data) => KeyPrivateData {

@@ -1681,7 +1681,7 @@ impl NetHsm {
                 hasher.update(message);
                 &hasher.finalize()[..]
             }
-            SignatureType::PssSha224 => {
+            SignatureType::EcdsaP224 | SignatureType::PssSha224 => {
                 let mut hasher = Sha224::new();
                 hasher.update(message);
                 &hasher.finalize()[..]

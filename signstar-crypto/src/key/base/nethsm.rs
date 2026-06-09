@@ -8,6 +8,7 @@ impl From<KeyType> for nethsm_sdk_rs::models::KeyType {
     fn from(value: KeyType) -> Self {
         match value {
             KeyType::Curve25519 => Self::Curve25519,
+            KeyType::EcP224 => Self::EcP224,
             KeyType::EcP256 => Self::EcP256,
             KeyType::EcP384 => Self::EcP384,
             KeyType::EcP521 => Self::EcP521,
@@ -30,11 +31,7 @@ impl TryFrom<nethsm_sdk_rs::models::KeyType> for KeyType {
     fn try_from(value: nethsm_sdk_rs::models::KeyType) -> Result<Self, Self::Error> {
         Ok(match value {
             nethsm_sdk_rs::models::KeyType::Curve25519 => Self::Curve25519,
-            nethsm_sdk_rs::models::KeyType::EcP224 => {
-                unimplemented!(
-                    "Elliptic Curve P224 is not implemented and the nethsm-sdk-rs crate will drop it in the future"
-                )
-            }
+            nethsm_sdk_rs::models::KeyType::EcP224 => Self::EcP224,
             nethsm_sdk_rs::models::KeyType::EcP256 => Self::EcP256,
             nethsm_sdk_rs::models::KeyType::EcP384 => Self::EcP384,
             nethsm_sdk_rs::models::KeyType::EcP521 => Self::EcP521,
@@ -132,9 +129,10 @@ impl From<SignatureType> for SignMode {
             SignatureType::PssSha384 => SignMode::PssSha384,
             SignatureType::PssSha512 => SignMode::PssSha512,
             SignatureType::EdDsa => SignMode::EdDsa,
-            SignatureType::EcdsaP256 | SignatureType::EcdsaP384 | SignatureType::EcdsaP521 => {
-                SignMode::Ecdsa
-            }
+            SignatureType::EcdsaP224
+            | SignatureType::EcdsaP256
+            | SignatureType::EcdsaP384
+            | SignatureType::EcdsaP521 => SignMode::Ecdsa,
         }
     }
 }
