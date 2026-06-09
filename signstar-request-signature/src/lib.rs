@@ -1,8 +1,4 @@
 #![doc = include_str!("../README.md")]
-#![deny(missing_debug_implementations)]
-#![deny(missing_docs)]
-#![deny(clippy::unwrap_used)]
-#![deny(clippy::expect_used)]
 
 use std::path::Path;
 use std::time::SystemTime;
