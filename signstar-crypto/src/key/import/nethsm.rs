@@ -3,11 +3,17 @@
 use base64ct::{Base64, Encoding};
 use nethsm_sdk_rs::models::KeyPrivateData;
 
-use crate::key::import::{PrivateKeyData, PrivateKeyImport};
+use crate::key::{
+    Error,
+    KeyType,
+    import::{PrivateKeyData, PrivateKeyImport},
+};
 
-impl From<PrivateKeyImport> for KeyPrivateData {
-    fn from(value: PrivateKeyImport) -> Self {
-        match value.key_data {
+impl TryFrom<PrivateKeyImport> for KeyPrivateData {
+    type Error = crate::Error;
+
+    fn try_from(value: PrivateKeyImport) -> Result<Self, Self::Error> {
+        Ok(match value.key_data {
             PrivateKeyData::Rsa {
                 prime_p,
                 prime_q,
@@ -28,6 +34,13 @@ impl From<PrivateKeyImport> for KeyPrivateData {
                 public_exponent: None,
                 data: Some(Base64::encode_string(&data)),
             },
-        }
+            PrivateKeyData::EcK256(_) => {
+                return Err(Error::UnsupportedPrivateKeyData {
+                    key_type: KeyType::EcK256,
+                    context: "the NetHSM backend does not support it",
+                }
+                .into());
+            }
+        })
     }
 }

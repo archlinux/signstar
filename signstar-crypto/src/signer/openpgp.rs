@@ -841,7 +841,7 @@ mod tests {
             )?)?
             .0;
 
-            let import: KeyPrivateData = tsk_to_private_key_import(&key)?.0.into();
+            let import: KeyPrivateData = tsk_to_private_key_import(&key)?.0.try_into()?;
 
             let data = Base64::decode_vec(&import.data.unwrap())?;
 
@@ -861,7 +861,7 @@ mod tests {
             )?)?
             .0;
 
-            let import: KeyPrivateData = tsk_to_private_key_import(&key)?.0.into();
+            let import: KeyPrivateData = tsk_to_private_key_import(&key)?.0.try_into()?;
 
             let data = Base64::decode_vec(&import.public_exponent.unwrap())?;
 

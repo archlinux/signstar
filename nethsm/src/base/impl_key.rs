@@ -212,7 +212,7 @@ impl NetHsm {
                     .into_iter()
                     .map(|mechanism| mechanism.into())
                     .collect(),
-                r#type: key_type.into(),
+                r#type: key_type.try_into()?,
                 length: length.map(|length| length as i32),
                 id: key_id.map(Into::into),
                 restrictions: tags.map(|tags| Box::new(KeyRestrictions { tags: Some(tags) })),
@@ -360,7 +360,7 @@ impl NetHsm {
         key_type_matches_mechanisms(key_type, &mechanisms)?;
 
         let restrictions = tags.map(|tags| Box::new(KeyRestrictions { tags: Some(tags) }));
-        let private = Box::new(key_data.into());
+        let private = Box::new(key_data.try_into()?);
         let mechanisms = mechanisms
             .into_iter()
             .map(|mechanism| mechanism.into())
@@ -372,7 +372,7 @@ impl NetHsm {
                 key_id.as_ref(),
                 nethsm_sdk_rs::apis::default_api::KeysKeyIdPutBody::ApplicationJson(PrivateKey {
                     mechanisms,
-                    r#type: key_type.into(),
+                    r#type: key_type.try_into()?,
                     private,
                     restrictions,
                 }),
@@ -389,7 +389,7 @@ impl NetHsm {
                 &self.create_connection_config(),
                 KeysPostBody::ApplicationJson(PrivateKey {
                     mechanisms,
-                    r#type: key_type.into(),
+                    r#type: key_type.try_into()?,
                     private,
                     restrictions,
                 }),
@@ -1532,7 +1532,7 @@ impl NetHsm {
             &keys_key_id_sign_post(
                 &self.create_connection_config(),
                 key_id.as_ref(),
-                SignRequestData::new(signature_type.into(), Base64::encode_string(digest)),
+                SignRequestData::new(signature_type.try_into()?, Base64::encode_string(digest)),
             )
             .map_err(|error| {
                 Error::Api(format!(
@@ -1671,7 +1671,10 @@ impl NetHsm {
         // Some algorithms require the data to be hashed first
         // The API requires data to be base64 encoded
         let message = match signature_type {
-            SignatureType::Pkcs1 | SignatureType::PssSha256 | SignatureType::EcdsaP256 => {
+            SignatureType::Pkcs1
+            | SignatureType::PssSha256
+            | SignatureType::EcdsaP256
+            | SignatureType::EcdsaK256 => {
                 let mut hasher = Sha256::new();
                 hasher.update(message);
                 &hasher.finalize()[..]

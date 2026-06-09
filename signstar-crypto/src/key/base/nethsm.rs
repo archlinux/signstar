@@ -7,17 +7,20 @@ use crate::key::{
     base::{DecryptMode, EncryptMode, KeyMechanism, KeyType, SignatureType},
 };
 
-impl From<KeyType> for nethsm_sdk_rs::models::KeyType {
-    fn from(value: KeyType) -> Self {
-        match value {
+impl TryFrom<KeyType> for nethsm_sdk_rs::models::KeyType {
+    type Error = crate::Error;
+
+    fn try_from(value: KeyType) -> Result<Self, Self::Error> {
+        Ok(match value {
             KeyType::Curve25519 => Self::Curve25519,
+            KeyType::EcK256 => return Err(Error::UnsupportedKeyType(KeyType::EcK256).into()),
             KeyType::EcP224 => Self::EcP224,
             KeyType::EcP256 => Self::EcP256,
             KeyType::EcP384 => Self::EcP384,
             KeyType::EcP521 => Self::EcP521,
             KeyType::Generic => Self::Generic,
             KeyType::Rsa => Self::Rsa,
-        }
+        })
     }
 }
 
@@ -116,15 +119,21 @@ impl From<KeyMechanism> for nethsm_sdk_rs::models::KeyMechanism {
     }
 }
 
-impl From<SignatureType> for SignMode {
+impl TryFrom<SignatureType> for SignMode {
+    type Error = crate::Error;
+
     /// Creates a [`SignMode`] from a [`SignatureType`].
     ///
     /// # Note
     ///
     /// The more specific [`SignatureType::EcdsaP256`], [`SignatureType::EcdsaP384`] and
     /// [`SignatureType::EcdsaP521`] are returned as [`SignMode::Ecdsa`].
-    fn from(value: SignatureType) -> Self {
-        match value {
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if an unsupported SignatureType is encountered
+    fn try_from(value: SignatureType) -> Result<Self, Self::Error> {
+        Ok(match value {
             SignatureType::Pkcs1 => SignMode::Pkcs1,
             SignatureType::PssSha1 => SignMode::PssSha1,
             SignatureType::PssSha224 => SignMode::PssSha224,
@@ -136,7 +145,14 @@ impl From<SignatureType> for SignMode {
             | SignatureType::EcdsaP256
             | SignatureType::EcdsaP384
             | SignatureType::EcdsaP521 => SignMode::Ecdsa,
-        }
+            SignatureType::EcdsaK256 => {
+                return Err(Error::UnsupportedSignatureType {
+                    signature_type: SignatureType::EcdsaK256,
+                    context: "the NetHSM backend does not support it",
+                }
+                .into());
+            }
+        })
     }
 }
 

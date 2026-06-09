@@ -121,4 +121,30 @@ pub enum Error {
     #[error("Unsupported key mechanism: {0}")]
     #[cfg(feature = "nethsm")]
     UnsupportedNetHsmKeyMechanism(nethsm_sdk_rs::models::KeyMechanism),
+
+    /// Unsupported private key data for a specific key type has been encountered.
+    #[error("Private key data for key type {key_type} is not supported because {context}")]
+    UnsupportedPrivateKeyData {
+        /// The key type of the unsupported private key data.
+        key_type: KeyType,
+
+        /// The context in which the error occurred.
+        ///
+        /// This is meant to complete the sentence "Private key data for key type {key_type} is not
+        /// supported because ".
+        context: &'static str,
+    },
+
+    /// Unsupported private key data for a specific key type has been encountered.
+    #[error("The signature type {signature_type} is not supported because {context}")]
+    UnsupportedSignatureType {
+        /// The unsupported signature type.
+        signature_type: SignatureType,
+
+        /// The context in which the error occurred.
+        ///
+        /// This is meant to complete the sentence "The signature type {signature_type} is not
+        /// supported because ".
+        context: &'static str,
+    },
 }

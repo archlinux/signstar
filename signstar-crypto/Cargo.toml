@@ -15,6 +15,7 @@ change-user-run.workspace = true
 digest = { version = "0.10.7", features = ["alloc"] }
 ed25519-dalek = { workspace = true, features = ["pem", "pkcs8"] }
 email_address = "0.2.9"
+k256 = "0.13.4"
 log.workspace = true
 nethsm-sdk-rs = { workspace = true, optional = true }
 nix.workspace = true

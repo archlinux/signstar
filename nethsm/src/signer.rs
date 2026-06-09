@@ -13,6 +13,7 @@ use picky_asn1_x509::{
 };
 use signstar_crypto::{
     Error,
+    key::Error as SignstarCryptoKeyError,
     signer::{
         error::Error as SignstarCryptoSignerError,
         traits::{RawPublicKey, RawSigningKey},
@@ -282,6 +283,14 @@ fn prepare_digest_data_for_openpgp(
     digest: &[u8],
 ) -> Result<Cow<'_, [u8]>, Error> {
     Ok(match signature_type {
+        SignatureType::EcdsaK256 => {
+            return Err(Error::Key(
+                SignstarCryptoKeyError::UnsupportedSignatureType {
+                    signature_type,
+                    context: "the NetHSM backend does not support it",
+                },
+            ));
+        }
         // RSA-PKCS#1 signing scheme needs to wrap the digest value
         // in an DER-encoded ASN.1 DigestInfo structure which captures
         // the hash used.
@@ -298,7 +307,6 @@ fn prepare_digest_data_for_openpgp(
             }
         })?
         .into(),
-
         // ECDSA may need to truncate the digest if it's too long
         // See: https://www.rfc-editor.org/rfc/rfc9580#section-5.2.3.2
         SignatureType::EcdsaP224 => digest[..usize::min(28, digest.len())].into(),
@@ -308,7 +316,6 @@ fn prepare_digest_data_for_openpgp(
         // All other schemes that we use will not need any kind of
         // digest transformations.
         SignatureType::EdDsa | SignatureType::EcdsaP521 => digest.into(),
-
         SignatureType::PssSha1
         | SignatureType::PssSha224
         | SignatureType::PssSha256
@@ -338,6 +345,14 @@ fn prepare_digest_data_for_openpgp(
 fn raw_signature_to_mpis(sig_type: SignatureType, sig: &[u8]) -> Result<Vec<Vec<u8>>, Error> {
     use SignatureType;
     Ok(match sig_type {
+        SignatureType::EcdsaK256 => {
+            return Err(Error::Key(
+                SignstarCryptoKeyError::UnsupportedSignatureType {
+                    signature_type: sig_type,
+                    context: "the NetHSM backend does not support it",
+                },
+            ));
+        }
         SignatureType::EcdsaP224
         | SignatureType::EcdsaP256
         | SignatureType::EcdsaP384
