@@ -13,7 +13,9 @@ impl TryFrom<KeyType> for nethsm_sdk_rs::models::KeyType {
     fn try_from(value: KeyType) -> Result<Self, Self::Error> {
         Ok(match value {
             KeyType::Curve25519 => Self::Curve25519,
-            KeyType::EcK256 => return Err(Error::UnsupportedKeyType(KeyType::EcK256).into()),
+            KeyType::EcBp256 | KeyType::EcBp384 | KeyType::EcBp512 | KeyType::EcK256 => {
+                return Err(Error::UnsupportedKeyType(value).into());
+            }
             KeyType::EcP224 => Self::EcP224,
             KeyType::EcP256 => Self::EcP256,
             KeyType::EcP384 => Self::EcP384,

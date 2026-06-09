@@ -16,6 +16,8 @@ resolver = "3"
 
 [workspace.dependencies]
 base64ct = { version = "1.6.0", features = ["alloc", "std"] }
+bp256 = "0.6.1"
+bp384 = "0.6.1"
 change-user-run = "0.1.1"
 chrono = "0.4.38"
 clap = { version = "4.5.23", features = ["derive", "env"] }

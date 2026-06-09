@@ -11,6 +11,8 @@ version = "0.1.0"
 
 [dependencies]
 base64ct = { workspace = true, optional = true }
+bp256.workspace = true
+bp384.workspace = true
 change-user-run.workspace = true
 digest = { version = "0.10.7", features = ["alloc"] }
 ed25519-dalek = { workspace = true, features = ["pem", "pkcs8"] }
@@ -34,6 +36,8 @@ strum.workspace = true
 thiserror.workspace = true
 
 [dev-dependencies]
+bp256 = { workspace = true, features = ["wip-arithmetic-do-not-use"] }
+bp384 = { workspace = true, features = ["wip-arithmetic-do-not-use"] }
 clap.workspace = true
 clap-verbosity-flag.workspace = true
 rstest.workspace = true

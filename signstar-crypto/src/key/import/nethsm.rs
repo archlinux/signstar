@@ -5,7 +5,6 @@ use nethsm_sdk_rs::models::KeyPrivateData;
 
 use crate::key::{
     Error,
-    KeyType,
     import::{PrivateKeyData, PrivateKeyImport},
 };
 
@@ -34,9 +33,9 @@ impl TryFrom<PrivateKeyImport> for KeyPrivateData {
                 public_exponent: None,
                 data: Some(Base64::encode_string(&data)),
             },
-            PrivateKeyData::EcK256(_) => {
+            PrivateKeyData::EcBp256(_) | PrivateKeyData::EcBp384(_) | PrivateKeyData::EcK256(_) => {
                 return Err(Error::UnsupportedPrivateKeyData {
-                    key_type: KeyType::EcK256,
+                    key_type: value.key_type(),
                     context: "the NetHSM backend does not support it",
                 }
                 .into());

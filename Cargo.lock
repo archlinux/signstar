@@ -733,6 +733,28 @@ dependencies = [
 ]
 
 [[package]]
+name = "bp256"
+version = "0.6.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "35cf3773ca8a8a4faf645bb1c620fb4a7ef4002aeea1dc19c47574d7cc1d914f"
+dependencies = [
+ "ecdsa 0.16.9",
+ "elliptic-curve 0.13.8",
+ "primeorder 0.13.6",
+]
+
+[[package]]
+name = "bp384"
+version = "0.6.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "77a1890fdd654ddd5ad356defd0d7cdefa48cf25084406e42a1e62c0db5047ea"
+dependencies = [
+ "ecdsa 0.16.9",
+ "elliptic-curve 0.13.8",
+ "primeorder 0.13.6",
+]
+
+[[package]]
 name = "brotli"
 version = "8.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5143,6 +5165,8 @@ name = "signstar-crypto"
 version = "0.1.0"
 dependencies = [
  "base64ct",
+ "bp256",
+ "bp384",
  "change-user-run",
  "clap",
  "clap-verbosity-flag",

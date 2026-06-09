@@ -145,6 +145,15 @@ pub enum KeyType {
     #[default]
     Curve25519,
 
+    /// An elliptic (Brainpool) curve key over a prime field for a prime of size 256 bit
+    EcBp256,
+
+    /// An elliptic (Brainpool) curve key over a prime field for a prime of size 384 bit
+    EcBp384,
+
+    /// An elliptic (Brainpool) curve key over a prime field for a prime of size 512 bit
+    EcBp512,
+
     /// An elliptic (Koblitz) curve key over a prime field for a prime of size 256 bit
     EcK256,
 
@@ -572,9 +581,14 @@ pub fn key_type_matches_mechanisms(
 ) -> Result<(), crate::Error> {
     let valid_mechanisms: &[KeyMechanism] = match key_type {
         KeyType::Curve25519 => &KeyMechanism::curve25519_mechanisms(),
-        KeyType::EcK256 | KeyType::EcP224 | KeyType::EcP256 | KeyType::EcP384 | KeyType::EcP521 => {
-            &KeyMechanism::elliptic_curve_mechanisms()
-        }
+        KeyType::EcBp256
+        | KeyType::EcBp384
+        | KeyType::EcBp512
+        | KeyType::EcK256
+        | KeyType::EcP224
+        | KeyType::EcP256
+        | KeyType::EcP384
+        | KeyType::EcP521 => &KeyMechanism::elliptic_curve_mechanisms(),
         KeyType::Generic => &KeyMechanism::generic_mechanisms(),
         KeyType::Rsa => &KeyMechanism::rsa_mechanisms(),
     };
@@ -848,6 +862,9 @@ pub fn key_type_and_mechanisms_match_signature_type(
 pub fn key_type_matches_length(key_type: KeyType, length: Option<u32>) -> Result<(), crate::Error> {
     match key_type {
         KeyType::Curve25519
+        | KeyType::EcBp256
+        | KeyType::EcBp384
+        | KeyType::EcBp512
         | KeyType::EcK256
         | KeyType::EcP224
         | KeyType::EcP256

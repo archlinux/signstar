@@ -22,6 +22,10 @@ use crate::key::{Error, KeyType, key_type_matches_length};
 pub enum PrivateKeyData {
     /// Data for [`KeyType::Curve25519`]
     Curve25519(Vec<u8>),
+    /// Data for [`KeyType::EcBp256`]
+    EcBp256(Vec<u8>),
+    /// Data for [`KeyType::EcBp384`]
+    EcBp384(Vec<u8>),
     /// Data for [`KeyType::EcK256`]
     EcK256(Vec<u8>),
     /// Data for [`KeyType::EcP224`]
@@ -48,6 +52,8 @@ impl Debug for PrivateKeyData {
         const REDACTED: &&str = &"[REDACTED]";
         match self {
             Self::Curve25519(_) => f.debug_tuple("Curve25519").field(REDACTED).finish(),
+            Self::EcBp256(_) => f.debug_tuple("EcBp256").field(REDACTED).finish(),
+            Self::EcBp384(_) => f.debug_tuple("EcBp384").field(REDACTED).finish(),
             Self::EcK256(_) => f.debug_tuple("EcK256").field(REDACTED).finish(),
             Self::EcP224(_) => f.debug_tuple("EcP224").field(REDACTED).finish(),
             Self::EcP256(_) => f.debug_tuple("EcP256").field(REDACTED).finish(),
@@ -61,6 +67,22 @@ impl Debug for PrivateKeyData {
                 .field("prime_q", REDACTED)
                 .field("public_exponent", public_exponent)
                 .finish(),
+        }
+    }
+}
+
+impl From<&PrivateKeyData> for KeyType {
+    fn from(value: &PrivateKeyData) -> Self {
+        match value {
+            PrivateKeyData::Curve25519(_) => Self::Curve25519,
+            PrivateKeyData::EcBp256(_) => Self::EcBp256,
+            PrivateKeyData::EcBp384(_) => Self::EcBp384,
+            PrivateKeyData::EcK256(_) => Self::EcK256,
+            PrivateKeyData::EcP224(_) => Self::EcP224,
+            PrivateKeyData::EcP256(_) => Self::EcP256,
+            PrivateKeyData::EcP384(_) => Self::EcP384,
+            PrivateKeyData::EcP521(_) => Self::EcP521,
+            PrivateKeyData::Rsa { .. } => Self::Rsa,
         }
     }
 }
@@ -111,7 +133,7 @@ impl PrivateKeyImport {
     /// - `key_data` can not be deserialized to a respective private key format.
     /// - an RSA private key does not have prime P or prime Q.
     /// - an RSA private key is shorter than [`MIN_RSA_BIT_LENGTH`].
-    /// - `key_type` is the unsupported [`KeyType::Generic`].
+    /// - `key_type` is the unsupported [`KeyType::Generic`] or [`KeyType::EcBp512`].
     ///
     /// # Examples
     ///
@@ -141,6 +163,21 @@ impl PrivateKeyImport {
                     key_data: PrivateKeyData::Curve25519(key_pair.secret_key.to_vec()),
                 }
             }
+            KeyType::EcBp256 => {
+                let private_key =
+                    bp256::r1::SecretKey::from_pkcs8_der(key_data).map_err(Error::Pkcs8)?;
+                Self {
+                    key_data: PrivateKeyData::EcBp256(private_key.to_bytes().as_slice().to_owned()),
+                }
+            }
+            KeyType::EcBp384 => {
+                let private_key =
+                    bp384::r1::SecretKey::from_pkcs8_der(key_data).map_err(Error::Pkcs8)?;
+                Self {
+                    key_data: PrivateKeyData::EcBp384(private_key.to_bytes().as_slice().to_owned()),
+                }
+            }
+            KeyType::EcBp512 => return Err(Error::UnsupportedKeyType(key_type).into()),
             KeyType::EcK256 => {
                 let private_key =
                     k256::SecretKey::from_pkcs8_der(key_data).map_err(Error::Pkcs8)?;
@@ -212,7 +249,7 @@ impl PrivateKeyImport {
     /// - `key_data` can not be deserialized to a respective private key format.
     /// - an RSA private key does not have prime P or prime Q.
     /// - an RSA private key is shorter than [`MIN_RSA_BIT_LENGTH`].
-    /// - `key_type` is the unsupported [`KeyType::Generic`].
+    /// - `key_type` is the unsupported [`KeyType::Generic`] or [`KeyType::EcBp512`].
     ///
     /// # Examples
     ///
@@ -244,6 +281,21 @@ impl PrivateKeyImport {
                     key_data: PrivateKeyData::Curve25519(key_pair.secret_key.to_vec()),
                 }
             }
+            KeyType::EcBp256 => {
+                let private_key =
+                    bp256::r1::SecretKey::from_pkcs8_pem(key_data).map_err(Error::Pkcs8)?;
+                Self {
+                    key_data: PrivateKeyData::EcBp256(private_key.to_bytes().as_slice().to_owned()),
+                }
+            }
+            KeyType::EcBp384 => {
+                let private_key =
+                    bp384::r1::SecretKey::from_pkcs8_pem(key_data).map_err(Error::Pkcs8)?;
+                Self {
+                    key_data: PrivateKeyData::EcBp384(private_key.to_bytes().as_slice().to_owned()),
+                }
+            }
+            KeyType::EcBp512 => return Err(Error::UnsupportedKeyType(key_type).into()),
             KeyType::EcK256 => {
                 let private_key =
                     k256::SecretKey::from_pkcs8_pem(key_data).map_err(Error::Pkcs8)?;
@@ -366,19 +418,7 @@ impl PrivateKeyImport {
 
     /// Get the matching [`KeyType`] for the data contained in the [`PrivateKeyImport`]
     pub fn key_type(&self) -> KeyType {
-        match &self.key_data {
-            PrivateKeyData::Curve25519(_) => KeyType::Curve25519,
-            PrivateKeyData::EcK256(_) => KeyType::EcK256,
-            PrivateKeyData::EcP224(_) => KeyType::EcP224,
-            PrivateKeyData::EcP256(_) => KeyType::EcP256,
-            PrivateKeyData::EcP384(_) => KeyType::EcP384,
-            PrivateKeyData::EcP521(_) => KeyType::EcP521,
-            PrivateKeyData::Rsa {
-                prime_p: _,
-                prime_q: _,
-                public_exponent: _,
-            } => KeyType::Rsa,
-        }
+        KeyType::from(&self.key_data)
     }
 }
 
@@ -386,12 +426,11 @@ impl PrivateKeyImport {
 mod tests {
     use rsa::RsaPrivateKey;
     use rsa::pkcs8::EncodePrivateKey;
-    use rstest::{fixture, rstest};
+    use rstest::rstest;
     use testresult::TestResult;
 
     use super::*;
 
-    #[fixture]
     fn ed25519_private_key() -> TestResult<Vec<u8>> {
         use ed25519_dalek::SigningKey;
         use rand::rngs::OsRng;
@@ -400,42 +439,48 @@ mod tests {
         Ok(signing_key.to_pkcs8_der()?.as_bytes().to_vec())
     }
 
-    #[fixture]
+    fn bp256_private_key() -> TestResult<Vec<u8>> {
+        use bp256::elliptic_curve::rand_core::OsRng;
+        let private_key = bp256::r1::SecretKey::random(&mut OsRng);
+        Ok(private_key.to_pkcs8_der()?.as_bytes().to_vec())
+    }
+
+    fn bp384_private_key() -> TestResult<Vec<u8>> {
+        use bp384::elliptic_curve::rand_core::OsRng;
+        let private_key = bp384::r1::SecretKey::random(&mut OsRng);
+        Ok(private_key.to_pkcs8_der()?.as_bytes().to_vec())
+    }
+
     fn k256_private_key() -> TestResult<Vec<u8>> {
         use k256::elliptic_curve::rand_core::OsRng;
         let private_key = k256::SecretKey::random(&mut OsRng);
         Ok(private_key.to_pkcs8_der()?.as_bytes().to_vec())
     }
 
-    #[fixture]
     fn p224_private_key() -> TestResult<Vec<u8>> {
         use p224::elliptic_curve::rand_core::OsRng;
         let private_key = p224::SecretKey::random(&mut OsRng);
         Ok(private_key.to_pkcs8_der()?.as_bytes().to_vec())
     }
 
-    #[fixture]
     fn p256_private_key() -> TestResult<Vec<u8>> {
         use p256::elliptic_curve::rand_core::OsRng;
         let private_key = p256::SecretKey::random(&mut OsRng);
         Ok(private_key.to_pkcs8_der()?.as_bytes().to_vec())
     }
 
-    #[fixture]
     fn p384_private_key() -> TestResult<Vec<u8>> {
         use p384::elliptic_curve::rand_core::OsRng;
         let private_key = p384::SecretKey::random(&mut OsRng);
         Ok(private_key.to_pkcs8_der()?.as_bytes().to_vec())
     }
 
-    #[fixture]
     fn p521_private_key() -> TestResult<Vec<u8>> {
         use p521::elliptic_curve::rand_core::OsRng;
         let private_key = p521::SecretKey::random(&mut OsRng);
         Ok(private_key.to_pkcs8_der()?.as_bytes().to_vec())
     }
 
-    #[fixture]
     fn rsa_private_key() -> TestResult<Vec<u8>> {
         let mut rng = rand::thread_rng();
         let private_key = RsaPrivateKey::new(&mut rng, 2048.try_into()?)?;
@@ -443,86 +488,175 @@ mod tests {
     }
 
     #[rstest]
-    fn key_data(
-        ed25519_private_key: TestResult<Vec<u8>>,
-        k256_private_key: TestResult<Vec<u8>>,
-        p224_private_key: TestResult<Vec<u8>>,
-        p256_private_key: TestResult<Vec<u8>>,
-        p384_private_key: TestResult<Vec<u8>>,
-        p521_private_key: TestResult<Vec<u8>>,
-        rsa_private_key: TestResult<Vec<u8>>,
+    #[case::curve25519(KeyType::Curve25519)]
+    #[case::ecbp256(KeyType::EcBp256)]
+    #[case::ecbp384(KeyType::EcBp384)]
+    #[case::eck256(KeyType::EcK256)]
+    #[case::ecp224(KeyType::EcP224)]
+    #[case::ecp256(KeyType::EcP256)]
+    #[case::ecp384(KeyType::EcP384)]
+    #[case::ecp521(KeyType::EcP521)]
+    #[case::rsa(KeyType::Rsa)]
+    fn key_data(#[case] key_type: KeyType) -> TestResult {
+        let bp256_private_key = bp256_private_key()?;
+        let bp384_private_key = bp384_private_key()?;
+        let ed25519_private_key = ed25519_private_key()?;
+        let k256_private_key = k256_private_key()?;
+        let p224_private_key = p224_private_key()?;
+        let p256_private_key = p256_private_key()?;
+        let p384_private_key = p384_private_key()?;
+        let p521_private_key = p521_private_key()?;
+        let rsa_private_key = rsa_private_key()?;
+
+        let (ok_cases, error_cases) = match key_type {
+            KeyType::Curve25519 => (
+                [&ed25519_private_key],
+                [
+                    &bp256_private_key,
+                    &bp384_private_key,
+                    &k256_private_key,
+                    &p224_private_key,
+                    &p256_private_key,
+                    &p384_private_key,
+                    &p521_private_key,
+                    &rsa_private_key,
+                ],
+            ),
+            KeyType::EcBp256 => (
+                [&bp256_private_key],
+                [
+                    &bp384_private_key,
+                    &ed25519_private_key,
+                    &k256_private_key,
+                    &p224_private_key,
+                    &p256_private_key,
+                    &p384_private_key,
+                    &p521_private_key,
+                    &rsa_private_key,
+                ],
+            ),
+            KeyType::EcBp384 => (
+                [&bp384_private_key],
+                [
+                    &bp256_private_key,
+                    &ed25519_private_key,
+                    &k256_private_key,
+                    &p224_private_key,
+                    &p256_private_key,
+                    &p384_private_key,
+                    &p521_private_key,
+                    &rsa_private_key,
+                ],
+            ),
+            KeyType::EcK256 => (
+                [&k256_private_key],
+                [
+                    &bp256_private_key,
+                    &bp384_private_key,
+                    &ed25519_private_key,
+                    &p224_private_key,
+                    &p256_private_key,
+                    &p384_private_key,
+                    &p521_private_key,
+                    &rsa_private_key,
+                ],
+            ),
+            KeyType::EcP224 => (
+                [&p224_private_key],
+                [
+                    &bp256_private_key,
+                    &bp384_private_key,
+                    &ed25519_private_key,
+                    &k256_private_key,
+                    &p256_private_key,
+                    &p384_private_key,
+                    &p521_private_key,
+                    &rsa_private_key,
+                ],
+            ),
+            KeyType::EcP256 => (
+                [&p256_private_key],
+                [
+                    &bp256_private_key,
+                    &bp384_private_key,
+                    &ed25519_private_key,
+                    &k256_private_key,
+                    &p224_private_key,
+                    &p384_private_key,
+                    &p521_private_key,
+                    &rsa_private_key,
+                ],
+            ),
+            KeyType::EcP384 => (
+                [&p384_private_key],
+                [
+                    &bp256_private_key,
+                    &bp384_private_key,
+                    &ed25519_private_key,
+                    &k256_private_key,
+                    &p224_private_key,
+                    &p256_private_key,
+                    &p521_private_key,
+                    &rsa_private_key,
+                ],
+            ),
+            KeyType::EcP521 => (
+                [&p521_private_key],
+                [
+                    &bp256_private_key,
+                    &bp384_private_key,
+                    &ed25519_private_key,
+                    &k256_private_key,
+                    &p224_private_key,
+                    &p256_private_key,
+                    &p384_private_key,
+                    &rsa_private_key,
+                ],
+            ),
+            KeyType::Rsa => (
+                [&rsa_private_key],
+                [
+                    &bp256_private_key,
+                    &bp384_private_key,
+                    &ed25519_private_key,
+                    &k256_private_key,
+                    &p224_private_key,
+                    &p256_private_key,
+                    &p384_private_key,
+                    &p521_private_key,
+                ],
+            ),
+            KeyType::Generic => unimplemented!("generic key types are not supported"),
+            KeyType::EcBp512 => unimplemented!("there is currently no rustcrypto support"),
+        };
+
+        for ok_case in ok_cases.iter() {
+            assert!(PrivateKeyImport::new(key_type, ok_case).is_ok());
+        }
+
+        for error_case in error_cases.iter() {
+            assert!(PrivateKeyImport::new(key_type, error_case).is_err());
+        }
+
+        Ok(())
+    }
+
+    #[rstest]
+    #[case::curve_25519(PrivateKeyImport::new(KeyType::Curve25519, ed25519_private_key()?.as_slice())?, KeyType::Curve25519)]
+    #[case::ecbp256(PrivateKeyImport::new(KeyType::EcBp256, bp256_private_key()?.as_slice())?, KeyType::EcBp256)]
+    #[case::ecbp384(PrivateKeyImport::new(KeyType::EcBp384, bp384_private_key()?.as_slice())?, KeyType::EcBp384)]
+    #[case::eck256(PrivateKeyImport::new(KeyType::EcK256, k256_private_key()?.as_slice())?, KeyType::EcK256)]
+    #[case::ecp224(PrivateKeyImport::new(KeyType::EcP224, p224_private_key()?.as_slice())?, KeyType::EcP224)]
+    #[case::ecp256(PrivateKeyImport::new(KeyType::EcP256, p256_private_key()?.as_slice())?, KeyType::EcP256)]
+    #[case::ecp384(PrivateKeyImport::new(KeyType::EcP384, p384_private_key()?.as_slice())?, KeyType::EcP384)]
+    #[case::ecp521(PrivateKeyImport::new(KeyType::EcP521, p521_private_key()?.as_slice())?, KeyType::EcP521)]
+    #[case::rsa(PrivateKeyImport::new(KeyType::Rsa, rsa_private_key()?.as_slice())?, KeyType::Rsa)]
+    fn private_key_import_key_data_matches(
+        #[case] private_key_data: PrivateKeyImport,
+        #[case] key_type: KeyType,
     ) -> TestResult {
-        let ed25519_private_key = ed25519_private_key?;
-        let k256_private_key = k256_private_key?;
-        let p224_private_key = p224_private_key?;
-        let p256_private_key = p256_private_key?;
-        let p384_private_key = p384_private_key?;
-        let p521_private_key = p521_private_key?;
-        let rsa_private_key = rsa_private_key?;
+        assert_eq!(private_key_data.key_type(), key_type);
 
-        assert!(PrivateKeyImport::new(KeyType::Curve25519, &ed25519_private_key).is_ok());
-        assert!(PrivateKeyImport::new(KeyType::Curve25519, &k256_private_key).is_err());
-        assert!(PrivateKeyImport::new(KeyType::Curve25519, &p224_private_key).is_err());
-        assert!(PrivateKeyImport::new(KeyType::Curve25519, &p256_private_key).is_err());
-        assert!(PrivateKeyImport::new(KeyType::Curve25519, &p384_private_key).is_err());
-        assert!(PrivateKeyImport::new(KeyType::Curve25519, &p521_private_key).is_err());
-        assert!(PrivateKeyImport::new(KeyType::Curve25519, &rsa_private_key).is_err());
-
-        assert!(PrivateKeyImport::new(KeyType::EcK256, &ed25519_private_key).is_err());
-        assert!(PrivateKeyImport::new(KeyType::EcK256, &k256_private_key).is_ok());
-        assert!(PrivateKeyImport::new(KeyType::EcK256, &p224_private_key).is_err());
-        assert!(PrivateKeyImport::new(KeyType::EcK256, &p256_private_key).is_err());
-        assert!(PrivateKeyImport::new(KeyType::EcK256, &p384_private_key).is_err());
-        assert!(PrivateKeyImport::new(KeyType::EcK256, &p521_private_key).is_err());
-        assert!(PrivateKeyImport::new(KeyType::EcK256, &rsa_private_key).is_err());
-
-        assert!(PrivateKeyImport::new(KeyType::EcP224, &ed25519_private_key).is_err());
-        assert!(PrivateKeyImport::new(KeyType::EcP224, &k256_private_key).is_err());
-        assert!(PrivateKeyImport::new(KeyType::EcP224, &p224_private_key).is_ok());
-        assert!(PrivateKeyImport::new(KeyType::EcP224, &p256_private_key).is_err());
-        assert!(PrivateKeyImport::new(KeyType::EcP224, &p384_private_key).is_err());
-        assert!(PrivateKeyImport::new(KeyType::EcP224, &p521_private_key).is_err());
-        assert!(PrivateKeyImport::new(KeyType::EcP224, &rsa_private_key).is_err());
-
-        assert!(PrivateKeyImport::new(KeyType::EcP256, &ed25519_private_key).is_err());
-        assert!(PrivateKeyImport::new(KeyType::EcP256, &k256_private_key).is_err());
-        assert!(PrivateKeyImport::new(KeyType::EcP256, &p224_private_key).is_err());
-        assert!(PrivateKeyImport::new(KeyType::EcP256, &p256_private_key).is_ok());
-        assert!(PrivateKeyImport::new(KeyType::EcP256, &p384_private_key).is_err());
-        assert!(PrivateKeyImport::new(KeyType::EcP256, &p521_private_key).is_err());
-        assert!(PrivateKeyImport::new(KeyType::EcP256, &rsa_private_key).is_err());
-
-        assert!(PrivateKeyImport::new(KeyType::EcP384, &ed25519_private_key).is_err());
-        assert!(PrivateKeyImport::new(KeyType::EcP384, &k256_private_key).is_err());
-        assert!(PrivateKeyImport::new(KeyType::EcP384, &p224_private_key).is_err());
-        assert!(PrivateKeyImport::new(KeyType::EcP384, &p256_private_key).is_err());
-        assert!(PrivateKeyImport::new(KeyType::EcP384, &p384_private_key).is_ok());
-        assert!(PrivateKeyImport::new(KeyType::EcP384, &p521_private_key).is_err());
-        assert!(PrivateKeyImport::new(KeyType::EcP384, &rsa_private_key).is_err());
-
-        assert!(PrivateKeyImport::new(KeyType::EcP521, &ed25519_private_key).is_err());
-        assert!(PrivateKeyImport::new(KeyType::EcP521, &k256_private_key).is_err());
-        assert!(PrivateKeyImport::new(KeyType::EcP521, &p224_private_key).is_err());
-        assert!(PrivateKeyImport::new(KeyType::EcP521, &p256_private_key).is_err());
-        assert!(PrivateKeyImport::new(KeyType::EcP521, &p384_private_key).is_err());
-        assert!(PrivateKeyImport::new(KeyType::EcP521, &p521_private_key).is_ok());
-        assert!(PrivateKeyImport::new(KeyType::EcP521, &rsa_private_key).is_err());
-
-        assert!(PrivateKeyImport::new(KeyType::Rsa, &ed25519_private_key).is_err());
-        assert!(PrivateKeyImport::new(KeyType::Rsa, &k256_private_key).is_err());
-        assert!(PrivateKeyImport::new(KeyType::Rsa, &p224_private_key).is_err());
-        assert!(PrivateKeyImport::new(KeyType::Rsa, &p256_private_key).is_err());
-        assert!(PrivateKeyImport::new(KeyType::Rsa, &p384_private_key).is_err());
-        assert!(PrivateKeyImport::new(KeyType::Rsa, &p521_private_key).is_err());
-        assert!(PrivateKeyImport::new(KeyType::Rsa, &rsa_private_key).is_ok());
-
-        assert!(PrivateKeyImport::new(KeyType::Generic, &ed25519_private_key).is_err());
-        assert!(PrivateKeyImport::new(KeyType::Generic, &k256_private_key).is_err());
-        assert!(PrivateKeyImport::new(KeyType::Generic, &p224_private_key).is_err());
-        assert!(PrivateKeyImport::new(KeyType::Generic, &p256_private_key).is_err());
-        assert!(PrivateKeyImport::new(KeyType::Generic, &p384_private_key).is_err());
-        assert!(PrivateKeyImport::new(KeyType::Generic, &p521_private_key).is_err());
-        assert!(PrivateKeyImport::new(KeyType::Generic, &rsa_private_key).is_err());
         Ok(())
     }
 }
