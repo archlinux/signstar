@@ -116,4 +116,9 @@ pub enum Error {
         /// The signature type incompatible with OpenPGP signing.
         signature_type: SignatureType,
     },
+
+    /// An unsupported key mechanism has been encountered.
+    #[error("Unsupported key mechanism: {0}")]
+    #[cfg(feature = "nethsm")]
+    UnsupportedNetHsmKeyMechanism(nethsm_sdk_rs::models::KeyMechanism),
 }

@@ -2,7 +2,10 @@
 
 use nethsm_sdk_rs::models::SignMode;
 
-use crate::key::base::{DecryptMode, EncryptMode, KeyMechanism, KeyType, SignatureType};
+use crate::key::{
+    Error,
+    base::{DecryptMode, EncryptMode, KeyMechanism, KeyType, SignatureType},
+};
 
 impl From<KeyType> for nethsm_sdk_rs::models::KeyType {
     fn from(value: KeyType) -> Self {
@@ -82,7 +85,7 @@ impl TryFrom<&nethsm_sdk_rs::models::KeyMechanism> for KeyMechanism {
                 Self::RsaSignaturePssSha512
             }
             nethsm_sdk_rs::models::KeyMechanism::RsaSignaturePssMd5 => {
-                return Err(crate::Error::UnsupportedNetHsmKeyMechanism(*value));
+                return Err(Error::UnsupportedNetHsmKeyMechanism(*value).into());
             }
         })
     }
