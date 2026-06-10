@@ -14,6 +14,7 @@ Common types and functionality for cryptography in Signstar.
 - `_test-helpers`: Helpers used for integration test setups.
   **NOTE**: Unless you are developing this crate, you will very likely not want to use this feature.
 - `nethsm`: Enable integration required for use with a [NetHSM].
+- `yubihsm2`: Enables support for the [YubiHSM2] backend.
 
 ## Contributing
 
@@ -28,4 +29,5 @@ Changes to this project - unless stated otherwise - automatically fall under the
 [Apache-2.0]: https://www.apache.org/licenses/LICENSE-2.0
 [MIT]: https://opensource.org/licenses/MIT
 [NetHSM]: https://www.nitrokey.com/products/nethsm
+[YubiHSM2]: https://www.yubico.com/de/product/yubihsm-2/
 [contributing guidelines]: ../CONTRIBUTING.md

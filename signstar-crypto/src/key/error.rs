@@ -147,4 +147,18 @@ pub enum Error {
         /// supported because ".
         context: &'static str,
     },
+
+    /// An unsupported algorithm has been encountered.
+    #[error("The YubiHSM2 algorithm {algorithm:?} is not a key type, because {context}")]
+    #[cfg(feature = "yubihsm2")]
+    YubiHsm2AlgorithmNotAKeyType {
+        /// The unsupported YubiHSM2 algorithm.
+        algorithm: yubihsm::Algorithm,
+
+        /// The context in which the error occurred.
+        ///
+        /// This is meant to complete the sentence "The YubiHSM2 algorithm {algorithm} is
+        /// not a key type, because ".
+        context: &'static str,
+    },
 }

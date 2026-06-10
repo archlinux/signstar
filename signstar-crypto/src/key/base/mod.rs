@@ -3,6 +3,9 @@
 #[cfg(feature = "nethsm")]
 pub mod nethsm;
 
+#[cfg(feature = "yubihsm2")]
+pub mod yubihsm2;
+
 use std::fmt::Display;
 
 use pgp::{composed::SignedPublicKey, types::KeyDetails as _};

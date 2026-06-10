@@ -5193,6 +5193,7 @@ dependencies = [
  "tempfile",
  "testresult",
  "thiserror 2.0.18",
+ "yubihsm",
 ]
 
 [[package]]

@@ -34,6 +34,7 @@ sha2.workspace = true
 signstar-common.workspace = true
 strum.workspace = true
 thiserror.workspace = true
+yubihsm = { workspace = true, optional = true }
 
 [dev-dependencies]
 bp256 = { workspace = true, features = ["wip-arithmetic-do-not-use"] }
@@ -49,6 +50,7 @@ testresult.workspace = true
 _containerized-integration-test = ["_test-helpers"]
 _test-helpers = []
 nethsm = ["dep:base64ct", "dep:nethsm-sdk-rs"]
+yubihsm2 = ["dep:yubihsm"]
 
 [lints]
 workspace = true
