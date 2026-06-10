@@ -175,7 +175,7 @@ fn run_scenario(serial_number: Option<SerialNumber>, scenario_file: PathBuf) -> 
             source,
         })?;
     let runner = ScenarioRunner::new(connector);
-    runner.run(&Scenario::try_from(scenario)?, &mut stdout())?;
+    runner.run_with_writer(&Scenario::try_from(scenario)?, &mut stdout())?;
 
     Ok(())
 }

@@ -5,5 +5,13 @@ mod runner;
 mod scenario;
 
 pub use command::{AuditOption, AuthenticatedCommandChain, Command};
-pub use runner::ScenarioRunner;
+pub use runner::{
+    CommandReturnValue,
+    Ed25519Signature,
+    LOG_DIGEST_SIZE,
+    LogDigest,
+    LogEntries,
+    LogEntry,
+    ScenarioRunner,
+};
 pub use scenario::{FileBackedScenario, Scenario};
