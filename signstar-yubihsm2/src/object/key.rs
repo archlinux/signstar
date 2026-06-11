@@ -333,7 +333,7 @@ impl TryFrom<&Passphrase> for AuthenticationKey {
 ///
 /// This struct stores common parameters of keys regardless of their usage may describe
 /// authentication, wrapping and signing keys.
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct KeyInfo {
     /// Inner identifier used to track the key on the YubiHSM2.
