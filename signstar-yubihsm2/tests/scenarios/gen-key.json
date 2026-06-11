@@ -6,7 +6,7 @@
     },
     "commands": [
       {
-        "put_auth_key": {
+        "put_authentication_key": {
           "key_id": 3,
           "domains": [
             1
@@ -19,7 +19,7 @@
         }
       },
       {
-        "generate_key": {
+        "generate_asymmetric_key": {
           "key_id": 3,
           "domains": [
             1

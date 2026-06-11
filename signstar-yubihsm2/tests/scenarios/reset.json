@@ -6,7 +6,7 @@
     },
     "commands": [
       {
-        "reset": null
+        "reset_device_and_reconnect": null
       }
     ]
   }

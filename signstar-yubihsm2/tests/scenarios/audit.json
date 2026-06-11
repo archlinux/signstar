@@ -6,16 +6,16 @@
     },
     "commands": [
       {
-        "command_audit": {
+        "set_command_audit_option": {
           "command": 106,
           "setting": "on"
         }
       },
       {
-        "force_audit": "on"
+        "set_force_audit_option": "on"
       },
       {
-        "generate_key": {
+        "generate_asymmetric_key": {
           "key_id": 7,
           "domains": [
             1
@@ -84,7 +84,7 @@
         }
       },
       {
-        "get_log": null
+        "get_log_entries": null
       }
     ]
   }

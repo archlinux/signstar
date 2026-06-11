@@ -43,16 +43,16 @@ impl From<AuditOption> for yubihsm::AuditOption {
 #[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 pub enum Command {
     /// Query the device state.
-    Info,
+    DeviceInfo,
 
     /// Reset the device to factory settings and reconnect afterwards.
     ///
     /// Note that this is a destructive operation and the authenticating user will need to have
     /// appropriate capabilities.
-    Reset,
+    ResetDeviceAndReconnect,
 
     /// Query the command log of the device and print it to standard output.
-    GetLog,
+    GetLogEntries,
 
     /// Change audit settings.
     ///
@@ -60,7 +60,7 @@ pub enum Command {
     /// Codes is full.
     ///
     /// See [Force Audit](https://docs.yubico.com/hardware/yubihsm-2/hsm-2-user-guide/hsm2-core-concepts.html#force-audit) for more details.
-    ForceAudit(AuditOption),
+    SetForceAuditOption(AuditOption),
 
     /// Changes command audit settings.
     ///
@@ -69,7 +69,7 @@ pub enum Command {
     ///
     /// See [Force Audit](https://docs.yubico.com/hardware/yubihsm-2/hsm-2-user-guide/hsm2-core-concepts.html#command-audit) for more details.
     #[allow(clippy::enum_variant_names)]
-    CommandAudit {
+    SetCommandAuditOption {
         /// Command of which the setting should be changed.
         command: Code,
 
@@ -80,7 +80,7 @@ pub enum Command {
     /// Put authentication key on the device.
     ///
     /// This command is used to append new authentication keys.
-    PutAuthKey {
+    PutAuthenticationKey {
         /// The key identity and capabilities.
         #[cfg_attr(feature = "serde", serde(flatten))]
         info: KeyInfo,
@@ -94,7 +94,7 @@ pub enum Command {
     },
 
     /// Generates new `ed25519` signing key on the device.
-    GenerateKey {
+    GenerateAsymmetricKey {
         /// The key identity and capabilities.
         #[cfg_attr(feature = "serde", serde(flatten))]
         info: KeyInfo,
@@ -149,10 +149,10 @@ pub enum Command {
     },
 
     /// Permanently remove an object from the device.
-    Delete(ObjectId),
+    DeleteObject(ObjectId),
 
     /// Query data about the object and print it to standard output.
-    GetInfo(ObjectId),
+    GetObjectInfo(ObjectId),
 }
 
 /// A list of [`Command`]s that are run with a specific authentication.

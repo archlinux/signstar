@@ -6,7 +6,7 @@
     },
     "commands": [
       {
-        "generate_key": {
+        "generate_asymmetric_key": {
           "key_id": 5,
           "domains": [
             1
@@ -34,7 +34,7 @@
         }
       },
       {
-        "put_auth_key": {
+        "put_authentication_key": {
           "key_id": 5,
           "domains": [
             1
@@ -71,7 +71,7 @@
     },
     "commands": [
       {
-        "delete": {
+        "delete_object": {
           "object_type": "asymmetric-key",
           "object_id": 5
         }

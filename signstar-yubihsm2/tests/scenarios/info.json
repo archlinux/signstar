@@ -6,7 +6,7 @@
     },
     "commands": [
       {
-        "info": null
+        "device_info": null
       }
     ]
   },
@@ -17,7 +17,7 @@
     },
     "commands": [
       {
-        "info": null
+        "device_info": null
       }
     ]
   }

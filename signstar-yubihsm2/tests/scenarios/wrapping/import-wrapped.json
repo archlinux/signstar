@@ -22,7 +22,7 @@
         }
       },
       {
-        "put_auth_key": {
+        "put_authentication_key": {
           "key_id": 6,
           "domains": [
             1
@@ -49,7 +49,7 @@
         }
       },
       {
-        "get_info": {
+        "get_object_info": {
           "object_type": "asymmetric-key",
           "object_id": 5
         }
@@ -63,13 +63,13 @@
     },
     "commands": [
       {
-        "delete": {
+        "delete_object": {
           "object_type": "authentication-key",
           "object_id": 6
         }
       },
       {
-        "put_auth_key": {
+        "put_authentication_key": {
           "key_id": 6,
           "domains": [
             1

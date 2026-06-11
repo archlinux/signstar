@@ -6,7 +6,7 @@
     },
     "commands": [
       {
-        "put_auth_key": {
+        "put_authentication_key": {
           "key_id": 2,
           "domains": [
             1

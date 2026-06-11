@@ -331,7 +331,7 @@ impl ScenarioRunner {
         command: &Command,
     ) -> Result<CommandReturnValue, Error> {
         Ok(match command {
-            Command::Info => {
+            Command::DeviceInfo => {
                 CommandReturnValue::DeviceInfo(client.device_info().map_err(|source| {
                     Error::Client {
                         context: "executing device info command",
@@ -339,7 +339,7 @@ impl ScenarioRunner {
                     }
                 })?)
             }
-            Command::Reset => {
+            Command::ResetDeviceAndReconnect => {
                 client
                     .reset_device_and_reconnect(Duration::from_secs(2))
                     .map_err(|source| Error::Client {
@@ -348,7 +348,7 @@ impl ScenarioRunner {
                     })?;
                 CommandReturnValue::ResetDeviceAndReconnect
             }
-            Command::PutAuthKey {
+            Command::PutAuthenticationKey {
                 info:
                     KeyInfo {
                         key_id,
@@ -376,7 +376,7 @@ impl ScenarioRunner {
                         })?,
                 )
             }
-            Command::GenerateKey {
+            Command::GenerateAsymmetricKey {
                 info:
                     KeyInfo {
                         key_id,
@@ -480,7 +480,7 @@ impl ScenarioRunner {
                         })?,
                 )
             }
-            Command::Delete(object) => {
+            Command::DeleteObject(object) => {
                 client
                     .delete_object(object.id().into(), object.object_type())
                     .map_err(|source| Error::Client {
@@ -489,7 +489,7 @@ impl ScenarioRunner {
                     })?;
                 CommandReturnValue::DeleteObject
             }
-            Command::GetInfo(object) => CommandReturnValue::GetObjectInfo(
+            Command::GetObjectInfo(object) => CommandReturnValue::GetObjectInfo(
                 client
                     .get_object_info(object.id().into(), object.object_type())
                     .map_err(|source| Error::Client {
@@ -497,7 +497,7 @@ impl ScenarioRunner {
                         source,
                     })?,
             ),
-            Command::ForceAudit(setting) => {
+            Command::SetForceAuditOption(setting) => {
                 client
                     .set_force_audit_option((*setting).into())
                     .map_err(|source| Error::Client {
@@ -506,7 +506,7 @@ impl ScenarioRunner {
                     })?;
                 CommandReturnValue::SetForceAuditOption
             }
-            Command::CommandAudit { command, setting } => {
+            Command::SetCommandAuditOption { command, setting } => {
                 client
                     .set_command_audit_option(*command, (*setting).into())
                     .map_err(|source| Error::Client {
@@ -515,7 +515,7 @@ impl ScenarioRunner {
                     })?;
                 CommandReturnValue::SetCommandAuditOption
             }
-            Command::GetLog => {
+            Command::GetLogEntries => {
                 let log_entries = client.get_log_entries().map_err(|source| Error::Client {
                     context: "getting log entries",
                     source,
