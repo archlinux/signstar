@@ -164,7 +164,7 @@ enum BackupSubcommands {
 fn run_scenario(serial_number: Option<SerialNumber>, scenario_file: PathBuf) -> Result<(), Error> {
     let connector = get_connector(serial_number)?;
 
-    let scenario: FileBackedScenario =
+    let file_backed_scenario: FileBackedScenario =
         serde_json::from_reader(File::open(&scenario_file).map_err(|source| Error::IoPath {
             context: "reading scenario file",
             path: scenario_file,
@@ -175,7 +175,9 @@ fn run_scenario(serial_number: Option<SerialNumber>, scenario_file: PathBuf) -> 
             source,
         })?;
     let runner = ScenarioRunner::new(connector);
-    runner.run_with_writer(&Scenario::try_from(scenario)?, &mut stdout())?;
+    let scenario_return_value =
+        runner.run_with_writer(&Scenario::try_from(&file_backed_scenario)?, &mut stdout())?;
+    scenario_return_value.persist_file_backed_scenario(&file_backed_scenario)?;
 
     Ok(())
 }

@@ -4,7 +4,7 @@
 use std::io::Write;
 use std::{fmt::Debug, fs::write, time::Duration};
 
-use log::{error, info};
+use log::{debug, error, info};
 #[cfg(feature = "serde")]
 use serde::Serialize;
 use yubihsm::{
@@ -22,8 +22,15 @@ use yubihsm::{
 
 use crate::{
     Error,
-    automation::{Command, Scenario},
-    object::{AuthenticationKey, KeyInfo},
+    automation::{
+        Command,
+        Error as AutomationError,
+        FileBackedCommand,
+        FileBackedScenario,
+        Scenario,
+        error::FileBackedScenarioReturnValueMismatch,
+    },
+    object::KeyInfo,
 };
 
 /// Signature made using the ed25519 signing algorithm.
@@ -177,6 +184,7 @@ fn serialize_with_newline(mut writer: &mut dyn Write, object: impl Serialize) ->
 /// The return value of a [`Command`].
 #[derive(Debug)]
 #[cfg_attr(feature = "serde", derive(Serialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 pub enum CommandReturnValue {
     /// The return value of [`Client::device_info`].
     DeviceInfo(DeviceInfo),
@@ -218,6 +226,210 @@ pub enum CommandReturnValue {
     GetLogEntries(LogEntries),
 }
 
+impl PartialEq<Command> for &CommandReturnValue {
+    /// Compares [`CommandReturnValue`] and [`Command`].
+    ///
+    /// # Note
+    ///
+    /// Comparison is done using the enum variants on a best effort basis.
+    /// No data is compared directly.
+    fn eq(&self, other: &Command) -> bool {
+        match (self, other) {
+            (CommandReturnValue::DeviceInfo(_), Command::DeviceInfo)
+            | (CommandReturnValue::ResetDeviceAndReconnect, Command::ResetDeviceAndReconnect)
+            | (CommandReturnValue::PutAuthenticationKey(_), Command::PutAuthenticationKey { .. })
+            | (
+                CommandReturnValue::GenerateAsymmetricKey(_),
+                Command::GenerateAsymmetricKey { .. },
+            )
+            | (CommandReturnValue::SignEd25519(_), Command::SignEd25519 { .. })
+            | (CommandReturnValue::PutWrapKey(_), Command::PutWrapKey { .. })
+            | (CommandReturnValue::ExportWrapped(_), Command::ExportWrapped { .. })
+            | (CommandReturnValue::ImportWrapped(_), Command::ImportWrapped { .. })
+            | (CommandReturnValue::DeleteObject, Command::DeleteObject(_))
+            | (CommandReturnValue::GetObjectInfo(_), Command::GetObjectInfo(_))
+            | (CommandReturnValue::SetForceAuditOption, Command::SetForceAuditOption(_))
+            | (CommandReturnValue::SetCommandAuditOption, Command::SetCommandAuditOption { .. })
+            | (CommandReturnValue::GetLogEntries(_), Command::GetLogEntries) => true,
+            (CommandReturnValue::DeviceInfo(_), _)
+            | (CommandReturnValue::ResetDeviceAndReconnect, _)
+            | (CommandReturnValue::PutAuthenticationKey(_), _)
+            | (CommandReturnValue::GenerateAsymmetricKey(_), _)
+            | (CommandReturnValue::SignEd25519(_), _)
+            | (CommandReturnValue::PutWrapKey(_), _)
+            | (CommandReturnValue::ExportWrapped(_), _)
+            | (CommandReturnValue::ImportWrapped(_), _)
+            | (CommandReturnValue::DeleteObject, _)
+            | (CommandReturnValue::GetObjectInfo(_), _)
+            | (CommandReturnValue::SetForceAuditOption, _)
+            | (CommandReturnValue::SetCommandAuditOption, _)
+            | (CommandReturnValue::GetLogEntries(_), _) => false,
+        }
+    }
+}
+
+impl PartialEq<FileBackedCommand> for &CommandReturnValue {
+    /// Compares [`CommandReturnValue`] and [`FileBackedCommand`].
+    ///
+    /// # Note
+    ///
+    /// Comparison is done using the enum variants on a best effort basis.
+    /// No data is compared directly.
+    fn eq(&self, other: &FileBackedCommand) -> bool {
+        match (self, other) {
+            (CommandReturnValue::DeviceInfo(_), FileBackedCommand::DeviceInfo)
+            | (
+                CommandReturnValue::ResetDeviceAndReconnect,
+                FileBackedCommand::ResetDeviceAndReconnect,
+            )
+            | (
+                CommandReturnValue::PutAuthenticationKey(_),
+                FileBackedCommand::PutAuthenticationKey { .. },
+            )
+            | (
+                CommandReturnValue::GenerateAsymmetricKey(_),
+                FileBackedCommand::GenerateAsymmetricKey { .. },
+            )
+            | (CommandReturnValue::SignEd25519(_), FileBackedCommand::SignEd25519 { .. })
+            | (CommandReturnValue::PutWrapKey(_), FileBackedCommand::PutWrapKey { .. })
+            | (CommandReturnValue::ExportWrapped(_), FileBackedCommand::ExportWrapped { .. })
+            | (CommandReturnValue::ImportWrapped(_), FileBackedCommand::ImportWrapped { .. })
+            | (CommandReturnValue::DeleteObject, FileBackedCommand::DeleteObject(_))
+            | (CommandReturnValue::GetObjectInfo(_), FileBackedCommand::GetObjectInfo(_))
+            | (
+                CommandReturnValue::SetForceAuditOption,
+                FileBackedCommand::SetForceAuditOption(_),
+            )
+            | (
+                CommandReturnValue::SetCommandAuditOption,
+                FileBackedCommand::SetCommandAuditOption { .. },
+            )
+            | (CommandReturnValue::GetLogEntries(_), FileBackedCommand::GetLogEntries) => true,
+            (CommandReturnValue::DeviceInfo(_), _)
+            | (CommandReturnValue::ResetDeviceAndReconnect, _)
+            | (CommandReturnValue::PutAuthenticationKey(_), _)
+            | (CommandReturnValue::GenerateAsymmetricKey(_), _)
+            | (CommandReturnValue::SignEd25519(_), _)
+            | (CommandReturnValue::PutWrapKey(_), _)
+            | (CommandReturnValue::ExportWrapped(_), _)
+            | (CommandReturnValue::ImportWrapped(_), _)
+            | (CommandReturnValue::DeleteObject, _)
+            | (CommandReturnValue::GetObjectInfo(_), _)
+            | (CommandReturnValue::SetForceAuditOption, _)
+            | (CommandReturnValue::SetCommandAuditOption, _)
+            | (CommandReturnValue::GetLogEntries(_), _) => false,
+        }
+    }
+}
+
+/// The return value of a [`Scenario`].
+///
+/// Tracks the return value for each command executed as part of a [`Scenario`].
+#[derive(Debug)]
+pub struct ScenarioReturnValue {
+    authenticated_command_chains: Vec<Vec<CommandReturnValue>>,
+}
+
+impl ScenarioReturnValue {
+    /// Compares this [`ScenarioReturnValue`] with a [`FileBackedScenario`].
+    fn compare_with_file_backed_scenario(
+        &self,
+        file_backed_scenario: &FileBackedScenario,
+    ) -> Result<(), Error> {
+        debug!(
+            "Comparing the return values of the scenario with the requested commands of the file backed scenario"
+        );
+
+        let mut mismatches = Vec::new();
+
+        if file_backed_scenario.as_ref().len() != self.authenticated_command_chains.len() {
+            return Err(
+                AutomationError::MismatchingNumberOfAuthenticatedCommandChains {
+                    scenario: file_backed_scenario.as_ref().len(),
+                    scenario_return_value: self.authenticated_command_chains.len(),
+                }
+                .into(),
+            );
+        }
+
+        for (file_backed_authenticated_command_chain, command_return_values) in file_backed_scenario
+            .as_ref()
+            .iter()
+            .zip(self.authenticated_command_chains.iter())
+        {
+            if file_backed_authenticated_command_chain.commands.len() != command_return_values.len()
+            {
+                return Err(AutomationError::MismatchingNumberOfCommands {
+                    authenticated_command_chain: file_backed_authenticated_command_chain
+                        .commands
+                        .len(),
+                    command_return_values: command_return_values.len(),
+                }
+                .into());
+            }
+
+            for (file_backed_command, command_return_value) in
+                file_backed_authenticated_command_chain
+                    .commands
+                    .iter()
+                    .zip(command_return_values.iter())
+            {
+                if command_return_value.ne(file_backed_command) {
+                    mismatches.push(FileBackedScenarioReturnValueMismatch {
+                        file_backed_scenario_command: file_backed_command.into(),
+                        command_return_value: command_return_value.into(),
+                    });
+                }
+            }
+        }
+
+        if !mismatches.is_empty() {
+            return Err(
+                AutomationError::MismatchingReturnValueForFileBackedScenario { mismatches }.into(),
+            );
+        }
+
+        Ok(())
+    }
+
+    /// Persists the data of a [`ScenarioReturnValue`] according to a [`FileBackedScenario`].
+    pub fn persist_file_backed_scenario(
+        &self,
+        file_backed_scenario: &FileBackedScenario,
+    ) -> Result<(), Error> {
+        self.compare_with_file_backed_scenario(file_backed_scenario)?;
+
+        for (file_backed_authenticated_command_chain, command_return_values) in file_backed_scenario
+            .as_ref()
+            .iter()
+            .zip(self.authenticated_command_chains.iter())
+        {
+            for (file_backed_command, command_return_value) in
+                file_backed_authenticated_command_chain
+                    .commands
+                    .iter()
+                    .zip(command_return_values.iter())
+            {
+                if let (
+                    FileBackedCommand::ExportWrapped { wrapped_file, .. },
+                    CommandReturnValue::ExportWrapped(message),
+                ) = (file_backed_command, command_return_value)
+                {
+                    write(wrapped_file.as_path(), message.clone().into_vec()).map_err(|source| {
+                        Error::IoPath {
+                            path: wrapped_file.clone(),
+                            context: "writing an encrypted message to the file",
+                            source,
+                        }
+                    })?
+                }
+            }
+        }
+
+        Ok(())
+    }
+}
+
 /// Runs commands against a physical or in-memory YubiHSM2 token.
 pub struct ScenarioRunner {
     #[cfg_attr(
@@ -255,8 +467,8 @@ impl ScenarioRunner {
     ///
     /// Before returning the error, the return values of successfully executed commands will be
     /// emitted in an error message to the log.
-    pub fn run(&self, scenario: &Scenario) -> Result<Vec<CommandReturnValue>, Error> {
-        let mut output = Vec::new();
+    pub fn run(&self, scenario: &Scenario) -> Result<ScenarioReturnValue, Error> {
+        let mut authenticated_command_chains = Vec::new();
 
         for authenticated_commands in scenario.as_ref().iter() {
             let mut client = Client::open(
@@ -268,18 +480,25 @@ impl ScenarioRunner {
                 context: "opening new client",
                 source,
             })?;
+            let mut command_return_values = Vec::new();
 
             for command in authenticated_commands.commands().iter() {
                 info!("Executing {command:?}");
                 match self.run_command(&mut client, command) {
-                    Ok(return_value) => output.push(return_value),
+                    Ok(return_value) => command_return_values.push(return_value),
                     Err(error) => {
                         // Emit the already collected output as an error.
                         error!(
                             "{}",
-                            output
+                            authenticated_command_chains
                                 .iter()
+                                .flatten()
                                 .map(|return_value| format!("{return_value:?}"))
+                                .chain(
+                                    command_return_values
+                                        .iter()
+                                        .map(|return_value| format!("{return_value:?}"))
+                                )
                                 .collect::<Vec<_>>()
                                 .join("\n")
                         );
@@ -287,9 +506,13 @@ impl ScenarioRunner {
                     }
                 }
             }
+
+            authenticated_command_chains.push(command_return_values);
         }
 
-        Ok(output)
+        Ok(ScenarioReturnValue {
+            authenticated_command_chains,
+        })
     }
 
     /// Runs a [`Scenario`].
@@ -309,13 +532,17 @@ impl ScenarioRunner {
         &self,
         scenario: &Scenario,
         writer: &mut dyn Write,
-    ) -> Result<Vec<CommandReturnValue>, Error> {
-        let return_values = self.run(scenario)?;
-        for return_value in return_values.iter() {
+    ) -> Result<ScenarioReturnValue, Error> {
+        let scenario_return_value = self.run(scenario)?;
+        for return_value in scenario_return_value
+            .authenticated_command_chains
+            .iter()
+            .flatten()
+        {
             serialize_with_newline(writer, return_value)?;
         }
 
-        Ok(return_values)
+        Ok(scenario_return_value)
     }
 
     /// Runs a single [`Command`] and returns a [`CommandReturnValue`] for it.
@@ -356,26 +583,23 @@ impl ScenarioRunner {
                         caps,
                     },
                 delegated_caps,
-                passphrase_file,
-            } => {
-                let key = AuthenticationKey::try_from(passphrase_file.as_path())?;
-                CommandReturnValue::PutAuthenticationKey(
-                    client
-                        .put_authentication_key(
-                            key_id.into(),
-                            Default::default(),
-                            domains.into(),
-                            caps.into(),
-                            delegated_caps.into(),
-                            Default::default(),
-                            key,
-                        )
-                        .map_err(|source| Error::Client {
-                            context: "putting authentication key",
-                            source,
-                        })?,
-                )
-            }
+                authentication_key,
+            } => CommandReturnValue::PutAuthenticationKey(
+                client
+                    .put_authentication_key(
+                        key_id.into(),
+                        Default::default(),
+                        domains.into(),
+                        caps.into(),
+                        delegated_caps.into(),
+                        Default::default(),
+                        authentication_key,
+                    )
+                    .map_err(|source| Error::Client {
+                        context: "putting authentication key",
+                        source,
+                    })?,
+            ),
             Command::GenerateAsymmetricKey {
                 info:
                     KeyInfo {
@@ -414,72 +638,45 @@ impl ScenarioRunner {
                         caps,
                     },
                 delegated_caps,
-                passphrase_file,
-            } => {
-                let key = AuthenticationKey::try_from(passphrase_file.as_path())?;
-                CommandReturnValue::PutWrapKey(
-                    client
-                        .put_wrap_key(
-                            key_id.into(),
-                            Default::default(),
-                            domains.into(),
-                            caps.into(),
-                            delegated_caps.into(),
-                            WrapAlgorithm::Aes256Ccm,
-                            key.as_ref().as_secret_slice(),
-                        )
-                        .map_err(|source| Error::Client {
-                            context: "putting wrap key",
-                            source,
-                        })?,
-                )
-            }
+                wrapping_key,
+            } => CommandReturnValue::PutWrapKey(
+                client
+                    .put_wrap_key(
+                        key_id.into(),
+                        Default::default(),
+                        domains.into(),
+                        caps.into(),
+                        delegated_caps.into(),
+                        WrapAlgorithm::Aes256Ccm,
+                        wrapping_key.as_ref().as_secret_slice(),
+                    )
+                    .map_err(|source| Error::Client {
+                        context: "putting wrap key",
+                        source,
+                    })?,
+            ),
             Command::ExportWrapped {
                 wrap_key_id,
                 object,
-                wrapped_file,
-            } => {
-                let wrapped = client
+            } => CommandReturnValue::ExportWrapped(
+                client
                     .export_wrapped(wrap_key_id.into(), object.object_type(), object.id().into())
                     .map_err(|source| Error::Client {
                         context: "exporting wrapped key",
                         source,
-                    })?;
-
-                write(wrapped_file, wrapped.clone().into_vec()).map_err(|source| {
-                    Error::IoPath {
-                        context: "writing wrapped file",
-                        source,
-                        path: wrapped_file.into(),
-                    }
-                })?;
-
-                CommandReturnValue::ExportWrapped(wrapped)
-            }
+                    })?,
+            ),
             Command::ImportWrapped {
                 wrap_key_id,
-                wrapped_file,
-            } => {
-                let wrapped = Message::from_vec(std::fs::read(wrapped_file).map_err(|source| {
-                    Error::IoPath {
-                        context: "reading wrapped file",
+                message,
+            } => CommandReturnValue::ImportWrapped(
+                client
+                    .import_wrapped(wrap_key_id.into(), message.clone())
+                    .map_err(|source| Error::Client {
+                        context: "importing wrapped key",
                         source,
-                        path: wrapped_file.into(),
-                    }
-                })?)
-                .map_err(|source| Error::InvalidWrap {
-                    context: "reading the wrapped file",
-                    source,
-                })?;
-                CommandReturnValue::ImportWrapped(
-                    client
-                        .import_wrapped(wrap_key_id.into(), wrapped)
-                        .map_err(|source| Error::Client {
-                            context: "importing wrapped key",
-                            source,
-                        })?,
-                )
-            }
+                    })?,
+            ),
             Command::DeleteObject(object) => {
                 client
                     .delete_object(object.id().into(), object.object_type())
@@ -572,20 +769,22 @@ mod tests {
         use testresult::TestResult;
 
         use super::*;
-        use crate::automation::Scenario;
+        use crate::automation::{FileBackedScenario, Scenario};
 
         #[cfg(all(feature = "_yubihsm2-mockhsm", feature = "serde"))]
         fn run_scenario(scenario_file: impl AsRef<Path>) -> TestResult {
-            use crate::automation::scenario::FileBackedScenario;
-
             let scenario_file = scenario_file.as_ref();
             eprintln!(
                 "Running scenario file {scenario_file}",
                 scenario_file = scenario_file.display()
             );
-            let scenario: FileBackedScenario = serde_json::from_reader(File::open(scenario_file)?)?;
+            let file_backed_scenario: FileBackedScenario =
+                serde_json::from_reader(File::open(scenario_file)?)?;
             let runner = ScenarioRunner::new(Connector::mockhsm());
-            runner.run_with_writer(&Scenario::try_from(scenario)?, &mut stdout())?;
+            let return_value = runner
+                .run_with_writer(&Scenario::try_from(&file_backed_scenario)?, &mut stdout())?;
+            return_value.persist_file_backed_scenario(&file_backed_scenario)?;
+
             Ok(())
         }
 

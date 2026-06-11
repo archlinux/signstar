@@ -5,6 +5,7 @@ use serde::Deserialize;
 
 use crate::{
     Credentials,
+    automation::Command,
     automation::command::{AuthenticatedCommandChain, FileBackedAuthenticatedCommandChain},
 };
 
@@ -27,15 +28,28 @@ impl AsRef<[AuthenticatedCommandChain]> for Scenario {
 #[cfg_attr(feature = "serde", derive(Deserialize))]
 pub struct FileBackedScenario(Vec<FileBackedAuthenticatedCommandChain>);
 
-impl TryFrom<FileBackedScenario> for Scenario {
+impl AsRef<[FileBackedAuthenticatedCommandChain]> for FileBackedScenario {
+    fn as_ref(&self) -> &[FileBackedAuthenticatedCommandChain] {
+        self.0.as_slice()
+    }
+}
+
+impl TryFrom<&FileBackedScenario> for Scenario {
     type Error = crate::Error;
 
-    fn try_from(value: FileBackedScenario) -> Result<Self, Self::Error> {
+    fn try_from(value: &FileBackedScenario) -> Result<Self, Self::Error> {
         let mut output = Vec::new();
 
-        for commands in value.0 {
-            let creds = Credentials::try_from(&commands.auth)?;
-            output.push(AuthenticatedCommandChain::new(creds, commands.commands));
+        for authenticated_command_chain in value.0.iter() {
+            let creds = Credentials::try_from(&authenticated_command_chain.auth)?;
+            let commands = {
+                let mut commands = Vec::new();
+                for file_backed_command in authenticated_command_chain.commands.iter() {
+                    commands.push(Command::try_from(file_backed_command)?);
+                }
+                commands
+            };
+            output.push(AuthenticatedCommandChain::new(creds, commands));
         }
 
         Ok(Self(output))

@@ -135,4 +135,8 @@ pub enum Error {
     /// A YubiHSM2-crypto error occurred.
     #[error(transparent)]
     SignstarCrypto(#[from] signstar_crypto::Error),
+
+    /// A YubiHSM2 automation error occurred.
+    #[error(transparent)]
+    Automation(#[from] crate::automation::Error),
 }
