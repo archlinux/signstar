@@ -24,6 +24,7 @@
 //! // process response
 //! #     Ok(()) }
 //! ```
+use std::collections::HashMap;
 use std::fs::File;
 use std::io::{ErrorKind, Read as _};
 use std::path::Path;
@@ -122,8 +123,14 @@ pub const CONFIG_ORDER: &[&str] = &[ETC_OVERRIDE_CONFIG, RUN_OVERRIDE_CONFIG, DE
 /// Connection configuration for sending a signature request.
 ///
 /// The configuration tracks a list of all valid targets for connecting.
-#[derive(Debug, Default, Deserialize)]
+#[derive(Debug, Default, Deserialize, garde::Validate)]
 pub struct ConnectConfig {
+    #[garde(
+        custom(validate_ssh_public_key_consistency),
+        custom(validate_agent_socket_consistency),
+        custom(validate_known_hosts_consistency),
+        custom(validate_host_port_uniqueness)
+    )]
     targets: Vec<ConnectOptions>,
 }
 
@@ -230,6 +237,97 @@ impl ConnectConfig {
         }
         Err(crate::Error::ConfigMissing)
     }
+}
+
+/// Validates if the following condition holds: The SSH public key used for a user cannot be used
+/// for another user.
+fn validate_ssh_public_key_consistency(
+    connect_options: &[ConnectOptions],
+    _context: &(),
+) -> garde::Result {
+    for connect_option in connect_options {
+        let pk = &connect_option.user_public_key;
+        let user = &connect_option.user;
+        if let Some(conflicting_option) = connect_options.iter().find(|connect_option| {
+            &connect_option.user_public_key == pk && &connect_option.user != user
+        }) {
+            return Err(garde::Error::new(format!(
+                "The SSH public key used for a user cannot be used for another user:\nFirst: {connect_option:?}\nSecond: {conflicting_option:?}"
+            )));
+        }
+    }
+
+    Ok(())
+}
+
+/// Validates if the following condition holds: The SSH agent socket location should not be allowed
+/// to differ for different target host:port combinations of the same user.
+fn validate_agent_socket_consistency(
+    connect_options: &[ConnectOptions],
+    _context: &(),
+) -> garde::Result {
+    for connect_option in connect_options {
+        let agent_socket = &connect_option.agent_socket;
+        let host = &connect_option.host;
+        let port = connect_option.port;
+        let user = &connect_option.user;
+        if let Some(conflicting_option) = connect_options.iter().find(|connect_option| {
+            &connect_option.user == user
+                && (&connect_option.host != host || connect_option.port != port)
+                && &connect_option.agent_socket != agent_socket
+        }) {
+            return Err(garde::Error::new(format!(
+                "The SSH agent socket location should not differ for different target host:port combinations of the same user:\nFirst: {connect_option:?}\nSecond: {conflicting_option:?}"
+            )));
+        }
+    }
+
+    Ok(())
+}
+
+/// Validates if the following condition holds: The `known_hosts` entries should be unique per
+/// host:port combinations of the same user.
+fn validate_known_hosts_consistency(
+    connect_options: &[ConnectOptions],
+    _context: &(),
+) -> garde::Result {
+    for connect_option in connect_options {
+        let host = &connect_option.host;
+        let port = connect_option.port;
+        let user = &connect_option.user;
+        for known_host_entry in &connect_option.known_hosts {
+            if let Some(conflicting_option) = connect_options.iter().find(|connect_option| {
+                &connect_option.user == user
+                    && (&connect_option.host != host || connect_option.port != port)
+                    && connect_option.known_hosts.contains(known_host_entry)
+            }) {
+                return Err(garde::Error::new(format!(
+                    "The known host entry {known_host_entry:?} is present in two different host:port combinations:\nFirst: {connect_option:?}\nSecond: {conflicting_option:?}"
+                )));
+            }
+        }
+    }
+
+    Ok(())
+}
+
+/// Validates if the following condition holds: Each host:port combination should be unique.
+fn validate_host_port_uniqueness(
+    connect_options: &[ConnectOptions],
+    _context: &(),
+) -> garde::Result {
+    let mut host_ports = HashMap::new();
+    for connect_option in connect_options {
+        let host_port = (&connect_option.host, connect_option.port);
+        if let Some(conflicting_option) = host_ports.get(&host_port) {
+            return Err(garde::Error::new(format!(
+                "Two connections have the same host:port combination:\nFirst: {connect_option:?}\nSecond: {conflicting_option:?}"
+            )));
+        }
+        host_ports.insert(host_port, connect_option);
+    }
+
+    Ok(())
 }
 
 /// Connection options for sending a signature request.
@@ -591,6 +689,7 @@ impl Session {
 mod tests {
     use std::{assert_matches, fs::write};
 
+    use garde::Validate;
     use insta::assert_snapshot;
     use rstest::rstest;
     use testresult::TestResult;
@@ -856,6 +955,142 @@ known_hosts = ["127.0.0.1 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOh8eDowbkS5cA/50D
             ConnectConfig::read_config_file(root, None),
             Err(crate::Error::Toml(_))
         );
+        Ok(())
+    }
+
+    #[test]
+    fn validate_success() -> TestResult {
+        let config = ConnectConfig {
+                targets: vec![ConnectOptions::new(
+                    "test".into(),
+                    1234,
+                    "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMPF9G0NQMEIBWR0NBc7sVBc2uxkKwY3SWvzRWQAtLPp",
+                )?.user("test-user"),]
+            };
+
+        config.validate()?;
+
+        Ok(())
+    }
+
+    #[test]
+    fn validate_ssh_public_key_cannot_be_reused() -> TestResult {
+        let config = ConnectConfig {
+            targets: vec![ConnectOptions::new(
+                "test".into(),
+                1234,
+                "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMPF9G0NQMEIBWR0NBc7sVBc2uxkKwY3SWvzRWQAtLPp",
+            )?.user("test-user"),
+            ConnectOptions::new(
+                "test".into(),
+                1235,
+                "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMPF9G0NQMEIBWR0NBc7sVBc2uxkKwY3SWvzRWQAtLPp",
+            )?.user("test-user2")],
+        };
+
+        let error_msg = match config.validate() {
+            Ok(()) => {
+                panic!("Expected to fail with garde::Error, but succeeded instead.")
+            }
+            Err(error) => error.to_string(),
+        };
+
+        assert_snapshot!(error_msg);
+
+        Ok(())
+    }
+
+    #[test]
+    fn validate_agent_socket_should_not_differ_for_different_target() -> TestResult {
+        let config = ConnectConfig {
+                targets: vec![ConnectOptions::new(
+                    "test1".into(),
+                    1234,
+                    "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMPF9G0NQMEIBWR0NBc7sVBc2uxkKwY3SWvzRWQAtLPp",
+                )?.user("test-user").agent_socket("/tmp/a"),
+                ConnectOptions::new(
+                    "test2".into(),
+                    1234,
+                    "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMPF9G0NQMEIBWR0NBc7sVBc2uxkKwY3SWvzRWQAtLPp",
+                )?.user("test-user").agent_socket("/tmp/b")
+                ],
+            };
+
+        let error_msg = match config.validate() {
+            Ok(()) => {
+                panic!("Expected to fail with garde::Error, but succeeded instead.")
+            }
+            Err(error) => error.to_string(),
+        };
+
+        assert_snapshot!(error_msg);
+
+        Ok(())
+    }
+
+    #[test]
+    fn validate_known_hosts_entries_unique_per_host_port_of_the_user() -> TestResult {
+        let first_option = {
+            let mut option = ConnectOptions::new(
+                "test1".into(),
+                1234,
+                "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMPF9G0NQMEIBWR0NBc7sVBc2uxkKwY3SWvzRWQAtLPp",
+            )?
+            .user("test-user");
+            option.known_hosts.push(Entry::from_str("test1 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOh8eDowbkS5cA/50DhIsOUI5bDf5Kx0sSJZDQgfoRAd")?);
+            option
+        };
+        let second_option = {
+            let mut option = ConnectOptions::new(
+                "test2".into(),
+                1234,
+                "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMPF9G0NQMEIBWR0NBc7sVBc2uxkKwY3SWvzRWQAtLPp",
+            )?
+            .user("test-user");
+            option.known_hosts.push(Entry::from_str("test1 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOh8eDowbkS5cA/50DhIsOUI5bDf5Kx0sSJZDQgfoRAd")?);
+            option
+        };
+        let config = ConnectConfig {
+            targets: vec![first_option, second_option],
+        };
+
+        let error_msg = match config.validate() {
+            Ok(()) => {
+                panic!("Expected to fail with garde::Error, but succeeded instead.")
+            }
+            Err(error) => error.to_string(),
+        };
+
+        assert_snapshot!(error_msg);
+
+        Ok(())
+    }
+
+    #[test]
+    fn validate_host_port_uniqueness() -> TestResult {
+        let config = ConnectConfig {
+                targets: vec![ConnectOptions::new(
+                    "test1".into(),
+                    1234,
+                    "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMPF9G0NQMEIBWR0NBc7sVBc2uxkKwY3SWvzRWQAtLPp",
+                )?.user("test-user").agent_socket("/tmp/a"),
+                ConnectOptions::new(
+                    "test1".into(),
+                    1234,
+                    "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMPF9G0NQMEIBWR0NBc7sVBc2uxkKwY3SWvzRWQAtLPp",
+                )?.user("test-user").agent_socket("/tmp/b")
+                ],
+            };
+
+        let error_msg = match config.validate() {
+            Ok(()) => {
+                panic!("Expected to fail with garde::Error, but succeeded instead.")
+            }
+            Err(error) => error.to_string(),
+        };
+
+        assert_snapshot!(error_msg);
+
         Ok(())
     }
 }

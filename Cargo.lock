@@ -5164,6 +5164,7 @@ dependencies = [
  "clap",
  "clap-verbosity-flag",
  "digest-io",
+ "garde",
  "hmac 0.13.0",
  "insta",
  "log",
