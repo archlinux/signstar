@@ -65,7 +65,7 @@ impl YubiHsm2SigningKey {
     pub fn mock(key_id: Id, credentials: &Credentials) -> Result<Self, Error> {
         use signstar_crypto::{
             openpgp::{OpenPgpKeyUsageFlags, OpenPgpUserId, OpenPgpVersion},
-            signer::openpgp::{Timestamp, add_certificate},
+            signer::openpgp::{Timestamp, generate_certificate},
             traits::UserWithPassphrase as _,
         };
         use yubihsm::{
@@ -135,10 +135,11 @@ impl YubiHsm2SigningKey {
             key_id,
         };
 
-        let cert = add_certificate(
+        let cert = generate_certificate(
             &signer,
             flags,
             &[OpenPgpUserId::new("Test".to_owned()).expect("static user ID to be valid")],
+            Default::default(),
             Timestamp::now(),
             OpenPgpVersion::V4,
         )

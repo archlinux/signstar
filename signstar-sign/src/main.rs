@@ -1,5 +1,6 @@
 //! Application for the creation of signatures from signing requests.
 
+use std::collections::BTreeMap;
 use std::process::ExitCode;
 
 use clap::Parser;
@@ -29,6 +30,11 @@ enum Error {
     #[error("Unsupported signing request parameters")]
     UnsupportedParameters,
 
+    /// Parameters of the signing setup are unsupported.
+    #[error("Unsupported signer setup")]
+    #[cfg(any(feature = "nethsm", feature = "yubihsm2"))]
+    UnsupportedSignerSetup,
+
     /// Configuration error.
     #[error("Config error")]
     Config(#[from] signstar_config::Error),
@@ -56,6 +62,15 @@ enum Error {
     YubiHsm(#[from] signstar_yubihsm2::Error),
 }
 
+/// Raw signing key with additional signature context.
+struct SignerContext {
+    /// Raw signing key for creating signatures.
+    signer: Box<dyn RawSigningKey>,
+
+    /// Notations that will be appended to the signature.
+    notations: BTreeMap<String, String>,
+}
+
 #[cfg(any(feature = "nethsm", feature = "yubihsm2"))]
 mod impl_any {
     #[cfg(feature = "nethsm")]
@@ -72,6 +87,7 @@ mod impl_any {
     use signstar_config::nethsm::NetHsmUserMapping;
     #[cfg(feature = "yubihsm2")]
     use signstar_config::yubihsm2::YubiHsm2UserMapping;
+    use signstar_crypto::key::CryptographicKeyContext;
     #[cfg(feature = "yubihsm2")]
     use signstar_yubihsm2::{Connection, Credentials, YubiHsm2SigningKey};
 
@@ -87,7 +103,7 @@ mod impl_any {
     /// - does not contain any key settings
     /// - does not contain valid connections
     /// - does not contain credentials with a passphrase
-    pub fn load_signer() -> Result<Box<dyn RawSigningKey>, Error> {
+    pub fn load_signer() -> Result<SignerContext, Error> {
         let current_system_user = SystemUserId::from_current_unix_user()?;
         let config = Config::from_system_path()?;
         let Some(user_backend_connection) = config.user_backend_connection(&current_system_user)
@@ -115,25 +131,34 @@ mod impl_any {
                 NetHsmUserMapping::Signing {
                     backend_user,
                     signing_key_id,
-                    key_setup: _,
-                    ssh_authorized_key: _,
-                    system_user: _,
-                    tag: _,
+                    key_setup,
+                    ..
                 } => {
+                    let notations = if let CryptographicKeyContext::OpenPgp { notations, .. } =
+                        key_setup.key_context()
+                    {
+                        notations.clone()
+                    } else {
+                        return Err(Error::UnsupportedSignerSetup);
+                    };
+
                     let connection = connections.first().cloned().ok_or(Error::NoConnection)?;
 
-                    Ok(Box::new(OwnedNetHsmKey::new(
-                        NetHsm::new(
-                            connection,
-                            Some(nethsm::Credentials::new(
-                                backend_user,
-                                Some(creds.passphrase().clone()),
-                            )),
-                            None,
-                            None,
-                        )?,
-                        signing_key_id,
-                    )?))
+                    Ok(SignerContext {
+                        signer: Box::new(OwnedNetHsmKey::new(
+                            NetHsm::new(
+                                connection,
+                                Some(nethsm::Credentials::new(
+                                    backend_user,
+                                    Some(creds.passphrase().clone()),
+                                )),
+                                None,
+                                None,
+                            )?,
+                            signing_key_id,
+                        )?),
+                        notations,
+                    })
                 }
                 NetHsmUserMapping::Admin(_)
                 | NetHsmUserMapping::Backup { .. }
@@ -149,29 +174,42 @@ mod impl_any {
             } => match mapping {
                 YubiHsm2UserMapping::Signing {
                     authentication_key_id,
-                    key_setup: _,
-                    domain: _,
+                    key_setup,
                     signing_key_id,
-                    ssh_authorized_key: _,
-                    system_user: _,
+                    ..
                 } => {
+                    let notations = if let CryptographicKeyContext::OpenPgp { notations, .. } =
+                        key_setup.key_context()
+                    {
+                        notations.clone()
+                    } else {
+                        return Err(Error::UnsupportedSignerSetup);
+                    };
+
                     let connection = connections.first().cloned().ok_or(Error::NoConnection)?;
                     match connection {
                         #[cfg(feature = "_yubihsm2-mockhsm")]
-                        Connection::Mock => Ok(Box::new(YubiHsm2SigningKey::mock(
-                            signing_key_id,
-                            &Credentials::new(authentication_key_id, creds.passphrase().clone()),
-                        )?)),
-                        Connection::Usb { serial_number } => {
-                            Ok(Box::new(YubiHsm2SigningKey::new_with_serial_number(
+                        Connection::Mock => Ok(SignerContext {
+                            signer: Box::new(YubiHsm2SigningKey::mock(
+                                signing_key_id,
+                                &Credentials::new(
+                                    authentication_key_id,
+                                    creds.passphrase().clone(),
+                                ),
+                            )?),
+                            notations,
+                        }),
+                        Connection::Usb { serial_number } => Ok(SignerContext {
+                            signer: Box::new(YubiHsm2SigningKey::new_with_serial_number(
                                 serial_number,
                                 signing_key_id,
                                 &Credentials::new(
                                     authentication_key_id,
                                     creds.passphrase().clone(),
                                 ),
-                            )?))
-                        }
+                            )?),
+                            notations,
+                        }),
                     }
                 }
                 YubiHsm2UserMapping::Admin { .. }
@@ -193,7 +231,7 @@ mod impl_none {
     /// # Errors
     ///
     /// Always returns an error, because no HSM backend support is compiled in.
-    pub fn load_signer() -> Result<Box<dyn RawSigningKey>, Error> {
+    pub fn load_signer() -> Result<SignerContext, Error> {
         Err(Error::NoBackend)
     }
 }
@@ -230,9 +268,9 @@ fn sign_request(reader: impl std::io::Read, writer: impl std::io::Write) -> Resu
 
     let hasher: Sha512 = req.required.input.try_into()?;
 
-    let signer = load_signer()?;
+    let signer_context = load_signer()?;
 
-    let signature = sign_hasher_state(&*signer, hasher)?;
+    let signature = sign_hasher_state(&*signer_context.signer, hasher, signer_context.notations)?;
 
     Response::v1(signature).to_writer(writer)?;
 

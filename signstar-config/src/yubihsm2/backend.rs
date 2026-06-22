@@ -16,7 +16,7 @@ use pgp::types::Timestamp;
 use signstar_crypto::{
     key::CryptographicKeyContext,
     openpgp::OpenPgpKeyUsageFlags,
-    signer::openpgp::add_certificate,
+    signer::openpgp::generate_certificate,
     traits::UserWithPassphrase,
 };
 use signstar_yubihsm2::{
@@ -653,8 +653,9 @@ impl<'admin_creds, 'config> YubiHsm2Backend<'admin_creds, 'config> {
                     ..
                 } = mapping
                 {
-                    let CryptographicKeyContext::OpenPgp { user_ids, version } =
-                        key_setup.key_context()
+                    let CryptographicKeyContext::OpenPgp {
+                        user_ids, version, ..
+                    } = key_setup.key_context()
                     else {
                         debug!(
                             "Skipping the generation of an OpenPGP certificate for signing key {signing_key_id}, because it is not setup for use with OpenPGP..."
@@ -680,10 +681,11 @@ impl<'admin_creds, 'config> YubiHsm2Backend<'admin_creds, 'config> {
                         flags.set_sign();
                         flags
                     };
-                    let certificate = add_certificate(
+                    let certificate = generate_certificate(
                         &signer,
                         flags,
                         user_ids.as_ref(),
+                        Default::default(),
                         Timestamp::now(),
                         *version,
                     )?;
@@ -1505,6 +1507,7 @@ mod tests {
                         None,
                         SignatureType::EdDsa,
                         CryptographicKeyContext::OpenPgp {
+                            notations: Default::default(),
                             user_ids: OpenPgpUserIdList::new(vec![
                                 "Foobar McFooface <foobar@mcfooface.org>".parse()?,
                             ])?,
@@ -1612,6 +1615,7 @@ mod tests {
                         None,
                         SignatureType::EdDsa,
                         CryptographicKeyContext::OpenPgp {
+                            notations: Default::default(),
                             user_ids: OpenPgpUserIdList::new(vec![
                                 "Foobar McFooface <foobar@mcfooface.org>".parse()?,
                             ])?,
@@ -1663,6 +1667,7 @@ mod tests {
                         None,
                         SignatureType::EdDsa,
                         CryptographicKeyContext::OpenPgp {
+                            notations: Default::default(),
                             user_ids: OpenPgpUserIdList::new(vec![
                                 "Foobar McFooface <foobar@mcfooface.org>".parse()?,
                             ])?,
@@ -1716,6 +1721,7 @@ mod tests {
                         None,
                         SignatureType::EdDsa,
                         CryptographicKeyContext::OpenPgp {
+                            notations: Default::default(),
                             user_ids: OpenPgpUserIdList::new(vec![
                                 "Foobar McFooface <foobar@mcfooface.org>".parse()?,
                             ])?,
@@ -1769,6 +1775,7 @@ mod tests {
                         None,
                         SignatureType::EdDsa,
                         CryptographicKeyContext::OpenPgp {
+                            notations: Default::default(),
                             user_ids: OpenPgpUserIdList::new(vec![
                                 "Foobar McFooface <foobar@mcfooface.org>".parse()?,
                             ])?,

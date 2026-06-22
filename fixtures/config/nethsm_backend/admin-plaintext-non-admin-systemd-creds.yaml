@@ -52,6 +52,8 @@ nethsm:
                 - Foobar McFooface <foobar@mcfooface.org>
                 - John Doe <john@example.com>
               version: "4"
+              notations:
+                test: value
         ssh_authorized_key: >-
           ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOh96uFTnvX6P1ebbLxXFvy6sK7qFqlMHDOuJ0TmuXQQ
           user@host
@@ -70,6 +72,8 @@ nethsm:
               user_ids:
                 - Barfoo McBarface <barfoo@mcbarface.org>
               version: "4"
+              notations:
+                test: value
         ssh_authorized_key: >-
           ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJr4wdlEv3ZKkDufEQTZSLOjDLO3DeNN2pqKmp00ufIu
           user@host

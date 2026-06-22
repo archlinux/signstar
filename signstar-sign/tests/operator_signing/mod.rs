@@ -301,6 +301,7 @@ async fn run_signstar_sign(#[case] prepare_config: SystemPrepareConfig) -> TestR
         let sig = DetachedSignature::from_armor_single(sig)?.0;
         assert_eq!(Some(SignatureType::Binary), sig.signature.typ());
         assert_ne!(None, sig.signature.signers_userid());
+        assert_eq!(2, sig.signature.notations().len());
         tests_ran += 1;
     }
 

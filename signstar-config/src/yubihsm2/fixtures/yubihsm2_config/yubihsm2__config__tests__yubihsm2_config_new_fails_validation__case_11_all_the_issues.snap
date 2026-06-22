@@ -12,4 +12,4 @@ mappings: contains multiple issues:
 ⤷ the duplicate signing key ID "1"
 ⤷ the duplicate wrapping key ID "1"
 ⤷ the duplicate domain "1"
-⤷ estimated certificate size 2287 exceeds the storage limit of 1980
+⤷ estimated certificate size 2104 exceeds the storage limit of 1980

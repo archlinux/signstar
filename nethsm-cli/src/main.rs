@@ -833,6 +833,7 @@ fn run_command(cli: Cli) -> Result<(), Error> {
                     &command.key_id,
                     flags,
                     &[command.user_id],
+                    Default::default(),
                     created_at,
                     command.version.unwrap_or_default(),
                 )?;

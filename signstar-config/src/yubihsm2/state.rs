@@ -906,6 +906,7 @@ mod tests {
                         None,
                         SignatureType::EdDsa,
                         CryptographicKeyContext::OpenPgp {
+                            notations: Default::default(),
                             user_ids: OpenPgpUserIdList::new(vec![
                                 "Foobar McFooface <foobar@mcfooface.org>".parse()?,
                             ])?,
@@ -977,6 +978,7 @@ mod tests {
                         None,
                         SignatureType::EdDsa,
                         CryptographicKeyContext::OpenPgp {
+                            notations: Default::default(),
                             user_ids: OpenPgpUserIdList::new(vec![
                                 "Foobar McFooface <foobar@mcfooface.org>".parse()?,
                             ])?,
@@ -1024,6 +1026,7 @@ mod tests {
                         None,
                         SignatureType::EdDsa,
                         CryptographicKeyContext::OpenPgp {
+                            notations: Default::default(),
                             user_ids: OpenPgpUserIdList::new(vec![
                                 "Foobar McFooface <foobar@mcfooface.org>".parse()?,
                             ])?,
@@ -1071,6 +1074,7 @@ mod tests {
                         None,
                         SignatureType::EdDsa,
                         CryptographicKeyContext::OpenPgp {
+                            notations: Default::default(),
                             user_ids: OpenPgpUserIdList::new(vec![
                                 "Foobar McFooface <foobar@mcfooface.org>".parse()?,
                             ])?,
@@ -1118,6 +1122,7 @@ mod tests {
                         None,
                         SignatureType::EdDsa,
                         CryptographicKeyContext::OpenPgp {
+                            notations: Default::default(),
                             user_ids: OpenPgpUserIdList::new(vec![
                                 "Foobar McFooface <foobar@mcfooface.org>".parse()?,
                             ])?,
@@ -1137,6 +1142,7 @@ mod tests {
                         None,
                         SignatureType::EdDsa,
                         CryptographicKeyContext::OpenPgp {
+                            notations: Default::default(),
                             user_ids: OpenPgpUserIdList::new(vec![
                                 "Foobar McBehface <foobar@mcbehface.org>".parse()?,
                             ])?,
@@ -1184,6 +1190,7 @@ mod tests {
                         None,
                         SignatureType::EdDsa,
                         CryptographicKeyContext::OpenPgp {
+                            notations: Default::default(),
                             user_ids: OpenPgpUserIdList::new(vec![
                                 "Foobar McFooface <foobar@mcfooface.org>".parse()?,
                             ])?,
@@ -1226,6 +1233,7 @@ mod tests {
                             None,
                             SignatureType::EdDsa,
                             CryptographicKeyContext::OpenPgp {
+                                notations: Default::default(),
                                 user_ids: OpenPgpUserIdList::new(vec![
                                     "Foobar McFooface <foobar@mcfooface.org>".parse()?,
                                 ])?,
@@ -1334,6 +1342,7 @@ mod tests {
             None,
             SignatureType::EdDsa,
             CryptographicKeyContext::OpenPgp {
+                notations: Default::default(),
                 user_ids: vec!["John Doe <john.doe@example.org>".to_string()].try_into()?,
                 version: "4".parse()?,
             },

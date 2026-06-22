@@ -1014,6 +1014,7 @@ impl NetHsm {
     ///     &"signing1".parse()?,
     ///     OpenPgpKeyUsageFlags::default(),
     ///     &["Test <test@example.org>".parse()?],
+    ///     Default::default(),
     ///     Timestamp::now(),
     ///     OpenPgpVersion::V4,
     /// )?;
@@ -1127,6 +1128,7 @@ impl NetHsm {
     ///     &"signing1".parse()?,
     ///     OpenPgpKeyUsageFlags::default(),
     ///     &["Test <test@example.org>".parse()?],
+    ///     Default::default(),
     ///     Timestamp::now(),
     ///     OpenPgpVersion::V4,
     /// )?;
@@ -1241,6 +1243,7 @@ impl NetHsm {
     ///     &"signing1".parse()?,
     ///     OpenPgpKeyUsageFlags::default(),
     ///     &["Test <test@example.org>".parse()?],
+    ///     Default::default(),
     ///     Timestamp::now(),
     ///     OpenPgpVersion::V4,
     /// )?;

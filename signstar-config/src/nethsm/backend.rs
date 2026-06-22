@@ -30,6 +30,7 @@ use nethsm::{
     UserRole,
 };
 use pgp::composed::{Deserializable, SignedPublicKey};
+use signstar_crypto::signer::openpgp::Notation;
 
 use crate::{
     admin_credentials::AdminCredentials,
@@ -913,8 +914,11 @@ fn add_system_wide_openpgp_certificates(
     for user_key_data in all_user_key_data {
         // Get OpenPGP User IDs and version or continue to the next user/key setup if the
         // mapping is not used for OpenPGP signing.
-        let CryptographicKeyContext::OpenPgp { user_ids, version } =
-            user_key_data.key_setup.key_context()
+        let CryptographicKeyContext::OpenPgp {
+            user_ids,
+            version,
+            notations,
+        } = user_key_data.key_setup.key_context()
         else {
             debug!(
                 "Skip creating an OpenPGP certificate for the key \"{}\" used by user \"{}\" as it is not used in an OpenPGP context.",
@@ -988,6 +992,11 @@ fn add_system_wide_openpgp_certificates(
                 user_key_data.key_id,
                 OpenPgpKeyUsageFlags::default(),
                 user_ids.as_ref(),
+                notations
+                    .iter()
+                    .map(|(name, value)| Notation { name, value })
+                    .collect::<Vec<_>>()
+                    .as_slice(),
                 Timestamp::now(),
                 *version,
             )?;
@@ -1087,8 +1096,11 @@ fn add_namespaced_openpgp_certificates(
     for user_key_data in nethsm_user_key_data_list {
         // Get OpenPGP User IDs and version or continue to the next user/key setup if the
         // mapping is not used for OpenPGP signing.
-        let CryptographicKeyContext::OpenPgp { user_ids, version } =
-            user_key_data.key_setup.key_context()
+        let CryptographicKeyContext::OpenPgp {
+            user_ids,
+            version,
+            notations,
+        } = user_key_data.key_setup.key_context()
         else {
             continue;
         };
@@ -1178,6 +1190,11 @@ fn add_namespaced_openpgp_certificates(
                 user_key_data.key_id,
                 OpenPgpKeyUsageFlags::default(),
                 user_ids.as_ref(),
+                notations
+                    .iter()
+                    .map(|(name, value)| Notation { name, value })
+                    .collect::<Vec<_>>()
+                    .as_slice(),
                 Timestamp::now(),
                 *version,
             )?;
@@ -1320,6 +1337,7 @@ impl<'a, 'b> NetHsmBackend<'a, 'b> {
     ///                             "Foobar McFooface <foobar@mcfooface.org>".parse()?,
     ///                         ])?,
     ///                         version: "v4".parse()?,
+    ///                         notations: Default::default(),
     ///                     },
     ///                 )?,
     ///                 ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIClIXZdx0aDOPcIQA+6Qx68cwSUgGTL3TWzDSX3qUEOQ user@host".parse()?,
@@ -2083,9 +2101,26 @@ mod tests {
                 CryptographicKeyContext::OpenPgp {
                     user_ids: OpenPgpUserIdList::new(vec!["John Doe <john@example.org>".parse()?])?,
                     version: OpenPgpVersion::V4,
+                    notations: Default::default(),
                 })
         },
         "key1 (namespace: ns1; tag: tag1; type: Curve25519; mechanisms: EdDsaSignature; context: OpenPGP (Version: 4; User IDs: \"John Doe <john@example.org>\"))",
+    )]
+    #[case::namespaced_key_with_openpgp_v4_cert_and_notations(
+        KeyState{
+            name: "key1".parse()?,
+            namespace: Some("ns1".parse()?),
+            tag: "tag1".to_string(),
+            key_type: KeyType::Curve25519,
+            mechanisms: vec![KeyMechanism::EdDsaSignature],
+            key_cert_state: KeyCertificateState::KeyContext(
+                CryptographicKeyContext::OpenPgp {
+                    user_ids: OpenPgpUserIdList::new(vec!["John Doe <john@example.org>".parse()?])?,
+                    version: OpenPgpVersion::V4,
+                    notations: [("a".into(), "b".into())].into_iter().collect(),
+                })
+        },
+        "key1 (namespace: ns1; tag: tag1; type: Curve25519; mechanisms: EdDsaSignature; context: OpenPGP (Version: 4; User IDs: \"John Doe <john@example.org>\"; Notations: \"a=b\"))",
     )]
     #[case::namespaced_key_with_raw_cert(
         KeyState{

@@ -344,6 +344,7 @@ async fn nethsm_diff_diff_fails_on_discrepancies() -> TestResult {
                             "BarFoo Fooface <barfoo@fooface.org>".parse()?,
                         ])?,
                         version: "v4".parse()?,
+                        notations: Default::default(),
                     },
                 )?,
                 ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOh96uFTnvX6P1ebbLxXFvy6sK7qFqlMHDOuJ0TmuXQQ user@host".parse()?,

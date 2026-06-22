@@ -42,6 +42,8 @@ yubihsm2:
               user_ids:
                 - Foobar McFooface <foobar@mcfooface.org>
               version: "4"
+              notations:
+                test: value
         domain: 1
         signing_key_id: 1
         ssh_authorized_key: >-

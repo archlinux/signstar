@@ -3,4 +3,4 @@ source: signstar-config/src/yubihsm2/config.rs
 description: "Error message for YubiHsm2Config::new with size estimation"
 expression: error_msg
 ---
-mappings: contains estimated certificate size 2287 exceeds the storage limit of 1980
+mappings: contains estimated certificate size 2104 exceeds the storage limit of 1980

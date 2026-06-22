@@ -56,6 +56,7 @@ impl SigningKeySetup {
     ///             "Foobar McFooface <foobar@mcfooface.org>".parse()?,
     ///         ])?,
     ///         version: "v4".parse()?,
+    ///         notations: Default::default(),
     ///     },
     /// )?;
     ///
@@ -71,6 +72,7 @@ impl SigningKeySetup {
     ///                 "Foobar McFooface <foobar@mcfooface.org>".parse()?
     ///             ])?,
     ///             version: "v4".parse()?,
+    ///             notations: Default::default(),
     ///         },
     ///     )
     ///     .is_err()

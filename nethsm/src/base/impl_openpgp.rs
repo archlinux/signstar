@@ -1,12 +1,15 @@
 //! [`NetHsm`] implementation for OpenPGP functionality.
 
+use std::iter::empty;
+
 use log::debug;
 use signstar_crypto::{
     key::{KeyMechanism, PrivateKeyImport},
     signer::openpgp::{
+        Notation,
         Timestamp,
-        add_certificate,
         extract_certificate,
+        generate_certificate,
         sign,
         sign_hasher_state,
         tsk_to_private_key_import as sc_tsk_to_private_key_import,
@@ -126,6 +129,7 @@ impl NetHsm {
     ///             &"signing1".parse()?,
     ///             OpenPgpKeyUsageFlags::default(),
     ///             &["Test <test@example.org>".parse()?],
+    ///             Default::default(),
     ///             Timestamp::now(),
     ///             OpenPgpVersion::V4,
     ///         )?
@@ -142,11 +146,12 @@ impl NetHsm {
     /// [namespace]: https://docs.nitrokey.com/nethsm/administration#namespaces
     /// [role]: https://docs.nitrokey.com/nethsm/administration#roles
     /// [state]: https://docs.nitrokey.com/nethsm/administration#state
-    pub fn create_openpgp_cert(
+    pub fn create_openpgp_cert<'notation_name, 'notation_value>(
         &self,
         key_id: &KeyId,
         flags: OpenPgpKeyUsageFlags,
         user_ids: &[OpenPgpUserId],
+        notations: &[Notation<'notation_name, 'notation_value>],
         created_at: Timestamp,
         version: OpenPgpVersion,
     ) -> Result<Vec<u8>, Error> {
@@ -159,10 +164,11 @@ impl NetHsm {
 
         let raw_signer = NetHsmKey::new(self, key_id)?;
 
-        Ok(add_certificate(
+        Ok(generate_certificate(
             &raw_signer,
             flags,
             user_ids,
+            notations,
             created_at,
             version,
         )?)
@@ -250,6 +256,7 @@ impl NetHsm {
     ///     &"signing1".parse()?,
     ///     OpenPgpKeyUsageFlags::default(),
     ///     &["Test <test@example.org>".parse()?],
+    ///     Default::default(),
     ///     Timestamp::now(),
     ///     OpenPgpVersion::V4,
     /// )?;
@@ -365,6 +372,7 @@ impl NetHsm {
     ///     &"signing1".parse()?,
     ///     OpenPgpKeyUsageFlags::default(),
     ///     &["Test <test@example.org>".parse()?],
+    ///     Default::default(),
     ///     Timestamp::now(),
     ///     OpenPgpVersion::V4,
     /// )?;
@@ -397,7 +405,7 @@ impl NetHsm {
         );
         let raw_signer = NetHsmKey::new(self, key_id)?;
 
-        Ok(sign_hasher_state(&raw_signer, state)?)
+        Ok(sign_hasher_state(&raw_signer, state, empty())?)
     }
 }
 

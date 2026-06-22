@@ -6,7 +6,7 @@ pub mod nethsm;
 #[cfg(feature = "yubihsm2")]
 pub mod yubihsm2;
 
-use std::fmt::Display;
+use std::{collections::BTreeMap, fmt::Display};
 
 use pgp::{
     composed::SignedPublicKey,
@@ -18,7 +18,7 @@ use strum::{EnumIter, EnumString, IntoStaticStr};
 use crate::{
     key::error::Error,
     openpgp::{OpenPgpUserId, OpenPgpUserIdList, OpenPgpVersion},
-    signer::openpgp::{EmptyEd25519Signer, add_certificate},
+    signer::openpgp::{EmptyEd25519Signer, Notation, generate_certificate},
 };
 
 /// A mode for decrypting a message
@@ -371,6 +371,10 @@ pub enum CryptographicKeyContext {
 
         /// OpenPGP version for the certificate.
         version: OpenPgpVersion,
+
+        /// OpenPGP notations to attach to created signatures.
+        #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+        notations: BTreeMap<String, String>,
     },
 
     /// A key is used in a raw cryptographic context
@@ -402,6 +406,7 @@ impl CryptographicKeyContext {
     /// CryptographicKeyContext::OpenPgp {
     ///     user_ids: OpenPgpUserIdList::new(vec!["Foobar McFooface <foobar@mcfooface.org>".parse()?])?,
     ///     version: OpenPgpVersion::V4,
+    ///     notations: Default::default(),
     /// }
     /// .validate_signing_key_setup(
     ///     KeyType::Curve25519,
@@ -451,6 +456,7 @@ impl CryptographicKeyContext {
             Self::OpenPgp {
                 user_ids: _,
                 version: _,
+                notations: _,
             } => match (key_type, signature_type) {
                 (KeyType::Curve25519, SignatureType::EdDsa)
                     if key_mechanisms.contains(&KeyMechanism::EdDsaSignature) => {}
@@ -491,12 +497,13 @@ impl CryptographicKeyContext {
     ///
     /// # fn main() -> testresult::TestResult {
     /// let cert_size = CryptographicKeyContext::OpenPgp {
+    ///     notations: Default::default(),
     ///     user_ids: OpenPgpUserIdList::new(vec!["Foobar McFooface <foobar@mcfooface.org>".parse()?])?,
     ///     version: OpenPgpVersion::V4,
     /// }
     /// .openpgp_cert_size()?;
     ///
-    /// assert_eq!(cert_size, Some(167));
+    /// assert_eq!(cert_size, Some(155));
     ///
     /// let cert_size = CryptographicKeyContext::Raw.openpgp_cert_size()?;
     ///
@@ -505,11 +512,21 @@ impl CryptographicKeyContext {
     /// # }
     /// ```
     pub fn openpgp_cert_size(&self) -> Result<Option<usize>, crate::Error> {
-        if let CryptographicKeyContext::OpenPgp { user_ids, .. } = self {
-            match add_certificate(
+        if let CryptographicKeyContext::OpenPgp {
+            user_ids,
+            notations,
+            ..
+        } = self
+        {
+            match generate_certificate(
                 &EmptyEd25519Signer,
                 Default::default(),
                 user_ids.as_ref(),
+                notations
+                    .iter()
+                    .map(|(name, value)| Notation { name, value })
+                    .collect::<Vec<_>>()
+                    .as_slice(),
                 Timestamp::now(),
                 Default::default(),
             ) {
@@ -525,16 +542,32 @@ impl CryptographicKeyContext {
 impl Display for CryptographicKeyContext {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::OpenPgp { user_ids, version } => {
+            Self::OpenPgp {
+                user_ids,
+                version,
+                notations,
+            } => {
                 write!(
                     f,
-                    "OpenPGP (Version: {version}; User IDs: {})",
+                    "OpenPGP (Version: {version}; User IDs: {}",
                     user_ids
                         .iter()
                         .map(|user_id| format!("\"{user_id}\""))
                         .collect::<Vec<String>>()
                         .join(", ")
-                )
+                )?;
+                if !notations.is_empty() {
+                    write!(
+                        f,
+                        "; Notations: {}",
+                        notations
+                            .iter()
+                            .map(|(key, value)| format!("\"{key}={value}\""))
+                            .collect::<Vec<String>>()
+                            .join(", ")
+                    )?;
+                }
+                write!(f, ")")
             }
             Self::Raw => {
                 write!(f, "Raw")
@@ -564,9 +597,22 @@ impl TryFrom<SignedPublicKey> for CryptographicKeyContext {
             .filter_map(|signed_user| signed_user.try_into().ok())
             .collect();
 
+        let notations = value
+            .details
+            .users
+            .iter()
+            .flat_map(|user| &user.signatures)
+            .flat_map(|sig| sig.notations())
+            .fold(BTreeMap::new(), |mut acc, notation| {
+                acc.entry(String::from_utf8_lossy(&notation.name).into())
+                    .or_insert(String::from_utf8_lossy(&notation.value).into());
+                acc
+            });
+
         Ok(Self::OpenPgp {
             user_ids: OpenPgpUserIdList::new(user_ids)?,
             version: value.primary_key.version().try_into()?,
+            notations,
         })
     }
 }

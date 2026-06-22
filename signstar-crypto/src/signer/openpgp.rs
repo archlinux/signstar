@@ -5,16 +5,12 @@ use std::{backtrace::Backtrace, io::Cursor};
 use digest::DynDigest;
 use ed25519_dalek::VerifyingKey;
 use log::{error, warn};
+use pgp::composed::SignedKeyDetails;
 // Publicly re-export `pgp` facilities, used in the API of `signstar_crypto::signer::openpgp`.
 pub use pgp::composed::{Deserializable, SignedSecretKey};
 pub use pgp::types::Timestamp;
 use pgp::{
-    composed::{
-        ArmorOptions,
-        DetachedSignature,
-        KeyDetails as ComposedKeyDetails,
-        SignedPublicKey,
-    },
+    composed::{ArmorOptions, DetachedSignature, SignedPublicKey},
     crypto::{
         ecdsa::SecretKey,
         eddsa_legacy::SecretKey as EdDsaLegacySecretKey,
@@ -22,7 +18,7 @@ use pgp::{
         public_key::PublicKeyAlgorithm,
     },
     packet::{
-        Notation,
+        Notation as PgpNotation,
         PacketTrait,
         PubKeyInner,
         PublicKey,
@@ -35,7 +31,6 @@ use pgp::{
     },
     ser::Serialize,
     types::{
-        CompressionAlgorithm,
         EcdsaPublicParams,
         EddsaLegacyPublicParams,
         Fingerprint,
@@ -65,6 +60,21 @@ use crate::{
     },
 };
 
+/// An OpenPGP notation data object.
+///
+/// [Notation data] encodes UTF-8 strings that can be attached to OpenPGP certificates or
+/// signatures.
+///
+/// [Notation data]: https://www.rfc-editor.org/info/rfc9580/#name-notation-data
+#[derive(Debug)]
+pub struct Notation<'name, 'value> {
+    /// Name of the notation.
+    pub name: &'name str,
+
+    /// Value of the notation.
+    pub value: &'value str,
+}
+
 /// PGP-adapter for a [raw HSM key][RawSigningKey].
 ///
 /// All PGP-related operations executed on objects of this type will be forwarded to
@@ -88,7 +98,7 @@ impl std::fmt::Debug for SigningKey<'_> {
 /// # Note
 ///
 /// This [`RawSigningKey`] implementation may be used to reliably estimate the size (in bytes) of an
-/// Ed25519-based OpenPGP certificate (e.g. when creating it using [`add_certificate`]).
+/// Ed25519-based OpenPGP certificate (e.g. when creating it using [`generate_certificate`]).
 ///
 /// # Warning
 ///
@@ -293,10 +303,11 @@ impl RpgpSigningKey for SigningKey<'_> {
 /// - an empty list of user IDs is passed
 /// - signing the certificate with the HSM key fails
 /// - writing the resulting certificate to buffer fails
-pub fn add_certificate(
+pub fn generate_certificate<'notation_name, 'notation_value>(
     raw_signer: &dyn RawSigningKey,
     flags: OpenPgpKeyUsageFlags,
     user_ids: &[OpenPgpUserId],
+    notations: &[Notation<'notation_name, 'notation_value>],
     created_at: Timestamp,
     version: OpenPgpVersion,
 ) -> Result<Vec<u8>, crate::Error> {
@@ -304,43 +315,103 @@ pub fn add_certificate(
         return Err(crate::openpgp::Error::InvalidOpenPgpVersion(version.to_string()).into());
     }
 
-    if user_ids.is_empty() {
-        return Err(crate::openpgp::Error::OpenPgpUserIdMissing.into());
-    }
-
     let (primary_user_id, user_ids) = {
-        let mut user_ids = user_ids
+        if user_ids.is_empty() {
+            return Err(crate::openpgp::Error::OpenPgpUserIdMissing.into());
+        }
+
+        let user_ids = user_ids
             .iter()
             .map(|user_id| UserId::from_str(Default::default(), user_id))
             .collect::<Result<Vec<UserId>, _>>()
             .map_err(Error::Pgp)?;
 
-        (user_ids.remove(0), user_ids)
+        // NOTE: This cannot panic because above we ensure that we have at least one item.
+        (
+            user_ids
+                .first()
+                .expect("there to be at least one OpenPGP User ID")
+                .clone(),
+            user_ids,
+        )
     };
 
     let public_key = raw_signer.public()?.to_openpgp_public_key(created_at)?;
+
     let signer = SigningKey::new(raw_signer, public_key.clone(), primary_user_id.clone());
 
+    let users = user_ids
+        .iter()
+        .map(|user_id| {
+            // Self-signatures use CertPositive, see
+            // <https://www.ietf.org/archive/id/draft-gallagher-openpgp-signatures-01.html#name-certification-signature-typ>
+            let config = {
+                let mut config = SignatureConfig::from_key(
+                    &mut thread_rng(),
+                    &signer,
+                    SignatureType::CertPositive,
+                )
+                .map_err(Error::Pgp)?;
+
+                config.hashed_subpackets = vec![
+                    Subpacket::regular(SubpacketData::SignatureCreationTime(Timestamp::now()))
+                        .map_err(Error::Pgp)?,
+                    Subpacket::regular(SubpacketData::IssuerFingerprint(signer.fingerprint()))
+                        .map_err(Error::Pgp)?,
+                    Subpacket::regular(SubpacketData::KeyFlags(flags.clone().into()))
+                        .map_err(Error::Pgp)?,
+                    Subpacket::regular(SubpacketData::IsPrimary(user_id == &primary_user_id))
+                        .map_err(Error::Pgp)?,
+                ];
+
+                for notation in notations.iter() {
+                    config.hashed_subpackets.push(
+                        Subpacket::regular(SubpacketData::Notation(PgpNotation {
+                            readable: true,
+                            name: notation.name.to_string().into(),
+                            value: notation.value.to_string().into(),
+                        }))
+                        .map_err(Error::Pgp)?,
+                    );
+                }
+
+                config.unhashed_subpackets = vec![
+                    Subpacket::regular(SubpacketData::IssuerKeyId(public_key.legacy_key_id()))
+                        .map_err(Error::Pgp)?,
+                ];
+
+                config
+            };
+
+            let sig = config
+                .sign_certification(
+                    &signer,
+                    &public_key,
+                    &Password::empty(),
+                    user_id.tag(),
+                    &user_id,
+                )
+                .map_err(Error::Pgp)?;
+            Ok::<_, Error>(user_id.clone().into_signed(sig))
+        })
+        .collect::<Result<_, _>>()?;
+
     let signed_pk = SignedPublicKey {
-        details: ComposedKeyDetails::new(
-            Some(primary_user_id),
-            user_ids,
-            vec![],
-            flags.into(),
-            Default::default(),
-            Default::default(),
-            Default::default(),
-            vec![CompressionAlgorithm::Uncompressed].into(),
-            vec![].into(),
-        )
-        .sign(thread_rng(), &signer, &public_key, &Password::empty())
-        .map_err(Error::Pgp)?,
+        details: SignedKeyDetails {
+            users,
+            revocation_signatures: Vec::new(),
+            direct_signatures: Vec::new(),
+            user_attributes: Vec::new(),
+        },
         primary_key: public_key,
-        public_subkeys: vec![],
+        public_subkeys: Vec::new(),
     };
 
-    let mut buffer = vec![];
-    signed_pk.to_writer(&mut buffer).map_err(Error::Pgp)?;
+    let buffer = {
+        let mut buffer = Vec::new();
+        signed_pk.to_writer(&mut buffer).map_err(Error::Pgp)?;
+        buffer
+    };
     Ok(buffer)
 }
 
@@ -581,6 +652,7 @@ impl DynDigest for Hasher {
 pub fn sign_hasher_state(
     raw_signer: &dyn RawSigningKey,
     state: sha2::Sha512,
+    notations: impl IntoIterator<Item = (String, String)>,
 ) -> Result<String, crate::Error> {
     let signer = SigningKey::new_provisioned(raw_signer)?;
     let hasher = state.clone();
@@ -597,7 +669,7 @@ pub fn sign_hasher_state(
                 .map_err(Error::Pgp)?,
             Subpacket::regular(SubpacketData::IssuerFingerprint(signer.fingerprint()))
                 .map_err(Error::Pgp)?,
-            Subpacket::regular(SubpacketData::Notation(Notation {
+            Subpacket::regular(SubpacketData::Notation(PgpNotation {
                 readable: false,
                 name: "data-digest@archlinux.org".into(),
                 value: file_hash.into(),
@@ -608,6 +680,17 @@ pub fn sign_hasher_state(
             ))
             .map_err(Error::Pgp)?,
         ];
+
+        for (name, value) in notations {
+            sig_config.hashed_subpackets.push(
+                Subpacket::regular(SubpacketData::Notation(PgpNotation {
+                    readable: true,
+                    name: name.into(),
+                    value: value.into(),
+                }))
+                .map_err(Error::Pgp)?,
+            )
+        }
         sig_config
     };
 
@@ -1034,10 +1117,11 @@ mod tests {
     fn sign_dummy() -> TestResult {
         let mut raw_signer = Ed25519SoftKey::new();
 
-        let cert = add_certificate(
+        let cert = generate_certificate(
             &raw_signer,
             Default::default(),
             &[OpenPgpUserId::new("test".into())?],
+            Default::default(),
             Timestamp::now(),
             Default::default(),
         )?;
@@ -1063,10 +1147,11 @@ mod tests {
         let mut raw_signer = Ed25519SoftKey::new();
 
         // we need at least one User ID or this function fails
-        let cert = add_certificate(
+        let cert = generate_certificate(
             &raw_signer,
             Default::default(),
             &[OpenPgpUserId::new("test".into())?],
+            Default::default(),
             Timestamp::now(),
             Default::default(),
         )?;
@@ -1090,27 +1175,29 @@ mod tests {
 
     #[test]
     fn estimate_certificate_size() -> TestResult {
-        let cert = add_certificate(
+        let cert = generate_certificate(
             &EmptyEd25519Signer,
             Default::default(),
             &[OpenPgpUserId::new("test".into())?],
+            &[],
             Timestamp::now(),
             Default::default(),
         )?;
 
-        assert_eq!(cert.len(), 132);
+        assert_eq!(cert.len(), 120);
 
         // add 5 characters to the user ID
-        let cert = add_certificate(
+        let cert = generate_certificate(
             &EmptyEd25519Signer,
             Default::default(),
             &[OpenPgpUserId::new("test test".into())?],
+            &[],
             Timestamp::now(),
             Default::default(),
         )?;
 
         // the size grows by 5 bytes
-        assert_eq!(cert.len(), 137);
+        assert_eq!(cert.len(), 125);
 
         Ok(())
     }
