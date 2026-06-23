@@ -15,7 +15,12 @@ use pgp::{
         KeyDetails as ComposedKeyDetails,
         SignedPublicKey,
     },
-    crypto::{ecdsa::SecretKey, hash::HashAlgorithm, public_key::PublicKeyAlgorithm},
+    crypto::{
+        ecdsa::SecretKey,
+        eddsa_legacy::SecretKey as EdDsaLegacySecretKey,
+        hash::HashAlgorithm,
+        public_key::PublicKeyAlgorithm,
+    },
     packet::{
         Notation,
         PacketTrait,
@@ -332,7 +337,7 @@ pub fn tsk_to_private_key_import(
                 KeyMechanism::EcdsaSignature,
             )
         }
-        (PlainSecretParams::Ed25519Legacy(bytes), _) => (
+        (PlainSecretParams::EdDSALegacy(EdDsaLegacySecretKey::Ed25519(bytes)), _) => (
             PrivateKeyImport::from_raw_bytes(KeyType::Curve25519, bytes.as_bytes())?,
             KeyMechanism::EdDsaSignature,
         ),
