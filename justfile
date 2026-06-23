@@ -622,7 +622,7 @@ check-shell-script file:
 [group('check')]
 check-shell-recipe recipe:
     just ensure-command rg shellcheck
-    just -vv -n {{ recipe }} 2>&1 | rg -v '===> Running recipe' | shellcheck -
+    just -vv -n {{ recipe }} 2>&1 | rg -vi '===> Running recipe' | shellcheck -
 
 # Checks common spelling mistakes
 [group('check')]
