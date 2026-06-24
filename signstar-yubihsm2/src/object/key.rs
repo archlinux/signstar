@@ -8,7 +8,10 @@ use serde::{Deserialize, Serialize};
 use serde_repr::{Deserialize_repr, Serialize_repr};
 use signstar_crypto::passphrase::{Passphrase, PassphrasePolicy};
 use strum::{AsRefStr, IntoStaticStr};
-use yubihsm::authentication::Key as YubiHsmAuthenticationKey;
+use yubihsm::{
+    authentication::Key as YubiHsmAuthenticationKey,
+    wrap::Algorithm as YubiHsmWrapAlgorithm,
+};
 
 use crate::object::{Capabilities, Id};
 
@@ -329,6 +332,41 @@ impl TryFrom<&Passphrase> for AuthenticationKey {
     }
 }
 
+/// The kind of a wrap key as used by the YubiHSM2.
+#[derive(Clone, Copy, Debug, Default, Eq, IntoStaticStr, PartialEq)]
+pub enum WrapKeyKind {
+    /// AES-128 in Counter with CBC-MAC (CCM) mode.
+    Aes128,
+
+    /// AES-192 in Counter with CBC-MAC (CCM) mode.
+    Aes192,
+
+    /// AES-256 in Counter with CBC-MAC (CCM) mode.
+    #[default]
+    Aes256,
+}
+
+impl WrapKeyKind {
+    /// Returns the size of the wrap key kind in bytes.
+    pub fn key_len(&self) -> usize {
+        match self {
+            Self::Aes128 => 16,
+            Self::Aes192 => 24,
+            Self::Aes256 => 32,
+        }
+    }
+}
+
+impl From<&WrapKeyKind> for YubiHsmWrapAlgorithm {
+    fn from(value: &WrapKeyKind) -> Self {
+        match value {
+            WrapKeyKind::Aes128 => Self::Aes128Ccm,
+            WrapKeyKind::Aes192 => Self::Aes192Ccm,
+            WrapKeyKind::Aes256 => Self::Aes256Ccm,
+        }
+    }
+}
+
 /// Metadata about a key stored on a YubiHSM2.
 ///
 /// This struct stores common parameters of keys regardless of their usage may describe
@@ -357,6 +395,7 @@ mod tests {
         distributions::{Alphanumeric, DistString},
         thread_rng,
     };
+    use rstest::rstest;
     use tempfile::{NamedTempFile, TempDir};
     use testresult::TestResult;
 
@@ -459,5 +498,27 @@ mod tests {
         }
 
         Ok(())
+    }
+
+    /// Ensures that [`WrapKeyKind::key_len`] returns the correct number for each variant.
+    #[rstest]
+    #[case(WrapKeyKind::Aes128, 16)]
+    #[case(WrapKeyKind::Aes192, 24)]
+    #[case(WrapKeyKind::Aes256, 32)]
+    fn wrap_key_kind_key_len(#[case] wrap_key_kind: WrapKeyKind, #[case] len: usize) {
+        assert_eq!(wrap_key_kind.key_len(), len);
+    }
+
+    /// Ensures that variants of [`YubiHsmWrapAlgorithm`] can be created from [`WrapKeyKind`]
+    /// variants.
+    #[rstest]
+    #[case(WrapKeyKind::Aes128, YubiHsmWrapAlgorithm::Aes128Ccm)]
+    #[case(WrapKeyKind::Aes192, YubiHsmWrapAlgorithm::Aes192Ccm)]
+    #[case(WrapKeyKind::Aes256, YubiHsmWrapAlgorithm::Aes256Ccm)]
+    fn yubihsm_wrap_algorithm_from_wrap_key_kind(
+        #[case] wrap_key_kind: WrapKeyKind,
+        #[case] algorithm: YubiHsmWrapAlgorithm,
+    ) {
+        assert_eq!(YubiHsmWrapAlgorithm::from(&wrap_key_kind), algorithm);
     }
 }
