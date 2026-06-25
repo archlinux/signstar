@@ -30,4 +30,16 @@ pub enum Error {
         /// The error source.
         source: getrandom::Error,
     },
+
+    /// An [`argon2::Error`] occurred.
+    #[error("Argon2 error while {context}: {source}")]
+    Argon2 {
+        /// The context in which the error occurred.
+        ///
+        /// This is meant to complete the sentence "Argon2 error while ".
+        context: &'static str,
+
+        /// The error source.
+        source: argon2::Error,
+    },
 }

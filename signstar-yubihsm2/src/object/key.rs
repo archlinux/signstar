@@ -8,6 +8,7 @@ use std::{
     path::Path,
 };
 
+use argon2::Argon2;
 use getrandom::fill;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
@@ -429,6 +430,71 @@ impl From<&WrapKey> for Vec<u8> {
     }
 }
 
+/// A helper struct for the creation of a [`WrapKey`] from a [`Passphrase`].
+///
+/// The struct tracks a [`Passphrase`] and a [`WrapKeyKind`].
+///
+/// The passphrase is guaranteed to be validated against the passphrase policy imposed by
+/// [`WrapKey`].
+#[derive(Debug)]
+pub struct WrapKeyFromPassphrase<'passphrase> {
+    passphrase: &'passphrase Passphrase,
+    kind: WrapKeyKind,
+}
+
+impl<'passphrase> WrapKeyFromPassphrase<'passphrase> {
+    /// The static salt used for argon2, when hashing a passphrase.
+    pub(crate) const ARGON2_SALT: &'static [u8] = b"Salt for a Signstar backup key";
+
+    /// Creates a new [`WrapKeyFromPassphrase`].
+    ///
+    /// # Errors
+    ///
+    /// Returns an error, if checking `passphrase` against [`WrapKey::PASSPHRASE_POLICY`] fails.
+    pub fn new(
+        passphrase: &'passphrase Passphrase,
+        kind: WrapKeyKind,
+    ) -> Result<Self, crate::Error> {
+        passphrase.check_against_policy(&WrapKey::PASSPHRASE_POLICY)?;
+
+        Ok(Self { passphrase, kind })
+    }
+}
+
+impl<'passphrase> TryFrom<WrapKeyFromPassphrase<'passphrase>> for WrapKey {
+    type Error = crate::Error;
+
+    /// Creates a new [`WrapKey`] from a [`WrapKeyFromPassphrase`].
+    ///
+    /// Uses the [argon2] key derivation function to create the [`WrapKey`] from the `passphrase` of
+    /// `value` and a static salt.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error, if hashing the passphrase of `value` into the targeted `data` of a
+    /// [`WrapKey`] fails.
+    ///
+    /// [argon2]: https://en.wikipedia.org/wiki/Argon2
+    fn try_from(value: WrapKeyFromPassphrase<'passphrase>) -> Result<Self, Self::Error> {
+        let mut data = Zeroizing::new(vec![0u8; value.kind.key_len()]);
+        Argon2::default()
+            .hash_password_into(
+                value.passphrase.expose_borrowed().as_bytes(),
+                WrapKeyFromPassphrase::ARGON2_SALT,
+                &mut data,
+            )
+            .map_err(|source| crate::object::Error::Argon2 {
+                context: "creating a wrap key from a passphrase",
+                source,
+            })?;
+
+        Ok(WrapKey {
+            kind: value.kind,
+            data,
+        })
+    }
+}
+
 /// Metadata about a key stored on a YubiHSM2.
 ///
 /// This struct stores common parameters of keys regardless of their usage may describe
@@ -457,7 +523,7 @@ mod tests {
         distributions::{Alphanumeric, DistString},
         thread_rng,
     };
-    use rstest::rstest;
+    use rstest::{fixture, rstest};
     use tempfile::{NamedTempFile, TempDir};
     use testresult::TestResult;
 
@@ -610,6 +676,65 @@ mod tests {
 
         assert!(wrap_key_debug.contains(&wrap_key_kind_debug));
         assert!(wrap_key_debug.contains("[REDACTED]"));
+
+        Ok(())
+    }
+
+    /// A valid [`Passphrase`] for a [`WrapKey`].
+    #[fixture]
+    fn valid_wrap_key_passphrase() -> Passphrase {
+        Passphrase::new("this is a long passphrase that is at least 100 chars long, very long omg, so long, really now, you gotta believe me".to_string())
+    }
+
+    /// An invalid [`Passphrase`] for a [`WrapKey`].
+    #[fixture]
+    fn invalid_wrap_key_passphrase() -> Passphrase {
+        Passphrase::new("this passphrase is shorter than 100 chars".to_string())
+    }
+
+    /// Ensures that [`WrapKeyFromPassphrase::new`] succeeds with sufficiently long passphrases.
+    #[rstest]
+    #[case(WrapKeyKind::Aes128)]
+    #[case(WrapKeyKind::Aes192)]
+    #[case(WrapKeyKind::Aes256)]
+    fn wrap_key_from_passphrase_new_succeeds(
+        #[case] wrap_key_kind: WrapKeyKind,
+        valid_wrap_key_passphrase: Passphrase,
+    ) -> TestResult {
+        WrapKeyFromPassphrase::new(&valid_wrap_key_passphrase, wrap_key_kind)?;
+
+        Ok(())
+    }
+
+    /// Ensures that [`WrapKeyFromPassphrase::new`] fails on invalid passphrases.
+    #[rstest]
+    #[case(WrapKeyKind::Aes128)]
+    #[case(WrapKeyKind::Aes192)]
+    #[case(WrapKeyKind::Aes256)]
+    fn wrap_key_from_passphrase_new_fails_on_short_passphrase(
+        #[case] wrap_key_kind: WrapKeyKind,
+        invalid_wrap_key_passphrase: Passphrase,
+    ) -> TestResult {
+        assert!(WrapKeyFromPassphrase::new(&invalid_wrap_key_passphrase, wrap_key_kind).is_err());
+
+        Ok(())
+    }
+
+    /// Ensures that creating a [`WrapKey`] from a [`WrapKeyFromPassphrase`] succeeds on valid data.
+    #[rstest]
+    #[case(WrapKeyKind::Aes128)]
+    #[case(WrapKeyKind::Aes192)]
+    #[case(WrapKeyKind::Aes256)]
+    fn wrap_key_try_from_wrap_key_from_passphrase_succeeds(
+        #[case] wrap_key_kind: WrapKeyKind,
+        valid_wrap_key_passphrase: Passphrase,
+    ) -> TestResult {
+        let wrap_key_from_passphrase =
+            WrapKeyFromPassphrase::new(&valid_wrap_key_passphrase, wrap_key_kind)?;
+        let wrap_key = WrapKey::try_from(wrap_key_from_passphrase)?;
+        let data: Vec<u8> = From::from(&wrap_key);
+
+        assert_eq!(data.len(), wrap_key_kind.key_len());
 
         Ok(())
     }
