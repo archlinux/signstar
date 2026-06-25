@@ -648,7 +648,7 @@ impl ScenarioRunner {
                         caps.into(),
                         delegated_caps.into(),
                         WrapAlgorithm::Aes256Ccm,
-                        wrapping_key.as_ref().as_secret_slice(),
+                        wrapping_key,
                     )
                     .map_err(|source| Error::Client {
                         context: "putting wrap key",
