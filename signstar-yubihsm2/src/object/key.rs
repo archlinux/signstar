@@ -1,7 +1,14 @@
 //! YubiHSM2 key metadata.
 
-use std::{collections::BTreeSet, fmt::Display, fs::read_to_string, hash::Hash, path::Path};
+use std::{
+    collections::BTreeSet,
+    fmt::{Debug, Display},
+    fs::read_to_string,
+    hash::Hash,
+    path::Path,
+};
 
+use getrandom::fill;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 #[cfg(feature = "serde")]
@@ -12,6 +19,7 @@ use yubihsm::{
     authentication::Key as YubiHsmAuthenticationKey,
     wrap::Algorithm as YubiHsmWrapAlgorithm,
 };
+use zeroize::Zeroizing;
 
 use crate::object::{Capabilities, Id};
 
@@ -373,6 +381,54 @@ impl From<&WrapKeyKind> for YubiHsmWrapAlgorithm {
     }
 }
 
+/// A wrap key.
+///
+/// Wrap keys are used to wrap (encrypt) objects (e.g. other keys or data) in a YubiHSM2.
+pub struct WrapKey {
+    kind: WrapKeyKind,
+    data: Zeroizing<Vec<u8>>,
+}
+
+impl WrapKey {
+    /// The default [`PassphrasePolicy`] for a [`WrapKey`].
+    pub const PASSPHRASE_POLICY: PassphrasePolicy = PassphrasePolicy {
+        minimum_length: 100,
+    };
+
+    /// Creates a new [`WrapKey`] of a specific kind.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if generating random bytes for the new wrap key fails
+    pub fn generate_random(kind: WrapKeyKind) -> Result<Self, crate::Error> {
+        let data = {
+            let mut bytes = Zeroizing::new(vec![0u8; kind.key_len()]);
+            fill(&mut bytes).map_err(|source| crate::object::Error::GetRandom {
+                context: "generating a random wrapping key",
+                source,
+            })?;
+            bytes
+        };
+
+        Ok(Self { kind, data })
+    }
+}
+
+impl Debug for WrapKey {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("WrapKey")
+            .field("kind", &self.kind)
+            .field("data", &"[REDACTED]")
+            .finish()
+    }
+}
+
+impl From<&WrapKey> for Vec<u8> {
+    fn from(value: &WrapKey) -> Self {
+        value.data.to_vec()
+    }
+}
+
 /// Metadata about a key stored on a YubiHSM2.
 ///
 /// This struct stores common parameters of keys regardless of their usage may describe
@@ -526,5 +582,37 @@ mod tests {
         #[case] algorithm: YubiHsmWrapAlgorithm,
     ) {
         assert_eq!(YubiHsmWrapAlgorithm::from(&wrap_key_kind), algorithm);
+    }
+
+    /// Ensures that [`WrapKey::generate_random`] creates a [`WrapKey`] based on a [`WrapKeyKind`].
+    #[rstest]
+    #[case(WrapKeyKind::Aes128)]
+    #[case(WrapKeyKind::Aes192)]
+    #[case(WrapKeyKind::Aes256)]
+    fn wrap_key_generate_random_succeeds(#[case] wrap_key_kind: WrapKeyKind) -> TestResult {
+        let wrap_key = WrapKey::generate_random(wrap_key_kind)?;
+        let data: Vec<u8> = From::from(&wrap_key);
+
+        assert_eq!(data.len(), wrap_key_kind.key_len());
+
+        Ok(())
+    }
+
+    /// Ensures that the [`Debug`] representation of [`WrapKey`] contains the correct data.
+    #[rstest]
+    #[case(WrapKeyKind::Aes128)]
+    #[case(WrapKeyKind::Aes192)]
+    #[case(WrapKeyKind::Aes256)]
+    fn wrap_key_debug(#[case] wrap_key_kind: WrapKeyKind) -> TestResult {
+        let wrap_key = WrapKey::generate_random(wrap_key_kind)?;
+        let data_debug = format!("{:?}", wrap_key.data.to_vec());
+        let wrap_key_debug = format!("{wrap_key:?}");
+        let wrap_key_kind_debug = format!("{wrap_key_kind:?}");
+
+        assert!(wrap_key_debug.contains(&wrap_key_kind_debug));
+        assert!(wrap_key_debug.contains("[REDACTED]"));
+        assert!(!wrap_key_debug.contains(&data_debug));
+
+        Ok(())
     }
 }
