@@ -18,6 +18,7 @@ clap = { workspace = true, optional = true }
 clap-verbosity-flag = { workspace = true, optional = true }
 curve25519-dalek = "4.1.3"
 ed25519-dalek = { features = ["hazmat"], workspace = true }
+getrandom = { version = "0.4.3", features = ["std", "sys_rng"] }
 log.workspace = true
 num_enum.workspace = true
 serde = { workspace = true, features = ["derive"], optional = true }
@@ -28,6 +29,7 @@ signstar-crypto.workspace = true
 strum.workspace = true
 thiserror.workspace = true
 yubihsm.workspace = true
+zeroize.workspace = true
 
 [dev-dependencies]
 rand.workspace = true

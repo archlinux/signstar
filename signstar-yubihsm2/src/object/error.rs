@@ -18,4 +18,16 @@ pub enum Error {
     /// Empty set of domains encountered.
     #[error("Empty set of domains encountered")]
     EmptySetOfDomains,
+
+    /// A [`getrandom::Error`] occurred.
+    #[error("Get random error while {context}: {source}")]
+    GetRandom {
+        /// The context in which the error occurred.
+        ///
+        /// This is meant to complete the sentence "Get random error while ".
+        context: &'static str,
+
+        /// The error source.
+        source: getrandom::Error,
+    },
 }
