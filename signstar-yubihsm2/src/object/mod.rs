@@ -16,4 +16,5 @@ pub use key::{
     WrapKey,
     WrapKeyFromPassphrase,
     WrapKeyKind,
+    YubiHsmWrapKeyFromWrapKey,
 };

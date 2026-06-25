@@ -18,7 +18,7 @@ use signstar_crypto::passphrase::{Passphrase, PassphrasePolicy};
 use strum::{AsRefStr, IntoStaticStr};
 use yubihsm::{
     authentication::Key as YubiHsmAuthenticationKey,
-    wrap::Algorithm as YubiHsmWrapAlgorithm,
+    wrap::{Algorithm as YubiHsmWrapAlgorithm, Key as YubiHsmWrapKey},
 };
 use zeroize::{Zeroize, Zeroizing};
 
@@ -495,6 +495,33 @@ impl<'passphrase> TryFrom<WrapKeyFromPassphrase<'passphrase>> for WrapKey {
     }
 }
 
+/// A helper struct for the creation of a [`YubiHsmWrapKey`].
+///
+/// The struct tracks an [`Id`] and a reference to a [`WrapKey`].
+#[derive(Debug)]
+pub struct YubiHsmWrapKeyFromWrapKey<'wrap_key> {
+    pub(crate) id: Id,
+    pub(crate) wrap_key: &'wrap_key WrapKey,
+}
+
+impl<'wrap_key> TryFrom<&YubiHsmWrapKeyFromWrapKey<'wrap_key>> for YubiHsmWrapKey {
+    type Error = crate::Error;
+
+    /// Creates a [`YubiHsmWrapKey`] from a [`YubiHsmWrapKeyFromWrapKey`].
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if [`YubiHsmWrapKey::from_bytes`] fails.
+    fn try_from(value: &YubiHsmWrapKeyFromWrapKey) -> Result<Self, Self::Error> {
+        Self::from_bytes(value.id.into(), &value.wrap_key.data).map_err(|source| {
+            crate::Error::Device {
+                context: "creating a YubiHSM2 wrap key from bytes",
+                source,
+            }
+        })
+    }
+}
+
 /// Metadata about a key stored on a YubiHSM2.
 ///
 /// This struct stores common parameters of keys regardless of their usage may describe
@@ -735,6 +762,30 @@ mod tests {
         let data: Vec<u8> = From::from(&wrap_key);
 
         assert_eq!(data.len(), wrap_key_kind.key_len());
+
+        Ok(())
+    }
+
+    /// Ensures that creating a [`YubiHsmWrapKey`] from a [`WrapKey`] succeeds with valid data.
+    #[rstest]
+    #[case(WrapKeyKind::Aes128)]
+    #[case(WrapKeyKind::Aes192)]
+    #[case(WrapKeyKind::Aes256)]
+    fn yubihsm_wrap_key_try_from_yubihsm_wrap_key_from_wrap_key_succeeds(
+        #[case] wrap_key_kind: WrapKeyKind,
+        valid_wrap_key_passphrase: Passphrase,
+    ) -> TestResult {
+        let wrap_key = {
+            let wrap_key_from_passphrase =
+                WrapKeyFromPassphrase::new(&valid_wrap_key_passphrase, wrap_key_kind)?;
+            WrapKey::try_from(wrap_key_from_passphrase)?
+        };
+        let yubihsm_wrap_key_from_wrap_key = YubiHsmWrapKeyFromWrapKey {
+            id: "1".parse()?,
+            wrap_key: &wrap_key,
+        };
+
+        YubiHsmWrapKey::try_from(&yubihsm_wrap_key_from_wrap_key)?;
 
         Ok(())
     }
