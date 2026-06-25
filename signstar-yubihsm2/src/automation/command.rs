@@ -4,12 +4,22 @@ use std::{fs::read, path::PathBuf};
 
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
+use signstar_crypto::passphrase::Passphrase;
 use yubihsm::{command::Code, wrap::Message};
 
 use crate::{
     Credentials,
     automation::CommandReturnValue,
-    object::{AuthenticationKey, Capabilities, Id, KeyInfo, ObjectId},
+    object::{
+        AuthenticationKey,
+        Capabilities,
+        Id,
+        KeyInfo,
+        ObjectId,
+        WrapKey,
+        WrapKeyFromPassphrase,
+        WrapKeyKind,
+    },
     user::FileBackedCredentials,
 };
 
@@ -225,7 +235,7 @@ pub enum Command {
         delegated_caps: Capabilities,
 
         /// The wrapping key.
-        wrapping_key: AuthenticationKey,
+        wrapping_key: WrapKey,
     },
 
     /// Export object under wrap (encrypted).
@@ -298,7 +308,10 @@ impl TryFrom<&FileBackedCommand> for Command {
             } => Command::PutWrapKey {
                 info: info.clone(),
                 delegated_caps: delegated_caps.clone(),
-                wrapping_key: AuthenticationKey::try_from(passphrase_file.as_path())?,
+                wrapping_key: WrapKey::try_from(WrapKeyFromPassphrase::new(
+                    &Passphrase::try_from(passphrase_file.as_path())?,
+                    WrapKeyKind::Aes256,
+                )?)?,
             },
             FileBackedCommand::ExportWrapped {
                 wrap_key_id,
@@ -424,7 +437,7 @@ pub enum FileBackedCommand {
         /// imported.
         delegated_caps: Capabilities,
 
-        /// The file containing raw value of the wrapping key.
+        /// The file containing the passphrase from which the wrapping key is generated.
         passphrase_file: PathBuf,
     },
 
