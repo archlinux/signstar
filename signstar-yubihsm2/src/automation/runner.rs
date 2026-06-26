@@ -403,6 +403,13 @@ impl ScenarioReturnValue {
     }
 
     /// Persists the data of a [`ScenarioReturnValue`] according to a [`FileBackedScenario`].
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if
+    ///
+    /// - the `file_backed_scenario` cannot be compared with `self`
+    /// - data from the `file_backed_scenario` fails to be persisted
     pub fn persist_file_backed_scenario(
         &self,
         file_backed_scenario: &FileBackedScenario,
