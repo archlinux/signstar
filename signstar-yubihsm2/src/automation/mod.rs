@@ -5,7 +5,13 @@ mod error;
 mod runner;
 mod scenario;
 
-pub use command::{AuditOption, AuthenticatedCommandChain, Command, FileBackedCommand};
+pub use command::{
+    AuditOption,
+    AuthenticatedCommandChain,
+    Command,
+    CommandName,
+    FileBackedCommand,
+};
 pub use error::{Error, FileBackedScenarioReturnValueMismatch};
 pub use runner::{
     CommandReturnValue,
