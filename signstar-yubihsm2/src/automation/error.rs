@@ -4,10 +4,16 @@ use std::fmt::Display;
 
 use crate::automation::command::CommandName;
 
-/// The
+/// A mismatch between a file backed scenario and its return value.
+///
+/// The mismatch is based on the [`CommandName`] used by the file backed scenario and the return
+/// value.
 #[derive(Debug)]
 pub struct FileBackedScenarioReturnValueMismatch {
+    /// The command name of the file backed scenario.
     pub(crate) file_backed_scenario_command: CommandName,
+
+    /// The command name of the return value.
     pub(crate) command_return_value: CommandName,
 }
 
@@ -34,7 +40,7 @@ pub enum Error {
             .join("\n")
     )]
     MismatchingReturnValueForFileBackedScenario {
-        /// Mismatches between
+        /// The mismatches between file backed scenarios and their respective return values.
         mismatches: Vec<FileBackedScenarioReturnValueMismatch>,
     },
 
