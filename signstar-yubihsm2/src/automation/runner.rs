@@ -331,6 +331,11 @@ pub struct ScenarioReturnValue {
 }
 
 impl ScenarioReturnValue {
+    /// Returns a reference to the return values of the authenticated command chains.
+    pub fn chains(&self) -> &[Vec<CommandReturnValue>] {
+        self.authenticated_command_chains.as_slice()
+    }
+
     /// Compares this [`ScenarioReturnValue`] with a [`FileBackedScenario`].
     ///
     /// # Errors
