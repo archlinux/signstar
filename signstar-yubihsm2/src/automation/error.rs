@@ -1,13 +1,16 @@
 //! Error handling for automation actions.
 
+#[cfg(feature = "cli")]
 use std::fmt::Display;
 
+#[cfg(feature = "cli")]
 use crate::automation::command::CommandName;
 
 /// A mismatch between a file backed scenario and its return value.
 ///
 /// The mismatch is based on the [`CommandName`] used by the file backed scenario and the return
 /// value.
+#[cfg(feature = "cli")]
 #[derive(Debug)]
 pub struct FileBackedScenarioReturnValueMismatch {
     /// The command name of the file backed scenario.
@@ -17,6 +20,7 @@ pub struct FileBackedScenarioReturnValueMismatch {
     pub(crate) command_return_value: CommandName,
 }
 
+#[cfg(feature = "cli")]
 impl Display for FileBackedScenarioReturnValueMismatch {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
@@ -31,6 +35,7 @@ impl Display for FileBackedScenarioReturnValueMismatch {
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
     /// There are mismatches between commands in a file backed scenario and command return values.
+    #[cfg(feature = "cli")]
     #[error(
         "Mismatches between commands in file backed scenarios and the collected return values exist:\n{}",
         mismatches

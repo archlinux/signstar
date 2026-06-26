@@ -1,10 +1,14 @@
 //! Scenario runner
 
+#[cfg(feature = "cli")]
+use std::fs::write;
 #[cfg(feature = "serde")]
 use std::io::Write;
-use std::{fmt::Debug, fs::write, time::Duration};
+use std::{fmt::Debug, time::Duration};
 
-use log::{debug, error, info};
+#[cfg(feature = "cli")]
+use log::debug;
+use log::{error, info};
 #[cfg(feature = "serde")]
 use serde::Serialize;
 use yubihsm::{
@@ -20,16 +24,16 @@ use yubihsm::{
     wrap::{Algorithm as WrapAlgorithm, Message},
 };
 
+#[cfg(feature = "cli")]
+use crate::automation::{
+    Error as AutomationError,
+    FileBackedCommand,
+    FileBackedScenario,
+    error::FileBackedScenarioReturnValueMismatch,
+};
 use crate::{
     Error,
-    automation::{
-        Command,
-        Error as AutomationError,
-        FileBackedCommand,
-        FileBackedScenario,
-        Scenario,
-        error::FileBackedScenarioReturnValueMismatch,
-    },
+    automation::{Command, Scenario},
     object::KeyInfo,
 };
 
@@ -268,6 +272,7 @@ impl PartialEq<Command> for &CommandReturnValue {
     }
 }
 
+#[cfg(feature = "cli")]
 impl PartialEq<FileBackedCommand> for &CommandReturnValue {
     /// Compares [`CommandReturnValue`] and [`FileBackedCommand`].
     ///
@@ -347,6 +352,7 @@ impl ScenarioReturnValue {
     ///   their equivalent in `self`
     /// - one or more commands in the `file_backed_scenario` do not match a return value command in
     ///   `self` (the associated commands differ)
+    #[cfg(feature = "cli")]
     fn compare_with_file_backed_scenario(
         &self,
         file_backed_scenario: &FileBackedScenario,
@@ -415,6 +421,7 @@ impl ScenarioReturnValue {
     ///
     /// - the `file_backed_scenario` cannot be compared with `self`
     /// - data from the `file_backed_scenario` fails to be persisted
+    #[cfg(feature = "cli")]
     pub fn persist_file_backed_scenario(
         &self,
         file_backed_scenario: &FileBackedScenario,
@@ -779,7 +786,7 @@ mod tests {
         println!("r: {:?}, s: {:?}", signature.r, signature.s);
     }
 
-    #[cfg(all(feature = "_yubihsm2-mockhsm", feature = "serde"))]
+    #[cfg(all(feature = "_yubihsm2-mockhsm", feature = "serde", feature = "cli"))]
     mod scenario {
         use std::{
             fs::File,
