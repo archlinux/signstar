@@ -1,12 +1,13 @@
 //! Provisioning scenarios.
 
-#[cfg(feature = "serde")]
+#[cfg(all(feature = "serde", feature = "cli"))]
 use serde::Deserialize;
 
+use crate::automation::command::AuthenticatedCommandChain;
+#[cfg(feature = "cli")]
 use crate::{
     Credentials,
-    automation::Command,
-    automation::command::{AuthenticatedCommandChain, FileBackedAuthenticatedCommandChain},
+    automation::{Command, command::FileBackedAuthenticatedCommandChain},
 };
 
 /// A list of authenticated chains of commands executed against a YubiHSM2.
@@ -24,16 +25,19 @@ impl AsRef<[AuthenticatedCommandChain]> for Scenario {
 /// A list of authenticated chains of commands executed against a YubiHSM2.
 ///
 /// Each chain of commands is authenticated using file-backed credentials.
-#[derive(Debug)]
+#[cfg(feature = "cli")]
 #[cfg_attr(feature = "serde", derive(Deserialize))]
+#[derive(Debug)]
 pub struct FileBackedScenario(Vec<FileBackedAuthenticatedCommandChain>);
 
+#[cfg(feature = "cli")]
 impl AsRef<[FileBackedAuthenticatedCommandChain]> for FileBackedScenario {
     fn as_ref(&self) -> &[FileBackedAuthenticatedCommandChain] {
         self.0.as_slice()
     }
 }
 
+#[cfg(feature = "cli")]
 impl TryFrom<&FileBackedScenario> for Scenario {
     type Error = crate::Error;
 

@@ -1,25 +1,22 @@
 //! Scenario commands.
 
+#[cfg(feature = "cli")]
 use std::{fs::read, path::PathBuf};
 
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
+#[cfg(feature = "cli")]
 use signstar_crypto::passphrase::Passphrase;
 use yubihsm::{command::Code, wrap::Message};
 
 use crate::{
     Credentials,
     automation::CommandReturnValue,
-    object::{
-        AuthenticationKey,
-        Capabilities,
-        Id,
-        KeyInfo,
-        ObjectId,
-        WrapKey,
-        WrapKeyFromPassphrase,
-        WrapKeyKind,
-    },
+    object::{AuthenticationKey, Capabilities, Id, KeyInfo, ObjectId, WrapKey},
+};
+#[cfg(feature = "cli")]
+use crate::{
+    object::{WrapKeyFromPassphrase, WrapKeyKind},
     user::FileBackedCredentials,
 };
 
@@ -134,6 +131,7 @@ impl From<&CommandReturnValue> for CommandName {
     }
 }
 
+#[cfg(feature = "cli")]
 impl From<&FileBackedCommand> for CommandName {
     fn from(value: &FileBackedCommand) -> Self {
         match value {
@@ -263,6 +261,7 @@ pub enum Command {
     GetObjectInfo(ObjectId),
 }
 
+#[cfg(feature = "cli")]
 impl TryFrom<&FileBackedCommand> for Command {
     type Error = crate::Error;
 
@@ -354,6 +353,7 @@ impl TryFrom<&FileBackedCommand> for Command {
 /// Different from [`Command`], this enum does not assign data directly in its variants, but instead
 /// relies on paths to files to read from or write to.
 #[derive(Debug)]
+#[cfg(feature = "cli")]
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 #[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 pub enum FileBackedCommand {
@@ -501,6 +501,7 @@ impl AuthenticatedCommandChain {
 ///
 /// A single [`FileBackedCredentials`] is used for authentication of each command towards the
 /// YubiHSM2 backend.
+#[cfg(feature = "cli")]
 #[derive(Debug)]
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct FileBackedAuthenticatedCommandChain {

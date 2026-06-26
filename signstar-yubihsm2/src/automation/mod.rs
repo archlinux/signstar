@@ -5,14 +5,12 @@ mod error;
 mod runner;
 mod scenario;
 
-pub use command::{
-    AuditOption,
-    AuthenticatedCommandChain,
-    Command,
-    CommandName,
-    FileBackedCommand,
-};
-pub use error::{Error, FileBackedScenarioReturnValueMismatch};
+#[cfg(feature = "cli")]
+pub use command::FileBackedCommand;
+pub use command::{AuditOption, AuthenticatedCommandChain, Command, CommandName};
+pub use error::Error;
+#[cfg(feature = "cli")]
+pub use error::FileBackedScenarioReturnValueMismatch;
 pub use runner::{
     CommandReturnValue,
     Ed25519Signature,
@@ -23,4 +21,6 @@ pub use runner::{
     ScenarioReturnValue,
     ScenarioRunner,
 };
-pub use scenario::{FileBackedScenario, Scenario};
+#[cfg(feature = "cli")]
+pub use scenario::FileBackedScenario;
+pub use scenario::Scenario;
