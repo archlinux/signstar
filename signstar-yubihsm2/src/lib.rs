@@ -16,6 +16,7 @@ pub use user::{Credentials, FileBackedCredentials};
 /// Re-exports of the upstream [`yubihsm`] library.
 pub mod yubihsm {
     pub use yubihsm::{
+        Connector,
         Domain,
         capability::Capability,
         command::Code,
