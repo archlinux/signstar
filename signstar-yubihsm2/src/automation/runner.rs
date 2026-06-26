@@ -332,6 +332,16 @@ pub struct ScenarioReturnValue {
 
 impl ScenarioReturnValue {
     /// Compares this [`ScenarioReturnValue`] with a [`FileBackedScenario`].
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if
+    ///
+    /// - the number of command chains in the `file_backed_scenario` does not match those in `self`
+    /// - the number of commands in a chain of commands in the `file_backed_scenario` does not match
+    ///   their equivalent in `self`
+    /// - one or more commands in the `file_backed_scenario` do not match a return value command in
+    ///   `self` (the associated commands differ)
     fn compare_with_file_backed_scenario(
         &self,
         file_backed_scenario: &FileBackedScenario,
