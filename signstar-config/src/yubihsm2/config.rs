@@ -9,8 +9,8 @@ use signstar_crypto::{key::SigningKeySetup, passphrase::Passphrase, traits::User
 use signstar_yubihsm2::{
     Connection,
     Credentials,
-    object::{Domain, Domains, Id},
-    yubihsm::{Capability, Code},
+    object::{Capabilities, Capability, Domain, Domains, Id},
+    yubihsm::Code,
 };
 
 use crate::config::{
@@ -284,33 +284,33 @@ impl YubiHsm2UserMapping {
     ///
     /// [capability]: https://docs.yubico.com/hardware/yubihsm-2/hsm-2-user-guide/hsm2-core-concepts.html#capability-protocol-details
     pub const CAP_ADMIN: &[Capability] = &[
-        Capability::CHANGE_AUTHENTICATION_KEY,
-        Capability::DELETE_ASYMMETRIC_KEY,
-        Capability::DELETE_AUTHENTICATION_KEY,
-        Capability::DELETE_HMAC_KEY,
-        Capability::DELETE_OPAQUE,
-        Capability::DELETE_TEMPLATE,
-        Capability::DELETE_WRAP_KEY,
-        Capability::EXPORTABLE_UNDER_WRAP,
-        Capability::GENERATE_ASYMMETRIC_KEY,
-        Capability::GENERATE_HMAC_KEY,
-        Capability::GENERATE_WRAP_KEY,
-        Capability::GET_OPAQUE,
-        Capability::GET_OPTION,
-        Capability::GET_TEMPLATE,
-        Capability::IMPORT_WRAPPED,
-        Capability::PUT_ASYMMETRIC_KEY,
-        Capability::PUT_AUTHENTICATION_KEY,
-        Capability::PUT_HMAC_KEY,
-        Capability::PUT_OPAQUE,
-        Capability::PUT_OPTION,
-        Capability::PUT_TEMPLATE,
-        Capability::PUT_WRAP_KEY,
-        Capability::RESET_DEVICE,
-        Capability::SIGN_HMAC,
-        Capability::UNWRAP_DATA,
-        Capability::VERIFY_HMAC,
-        Capability::WRAP_DATA,
+        Capability::ChangeAuthenticationKey,
+        Capability::DeleteAsymmetricKey,
+        Capability::DeleteAuthenticationKey,
+        Capability::DeleteHmacKey,
+        Capability::DeleteOpaque,
+        Capability::DeleteTemplate,
+        Capability::DeleteWrapKey,
+        Capability::ExportableUnderWrap,
+        Capability::GenerateAsymmetricKey,
+        Capability::GenerateHmacKey,
+        Capability::GenerateWrapKey,
+        Capability::GetOpaque,
+        Capability::GetOption,
+        Capability::GetTemplate,
+        Capability::ImportWrapped,
+        Capability::PutAsymmetricKey,
+        Capability::PutAuthenticationKey,
+        Capability::PutHmacKey,
+        Capability::PutOpaque,
+        Capability::SetOption,
+        Capability::PutTemplate,
+        Capability::PutWrapKey,
+        Capability::ResetDevice,
+        Capability::SignHmac,
+        Capability::UnwrapData,
+        Capability::VerifyHmac,
+        Capability::WrapData,
     ];
 
     /// The list of [`Capability`] items required for [`YubiHsm2UserMapping::AuditLog`].
@@ -320,7 +320,7 @@ impl YubiHsm2UserMapping {
     /// - `get-log-entries`
     ///
     /// [capability]: https://docs.yubico.com/hardware/yubihsm-2/hsm-2-user-guide/hsm2-core-concepts.html#capability-protocol-details
-    pub const CAP_AUDIT_LOG: &[Capability] = &[Capability::GET_LOG_ENTRIES];
+    pub const CAP_AUDIT_LOG: &[Capability] = &[Capability::GetLogEntries];
 
     /// The list of [`Capability`] items required for [`YubiHsm2UserMapping::Backup`].
     ///
@@ -329,7 +329,7 @@ impl YubiHsm2UserMapping {
     /// - `export-wrapped`
     ///
     /// [capability]: https://docs.yubico.com/hardware/yubihsm-2/hsm-2-user-guide/hsm2-core-concepts.html#capability-protocol-details
-    pub const CAP_BACKUP: &[Capability] = &[Capability::EXPORT_WRAPPED];
+    pub const CAP_BACKUP: &[Capability] = &[Capability::ExportWrapped];
 
     /// The list of [`Capability`] items required for [`YubiHsm2UserMapping::HermeticAuditLog`].
     ///
@@ -338,7 +338,7 @@ impl YubiHsm2UserMapping {
     /// - `get-log-entries`
     ///
     /// [capability]: https://docs.yubico.com/hardware/yubihsm-2/hsm-2-user-guide/hsm2-core-concepts.html#capability-protocol-details
-    pub const CAP_HERMETIC_AUDIT_LOG: &[Capability] = &[Capability::GET_LOG_ENTRIES];
+    pub const CAP_HERMETIC_AUDIT_LOG: &[Capability] = &[Capability::GetLogEntries];
 
     /// The list of [`Capability`] items required for [`YubiHsm2UserMapping::Signing`].
     ///
@@ -347,7 +347,7 @@ impl YubiHsm2UserMapping {
     /// - `sign-eddsa`
     ///
     /// [capability]: https://docs.yubico.com/hardware/yubihsm-2/hsm-2-user-guide/hsm2-core-concepts.html#capability-protocol-details
-    pub const CAP_SIGNING: &[Capability] = &[Capability::SIGN_EDDSA];
+    pub const CAP_SIGNING: &[Capability] = &[Capability::SignEddsa];
 
     /// Returns the optional [`Domains`] of the [`YubiHsm2UserMapping`].
     pub fn domains(&self) -> Option<Domains> {
@@ -385,22 +385,20 @@ impl YubiHsm2UserMapping {
         }
     }
 
-    /// Returns the [`Capability`] required by a variant.
+    /// Returns the [`Capabilities`] required by a variant.
     ///
     /// Each variant tracks a different set of [capabilities].
     /// The return value of this function combines each item from that set in a single value.
     ///
     /// [capabilities]: https://docs.yubico.com/hardware/yubihsm-2/hsm-2-user-guide/hsm2-core-concepts.html#capability-protocol-details
-    pub fn capability(&self) -> Capability {
-        match self {
+    pub fn capabilities(&self) -> Capabilities {
+        Capabilities::from(match self {
             Self::Admin { .. } => Self::CAP_ADMIN,
             Self::AuditLog { .. } => Self::CAP_AUDIT_LOG,
             Self::Backup { .. } => Self::CAP_BACKUP,
             Self::HermeticAuditLog { .. } => Self::CAP_HERMETIC_AUDIT_LOG,
             Self::Signing { .. } => Self::CAP_SIGNING,
-        }
-        .iter()
-        .fold(Capability::empty(), |acc, cap| acc | *cap)
+        })
     }
 }
 
@@ -1115,11 +1113,8 @@ mod tests {
         #[case] mapping: YubiHsm2UserMapping,
         #[case] expected: &[Capability],
     ) -> TestResult {
-        let expected = expected
-            .iter()
-            .fold(Capability::empty(), |acc, cap| acc | *cap);
-
-        assert_eq!(mapping.capability(), expected);
+        let expected = Capabilities::from(expected);
+        assert_eq!(mapping.capabilities(), expected);
 
         Ok(())
     }
