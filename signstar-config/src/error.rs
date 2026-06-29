@@ -146,6 +146,11 @@ pub enum Error {
     #[error(transparent)]
     SignstarCrypto(#[from] signstar_crypto::Error),
 
+    /// A [`signstar_yubihsm2::Error`] occurred.
+    #[cfg(feature = "yubihsm2")]
+    #[error(transparent)]
+    SignstarYubiHsm2(#[from] signstar_yubihsm2::Error),
+
     /// An error occurred in the test module.
     #[cfg(feature = "_test-helpers")]
     #[error(transparent)]
@@ -228,4 +233,9 @@ pub enum Error {
     #[cfg(feature = "yubihsm2")]
     #[error("YubiHSM2 configuration object error: {0}")]
     YubiHsm2Config(#[from] crate::yubihsm2::YubiHSM2ConfigError),
+
+    /// A YubiHSM2 backend error occurred.
+    #[cfg(feature = "yubihsm2")]
+    #[error("YubiHSM2 backend error: {0}")]
+    YubiHsm2Backend(#[from] crate::yubihsm2::Error),
 }
