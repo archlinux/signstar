@@ -152,7 +152,7 @@ impl NetHsmAdminCredentials {
     }
 
     /// Returns the iteration.
-    pub fn get_iteration(&self) -> u32 {
+    pub fn iteration(&self) -> u32 {
         self.iteration
     }
 
