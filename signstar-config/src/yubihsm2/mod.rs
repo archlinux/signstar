@@ -1,8 +1,10 @@
 //! Handling of users and keys in a YubiHSM2 backend.
 
 pub mod admin_credentials;
+mod backend;
 mod config;
 
+pub use backend::YubiHsm2Backend;
 pub use config::{
     Error as YubiHSM2ConfigError,
     YubiHsm2Config,
