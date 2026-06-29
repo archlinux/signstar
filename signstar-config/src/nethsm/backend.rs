@@ -1350,9 +1350,9 @@ impl<'a, 'b> NetHsmBackend<'a, 'b> {
         };
 
         // Ensure that the iterations of administrative credentials and signstar config match.
-        if admin_credentials.get_iteration() != signstar_config.system().iteration() {
+        if admin_credentials.iteration() != signstar_config.system().iteration() {
             return Err(crate::Error::IterationMismatch {
-                admin_creds: admin_credentials.get_iteration(),
+                admin_creds: admin_credentials.iteration(),
                 signstar_config: signstar_config.system().iteration(),
             });
         }
