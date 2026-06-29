@@ -130,7 +130,7 @@ fn get_first_available_namespace_admin(
         .filter(|user| {
             user.namespace() == Some(namespace)
                 && admin_credentials
-                    .get_namespace_administrators()
+                    .namespace_administrators()
                     .iter()
                     .any(|creds| &creds.name == *user)
         })
@@ -1584,7 +1584,7 @@ impl<'a, 'b> NetHsmBackend<'a, 'b> {
         // Get the state of namespaced keys.
         for user_id in self
             .admin_credentials
-            .get_namespace_administrators()
+            .namespace_administrators()
             .iter()
             .map(|creds| creds.name.clone())
         {

@@ -189,7 +189,7 @@ impl NetHsmAdminCredentials {
     }
 
     /// Returns the list of namespace administrators.
-    pub fn get_namespace_administrators(&self) -> &[FullCredentials] {
+    pub fn namespace_administrators(&self) -> &[FullCredentials] {
         &self.namespace_administrators
     }
 
@@ -280,7 +280,7 @@ impl NetHsmAdminCredentials {
         {
             let mut user_list = Vec::new();
 
-            for creds in self.get_namespace_administrators() {
+            for creds in self.namespace_administrators() {
                 if !user_mappings
                     .iter()
                     .any(|user_mapping| user_mapping.nethsm_user_ids().contains(&creds.name))
@@ -371,7 +371,7 @@ impl AdminCredentials for NetHsmAdminCredentials {
         }
 
         // a namespace administrator user passphrase is too short
-        for user in self.get_namespace_administrators().iter() {
+        for user in self.namespace_administrators().iter() {
             if user.passphrase.expose_borrowed().len() < minimum_length {
                 return Err(crate::Error::AdminSecretHandling(
                     Error::PassphraseTooShort {
