@@ -11,17 +11,6 @@ use crate::{
 /// An error that may occur when handling a NetHSM backend.
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
-    /// The iteration of the [`NetHsmAdminCredentials`] and [`Config`] are not matching.
-    #[error(
-        "Iteration mismatch: Administrative credentials ({admin_creds}) vs. Signstar config ({signstar_config})"
-    )]
-    IterationMismatch {
-        /// The iteration of the [`NetHsmAdminCredentials`].
-        admin_creds: u32,
-        /// The iteration of the [`Config`].
-        signstar_config: u32,
-    },
-
     /// A system-wide key misses a tag.
     #[error("The system-wide key {key_id} misses the tag {tag}")]
     KeyIsMissingTag {
