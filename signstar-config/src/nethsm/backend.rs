@@ -1351,11 +1351,10 @@ impl<'a, 'b> NetHsmBackend<'a, 'b> {
 
         // Ensure that the iterations of administrative credentials and signstar config match.
         if admin_credentials.get_iteration() != signstar_config.system().iteration() {
-            return Err(Error::IterationMismatch {
+            return Err(crate::Error::IterationMismatch {
                 admin_creds: admin_credentials.get_iteration(),
                 signstar_config: signstar_config.system().iteration(),
-            }
-            .into());
+            });
         }
 
         // Add all available system-wide Administrators for the connection
@@ -2014,10 +2013,10 @@ mod tests {
         assert!(
             matches!(
                 nethsm_backend_result,
-                Err(crate::Error::NetHsmBackend(Error::IterationMismatch {
+                Err(crate::Error::IterationMismatch {
                     admin_creds: _,
                     signstar_config: _
-                }))
+                })
             ),
             "Expected an `Error::IterationMismatch` but got {nethsm_backend_result:?}"
         );
