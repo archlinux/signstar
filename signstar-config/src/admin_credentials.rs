@@ -356,4 +356,7 @@ pub trait AdminCredentials: DeserializeOwned + Serialize {
     /// administrative credentials cannot be met.
     /// It is called in the blanket implementation of [`AdminCredentials::load_from_file`].
     fn validate(&self) -> Result<(), crate::Error>;
+
+    /// Returns the iteration of the [`AdminCredentials`].
+    fn iteration(&self) -> u32;
 }
