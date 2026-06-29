@@ -2,6 +2,9 @@
 
 use std::{path::PathBuf, process::ExitStatus, string::FromUtf8Error};
 
+#[cfg(doc)]
+use crate::{admin_credentials::AdminCredentials, config::Config};
+
 /// An error that may occur when using Signstar config.
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
@@ -110,6 +113,17 @@ pub enum Error {
         context: &'static str,
         /// The error source.
         source: std::io::Error,
+    },
+
+    /// The iteration of an [`AdminCredentials`] implementation and a [`Config`] do not match.
+    #[error(
+        "Iteration mismatch: Administrative credentials ({admin_creds}) vs. Signstar config ({signstar_config})"
+    )]
+    IterationMismatch {
+        /// The iteration of the [`AdminCredentials`] implementation.
+        admin_creds: u32,
+        /// The iteration of the [`Config`].
+        signstar_config: u32,
     },
 
     /// A NetHSM error.
