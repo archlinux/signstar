@@ -157,7 +157,7 @@ impl NetHsmAdminCredentials {
     }
 
     /// Returns the backup passphrase.
-    pub fn get_backup_passphrase(&self) -> &str {
+    pub fn backup_passphrase(&self) -> &str {
         self.backup_passphrase.expose_borrowed()
     }
 
@@ -383,7 +383,7 @@ impl AdminCredentials for NetHsmAdminCredentials {
         }
 
         // the backup passphrase is too short
-        if self.get_backup_passphrase().len() < minimum_length {
+        if self.backup_passphrase().len() < minimum_length {
             return Err(crate::Error::AdminSecretHandling(
                 Error::PassphraseTooShort {
                     context: "backups".to_string(),
