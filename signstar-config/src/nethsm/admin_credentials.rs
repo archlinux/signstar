@@ -177,7 +177,7 @@ impl NetHsmAdminCredentials {
     ///
     /// Returns an error if no administrative account with the system-wide [`UserId`] "admin" is
     /// found.
-    pub fn get_default_administrator(&self) -> Result<&FullCredentials, crate::Error> {
+    pub fn default_administrator(&self) -> Result<&FullCredentials, crate::Error> {
         let Some(first_admin) = self
             .administrators
             .iter()

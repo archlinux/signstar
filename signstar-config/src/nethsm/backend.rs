@@ -51,7 +51,7 @@ use crate::{
 /// # Note
 ///
 /// Uses the `nethsm` with the [default
-/// _R-Administrator_][`NetHsmAdminCredentials::get_default_administrator`].
+/// _R-Administrator_][`NetHsmAdminCredentials::default_administrator`].
 ///
 /// # Errors
 ///
@@ -75,7 +75,7 @@ fn add_system_wide_admins(
 
     let user_list = admin_credentials.administrators_in_config(nethsm_config);
 
-    let default_admin = &admin_credentials.get_default_administrator()?.name;
+    let default_admin = &admin_credentials.default_administrator()?.name;
     nethsm.use_credentials(default_admin)?;
     let available_users = nethsm.get_users()?;
     trace!(
@@ -180,10 +180,10 @@ fn get_first_available_namespace_admin(
 /// # Note
 ///
 /// This function uses the `nethsm` with the [default
-/// _R-Administrator_][`NetHsmAdminCredentials::get_default_administrator`], but may switch to a
+/// _R-Administrator_][`NetHsmAdminCredentials::default_administrator`], but may switch to a
 /// namespace-specific _N-Administrator_ for individual operations.
 /// If this function succeeds, the `nethsm` is guaranteed to use the [default
-/// _R-Administrator_][`NetHsmAdminCredentials::get_default_administrator`] again.
+/// _R-Administrator_][`NetHsmAdminCredentials::default_administrator`] again.
 /// If this function fails, the `nethsm` may still use a namespace-specific _N-Administrator_.
 ///
 /// # Errors
@@ -211,7 +211,7 @@ fn add_namespace_admins(
     let user_list = admin_credentials.namespace_administrators_in_config(nethsm_config);
 
     // Use the default R-Administrator for authentication to the backend by default.
-    let default_admin = &admin_credentials.get_default_administrator()?.name;
+    let default_admin = &admin_credentials.default_administrator()?.name;
     nethsm.use_credentials(default_admin)?;
 
     let available_users = nethsm.get_users()?;
@@ -289,12 +289,12 @@ fn add_namespace_admins(
 /// # Note
 ///
 /// It is assumed that the [default
-/// _R-Administrator_][`NetHsmAdminCredentials::get_default_administrator`] and system-wide keys are
+/// _R-Administrator_][`NetHsmAdminCredentials::default_administrator`] and system-wide keys are
 /// already set up, before calling this function (see `add_system_wide_admins` and
 /// `add_system_wide_keys`, respectively).
 ///
 /// This function uses the `nethsm` with the [default
-/// _R-Administrator_][`NetHsmAdminCredentials::get_default_administrator`] and is guaranteed to do
+/// _R-Administrator_][`NetHsmAdminCredentials::default_administrator`] and is guaranteed to do
 /// so when it finishes.
 ///
 /// # Errors
@@ -318,7 +318,7 @@ fn add_non_administrative_users(
         nethsm.get_url()
     );
 
-    let default_admin = &admin_credentials.get_default_administrator()?.name;
+    let default_admin = &admin_credentials.default_administrator()?.name;
     nethsm.use_credentials(default_admin)?;
     let available_users = nethsm.get_users()?;
     debug!("Available users: {available_users:?}");
@@ -348,7 +348,7 @@ fn add_non_administrative_users(
         return Ok(());
     }
 
-    let default_admin = &admin_credentials.get_default_administrator()?.name;
+    let default_admin = &admin_credentials.default_administrator()?.name;
     nethsm.use_credentials(default_admin)?;
     let available_users = nethsm.get_users()?;
     debug!("Available users: {available_users:?}");
@@ -398,10 +398,10 @@ fn add_non_administrative_users(
 /// this function (see `add_namespace_admins` and `add_namespaced_keys`, respectively).
 ///
 /// This function uses the `nethsm` with the [default
-/// _R-Administrator_][`NetHsmAdminCredentials::get_default_administrator`], but may switch to a
+/// _R-Administrator_][`NetHsmAdminCredentials::default_administrator`], but may switch to a
 /// namespace-specific _N-Administrator_ for individual operations.
 /// If this function succeeds, the `nethsm` is guaranteed to use the [default
-/// _R-Administrator_][`NetHsmAdminCredentials::get_default_administrator`] again.
+/// _R-Administrator_][`NetHsmAdminCredentials::default_administrator`] again.
 /// If this function fails, the `nethsm` may still use a namespace-specific _N-Administrator_.
 ///
 /// # Errors
@@ -428,7 +428,7 @@ fn add_namespaced_non_administrative_users(
     );
 
     // Use the default R-Administrator for authentication to the backend by default.
-    let default_admin = &admin_credentials.get_default_administrator()?.name;
+    let default_admin = &admin_credentials.default_administrator()?.name;
     nethsm.use_credentials(default_admin)?;
 
     let available_users = nethsm.get_users()?;
@@ -592,7 +592,7 @@ fn compare_key_setups(
 /// `add_system_wide_admins`) before calling this function.
 ///
 /// This function uses the `nethsm` with the [default
-/// _R-Administrator_][`NetHsmAdminCredentials::get_default_administrator`].
+/// _R-Administrator_][`NetHsmAdminCredentials::default_administrator`].
 ///
 /// This function does not fail on mismatching keys, as it is assumed that keys are added
 /// intentionally and should not be deleted or altered.
@@ -620,7 +620,7 @@ fn add_system_wide_keys(
     );
 
     // Use the default R-Administrator for authentication to the backend by default.
-    let default_admin = &admin_credentials.get_default_administrator()?.name;
+    let default_admin = &admin_credentials.default_administrator()?.name;
     nethsm.use_credentials(default_admin)?;
 
     let available_keys = nethsm.get_keys(None)?;
@@ -696,10 +696,10 @@ fn add_system_wide_keys(
 /// this function (see `add_namespace_admins`).
 ///
 /// This function uses the `nethsm` with the [default
-/// _R-Administrator_][`NetHsmAdminCredentials::get_default_administrator`], but may switch to a
+/// _R-Administrator_][`NetHsmAdminCredentials::default_administrator`], but may switch to a
 /// namespace-specific _N-Administrator_ for individual operations.
 /// If this function succeeds, the `nethsm` is guaranteed to use the [default
-/// _R-Administrator_][`NetHsmAdminCredentials::get_default_administrator`] again.
+/// _R-Administrator_][`NetHsmAdminCredentials::default_administrator`] again.
 /// If this function fails, the `nethsm` may still use a namespace-specific _N-Administrator_.
 ///
 /// This function does not fail on mismatching keys, as it is assumed that keys are added
@@ -738,7 +738,7 @@ fn add_namespaced_keys(
     );
 
     // Use the default R-Administrator for authentication to the backend by default.
-    let default_admin = &admin_credentials.get_default_administrator()?.name;
+    let default_admin = &admin_credentials.default_administrator()?.name;
     nethsm.use_credentials(default_admin)?;
 
     let available_users = nethsm.get_users()?;
@@ -853,16 +853,16 @@ fn add_namespaced_keys(
 /// # Note
 ///
 /// It is assumed that the [default
-/// _R-Administrator_][`NetHsmAdminCredentials::get_default_administrator`], all system-wide keys
+/// _R-Administrator_][`NetHsmAdminCredentials::default_administrator`], all system-wide keys
 /// and all system-wide non-administrative users are already set up, before calling this function
 /// (see `add_system_wide_admins`, `add_system_wide_keys` and `add_non_administrative_users`,
 /// respectively).
 ///
 /// This function uses the `nethsm` with the [default
-/// _R-Administrator_][`NetHsmAdminCredentials::get_default_administrator`], but may switch to a
+/// _R-Administrator_][`NetHsmAdminCredentials::default_administrator`], but may switch to a
 /// system-wide, non-administrative user for individual operations.
 /// If this function succeeds, the `nethsm` is guaranteed to use the [default
-/// _R-Administrator_][`NetHsmAdminCredentials::get_default_administrator`] again.
+/// _R-Administrator_][`NetHsmAdminCredentials::default_administrator`] again.
 /// If this function fails, the `nethsm` may still use a system-wide, non-administrative user.
 ///
 /// This function does not overwrite or alter existing OpenPGP certificates, as this would introduce
@@ -898,7 +898,7 @@ fn add_system_wide_openpgp_certificates(
     );
 
     // Use the default R-Administrator for authentication to the backend by default.
-    let default_admin = &admin_credentials.get_default_administrator()?.name;
+    let default_admin = &admin_credentials.default_administrator()?.name;
     nethsm.use_credentials(default_admin)?;
 
     let available_users = nethsm.get_users()?;
@@ -1010,16 +1010,16 @@ fn add_system_wide_openpgp_certificates(
 /// # Note
 ///
 /// It is assumed that the [default
-/// _R-Administrator_][`NetHsmAdminCredentials::get_default_administrator`], all namespaced keys,
+/// _R-Administrator_][`NetHsmAdminCredentials::default_administrator`], all namespaced keys,
 /// all _N-Administrators_ and all namespaced non-administrative users are already set up, before
 /// calling this function (see `add_system_wide_admins`, `add_namespaced_keys`,
 /// `add_namespace_admins` and `add_namespaced_non_administrative_users`, respectively).
 ///
 /// This function uses the `nethsm` with the [default
-/// _R-Administrator_][`NetHsmAdminCredentials::get_default_administrator`], but may switch to a
+/// _R-Administrator_][`NetHsmAdminCredentials::default_administrator`], but may switch to a
 /// namespace-specific _N-Administrator_ or non-administrative user for individual operations.
 /// If this function succeeds, the `nethsm` is guaranteed to use the [default
-/// _R-Administrator_][`NetHsmAdminCredentials::get_default_administrator`] again.
+/// _R-Administrator_][`NetHsmAdminCredentials::default_administrator`] again.
 /// If this function fails, the `nethsm` may still use a namespace-specific _N-Administrator_ or
 /// non-administrative user.
 ///
@@ -1058,7 +1058,7 @@ fn add_namespaced_openpgp_certificates(
     );
 
     // Use the default R-Administrator for authentication to the backend by default.
-    let default_admin = &admin_credentials.get_default_administrator()?.name;
+    let default_admin = &admin_credentials.default_administrator()?.name;
     nethsm.use_credentials(default_admin)?;
 
     let available_users = nethsm.get_users()?;
@@ -1366,7 +1366,7 @@ impl<'a, 'b> NetHsmBackend<'a, 'b> {
             nethsm.add_credentials(user.into());
         }
         // Use the default administrator
-        nethsm.use_credentials(&admin_credentials.get_default_administrator()?.name)?;
+        nethsm.use_credentials(&admin_credentials.default_administrator()?.name)?;
 
         Ok(Some(Self {
             nethsm,
@@ -1392,7 +1392,7 @@ impl<'a, 'b> NetHsmBackend<'a, 'b> {
     /// # Note
     ///
     /// Uses the `nethsm` with the [default
-    /// _R-Administrator_][`NetHsmAdminCredentials::get_default_administrator`].
+    /// _R-Administrator_][`NetHsmAdminCredentials::default_administrator`].
     ///
     /// # Errors
     ///
@@ -1409,7 +1409,7 @@ impl<'a, 'b> NetHsmBackend<'a, 'b> {
         );
         // Use the default R-Administrator.
         self.nethsm
-            .use_credentials(&self.admin_credentials.get_default_administrator()?.name)?;
+            .use_credentials(&self.admin_credentials.default_administrator()?.name)?;
 
         let users = {
             let mut users: Vec<UserState> = Vec::new();
@@ -1514,10 +1514,10 @@ impl<'a, 'b> NetHsmBackend<'a, 'b> {
     /// # Note
     ///
     /// This function uses the `nethsm` with the [default
-    /// _R-Administrator_][`NetHsmAdminCredentials::get_default_administrator`], but may switch to a
+    /// _R-Administrator_][`NetHsmAdminCredentials::default_administrator`], but may switch to a
     /// namespace-specific _N-Administrator_ for individual operations.
     /// If this function succeeds, the `nethsm` is guaranteed to use the [default
-    /// _R-Administrator_][`NetHsmAdminCredentials::get_default_administrator`] again.
+    /// _R-Administrator_][`NetHsmAdminCredentials::default_administrator`] again.
     /// If this function fails, the `nethsm` may still use a namespace-specific _N-Administrator_.
     ///
     ///
@@ -1538,7 +1538,7 @@ impl<'a, 'b> NetHsmBackend<'a, 'b> {
             self.nethsm.get_url()
         );
         // Use the default administrator
-        let default_admin = &self.admin_credentials.get_default_administrator()?.name;
+        let default_admin = &self.admin_credentials.default_administrator()?.name;
         self.nethsm.use_credentials(default_admin)?;
 
         let mut keys = Vec::new();
@@ -1676,10 +1676,10 @@ impl<'a, 'b> NetHsmBackend<'a, 'b> {
     /// # Note
     ///
     /// This function uses the `nethsm` with the [default
-    /// _R-Administrator_][`NetHsmAdminCredentials::get_default_administrator`], but may switch to a
+    /// _R-Administrator_][`NetHsmAdminCredentials::default_administrator`], but may switch to a
     /// namespace-specific _N-Administrator_ or non-administrative user for individual operations.
     /// If this function succeeds, the `nethsm` is guaranteed to use the [default
-    /// _R-Administrator_][`NetHsmAdminCredentials::get_default_administrator`] again.
+    /// _R-Administrator_][`NetHsmAdminCredentials::default_administrator`] again.
     /// If this function fails, the `nethsm` may still use a namespace-specific _N-Administrator_ or
     /// non-administrative user.
     ///
@@ -1725,7 +1725,7 @@ impl<'a, 'b> NetHsmBackend<'a, 'b> {
                     Passphrase::from_str(self.admin_credentials.unlock_passphrase())
                         .map_err(crate::Error::SignstarCrypto)?,
                     self.admin_credentials
-                        .get_default_administrator()?
+                        .default_administrator()?
                         .passphrase
                         .clone(),
                     nethsm::Utc::now(),
@@ -1880,10 +1880,10 @@ impl<'a, 'b> TryFrom<&NetHsmBackend<'a, 'b>> for NetHsmBackendState {
     /// # Note
     ///
     /// Uses the [`NetHsm`] backend with the [default
-    /// _R-Administrator_][`NetHsmAdminCredentials::get_default_administrator`], but may switch to a
+    /// _R-Administrator_][`NetHsmAdminCredentials::default_administrator`], but may switch to a
     /// namespace-specific _N-Administrator_ for individual operations.
     /// If this function succeeds, the `nethsm` is guaranteed to use the [default
-    /// _R-Administrator_][`NetHsmAdminCredentials::get_default_administrator`] again.
+    /// _R-Administrator_][`NetHsmAdminCredentials::default_administrator`] again.
     /// If this function fails, the `nethsm` may still use a namespace-specific _N-Administrator_.
     ///
     /// # Errors
