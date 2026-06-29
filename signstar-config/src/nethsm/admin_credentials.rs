@@ -167,7 +167,7 @@ impl NetHsmAdminCredentials {
     }
 
     /// Returns the list of administrators.
-    pub fn get_administrators(&self) -> &[FullCredentials] {
+    pub fn administrators(&self) -> &[FullCredentials] {
         &self.administrators
     }
 
@@ -209,7 +209,7 @@ impl NetHsmAdminCredentials {
         {
             let mut user_list = Vec::new();
 
-            for creds in self.get_administrators() {
+            for creds in self.administrators() {
                 if !user_mappings
                     .iter()
                     .any(|user_mapping| user_mapping.nethsm_user_ids().contains(&creds.name))
@@ -339,7 +339,7 @@ impl AdminCredentials for NetHsmAdminCredentials {
     /// - or the unlock passphrase is too short.
     fn validate(&self) -> Result<(), crate::Error> {
         // there is no top-level administrator user
-        if self.get_administrators().is_empty() {
+        if self.administrators().is_empty() {
             return Err(crate::Error::AdminSecretHandling(
                 Error::AdministratorMissing,
             ));
@@ -347,7 +347,7 @@ impl AdminCredentials for NetHsmAdminCredentials {
 
         // there is no top-level administrator user with the name "admin"
         if !self
-            .get_administrators()
+            .administrators()
             .iter()
             .any(|user| user.name.to_string() == "admin")
         {
@@ -359,7 +359,7 @@ impl AdminCredentials for NetHsmAdminCredentials {
         let minimum_length: usize = 10;
 
         // a top-level administrator user passphrase is too short
-        for user in self.get_administrators().iter() {
+        for user in self.administrators().iter() {
             if user.passphrase.expose_borrowed().len() < minimum_length {
                 return Err(crate::Error::AdminSecretHandling(
                     Error::PassphraseTooShort {
