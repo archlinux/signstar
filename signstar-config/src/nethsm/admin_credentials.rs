@@ -162,7 +162,7 @@ impl NetHsmAdminCredentials {
     }
 
     /// Returns the unlock passphrase.
-    pub fn get_unlock_passphrase(&self) -> &str {
+    pub fn unlock_passphrase(&self) -> &str {
         self.unlock_passphrase.expose_borrowed()
     }
 
@@ -393,7 +393,7 @@ impl AdminCredentials for NetHsmAdminCredentials {
         }
 
         // the unlock passphrase is too short
-        if self.get_unlock_passphrase().len() < minimum_length {
+        if self.unlock_passphrase().len() < minimum_length {
             return Err(crate::Error::AdminSecretHandling(
                 Error::PassphraseTooShort {
                     context: "unlocking".to_string(),

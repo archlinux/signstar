@@ -1383,7 +1383,7 @@ impl<'a, 'b> NetHsmBackend<'a, 'b> {
     /// Unlocks a locked [`NetHsm`] backend.
     pub(crate) fn unlock_nethsm(&self) -> Result<(), crate::Error> {
         Ok(self.nethsm.unlock(Passphrase::new(
-            self.admin_credentials.get_unlock_passphrase().into(),
+            self.admin_credentials.unlock_passphrase().into(),
         ))?)
     }
 
@@ -1722,7 +1722,7 @@ impl<'a, 'b> NetHsmBackend<'a, 'b> {
                 );
 
                 self.nethsm.provision(
-                    Passphrase::from_str(self.admin_credentials.get_unlock_passphrase())
+                    Passphrase::from_str(self.admin_credentials.unlock_passphrase())
                         .map_err(crate::Error::SignstarCrypto)?,
                     self.admin_credentials
                         .get_default_administrator()?
@@ -1738,7 +1738,7 @@ impl<'a, 'b> NetHsmBackend<'a, 'b> {
                 );
 
                 self.nethsm.unlock(Passphrase::new(
-                    self.admin_credentials.get_unlock_passphrase().into(),
+                    self.admin_credentials.unlock_passphrase().into(),
                 ))?;
             }
             SystemState::Operational => {
