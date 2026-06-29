@@ -32,6 +32,7 @@ use nethsm::{
 use pgp::composed::{Deserializable, SignedPublicKey};
 
 use crate::{
+    admin_credentials::AdminCredentials,
     config::{Config, KeyCertificateState},
     nethsm::{
         NetHsmAdminCredentials,
