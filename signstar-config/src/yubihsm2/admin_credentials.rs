@@ -109,6 +109,11 @@ impl AdminCredentials for YubiHsm2AdminCredentials {
 
         Ok(())
     }
+
+    /// Returns the iteration of the administrative credentials.
+    fn iteration(&self) -> u32 {
+        self.iteration
+    }
 }
 
 #[cfg(test)]
