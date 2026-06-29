@@ -5229,7 +5229,7 @@ dependencies = [
 name = "signstar-yubihsm2"
 version = "0.1.0"
 dependencies = [
- "aes 0.8.4",
+ "aes 0.9.1",
  "argon2 0.5.3",
  "base64ct",
  "ccm",
