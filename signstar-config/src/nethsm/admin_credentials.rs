@@ -157,8 +157,8 @@ impl NetHsmAdminCredentials {
     }
 
     /// Returns the backup passphrase.
-    pub fn backup_passphrase(&self) -> &str {
-        self.backup_passphrase.expose_borrowed()
+    pub fn backup_passphrase(&self) -> &Passphrase {
+        &self.backup_passphrase
     }
 
     /// Returns the unlock passphrase.
