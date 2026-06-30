@@ -151,11 +151,6 @@ impl NetHsmAdminCredentials {
         Ok(admin_credentials)
     }
 
-    /// Returns the backup passphrase.
-    pub fn backup_passphrase(&self) -> &Passphrase {
-        &self.backup_passphrase
-    }
-
     /// Returns the unlock passphrase.
     pub fn unlock_passphrase(&self) -> &Passphrase {
         &self.unlock_passphrase
@@ -403,6 +398,11 @@ impl AdminCredentials for NetHsmAdminCredentials {
     /// Returns the iteration of the administrative credentials.
     fn iteration(&self) -> u32 {
         self.iteration
+    }
+
+    /// Returns the backup passphrase.
+    fn backup_passphrase(&self) -> &Passphrase {
+        &self.backup_passphrase
     }
 }
 

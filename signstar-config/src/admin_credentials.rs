@@ -18,7 +18,7 @@ use signstar_common::{
     },
     common::SECRET_FILE_MODE,
 };
-use signstar_crypto::AdministrativeSecretHandling;
+use signstar_crypto::{AdministrativeSecretHandling, passphrase::Passphrase};
 
 use crate::utils::{fail_if_not_root, get_current_system_user};
 
@@ -359,4 +359,7 @@ pub trait AdminCredentials: DeserializeOwned + Serialize {
 
     /// Returns the iteration of the [`AdminCredentials`].
     fn iteration(&self) -> u32;
+
+    /// Returns the backup passphrase.
+    fn backup_passphrase(&self) -> &Passphrase;
 }

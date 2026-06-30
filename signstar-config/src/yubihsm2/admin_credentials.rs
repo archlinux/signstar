@@ -114,6 +114,11 @@ impl AdminCredentials for YubiHsm2AdminCredentials {
     fn iteration(&self) -> u32 {
         self.iteration
     }
+
+    /// Returns the backup passphrase.
+    fn backup_passphrase(&self) -> &Passphrase {
+        &self.backup_passphrase
+    }
 }
 
 #[cfg(test)]
