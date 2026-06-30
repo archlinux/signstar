@@ -162,8 +162,8 @@ impl NetHsmAdminCredentials {
     }
 
     /// Returns the unlock passphrase.
-    pub fn unlock_passphrase(&self) -> &str {
-        self.unlock_passphrase.expose_borrowed()
+    pub fn unlock_passphrase(&self) -> &Passphrase {
+        &self.unlock_passphrase
     }
 
     /// Returns the list of administrators.

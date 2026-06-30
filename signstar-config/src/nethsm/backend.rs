@@ -12,7 +12,7 @@
 //! This module only works with data for the same iteration (i.e. the iteration of the
 //! [`NetHsmAdminCredentials`] and those of the [`NetHsm`] backend must match).
 
-use std::{collections::HashSet, fmt::Display, str::FromStr};
+use std::{collections::HashSet, fmt::Display};
 
 use log::{debug, info, trace, warn};
 use nethsm::{
@@ -24,7 +24,6 @@ use nethsm::{
     NamespaceId,
     NetHsm,
     OpenPgpKeyUsageFlags,
-    Passphrase,
     SystemState,
     Timestamp,
     UserId,
@@ -1382,9 +1381,9 @@ impl<'a, 'b> NetHsmBackend<'a, 'b> {
 
     /// Unlocks a locked [`NetHsm`] backend.
     pub(crate) fn unlock_nethsm(&self) -> Result<(), crate::Error> {
-        Ok(self.nethsm.unlock(Passphrase::new(
-            self.admin_credentials.unlock_passphrase().into(),
-        ))?)
+        Ok(self
+            .nethsm
+            .unlock(self.admin_credentials.unlock_passphrase().clone())?)
     }
 
     /// Retrieves the state for all users on the [`NetHsm`] backend.
@@ -1722,8 +1721,7 @@ impl<'a, 'b> NetHsmBackend<'a, 'b> {
                 );
 
                 self.nethsm.provision(
-                    Passphrase::from_str(self.admin_credentials.unlock_passphrase())
-                        .map_err(crate::Error::SignstarCrypto)?,
+                    self.admin_credentials.unlock_passphrase().clone(),
                     self.admin_credentials
                         .default_administrator()?
                         .passphrase
@@ -1737,9 +1735,8 @@ impl<'a, 'b> NetHsmBackend<'a, 'b> {
                     self.nethsm.get_url()
                 );
 
-                self.nethsm.unlock(Passphrase::new(
-                    self.admin_credentials.unlock_passphrase().into(),
-                ))?;
+                self.nethsm
+                    .unlock(self.admin_credentials.unlock_passphrase().clone())?;
             }
             SystemState::Operational => {
                 debug!(
