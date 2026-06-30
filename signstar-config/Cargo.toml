@@ -11,7 +11,7 @@ version = "0.2.0"
 
 [dependencies]
 change-user-run.workspace = true
-garde = { version = "0.23.0", features = ["derive"] }
+garde.workspace = true
 log.workspace = true
 nethsm = { workspace = true, optional = true }
 nix.workspace = true
