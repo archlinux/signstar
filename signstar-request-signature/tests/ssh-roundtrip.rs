@@ -20,7 +20,7 @@ use std::sync::Arc;
 use base64ct::{Base64, Encoding as _};
 use log::{LevelFilter, debug, info};
 use russh::keys::ssh_key::{PrivateKey, PublicKey, private::Ed25519Keypair};
-use russh::server::{self, Msg, Server as _, Session as ServerSession};
+use russh::server::{self, ChannelOpenHandle, Msg, Server as _, Session as ServerSession};
 use russh::{Channel, ChannelId};
 use signstar_common::logging::setup_logging;
 use signstar_request_signature::Request;
@@ -202,9 +202,11 @@ impl<F: Fn(&[u8]) -> Vec<u8> + Send + Clone> server::Handler for Server<F> {
     async fn channel_open_session(
         &mut self,
         _channel: Channel<Msg>,
+        reply: ChannelOpenHandle,
         _session: &mut ServerSession,
-    ) -> Result<bool, Self::Error> {
-        Ok(true)
+    ) -> Result<(), Self::Error> {
+        reply.accept().await;
+        Ok(())
     }
 
     async fn auth_publickey(
