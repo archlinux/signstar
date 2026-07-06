@@ -354,16 +354,19 @@ impl<'a> BackupDecryptor<'a> {
     ///   incorrect length, has been tampered with, the decryption passphrase is wrong or the
     ///   additional authenticated data is incorrect.
     fn decrypt(&self, ciphertext: &[u8], aad: &[u8]) -> Result<Vec<u8>> {
-        let Some((nonce, msg)) = ciphertext.split_at_checked(12) else {
+        let Some((nonce, msg)) = ciphertext.split_first_chunk::<12>() else {
             return Err(Error::Decryption);
         };
 
         let payload = aes_gcm::aead::Payload { msg, aad };
 
-        let plaintext = self.cipher.decrypt(nonce.into(), payload).map_err(|e| {
-            error!("Decryption failed: {e:?}");
-            Error::Decryption
-        })?;
+        let plaintext = self
+            .cipher
+            .decrypt(&(*nonce).into(), payload)
+            .map_err(|e| {
+                error!("Decryption failed: {e:?}");
+                Error::Decryption
+            })?;
         Ok(plaintext)
     }
 
