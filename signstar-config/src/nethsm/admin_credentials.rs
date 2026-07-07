@@ -5,6 +5,7 @@ use nethsm::{FullCredentials, Passphrase};
 #[cfg(doc)]
 use nethsm::{NetHsm, UserId};
 use serde::{Deserialize, Serialize};
+use signstar_crypto::passphrase::PassphrasePolicy;
 
 use crate::{
     admin_credentials::{AdminCredentials, Error},
@@ -36,6 +37,15 @@ pub struct NetHsmAdminCredentials {
 }
 
 impl NetHsmAdminCredentials {
+    /// The default [`PassphrasePolicy`] for a backup passphrase.
+    pub const BACKUP_PASSPHRASE_POLICY: PassphrasePolicy = PassphrasePolicy { minimum_length: 30 };
+
+    /// The default [`PassphrasePolicy`] for a backup passphrase.
+    pub const UNLOCK_PASSPHRASE_POLICY: PassphrasePolicy = PassphrasePolicy { minimum_length: 30 };
+
+    /// The default [`PassphrasePolicy`] for an admin passphrase.
+    pub const ADMIN_PASSPHRASE_POLICY: PassphrasePolicy = PassphrasePolicy { minimum_length: 30 };
+
     /// Creates a new [`NetHsmAdminCredentials`] instance.
     ///
     /// # Examples
@@ -47,83 +57,95 @@ impl NetHsmAdminCredentials {
     /// # fn main() -> testresult::TestResult {
     /// let creds = NetHsmAdminCredentials::new(
     ///     1,
-    ///     "backup-passphrase".parse()?,
-    ///     "unlock-passphrase".parse()?,
+    ///     "backup-passphrase-really-just-for-testing-i-promise".parse()?,
+    ///     "unlock-passphrase-really-just-for-testing-i-promise".parse()?,
     ///     vec![FullCredentials::new(
     ///         "admin".parse()?,
-    ///         "admin-passphrase".parse()?,
+    ///         "admin-passphrase-really-just-for-testing-i-promise".parse()?,
     ///     )],
     ///     vec![FullCredentials::new(
     ///         "ns1~admin".parse()?,
-    ///         "ns1-admin-passphrase".parse()?,
+    ///         "ns1-admin-passphrase-really-just-for-testing-i-promise".parse()?,
     ///     )],
     /// )?;
     /// # // the backup passphrase is too short
     /// # assert!(NetHsmAdminCredentials::new(
     /// #     1,
     /// #     "short".parse()?,
-    /// #     "unlock-passphrase".parse()?,
-    /// #     vec![FullCredentials::new("admin".parse()?, "admin-passphrase".parse()?)],
+    /// #     "unlock-passphrase-really-just-for-testing-i-promise".parse()?,
+    /// #     vec![FullCredentials::new(
+    /// #         "admin".parse()?,
+    /// #         "admin-passphrase-really-just-for-testing-i-promise".parse()?,
+    /// #     )],
     /// #     vec![FullCredentials::new(
     /// #         "ns1~admin".parse()?,
-    /// #         "ns1-admin-passphrase".parse()?,
+    /// #         "ns1-admin-passphrase-really-just-for-testing-i-promise".parse()?,
     /// #     )],
     /// # ).is_err());
     /// #
     /// # // the unlock passphrase is too short
     /// # assert!(NetHsmAdminCredentials::new(
     /// #     1,
-    /// #     "backup-passphrase".parse()?,
+    /// #     "backup-passphrase-really-just-for-testing-i-promise".parse()?,
     /// #     "short".parse()?,
-    /// #     vec![FullCredentials::new("admin".parse()?, "admin-passphrase".parse()?)],
+    /// #     vec![FullCredentials::new(
+    /// #         "admin".parse()?,
+    /// #         "admin-passphrase-really-just-for-testing-i-promise".parse()?,
+    /// #     )],
     /// #     vec![FullCredentials::new(
     /// #         "ns1~admin".parse()?,
-    /// #         "ns1-admin-passphrase".parse()?,
+    /// #         "ns1-admin-passphrase-really-just-for-testing-i-promise".parse()?,
     /// #     )],
     /// # ).is_err());
     /// #
     /// # // there is no top-level administrator
     /// # assert!(NetHsmAdminCredentials::new(
     /// #     1,
-    /// #     "backup-passphrase".parse()?,
-    /// #     "unlock-passphrase".parse()?,
+    /// #     "backup-passphrase-really-just-for-testing-i-promise".parse()?,
+    /// #     "unlock-passphrase-really-just-for-testing-i-promise".parse()?,
     /// #     Vec::new(),
     /// #     vec![FullCredentials::new(
     /// #         "ns1~admin".parse()?,
-    /// #         "ns1-admin-passphrase".parse()?,
+    /// #         "ns1-admin-passphrase-really-just-for-testing-i-promise".parse()?,
     /// #     )],
     /// # ).is_err());
     /// #
-    /// # // there is no default top-level administrator
+    /// # // there is no default top-level default administrator
     /// # assert!(NetHsmAdminCredentials::new(
     /// #     1,
-    /// #     "backup-passphrase".parse()?,
-    /// #     "unlock-passphrase".parse()?,
-    /// #     vec![FullCredentials::new("some".parse()?, "admin-passphrase".parse()?)],
+    /// #     "backup-passphrase-really-just-for-testing-i-promise".parse()?,
+    /// #     "unlock-passphrase-really-just-for-testing-i-promise".parse()?,
+    /// #     vec![FullCredentials::new(
+    /// #         "some".parse()?,
+    /// #         "admin-passphrase-really-just-for-testing-i-promise".parse()?,
+    /// #     )],
     /// #     vec![FullCredentials::new(
     /// #         "ns1~admin".parse()?,
-    /// #         "ns1-admin-passphrase".parse()?,
+    /// #         "ns1-admin-passphrase-really-just-for-testing-i-promise".parse()?,
     /// #     )],
     /// # ).is_err());
     /// #
     /// # // a top-level administrator passphrase is too short
     /// # assert!(NetHsmAdminCredentials::new(
     /// #     1,
-    /// #     "backup-passphrase".parse()?,
-    /// #     "unlock-passphrase".parse()?,
+    /// #     "backup-passphrase-really-just-for-testing-i-promise".parse()?,
+    /// #     "unlock-passphrase-really-just-for-testing-i-promise".parse()?,
     /// #     vec![FullCredentials::new("admin".parse()?, "short".parse()?)],
     /// #     vec![FullCredentials::new(
     /// #         "ns1~admin".parse()?,
-    /// #         "ns1-admin-passphrase".parse()?,
+    /// #         "ns1-admin-passphrase-really-just-for-testing-i-promise".parse()?,
     /// #     )],
     /// # ).is_err());
     /// #
     /// # // a namespace administrator passphrase is too short
     /// # assert!(NetHsmAdminCredentials::new(
     /// #     1,
-    /// #     "backup-passphrase".parse()?,
-    /// #     "unlock-passphrase".parse()?,
-    /// #     vec![FullCredentials::new("some".parse()?, "admin-passphrase".parse()?)],
+    /// #     "backup-passphrase-really-just-for-testing-i-promise".parse()?,
+    /// #     "unlock-passphrase-really-just-for-testing-i-promise".parse()?,
+    /// #     vec![FullCredentials::new(
+    /// #         "some".parse()?,
+    /// #         "admin-passphrase-really-just-for-testing-i-promise".parse()?,
+    /// #     )],
     /// #     vec![FullCredentials::new(
     /// #         "ns1~admin".parse()?,
     /// #         "short".parse()?,
@@ -356,51 +378,25 @@ impl AdminCredentials for NetHsmAdminCredentials {
             ));
         }
 
-        let minimum_length: usize = 10;
-
         // a top-level administrator user passphrase is too short
         for user in self.administrators().iter() {
-            if user.passphrase.expose_borrowed().len() < minimum_length {
-                return Err(crate::Error::AdminSecretHandling(
-                    Error::PassphraseTooShort {
-                        context: format!("user {}", user.name),
-                        minimum_length,
-                    },
-                ));
-            }
+            user.passphrase
+                .check_against_policy(&Self::ADMIN_PASSPHRASE_POLICY)?;
         }
 
         // a namespace administrator user passphrase is too short
         for user in self.namespace_administrators().iter() {
-            if user.passphrase.expose_borrowed().len() < minimum_length {
-                return Err(crate::Error::AdminSecretHandling(
-                    Error::PassphraseTooShort {
-                        context: format!("user {}", user.name),
-                        minimum_length,
-                    },
-                ));
-            }
+            user.passphrase
+                .check_against_policy(&Self::ADMIN_PASSPHRASE_POLICY)?;
         }
 
         // the backup passphrase is too short
-        if self.backup_passphrase().len() < minimum_length {
-            return Err(crate::Error::AdminSecretHandling(
-                Error::PassphraseTooShort {
-                    context: "backups".to_string(),
-                    minimum_length,
-                },
-            ));
-        }
+        self.backup_passphrase()
+            .check_against_policy(&Self::BACKUP_PASSPHRASE_POLICY)?;
 
         // the unlock passphrase is too short
-        if self.unlock_passphrase().len() < minimum_length {
-            return Err(crate::Error::AdminSecretHandling(
-                Error::PassphraseTooShort {
-                    context: "unlocking".to_string(),
-                    minimum_length,
-                },
-            ));
-        }
+        self.unlock_passphrase()
+            .check_against_policy(&Self::UNLOCK_PASSPHRASE_POLICY)?;
 
         Ok(())
     }
@@ -420,15 +416,27 @@ mod tests {
     fn nethsm_admin_credentials() -> TestResult<NetHsmAdminCredentials> {
         Ok(NetHsmAdminCredentials::new(
             1,
-            "backup-passphrase".parse()?,
-            "unlock-passphrase".parse()?,
+            "backup-passphrase-really-just-for-testing-i-promise".parse()?,
+            "unlock-passphrase-really-just-for-testing-i-promise".parse()?,
             vec![
-                FullCredentials::new("admin".parse()?, "admin-passphrase".parse()?),
-                FullCredentials::new("admin2".parse()?, "admin2-passphrase".parse()?),
+                FullCredentials::new(
+                    "admin".parse()?,
+                    "admin-passphrase-really-just-for-testing-i-promise".parse()?,
+                ),
+                FullCredentials::new(
+                    "admin2".parse()?,
+                    "admin2-passphrase-really-just-for-testing-i-promise".parse()?,
+                ),
             ],
             vec![
-                FullCredentials::new("ns1~admin".parse()?, "ns1~admin-passphrase".parse()?),
-                FullCredentials::new("ns1~admin2".parse()?, "ns1~admin2-passphrase".parse()?),
+                FullCredentials::new(
+                    "ns1~admin".parse()?,
+                    "ns1~admin-passphrase-really-just-for-testing-i-promise".parse()?,
+                ),
+                FullCredentials::new(
+                    "ns1~admin2".parse()?,
+                    "ns1~admin2-passphrase-really-just-for-testing-i-promise".parse()?,
+                ),
             ],
         )?)
     }

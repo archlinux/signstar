@@ -1247,15 +1247,15 @@ impl<'a, 'b> NetHsmBackend<'a, 'b> {
     /// // The administrative credentials.
     /// let admin_credentials = NetHsmAdminCredentials::new(
     ///     1,
-    ///     "backup-passphrase".parse()?,
-    ///     "unlock-passphrase".parse()?,
+    ///     "backup-passphrase-really-just-for-testing-i-promise".parse()?,
+    ///     "unlock-passphrase-really-just-for-testing-i-promise".parse()?,
     ///     vec![FullCredentials::new(
     ///         "admin".parse()?,
-    ///         "admin-passphrase".parse()?,
+    ///         "admin-passphrase-really-just-for-testing-i-promise".parse()?,
     ///     )],
     ///     vec![FullCredentials::new(
     ///         "ns1~admin".parse()?,
-    ///         "ns1-admin-passphrase".parse()?,
+    ///         "ns1-admin-passphrase-really-just-for-testing-i-promise".parse()?,
     ///     )],
     /// )?;
     /// // The Signstar config.
@@ -1988,15 +1988,15 @@ mod tests {
         let admin_credentials = NetHsmAdminCredentials::new(
             // this is different from the one in the Signstar config.
             2,
-            "backup-passphrase".parse()?,
-            "unlock-passphrase".parse()?,
+            "backup-passphrase-really-just-for-testing-i-promise".parse()?,
+            "unlock-passphrase-really-just-for-testing-i-promise".parse()?,
             vec![FullCredentials::new(
                 "admin".parse()?,
-                "admin-passphrase".parse()?,
+                "admin-passphrase-really-just-for-testing-i-promise".parse()?,
             )],
             vec![FullCredentials::new(
                 "ns1~admin".parse()?,
-                "ns1-admin-passphrase".parse()?,
+                "ns1-admin-passphrase-really-just-for-testing-i-promise".parse()?,
             )],
         )?;
         let nethsm_backend_result =

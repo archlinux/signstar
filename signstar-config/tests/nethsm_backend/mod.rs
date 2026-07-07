@@ -234,15 +234,15 @@ async fn nethsm_diff_diff_fails_on_discrepancies() -> TestResult {
     };
     let nethsm_admin_credentials = NetHsmAdminCredentials::new(
         1,
-        "backup_passphrase".parse()?,
-        "unlock_passphrase".parse()?,
+        "backup-passphrase-really-just-for-testing-i-promise".parse()?,
+        "unlock-passphrase-really-just-for-testing-i-promise".parse()?,
         vec![FullCredentials::new(
             "admin".parse()?,
-            "admin-passphrase".parse()?,
+            "admin-passphrase-really-just-for-testing-i-promise".parse()?,
         )],
         vec![FullCredentials::new(
             "ns1~admin".parse()?,
-            "admin-passphrase".parse()?,
+            "admin-passphrase-really-just-for-testing-i-promise".parse()?,
         )],
     )?;
     let nethsm_config_state = NetHsmConfigState::from(nethsm_config);
