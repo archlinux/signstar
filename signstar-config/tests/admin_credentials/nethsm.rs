@@ -57,15 +57,21 @@ fn store_plaintext_toml() -> TestResult {
     let config_file = get_tmp_config(SIGNSTAR_ADMIN_CREDS_SIMPLE)?;
     let creds = NetHsmAdminCredentials::new(
         1,
-        "backup-passphrase".parse()?,
-        "unlock-passphrase".parse()?,
+        "backup-passphrase-really-just-for-testing-i-promise".parse()?,
+        "unlock-passphrase-really-just-for-testing-i-promise".parse()?,
         vec![
-            FullCredentials::new("admin".parse()?, "admin-passphrase".parse()?),
-            FullCredentials::new("admin2".parse()?, "other-admin-passphrase".parse()?),
+            FullCredentials::new(
+                "admin".parse()?,
+                "admin-passphrase-really-just-for-testing-i-promise".parse()?,
+            ),
+            FullCredentials::new(
+                "admin2".parse()?,
+                "other-admin-passphrase-really-just-for-testing-i-promise".parse()?,
+            ),
         ],
         vec![FullCredentials::new(
             "ns1~admin".parse()?,
-            "ns1-admin-passphrase".parse()?,
+            "ns1-admin-passphrase-really-just-for-testing-i-promise".parse()?,
         )],
     )?;
     creds.store(AdministrativeSecretHandling::Plaintext)?;
