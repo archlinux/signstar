@@ -1,8 +1,11 @@
 //! Administrative credentials for YubiHSM2 backends.
 
 use serde::{Deserialize, Serialize};
-use signstar_crypto::{passphrase::Passphrase, traits::UserWithPassphrase};
-use signstar_yubihsm2::Credentials;
+use signstar_crypto::{
+    passphrase::{Passphrase, PassphrasePolicy},
+    traits::UserWithPassphrase,
+};
+use signstar_yubihsm2::{Credentials, object::WrapKey};
 
 use crate::admin_credentials::{AdminCredentials, Error};
 
@@ -17,10 +20,8 @@ use crate::admin_credentials::{AdminCredentials, Error};
 /// # Note
 ///
 /// There must be at least one set of [`Credentials`] in the list of administrators.
-/// The passphrases of administrator accounts must be at least
-/// [`Self::MINIMUM_PASSPHRASE_LENGTH_USER`] characters long.
-/// The backup passphrase must be at least [`Self::MINIMUM_PASSPHRASE_LENGTH_BACKUP`] characters
-/// long.
+/// The passphrases of administrator users are checked against [`Self::ADMIN_PASSPHRASE_POLICY`].
+/// The backup passphrase is checked against [`Self::BACKUP_PASSPHRASE_POLICY`].
 ///
 /// It is implied, that the administrator users of a YubiHSM2 backend have the necessary
 /// [capabilities] for the creation of other users and keys.
@@ -40,11 +41,15 @@ impl YubiHsm2AdminCredentials {
     /// The default passphrase on an unprovisioned YubiHSM2 device.
     pub const DEFAULT_PASSPHRASE: &str = "password";
 
-    /// The default passphrase on an unprovisioned YubiHSM2 device.
-    pub const MINIMUM_PASSPHRASE_LENGTH_USER: usize = 8;
+    /// The minimum passphrase length for the backup key.
+    ///
+    /// # Note
+    ///
+    /// This reuses [`WrapKey::PASSPHRASE_POLICY`].
+    pub const BACKUP_PASSPHRASE_POLICY: PassphrasePolicy = WrapKey::PASSPHRASE_POLICY;
 
-    /// The minimum length of a backup passphrase.
-    pub const MINIMUM_PASSPHRASE_LENGTH_BACKUP: usize = 10;
+    /// The minimum passphrase length for an administrative user.
+    pub const ADMIN_PASSPHRASE_POLICY: PassphrasePolicy = PassphrasePolicy { minimum_length: 30 };
 
     /// Creates a new [`YubiHsm2AdminCredentials`].
     ///
@@ -89,23 +94,14 @@ impl AdminCredentials for YubiHsm2AdminCredentials {
 
         // An administrator user passphrase is too short.
         for creds in self.administrators.iter() {
-            if creds.passphrase().expose_borrowed().len() < Self::MINIMUM_PASSPHRASE_LENGTH_USER {
-                return Err(Error::PassphraseTooShort {
-                    context: format!("user {}", creds.user()),
-                    minimum_length: Self::MINIMUM_PASSPHRASE_LENGTH_USER,
-                }
-                .into());
-            }
+            creds
+                .passphrase()
+                .check_against_policy(&Self::ADMIN_PASSPHRASE_POLICY)?;
         }
 
         // The backup passphrase is too short.
-        if self.backup_passphrase.expose_borrowed().len() < Self::MINIMUM_PASSPHRASE_LENGTH_BACKUP {
-            return Err(Error::PassphraseTooShort {
-                context: "backups".to_string(),
-                minimum_length: Self::MINIMUM_PASSPHRASE_LENGTH_USER,
-            }
-            .into());
-        }
+        self.backup_passphrase
+            .check_against_policy(&Self::BACKUP_PASSPHRASE_POLICY)?;
 
         Ok(())
     }
@@ -121,10 +117,10 @@ mod tests {
     fn yubihsm2_admin_credentials_new_succeeds() -> TestResult {
         let _creds = YubiHsm2AdminCredentials::new(
             1,
-            Passphrase::new("backup-passphrase".to_string()),
+            Passphrase::new("backup-passphrase-really-just-for-testing-i-promise-but-it-is-really-really-long-sufficiently-long-really".to_string()),
             vec![Credentials::new(
                 "1".parse()?,
-                Passphrase::new("password".to_string()),
+                Passphrase::new("admin-passphrase-really-just-for-testing-i-promise".to_string()),
             )],
         )?;
 
@@ -135,7 +131,7 @@ mod tests {
     fn yubihsm2_admin_credentials_new_fails_on_no_admins() -> TestResult {
         match YubiHsm2AdminCredentials::new(
             1,
-            Passphrase::new("backup-passphrase".to_string()),
+            Passphrase::new("backup-passphrase-really-just-for-testing-i-promise-but-it-is-really-really-long-sufficiently-long-really".to_string()),
             Vec::new(),
         ) {
             Ok(creds) => {
@@ -155,18 +151,21 @@ mod tests {
     fn yubihsm2_admin_credentials_new_fails_on_admin_passphrase_too_short() -> TestResult {
         match YubiHsm2AdminCredentials::new(
             1,
-            Passphrase::new("backup-passphrase".to_string()),
+            Passphrase::new("backup-passphrase-really-just-for-testing-i-promise-but-it-is-really-really-long-sufficiently-long-really".to_string()),
             vec![Credentials::new(
                 "1".parse()?,
-                Passphrase::new("pass".to_string()),
+                Passphrase::new("short".to_string()),
             )],
         ) {
             Ok(creds) => {
                 panic!("Expected Error::PassphraseTooShort but succeeded instead:\n{creds:?}")
             }
-            Err(crate::Error::AdminSecretHandling(Error::PassphraseTooShort { .. })) => {}
+            Err(crate::Error::SignstarCrypto(signstar_crypto::Error::Passphrase(
+                signstar_crypto::passphrase::Error::Length { .. },
+            ))) => {}
             Err(error) => panic!(
-                "Expected Error::PassphraseTooShort but failed differently instead:\n{error}"
+                "Expected crate::Error::SignstarCrypto(signstar_crypto::Error::Passphrase(
+                signstar_crypto::passphrase::Error::Length)) but failed differently instead:\n{error}"
             ),
         }
 
@@ -177,18 +176,21 @@ mod tests {
     fn yubihsm2_admin_credentials_new_fails_on_backup_passphrase_too_short() -> TestResult {
         match YubiHsm2AdminCredentials::new(
             1,
-            Passphrase::new("backup".to_string()),
+            Passphrase::new("short".to_string()),
             vec![Credentials::new(
                 "1".parse()?,
-                Passphrase::new("password".to_string()),
+                Passphrase::new("admin-passphrase-really-just-for-testing-i-promise".to_string()),
             )],
         ) {
             Ok(creds) => {
                 panic!("Expected Error::PassphraseTooShort but succeeded instead:\n{creds:?}")
             }
-            Err(crate::Error::AdminSecretHandling(Error::PassphraseTooShort { .. })) => {}
+            Err(crate::Error::SignstarCrypto(signstar_crypto::Error::Passphrase(
+                signstar_crypto::passphrase::Error::Length { .. },
+            ))) => {}
             Err(error) => panic!(
-                "Expected Error::PassphraseTooShort but failed differently instead:\n{error}"
+                "Expected crate::Error::SignstarCrypto(signstar_crypto::Error::Passphrase(
+                signstar_crypto::passphrase::Error::Length)) but failed differently instead:\n{error}"
             ),
         }
 
