@@ -1,10 +1,10 @@
-backup_passphrase = "backup-passphrase"
+backup_passphrase = "backup-passphrase-really-just-for-testing-i-promise-but-it-is-really-really-long-sufficiently-long-really"
 iteration = 1
 
 [[administrators]]
 id = 1
-passphrase = "admin-passphrase"
+passphrase = "admin-passphrase-really-just-for-testing-i-promise"
 
 [[administrators]]
 id = 2
-passphrase = "other-admin-passphrase"
+passphrase = "other-admin-passphrase-really-just-for-testing-i-promise"

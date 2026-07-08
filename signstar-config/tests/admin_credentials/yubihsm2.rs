@@ -27,10 +27,10 @@ const SIGNSTAR_ADMIN_CREDS: &[u8] = include_bytes!("../fixtures/admin_credential
 fn default_creds() -> TestResult<YubiHsm2AdminCredentials> {
     Ok(YubiHsm2AdminCredentials::new(
         1,
-        "backup-passphrase".parse()?,
+        "backup-passphras-really-just-for-testing-i-promise-but-it-is-really-really-long-sufficiently-long-reallye".parse()?,
         vec![
-            Credentials::new("1".parse()?, "admin-passphrase".parse()?),
-            Credentials::new("2".parse()?, "other-admin-passphrase".parse()?),
+            Credentials::new("1".parse()?, "admin-passphrase-really-just-for-testing-i-promise".parse()?),
+            Credentials::new("2".parse()?, "other-admin-passphrase-really-just-for-testing-i-promise".parse()?),
         ],
     )?)
 }
