@@ -74,6 +74,11 @@ impl YubiHsm2AdminCredentials {
 
         Ok(creds)
     }
+
+    /// Returns the list of administrators.
+    pub fn administrators(&self) -> &[Credentials] {
+        &self.administrators
+    }
 }
 
 impl AdminCredentials for YubiHsm2AdminCredentials {
