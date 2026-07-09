@@ -1,11 +1,16 @@
 //! Administrative credentials for YubiHSM2 backends.
 
+use std::num::NonZeroU16;
+
 use serde::{Deserialize, Serialize};
 use signstar_crypto::{
     passphrase::{Passphrase, PassphrasePolicy},
     traits::UserWithPassphrase,
 };
-use signstar_yubihsm2::{Credentials, object::WrapKey};
+use signstar_yubihsm2::{
+    Credentials,
+    object::{Id, WrapKey},
+};
 
 use crate::admin_credentials::{AdminCredentials, Error};
 
@@ -35,10 +40,14 @@ pub struct YubiHsm2AdminCredentials {
 }
 
 impl YubiHsm2AdminCredentials {
-    /// The default ID on an unprovisioned YubiHSM2 device.
-    pub const DEFAULT_ID: u16 = 1;
+    /// The [default ID] on an unprovisioned YubiHSM2 device.
+    ///
+    /// [default ID]: https://docs.yubico.com/hardware/yubihsm-2/hsm-2-user-guide/hsm2-intro-access-control.html#authentication-key-as-a-credential-holder
+    pub const DEFAULT_ID: NonZeroU16 = NonZeroU16::new(1).expect("1 is non-zero");
 
-    /// The default passphrase on an unprovisioned YubiHSM2 device.
+    /// The [default passphrase] on an unprovisioned YubiHSM2 device.
+    ///
+    /// [default passphrase]: https://docs.yubico.com/hardware/yubihsm-2/hsm-2-user-guide/hsm2-intro-access-control.html#authentication-key-as-a-credential-holder
     pub const DEFAULT_PASSPHRASE: &str = "password";
 
     /// The minimum passphrase length for the backup key.
@@ -78,6 +87,23 @@ impl YubiHsm2AdminCredentials {
     /// Returns the list of administrators.
     pub fn administrators(&self) -> &[Credentials] {
         &self.administrators
+    }
+
+    /// Returns the [default ID].
+    ///
+    /// [default ID]: https://docs.yubico.com/hardware/yubihsm-2/hsm-2-user-guide/hsm2-intro-access-control.html#authentication-key-as-a-credential-holder
+    pub fn default_id() -> Id {
+        Id::new(Self::DEFAULT_ID).expect("1 is smaller than 256")
+    }
+
+    /// Returns the [default credentials].
+    ///
+    /// [default credentials]: https://docs.yubico.com/hardware/yubihsm-2/hsm-2-user-guide/hsm2-intro-access-control.html#authentication-key-as-a-credential-holder
+    pub fn default_credentials() -> Credentials {
+        Credentials::new(
+            Self::default_id(),
+            Passphrase::new(Self::DEFAULT_PASSPHRASE.to_string()),
+        )
     }
 }
 
