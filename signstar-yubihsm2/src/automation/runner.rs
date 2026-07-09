@@ -19,7 +19,7 @@ use yubihsm::{
     command::Code as CommandCode,
     device::Info as DeviceInfo,
     ed25519::Signature,
-    object::{Handle, Id as YubiHsmObjectId, Info as ObjectInfo},
+    object::{Entry, Filter, Handle, Id as YubiHsmObjectId, Info as ObjectInfo},
     response::Code as ResponseCode,
     wrap::{Algorithm as WrapAlgorithm, Message},
 };
@@ -228,6 +228,9 @@ pub enum CommandReturnValue {
 
     /// The return value of [`Client::get_log_entries`].
     GetLogEntries(LogEntries),
+
+    /// The return value of [`Client::list_objects`].
+    ListObjects(Vec<Entry>),
 }
 
 impl PartialEq<Command> for &CommandReturnValue {
@@ -254,7 +257,8 @@ impl PartialEq<Command> for &CommandReturnValue {
             | (CommandReturnValue::GetObjectInfo(_), Command::GetObjectInfo(_))
             | (CommandReturnValue::SetForceAuditOption, Command::SetForceAuditOption(_))
             | (CommandReturnValue::SetCommandAuditOption, Command::SetCommandAuditOption { .. })
-            | (CommandReturnValue::GetLogEntries(_), Command::GetLogEntries) => true,
+            | (CommandReturnValue::GetLogEntries(_), Command::GetLogEntries)
+            | (CommandReturnValue::ListObjects(_), Command::ListObjects(_)) => true,
             (CommandReturnValue::DeviceInfo(_), _)
             | (CommandReturnValue::ResetDeviceAndReconnect, _)
             | (CommandReturnValue::PutAuthenticationKey(_), _)
@@ -267,7 +271,8 @@ impl PartialEq<Command> for &CommandReturnValue {
             | (CommandReturnValue::GetObjectInfo(_), _)
             | (CommandReturnValue::SetForceAuditOption, _)
             | (CommandReturnValue::SetCommandAuditOption, _)
-            | (CommandReturnValue::GetLogEntries(_), _) => false,
+            | (CommandReturnValue::GetLogEntries(_), _)
+            | (CommandReturnValue::ListObjects(_), _) => false,
         }
     }
 }
@@ -309,7 +314,8 @@ impl PartialEq<FileBackedCommand> for &CommandReturnValue {
                 CommandReturnValue::SetCommandAuditOption,
                 FileBackedCommand::SetCommandAuditOption { .. },
             )
-            | (CommandReturnValue::GetLogEntries(_), FileBackedCommand::GetLogEntries) => true,
+            | (CommandReturnValue::GetLogEntries(_), FileBackedCommand::GetLogEntries)
+            | (CommandReturnValue::ListObjects(_), FileBackedCommand::ListObjects(_)) => true,
             (CommandReturnValue::DeviceInfo(_), _)
             | (CommandReturnValue::ResetDeviceAndReconnect, _)
             | (CommandReturnValue::PutAuthenticationKey(_), _)
@@ -322,7 +328,8 @@ impl PartialEq<FileBackedCommand> for &CommandReturnValue {
             | (CommandReturnValue::GetObjectInfo(_), _)
             | (CommandReturnValue::SetForceAuditOption, _)
             | (CommandReturnValue::SetCommandAuditOption, _)
-            | (CommandReturnValue::GetLogEntries(_), _) => false,
+            | (CommandReturnValue::GetLogEntries(_), _)
+            | (CommandReturnValue::ListObjects(_), _) => false,
         }
     }
 }
@@ -767,6 +774,21 @@ impl ScenarioRunner {
                         })
                         .collect::<Vec<_>>(),
                 })
+            }
+            Command::ListObjects(filters) => {
+                let entries = client
+                    .list_objects(
+                        filters
+                            .iter()
+                            .map(|filter| filter.into())
+                            .collect::<Vec<Filter>>()
+                            .as_slice(),
+                    )
+                    .map_err(|source| Error::Client {
+                        context: "retrieving information on objects based on a set of filters",
+                        source,
+                    })?;
+                CommandReturnValue::ListObjects(entries)
             }
         })
     }

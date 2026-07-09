@@ -7,12 +7,16 @@ use std::{fs::read, path::PathBuf};
 use serde::{Deserialize, Serialize};
 #[cfg(feature = "cli")]
 use signstar_crypto::passphrase::Passphrase;
-use yubihsm::{command::Code, wrap::Message};
+use yubihsm::{
+    command::Code,
+    object::{Filter, Type},
+    wrap::Message,
+};
 
 use crate::{
     Credentials,
     automation::CommandReturnValue,
-    object::{AuthenticationKey, Capabilities, Id, KeyInfo, ObjectId, WrapKey},
+    object::{AuthenticationKey, Capabilities, Domains, Id, KeyInfo, ObjectId, WrapKey},
 };
 #[cfg(feature = "cli")]
 use crate::{
@@ -89,6 +93,9 @@ pub enum CommandName {
 
     /// Query data about the object and print it to standard output.
     GetObjectInfo,
+
+    /// Lists objects visible from the authenticated session based on a list of filters.
+    ListObjects,
 }
 
 impl From<&Command> for CommandName {
@@ -107,6 +114,7 @@ impl From<&Command> for CommandName {
             Command::ImportWrapped { .. } => Self::ImportWrapped,
             Command::DeleteObject(_) => Self::DeleteObject,
             Command::GetObjectInfo(_) => Self::GetObjectInfo,
+            Command::ListObjects(_) => Self::ListObjects,
         }
     }
 }
@@ -127,6 +135,7 @@ impl From<&CommandReturnValue> for CommandName {
             CommandReturnValue::ImportWrapped { .. } => Self::ImportWrapped,
             CommandReturnValue::DeleteObject => Self::DeleteObject,
             CommandReturnValue::GetObjectInfo(_) => Self::GetObjectInfo,
+            CommandReturnValue::ListObjects(_) => Self::ListObjects,
         }
     }
 }
@@ -148,6 +157,104 @@ impl From<&FileBackedCommand> for CommandName {
             FileBackedCommand::ImportWrapped { .. } => Self::ImportWrapped,
             FileBackedCommand::DeleteObject(_) => Self::DeleteObject,
             FileBackedCommand::GetObjectInfo(_) => Self::GetObjectInfo,
+            FileBackedCommand::ListObjects(_) => Self::ListObjects,
+        }
+    }
+}
+
+/// An object type in the YubiHSM2.
+///
+/// # Note
+///
+/// This type is only needed because [`Type`] uses a custom serde implementation based on bytes.
+#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "kebab-case"))]
+#[derive(Clone, Copy, Debug, strum::Display, Eq, Hash, Ord, PartialEq, PartialOrd)]
+#[strum(serialize_all = "kebab-case")]
+pub enum ObjectType {
+    /// Raw data.
+    Opaque,
+
+    /// Authentication keys.
+    AuthenticationKey,
+
+    /// Asymmetric private keys.
+    AsymmetricKey,
+
+    /// Key for exporting and importing of keys and data.
+    WrapKey,
+
+    /// HMAC private key.
+    HmacKey,
+
+    /// A template for validating SSH certificate requests.
+    Template,
+
+    /// A Yubike-AES OTP encryption and decryption key.
+    OtpAeakey,
+}
+
+impl From<Type> for ObjectType {
+    fn from(value: Type) -> Self {
+        match value {
+            Type::Opaque => Self::Opaque,
+            Type::AuthenticationKey => Self::AuthenticationKey,
+            Type::AsymmetricKey => Self::AsymmetricKey,
+            Type::WrapKey => Self::WrapKey,
+            Type::HmacKey => Self::HmacKey,
+            Type::Template => Self::Template,
+            Type::OtpAeadKey => Self::OtpAeakey,
+        }
+    }
+}
+
+impl From<&ObjectType> for Type {
+    fn from(value: &ObjectType) -> Self {
+        match value {
+            ObjectType::Opaque => Self::Opaque,
+            ObjectType::AuthenticationKey => Self::AuthenticationKey,
+            ObjectType::AsymmetricKey => Self::AsymmetricKey,
+            ObjectType::WrapKey => Self::WrapKey,
+            ObjectType::HmacKey => Self::HmacKey,
+            ObjectType::Template => Self::Template,
+            ObjectType::OtpAeakey => Self::OtpAeadKey,
+        }
+    }
+}
+
+/// A filter to apply when retrieving information about objects in a YubiHSM2.
+///
+/// # Note
+///
+/// This type is only needed because [`Filter`] neither implements [`Debug`] nor serde: <https://github.com/iqlusioninc/yubihsm.rs/pull/672>.
+///
+/// In addition, we only implement a subset of the [`Filter`].
+#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
+#[derive(Clone, Debug)]
+pub enum ListObjectFilter {
+    /// Filter by capabilities.
+    Capabilities(Capabilities),
+
+    /// Filter by domains.
+    Domains(Domains),
+
+    /// Filter by ID.
+    Id(Id),
+
+    /// Filter by type.
+    Type(ObjectType),
+}
+
+impl From<&ListObjectFilter> for Filter {
+    fn from(value: &ListObjectFilter) -> Self {
+        match value {
+            ListObjectFilter::Capabilities(capabilities) => {
+                Filter::Capabilities(capabilities.into())
+            }
+            ListObjectFilter::Domains(domains) => Filter::Domains(domains.into()),
+            ListObjectFilter::Id(id) => Filter::Id(id.into()),
+            ListObjectFilter::Type(typ) => Filter::Type(typ.into()),
         }
     }
 }
@@ -259,6 +366,9 @@ pub enum Command {
 
     /// Query data about the object and print it to standard output.
     GetObjectInfo(ObjectId),
+
+    /// Lists objects visible from the authenticated session based on a list of filters.
+    ListObjects(Vec<ListObjectFilter>),
 }
 
 #[cfg(feature = "cli")]
@@ -344,6 +454,7 @@ impl TryFrom<&FileBackedCommand> for Command {
             }
             FileBackedCommand::DeleteObject(id) => Command::DeleteObject(*id),
             FileBackedCommand::GetObjectInfo(id) => Command::GetObjectInfo(*id),
+            FileBackedCommand::ListObjects(filters) => Command::ListObjects(filters.clone()),
         })
     }
 }
@@ -468,6 +579,9 @@ pub enum FileBackedCommand {
 
     /// Query data about the object and print it to standard output.
     GetObjectInfo(ObjectId),
+
+    /// Lists objects visible from the authenticated session based on a list of filters.
+    ListObjects(Vec<ListObjectFilter>),
 }
 
 /// A list of [`Command`]s that are run with a specific authentication.
