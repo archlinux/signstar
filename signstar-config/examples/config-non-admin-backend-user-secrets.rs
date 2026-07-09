@@ -90,7 +90,7 @@ mod impl_any {
                 } else {
                     println!(
                         "The Unix user {} is not connected to a non-administrative backend user",
-                        &command.system_user_id
+                        command.system_user_id
                     );
                 };
             }

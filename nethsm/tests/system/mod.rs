@@ -42,7 +42,7 @@ async fn create_backup_and_restore(
     // write backup file
     let backup = nethsm.backup()?;
     std::fs::write(&backup_file, backup.clone())?;
-    println!("Written NetHSM backup file: {:?}", &backup_file);
+    println!("Written NetHSM backup file: {:?}", backup_file);
 
     // use the admin user again for the restore call
     nethsm.use_credentials(&admin_user_id)?;

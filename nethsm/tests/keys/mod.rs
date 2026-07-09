@@ -54,7 +54,7 @@ async fn generate_keys(
         None,
         Some(vec![sw_tag.clone()]),
     )?;
-    println!("Created system-wide key: {}", &sw_key);
+    println!("Created system-wide key: {}", sw_key);
     nethsm.add_user_tag(&default_operator_user_id, &sw_tag)?;
     println!(
         "system-wide operator tags: {:?}",
@@ -70,13 +70,13 @@ async fn generate_keys(
         None,
         Some(vec![ns1_tag.clone()]),
     )?;
-    println!("Created namespace1 key: {}", &ns1_key);
+    println!("Created namespace1 key: {}", ns1_key);
     // namespace operator can get key info without tags
     nethsm.use_credentials(&namespace1_operator_user_id)?;
     println!(
         "{} key accessed by {} before tagging: {:?}",
-        &ns1_key,
-        &namespace1_operator_user_id,
+        ns1_key,
+        namespace1_operator_user_id,
         nethsm.get_key(&ns1_key)?
     );
     // "generic" keys are symmetric encryption keys (and thus have no public key)
@@ -85,7 +85,7 @@ async fn generate_keys(
         let public_key = nethsm.get_public_key(&ns1_key)?;
         println!(
             "{} public key retrieved by {}, before tagging: {:?}",
-            &ns1_key, &namespace1_operator_user_id, &public_key
+            ns1_key, namespace1_operator_user_id, public_key
         );
         // namespace administrator can import a certificate for a key
         nethsm.use_credentials(&namespace1_admin_user_id)?;
@@ -114,7 +114,7 @@ async fn generate_keys(
         None,
         Some(vec![ns2_tag.clone()]),
     )?;
-    println!("Created namespace2 key: {}", &ns2_key);
+    println!("Created namespace2 key: {}", ns2_key);
     nethsm.add_user_tag(&namespace2_operator_user_id, &ns2_tag)?;
     println!(
         "namespace2 operator tags: {:?}",

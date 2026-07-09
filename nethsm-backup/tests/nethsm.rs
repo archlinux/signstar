@@ -40,7 +40,7 @@ async fn create_backup_and_decrypt_it(
     // write backup file
     let backup = nethsm.backup()?;
     std::fs::write(&backup_file, backup.clone())?;
-    println!("Written NetHSM backup file: {:?}", &backup_file);
+    println!("Written NetHSM backup file: {:?}", backup_file);
 
     // Validate the backup.
     validate_backup(

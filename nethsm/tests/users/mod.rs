@@ -167,7 +167,7 @@ async fn create_users_in_namespaces(
     );
     println!(
         "Created {} admin user: {}",
-        &namespace1, &namespace1_admin_user_id
+        namespace1, namespace1_admin_user_id
     );
     assert_eq!(nethsm.get_users()?.len(), 2);
     println!(
@@ -187,7 +187,7 @@ async fn create_users_in_namespaces(
     );
     println!(
         "Created {} Operator user: {}",
-        &namespace1, &namespace1_operator_user_id
+        namespace1, namespace1_operator_user_id
     );
     assert_eq!(nethsm.get_users()?.len(), 3);
     println!(
@@ -208,7 +208,7 @@ async fn create_users_in_namespaces(
     )?;
     println!(
         "Created {} Administrator user: {}",
-        &namespace2, NAMESPACE2_ADMIN_USER_ID
+        namespace2, NAMESPACE2_ADMIN_USER_ID
     );
     assert_eq!(nethsm.get_users()?.len(), 4);
     println!(
