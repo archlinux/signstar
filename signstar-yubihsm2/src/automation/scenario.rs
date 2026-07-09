@@ -16,6 +16,13 @@ use crate::{
 #[derive(Debug)]
 pub struct Scenario(Vec<AuthenticatedCommandChain>);
 
+impl Scenario {
+    /// Creates a new [`Scenario`] from a list of [`AuthenticatedCommandChain`] objects.
+    pub fn new(chains: Vec<AuthenticatedCommandChain>) -> Self {
+        Self(chains)
+    }
+}
+
 impl AsRef<[AuthenticatedCommandChain]> for Scenario {
     fn as_ref(&self) -> &[AuthenticatedCommandChain] {
         self.0.as_slice()
