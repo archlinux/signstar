@@ -41,7 +41,7 @@ impl TryFrom<&FileBackedCredentials> for yubihsm::Credentials {
 #[derive(Clone, Debug)]
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct Credentials {
-    pub(crate) id: Id,
+    id: Id,
     passphrase: Passphrase,
 }
 
@@ -61,6 +61,11 @@ impl Credentials {
     /// ```
     pub fn new(id: Id, passphrase: Passphrase) -> Self {
         Self { id, passphrase }
+    }
+
+    /// Returns the [`Id`] of the [`Credentials`].
+    pub fn id(&self) -> Id {
+        self.id
     }
 }
 
