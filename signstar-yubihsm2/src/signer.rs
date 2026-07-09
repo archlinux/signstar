@@ -62,7 +62,7 @@ impl YubiHsm2SigningKey {
         let domain = Domain::DOM1;
         client
             .put_authentication_key(
-                credentials.id.into(),
+                credentials.id().into(),
                 Default::default(),
                 domain,
                 Capability::empty(),
@@ -77,7 +77,7 @@ impl YubiHsm2SigningKey {
 
         let client = Client::open(
             client.connector().clone(),
-            YubiCredentials::new(credentials.id.into(), auth_key),
+            YubiCredentials::new(credentials.id().into(), auth_key),
             true,
         )
         .map_err(|source| Error::Client {
