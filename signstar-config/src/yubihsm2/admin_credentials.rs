@@ -5,7 +5,7 @@ use signstar_crypto::{
     passphrase::{Passphrase, PassphrasePolicy},
     traits::UserWithPassphrase,
 };
-use signstar_yubihsm2::{Credentials, object::WrapKey};
+use signstar_yubihsm2::{Credentials, object::WrapKey, yubihsm::Id};
 
 use crate::admin_credentials::{AdminCredentials, Error};
 
@@ -35,10 +35,14 @@ pub struct YubiHsm2AdminCredentials {
 }
 
 impl YubiHsm2AdminCredentials {
-    /// The default ID on an unprovisioned YubiHSM2 device.
-    pub const DEFAULT_ID: u16 = 1;
+    /// The [default ID] on an unprovisioned YubiHSM2 device.
+    ///
+    /// [default ID]: https://docs.yubico.com/hardware/yubihsm-2/hsm-2-user-guide/hsm2-intro-access-control.html#authentication-key-as-a-credential-holder
+    pub const DEFAULT_ID: Id = 1;
 
-    /// The default passphrase on an unprovisioned YubiHSM2 device.
+    /// The [default passphrase] on an unprovisioned YubiHSM2 device.
+    ///
+    /// [default passphrase]: https://docs.yubico.com/hardware/yubihsm-2/hsm-2-user-guide/hsm2-intro-access-control.html#authentication-key-as-a-credential-holder
     pub const DEFAULT_PASSPHRASE: &str = "password";
 
     /// The minimum passphrase length for the backup key.
@@ -78,6 +82,23 @@ impl YubiHsm2AdminCredentials {
     /// Returns the list of administrators.
     pub fn administrators(&self) -> &[Credentials] {
         &self.administrators
+    }
+
+    /// Returns the [default ID].
+    ///
+    /// [default ID]: https://docs.yubico.com/hardware/yubihsm-2/hsm-2-user-guide/hsm2-intro-access-control.html#authentication-key-as-a-credential-holder
+    pub fn default_id() -> Id {
+        Self::DEFAULT_ID
+    }
+
+    /// Returns the [default credentials].
+    ///
+    /// [default credentials]: https://docs.yubico.com/hardware/yubihsm-2/hsm-2-user-guide/hsm2-intro-access-control.html#authentication-key-as-a-credential-holder
+    pub fn default_credentials() -> Credentials {
+        Credentials::new(
+            Self::default_id(),
+            Passphrase::new(Self::DEFAULT_PASSPHRASE.to_string()),
+        )
     }
 }
 
