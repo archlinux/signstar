@@ -6,6 +6,13 @@
     },
     "commands": [
       {
+        "list_objects": [
+          {
+            "type": "authentication-key"
+          }
+        ]
+      },
+      {
         "put_authentication_key": {
           "key_id": 2,
           "domains": [
@@ -17,6 +24,13 @@
           "delegated_caps": [],
           "passphrase_file": "tests/scenarios/keys/auth-key"
         }
+      },
+      {
+        "list_objects": [
+          {
+            "type": "authentication-key"
+          }
+        ]
       }
     ]
   }

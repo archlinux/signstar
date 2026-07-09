@@ -7,7 +7,14 @@ mod scenario;
 
 #[cfg(feature = "cli")]
 pub use command::FileBackedCommand;
-pub use command::{AuditOption, AuthenticatedCommandChain, Command, CommandName};
+pub use command::{
+    AuditOption,
+    AuthenticatedCommandChain,
+    Command,
+    CommandName,
+    ListObjectFilter,
+    ObjectType,
+};
 pub use error::Error;
 #[cfg(feature = "cli")]
 pub use error::FileBackedScenarioReturnValueMismatch;

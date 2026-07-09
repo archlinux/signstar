@@ -10,6 +10,8 @@ use std::{
 use serde::{Deserialize, Serialize};
 use yubihsm::object::{Handle, Type};
 
+use crate::automation::ObjectType;
+
 /// The fundamental representation of an object identifier.
 ///
 /// Wraps [`NonZeroU16`] to reflect on the limitations imposed by a YubiHSM2 [Object ID].
@@ -186,6 +188,20 @@ impl ObjectId {
             ObjectId::Hmac(_) => Type::HmacKey,
             ObjectId::Template(_) => Type::Template,
             ObjectId::Otp(_) => Type::OtpAeadKey,
+        }
+    }
+}
+
+impl From<(ObjectType, Id)> for ObjectId {
+    fn from(value: (ObjectType, Id)) -> Self {
+        match value.0 {
+            ObjectType::AsymmetricKey => Self::AsymmetricKey(value.1),
+            ObjectType::AuthenticationKey => Self::AuthenticationKey(value.1),
+            ObjectType::HmacKey => Self::Hmac(value.1),
+            ObjectType::Opaque => Self::Opaque(value.1),
+            ObjectType::OtpAeakey => Self::Otp(value.1),
+            ObjectType::Template => Self::Template(value.1),
+            ObjectType::WrapKey => Self::WrappingKey(value.1),
         }
     }
 }
