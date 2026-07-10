@@ -21,6 +21,6 @@ pub mod yubihsm {
         capability::Capability,
         command::Code,
         device::SerialNumber,
-        object::{Entry, Filter},
+        object::{Entry, Filter, Info},
     };
 }
