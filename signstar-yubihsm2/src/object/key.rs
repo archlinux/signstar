@@ -175,6 +175,12 @@ impl Domains {
     }
 }
 
+impl AsRef<BTreeSet<Domain>> for Domains {
+    fn as_ref(&self) -> &BTreeSet<Domain> {
+        &self.0
+    }
+}
+
 impl Display for Domains {
     /// Formats a [`Domains`] as a string.
     ///
