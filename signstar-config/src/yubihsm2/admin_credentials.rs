@@ -84,6 +84,13 @@ impl YubiHsm2AdminCredentials {
         Ok(creds)
     }
 
+    /// Returns the credentials of the first administrator from the list.
+    pub fn first_administrator(&self) -> &Credentials {
+        self.administrators
+            .first()
+            .expect("there always to be at least one set of administrative credentials")
+    }
+
     /// Returns the list of administrators.
     pub fn administrators(&self) -> &[Credentials] {
         &self.administrators
