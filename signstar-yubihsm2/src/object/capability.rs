@@ -409,6 +409,12 @@ impl Display for Capabilities {
     }
 }
 
+impl AsRef<BTreeSet<Capability>> for Capabilities {
+    fn as_ref(&self) -> &BTreeSet<Capability> {
+        &self.0
+    }
+}
+
 impl From<[u8; 8]> for Capabilities {
     fn from(bytes: [u8; 8]) -> Self {
         let numeric = u64::from_be_bytes(bytes);
