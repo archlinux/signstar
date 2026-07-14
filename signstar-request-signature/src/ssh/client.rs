@@ -25,6 +25,7 @@
 //! // process response
 //! #     Ok(()) }
 //! ```
+use std::num::NonZeroU32;
 use std::path::Path;
 use std::{path::PathBuf, sync::Arc, time::Duration};
 
@@ -76,7 +77,7 @@ pub enum Error {
     #[error("Remote application failed with status code: {status_code}")]
     RemoteApplicationFailure {
         /// Status code returned by the application.
-        status_code: u32,
+        status_code: NonZeroU32,
     },
 
     /// Internal `russh` protocol error.
@@ -392,8 +393,8 @@ impl Session {
         }
 
         if let Some(code) = code {
-            if code != 0 {
-                Err(Error::RemoteApplicationFailure { status_code: code })
+            if let Some(status_code) = NonZeroU32::new(code) {
+                Err(Error::RemoteApplicationFailure { status_code })
             } else {
                 Ok(serde_json::from_slice(&stdout)?)
             }
