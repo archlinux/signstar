@@ -5,8 +5,6 @@ mod error;
 mod runner;
 mod scenario;
 
-#[cfg(feature = "cli")]
-pub use command::FileBackedCommand;
 pub use command::{
     AuditOption,
     AuthenticatedCommandChain,
@@ -14,7 +12,12 @@ pub use command::{
     CommandName,
     ListObjectFilter,
     ObjectType,
+    OpaqueData,
+    OpaqueDataAlgorithm,
+    OpaqueDataCapabilities,
 };
+#[cfg(feature = "cli")]
+pub use command::{FileBackedCommand, OpaqueDataFile};
 pub use error::Error;
 #[cfg(feature = "cli")]
 pub use error::FileBackedScenarioReturnValueMismatch;

@@ -58,6 +58,7 @@ path = [
     "signstar-yubihsm2/tests/backup/*.yhw",
     "signstar-yubihsm2/tests/backup/wrap-key",
     "signstar-yubihsm2/tests/scenarios/**.json",
+    "signstar-yubihsm2/tests/scenarios/data/opaque-data",
     "signstar-yubihsm2/tests/scenarios/keys/*",
 ]
 precedence = "aggregate"

@@ -1,0 +1,48 @@
+[
+  {
+    "auth": {
+      "id": 1,
+      "passphrase_file": "tests/scenarios/keys/default"
+    },
+    "commands": [
+      {
+        "set_command_audit_option": {
+          "command": 66,
+          "setting": "on"
+        }
+      },
+      {
+        "set_force_audit_option": "on"
+      },
+      {
+        "list_objects": [
+          {
+            "type": "opaque"
+          }
+        ]
+      },
+      {
+        "put_opaque": {
+          "id": 3,
+          "label": "just some data",
+          "domains": [
+            1
+          ],
+          "capabilities": "exportable-under-wrap",
+          "algorithm": "opaque-data",
+          "data_file": "tests/scenarios/data/opaque-data"
+        }
+      },
+      {
+        "get_log_entries": null
+      },
+      {
+        "list_objects": [
+          {
+            "type": "opaque"
+          }
+        ]
+      }
+    ]
+  }
+]

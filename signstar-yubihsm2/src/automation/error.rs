@@ -2,9 +2,11 @@
 
 #[cfg(feature = "cli")]
 use std::fmt::Display;
+use std::path::PathBuf;
 
 #[cfg(feature = "cli")]
 use crate::automation::command::CommandName;
+use crate::automation::command::OpaqueData;
 
 /// A mismatch between a file backed scenario and its return value.
 ///
@@ -72,5 +74,35 @@ pub enum Error {
 
         /// The number of authenticated command chains in a scenario return values.
         command_return_values: usize,
+    },
+
+    /// Data for an opaque object is too large.
+    #[error(
+        "The size of the data for an opaque object ({data_length} bytes) is larger than the maximum allowed value ({} bytes)",
+        OpaqueData::MAX_DATA_SIZE
+    )]
+    OpaqueDataLength {
+        /// The length of the data (in bytes).
+        data_length: usize,
+    },
+
+    /// A data file for an opaque object is too large.
+    #[error(
+        "The size of the data file {path} for an opaque object ({data_length} bytes) is larger than the maximum allowed value ({} bytes)",
+        OpaqueData::MAX_DATA_SIZE
+    )]
+    OpaqueDataFileLength {
+        /// The file path.
+        path: PathBuf,
+
+        /// The length of the data (in bytes).
+        data_length: usize,
+    },
+
+    /// A path used for opaque data is not a file.
+    #[error("The path used for opaque data is not a file: {path}")]
+    OpaqueDataNotAFile {
+        /// The file path.
+        path: PathBuf,
     },
 }
