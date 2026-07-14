@@ -33,7 +33,7 @@ zeroize.workspace = true
 
 [dev-dependencies]
 clap.workspace = true
-insta = { version = "1.46.1", features = ["filters"] }
+insta = { features = ["filters"], workspace = true }
 nethsm = { features = ["_test-helpers"], workspace = true }
 pretty_assertions.workspace = true
 rstest.workspace = true
