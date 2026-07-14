@@ -60,7 +60,7 @@ use ed25519_dalek::{SigningKey, hazmat::ExpandedSecretKey};
 use num_enum::{FromPrimitive, IntoPrimitive};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
-use yubihsm::object::{Handle, Type};
+use yubihsm::object::{Handle, Label as YubiHsmObjectLabel, Type};
 
 use crate::object::{Capabilities, Domains, Id, ObjectId};
 
@@ -713,6 +713,12 @@ impl Display for Label {
         let len = self.0.iter().position(|&b| b == 0).unwrap_or(self.0.len());
         let label = String::from_utf8_lossy(&self.0[..len]);
         write!(f, "{label}")
+    }
+}
+
+impl From<&Label> for YubiHsmObjectLabel {
+    fn from(value: &Label) -> Self {
+        Self(*value.as_ref())
     }
 }
 
