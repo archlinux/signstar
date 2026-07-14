@@ -58,6 +58,8 @@ use ccm::{
 use curve25519_dalek::Scalar;
 use ed25519_dalek::{SigningKey, hazmat::ExpandedSecretKey};
 use num_enum::{FromPrimitive, IntoPrimitive};
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
 use yubihsm::object::{Handle, Type};
 
 use crate::object::{Capabilities, Domains, Id, ObjectId};
@@ -577,6 +579,8 @@ impl<'a> BeReader<'a> {
 /// # Ok(()) }
 /// ```
 #[derive(Clone, Debug)]
+#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
+#[cfg_attr(feature = "serde", serde(try_from = "String", into = "String"))]
 pub struct Label([u8; 40]);
 
 impl FromStr for Label {
@@ -644,6 +648,23 @@ impl From<&[u8; 40]> for Label {
         let mut buf = [0; 40];
         buf.copy_from_slice(value);
         Self(buf)
+    }
+}
+
+// NOTE: This is only relevant for serde.
+impl TryFrom<String> for Label {
+    type Error = Error;
+
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        Self::from_str(&value)
+    }
+}
+
+// NOTE: This is only relevant for serde.
+impl From<Label> for String {
+    /// Creates a new [`String`] from a [`Label`].
+    fn from(value: Label) -> Self {
+        format!("{value}")
     }
 }
 
@@ -1109,6 +1130,17 @@ mod tests {
         let text = "some label\0text";
         assert_matches!(Label::from_str(text), Err(Error::InvalidLabelCharacter { char, .. }) if char == '\0' );
 
+        Ok(())
+    }
+
+    /// Ensures that a (lossy) [`String`] can be created from [`Label`].
+    #[test]
+    fn string_from_label() -> TestResult {
+        let text = "this is a label";
+        let label = Label::from_str(text)?;
+        let string_label: String = label.into();
+
+        assert_eq!(string_label, text);
         Ok(())
     }
 }
