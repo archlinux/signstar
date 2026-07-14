@@ -44,6 +44,12 @@ Signing using ed25519 keys:
 signstar-yubihsm scenario run "tests/scenarios/raw-sign.json" | jq --compact-output
 ```
 
+Import opaque data:
+
+```bash
+signstar-yubihsm scenario run "tests/scenarios/opaque-data.json" | jq --compact-output
+```
+
 Exporting key under wrap:
 
 ```bash

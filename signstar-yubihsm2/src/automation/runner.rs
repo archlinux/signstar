@@ -205,6 +205,9 @@ pub enum CommandReturnValue {
     /// The return value of [`Client::sign_ed25519`].
     SignEd25519(Ed25519Signature),
 
+    /// The return value of [`Client::put_opaque`].
+    PutOpaque(YubiHsmObjectId),
+
     /// The return value of [`Client::put_wrap_key`].
     PutWrapKey(YubiHsmObjectId),
 
@@ -250,6 +253,7 @@ impl PartialEq<Command> for &CommandReturnValue {
                 Command::GenerateAsymmetricKey { .. },
             )
             | (CommandReturnValue::SignEd25519(_), Command::SignEd25519 { .. })
+            | (CommandReturnValue::PutOpaque(_), Command::PutOpaque { .. })
             | (CommandReturnValue::PutWrapKey(_), Command::PutWrapKey { .. })
             | (CommandReturnValue::ExportWrapped(_), Command::ExportWrapped { .. })
             | (CommandReturnValue::ImportWrapped(_), Command::ImportWrapped { .. })
@@ -264,6 +268,7 @@ impl PartialEq<Command> for &CommandReturnValue {
             | (CommandReturnValue::PutAuthenticationKey(_), _)
             | (CommandReturnValue::GenerateAsymmetricKey(_), _)
             | (CommandReturnValue::SignEd25519(_), _)
+            | (CommandReturnValue::PutOpaque(_), _)
             | (CommandReturnValue::PutWrapKey(_), _)
             | (CommandReturnValue::ExportWrapped(_), _)
             | (CommandReturnValue::ImportWrapped(_), _)
@@ -301,6 +306,7 @@ impl PartialEq<FileBackedCommand> for &CommandReturnValue {
                 FileBackedCommand::GenerateAsymmetricKey { .. },
             )
             | (CommandReturnValue::SignEd25519(_), FileBackedCommand::SignEd25519 { .. })
+            | (CommandReturnValue::PutOpaque(_), FileBackedCommand::PutOpaque { .. })
             | (CommandReturnValue::PutWrapKey(_), FileBackedCommand::PutWrapKey { .. })
             | (CommandReturnValue::ExportWrapped(_), FileBackedCommand::ExportWrapped { .. })
             | (CommandReturnValue::ImportWrapped(_), FileBackedCommand::ImportWrapped { .. })
@@ -321,6 +327,7 @@ impl PartialEq<FileBackedCommand> for &CommandReturnValue {
             | (CommandReturnValue::PutAuthenticationKey(_), _)
             | (CommandReturnValue::GenerateAsymmetricKey(_), _)
             | (CommandReturnValue::SignEd25519(_), _)
+            | (CommandReturnValue::PutOpaque(_), _)
             | (CommandReturnValue::PutWrapKey(_), _)
             | (CommandReturnValue::ExportWrapped(_), _)
             | (CommandReturnValue::ImportWrapped(_), _)
@@ -665,6 +672,28 @@ impl ScenarioRunner {
                         source,
                     })?
                     .into(),
+            ),
+            Command::PutOpaque {
+                id,
+                label,
+                domains,
+                capabilities,
+                algorithm,
+                data,
+            } => CommandReturnValue::PutOpaque(
+                client
+                    .put_opaque(
+                        id.into(),
+                        label.into(),
+                        domains.into(),
+                        capabilities.into(),
+                        algorithm.into(),
+                        data,
+                    )
+                    .map_err(|source| Error::Client {
+                        context: "putting opaque data",
+                        source,
+                    })?,
             ),
             Command::PutWrapKey {
                 info:
