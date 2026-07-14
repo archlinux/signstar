@@ -42,6 +42,12 @@
             "type": "opaque"
           }
         ]
+      },
+      {
+        "get_opaque": {
+          "id": 3,
+          "data_file": "/tmp/opaque-data"
+        }
       }
     ]
   }

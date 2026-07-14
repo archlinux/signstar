@@ -208,6 +208,9 @@ pub enum CommandReturnValue {
     /// The return value of [`Client::put_opaque`].
     PutOpaque(YubiHsmObjectId),
 
+    /// The return value of [`Client::get_opaque`].
+    GetOpaque(Vec<u8>),
+
     /// The return value of [`Client::put_wrap_key`].
     PutWrapKey(YubiHsmObjectId),
 
@@ -254,6 +257,7 @@ impl PartialEq<Command> for &CommandReturnValue {
             )
             | (CommandReturnValue::SignEd25519(_), Command::SignEd25519 { .. })
             | (CommandReturnValue::PutOpaque(_), Command::PutOpaque { .. })
+            | (CommandReturnValue::GetOpaque(_), Command::GetOpaque { .. })
             | (CommandReturnValue::PutWrapKey(_), Command::PutWrapKey { .. })
             | (CommandReturnValue::ExportWrapped(_), Command::ExportWrapped { .. })
             | (CommandReturnValue::ImportWrapped(_), Command::ImportWrapped { .. })
@@ -269,6 +273,7 @@ impl PartialEq<Command> for &CommandReturnValue {
             | (CommandReturnValue::GenerateAsymmetricKey(_), _)
             | (CommandReturnValue::SignEd25519(_), _)
             | (CommandReturnValue::PutOpaque(_), _)
+            | (CommandReturnValue::GetOpaque(_), _)
             | (CommandReturnValue::PutWrapKey(_), _)
             | (CommandReturnValue::ExportWrapped(_), _)
             | (CommandReturnValue::ImportWrapped(_), _)
@@ -307,6 +312,7 @@ impl PartialEq<FileBackedCommand> for &CommandReturnValue {
             )
             | (CommandReturnValue::SignEd25519(_), FileBackedCommand::SignEd25519 { .. })
             | (CommandReturnValue::PutOpaque(_), FileBackedCommand::PutOpaque { .. })
+            | (CommandReturnValue::GetOpaque(_), FileBackedCommand::GetOpaque { .. })
             | (CommandReturnValue::PutWrapKey(_), FileBackedCommand::PutWrapKey { .. })
             | (CommandReturnValue::ExportWrapped(_), FileBackedCommand::ExportWrapped { .. })
             | (CommandReturnValue::ImportWrapped(_), FileBackedCommand::ImportWrapped { .. })
@@ -328,6 +334,7 @@ impl PartialEq<FileBackedCommand> for &CommandReturnValue {
             | (CommandReturnValue::GenerateAsymmetricKey(_), _)
             | (CommandReturnValue::SignEd25519(_), _)
             | (CommandReturnValue::PutOpaque(_), _)
+            | (CommandReturnValue::GetOpaque(_), _)
             | (CommandReturnValue::PutWrapKey(_), _)
             | (CommandReturnValue::ExportWrapped(_), _)
             | (CommandReturnValue::ImportWrapped(_), _)
@@ -453,18 +460,26 @@ impl ScenarioReturnValue {
                     .iter()
                     .zip(command_return_values.iter())
             {
-                if let (
-                    FileBackedCommand::ExportWrapped { wrapped_file, .. },
-                    CommandReturnValue::ExportWrapped(message),
-                ) = (file_backed_command, command_return_value)
-                {
-                    write(wrapped_file.as_path(), message.clone().into_vec()).map_err(|source| {
-                        Error::IoPath {
+                match (file_backed_command, command_return_value) {
+                    (
+                        FileBackedCommand::ExportWrapped { wrapped_file, .. },
+                        CommandReturnValue::ExportWrapped(message),
+                    ) => write(wrapped_file.as_path(), message.clone().into_vec()).map_err(
+                        |source| Error::IoPath {
                             path: wrapped_file.clone(),
                             context: "writing an encrypted message to the file",
                             source,
-                        }
-                    })?
+                        },
+                    )?,
+                    (
+                        FileBackedCommand::GetOpaque { data_file, .. },
+                        CommandReturnValue::GetOpaque(data),
+                    ) => write(data_file.as_path(), data).map_err(|source| Error::IoPath {
+                        path: data_file.clone(),
+                        context: "writing an encrypted message to the file",
+                        source,
+                    })?,
+                    _ => {}
                 }
             }
         }
@@ -720,6 +735,14 @@ impl ScenarioRunner {
                         source,
                     })?,
             ),
+            Command::GetOpaque { id } => {
+                CommandReturnValue::GetOpaque(client.get_opaque(id.into()).map_err(|source| {
+                    Error::Client {
+                        context: "retrieving opaque data",
+                        source,
+                    }
+                })?)
+            }
             Command::ExportWrapped {
                 wrap_key_id,
                 object,

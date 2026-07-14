@@ -89,6 +89,9 @@ pub enum CommandName {
     /// Puts opaque data on the device.
     PutOpaque,
 
+    /// Retrieves opaque data from the device.
+    GetOpaque,
+
     /// Puts new wrapping key on the device.
     PutWrapKey,
 
@@ -120,6 +123,7 @@ impl From<&Command> for CommandName {
             Command::GenerateAsymmetricKey { .. } => Self::GenerateAsymmetricKey,
             Command::SignEd25519 { .. } => Self::SignEd25519,
             Command::PutOpaque { .. } => Self::PutOpaque,
+            Command::GetOpaque { .. } => Self::GetOpaque,
             Command::PutWrapKey { .. } => Self::PutWrapKey,
             Command::ExportWrapped { .. } => Self::ExportWrapped,
             Command::ImportWrapped { .. } => Self::ImportWrapped,
@@ -142,6 +146,7 @@ impl From<&CommandReturnValue> for CommandName {
             CommandReturnValue::GenerateAsymmetricKey { .. } => Self::GenerateAsymmetricKey,
             CommandReturnValue::SignEd25519 { .. } => Self::SignEd25519,
             CommandReturnValue::PutOpaque { .. } => Self::PutOpaque,
+            CommandReturnValue::GetOpaque { .. } => Self::GetOpaque,
             CommandReturnValue::PutWrapKey { .. } => Self::PutWrapKey,
             CommandReturnValue::ExportWrapped { .. } => Self::ExportWrapped,
             CommandReturnValue::ImportWrapped { .. } => Self::ImportWrapped,
@@ -165,6 +170,7 @@ impl From<&FileBackedCommand> for CommandName {
             FileBackedCommand::GenerateAsymmetricKey { .. } => Self::GenerateAsymmetricKey,
             FileBackedCommand::SignEd25519 { .. } => Self::SignEd25519,
             FileBackedCommand::PutOpaque { .. } => Self::PutOpaque,
+            FileBackedCommand::GetOpaque { .. } => Self::GetOpaque,
             FileBackedCommand::PutWrapKey { .. } => Self::PutWrapKey,
             FileBackedCommand::ExportWrapped { .. } => Self::ExportWrapped,
             FileBackedCommand::ImportWrapped { .. } => Self::ImportWrapped,
@@ -598,6 +604,12 @@ pub enum Command {
         data: OpaqueData,
     },
 
+    /// Retrieves an opaque data object.
+    GetOpaque {
+        /// The ID of the opaque data object to retrieve.
+        id: Id,
+    },
+
     /// Export object under wrap (encrypted).
     ExportWrapped {
         /// Wrapping key which should encrypt the exported object.
@@ -680,6 +692,7 @@ impl TryFrom<&FileBackedCommand> for Command {
                 algorithm: *algorithm,
                 data: OpaqueData::try_from(data_file)?,
             },
+            FileBackedCommand::GetOpaque { id, .. } => Command::GetOpaque { id: *id },
             FileBackedCommand::PutWrapKey {
                 info,
                 delegated_caps,
@@ -845,6 +858,15 @@ pub enum FileBackedCommand {
 
         /// The file containing the passphrase from which the wrapping key is generated.
         passphrase_file: PathBuf,
+    },
+
+    /// Retrieves an opaque data object.
+    GetOpaque {
+        /// The path to write the data to.
+        data_file: PathBuf,
+
+        /// The ID of the opaque data object to retrieve.
+        id: Id,
     },
 
     /// Export object under wrap (encrypted).
