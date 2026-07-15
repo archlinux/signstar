@@ -106,6 +106,18 @@ pub enum Error {
         /// The label string that exceeded the 40-byte limit.
         label: String,
     },
+
+    /// Label length error.
+    #[error(
+        "The label '{label}' is invalid, because it contains the invalid character '{char:?}'."
+    )]
+    InvalidLabelCharacter {
+        /// The label string that exceeded the 40-byte limit.
+        label: String,
+
+        /// The invalid label character.
+        char: char,
+    },
 }
 
 /// The representation of data about to be wrapped (encrypted) with key.
@@ -602,6 +614,12 @@ impl FromStr for Label {
         if s.len() > 40 {
             return Err(Error::LabelLength { label: s.into() });
         }
+        if s.contains('\0') {
+            return Err(Error::InvalidLabelCharacter {
+                label: s.to_string(),
+                char: '\0',
+            });
+        }
         let mut buf = [0; 40];
         buf[..s.len()].copy_from_slice(s.as_bytes());
         Ok(Self(buf))
@@ -833,7 +851,7 @@ pub fn wrap_ed25519(
 #[cfg(test)]
 mod tests {
 
-    use std::fs::write;
+    use std::{assert_matches, fs::write};
 
     use ed25519_dalek::VerifyingKey;
     use tempfile::TempDir;
@@ -1081,6 +1099,16 @@ mod tests {
         let raw = yhw.decrypt(WRAP_KEY)?;
         let inner = InnerFormat::parse(&raw)?;
         assert_eq!(inner.object_id, ObjectId::AsymmetricKey(object_id));
+        Ok(())
+    }
+
+    /// Ensures, that [`Label::from_str`] fails on a string slice containing invalid characters
+    /// (e.g. `\0`).
+    #[test]
+    fn label_from_str_fails_on_invalid_char() -> TestResult {
+        let text = "some label\0text";
+        assert_matches!(Label::from_str(text), Err(Error::InvalidLabelCharacter { char, .. }) if char == '\0' );
+
         Ok(())
     }
 }
