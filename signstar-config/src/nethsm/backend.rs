@@ -974,12 +974,12 @@ fn add_system_wide_openpgp_certificates(
         // Create the OpenPGP certificate if it does not exist yet.
         if nethsm.get_key_certificate(user_key_data.key_id)?.is_none() {
             // Ensure the first OpenPGP User ID exists.
-            let Some(user_id) = user_ids.first() else {
+            if user_ids.as_ref().is_empty() {
                 return Err(Error::OpenPgpUserIdMissing {
                     key_id: user_key_data.key_id.clone(),
                 }
                 .into());
-            };
+            }
 
             // Switch to the dedicated user with access to the key to create an OpenPGP
             // certificate for the key.
@@ -987,7 +987,7 @@ fn add_system_wide_openpgp_certificates(
             let data = nethsm.create_openpgp_cert(
                 user_key_data.key_id,
                 OpenPgpKeyUsageFlags::default(),
-                user_id.clone(),
+                user_ids.as_ref(),
                 Timestamp::now(),
                 *version,
             )?;
@@ -1164,13 +1164,12 @@ fn add_namespaced_openpgp_certificates(
         // Create the OpenPGP certificate if it does not exist yet.
         if nethsm.get_key_certificate(user_key_data.key_id)?.is_none() {
             // Ensure the first OpenPGP User ID exists.
-            let Some(user_id) = user_ids.first() else {
-                return Err(Error::NamespaceOpenPgpUserIdMissing {
+            if user_ids.as_ref().is_empty() {
+                return Err(Error::OpenPgpUserIdMissing {
                     key_id: user_key_data.key_id.clone(),
-                    namespace: namespace.clone(),
                 }
                 .into());
-            };
+            }
 
             // Switch to the dedicated user with access to the key to create an OpenPGP
             // certificate for the key.
@@ -1178,7 +1177,7 @@ fn add_namespaced_openpgp_certificates(
             let data = nethsm.create_openpgp_cert(
                 user_key_data.key_id,
                 OpenPgpKeyUsageFlags::default(),
-                user_id.clone(),
+                user_ids.as_ref(),
                 Timestamp::now(),
                 *version,
             )?;

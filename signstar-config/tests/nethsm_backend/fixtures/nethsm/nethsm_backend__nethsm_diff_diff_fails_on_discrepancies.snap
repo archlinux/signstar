@@ -13,5 +13,5 @@ Present in A (NetHSM backend) but not in B (NetHSM config): ns1~admin (role: Adm
 Present in A (NetHSM backend) but not in B (NetHSM config): ns1~signing (role: Operator; tag: signing1)
 Different in A (NetHSM config) and B (NetHSM backend):
 A: signing (tag: signing1; type: EcP521; mechanisms: EcdsaSignature; context: OpenPGP (Version: 4; User IDs: "BarFoo Fooface <barfoo@fooface.org>"))
-B: signing1 (tag: signing1; type: Curve25519; mechanisms: EdDsaSignature; context: OpenPGP (Version: 4; User IDs: "Foobar McFooface <foobar@mcfooface.org>"))
+B: signing1 (tag: signing1; type: Curve25519; mechanisms: EdDsaSignature; context: OpenPGP (Version: 4; User IDs: "Foobar McFooface <foobar@mcfooface.org>", "John Doe <john@example.com>"))
 Present in A (NetHSM backend) but not in B (NetHSM config): signing1 (namespace: ns1; tag: signing1; type: Curve25519; mechanisms: EdDsaSignature; context: OpenPGP (Version: 4; User IDs: "Barfoo McBarface <barfoo@mcbarface.org>"))

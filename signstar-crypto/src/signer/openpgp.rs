@@ -214,30 +214,48 @@ impl RpgpSigningKey for SigningKey<'_> {
 
 /// Generates an OpenPGP certificate for a [`RawSigningKey`] implementation.
 ///
+/// The list of User IDs must not be empty. The first User ID is marked as primary.
+///
 /// # Errors
 ///
 /// Returns an error if
 ///
 /// - conversion of the HSM public key to OpenPGP public key fails
+/// - an empty list of user IDs is passed
 /// - signing the certificate with the HSM key fails
 /// - writing the resulting certificate to buffer fails
 pub fn add_certificate(
     raw_signer: &dyn RawSigningKey,
     flags: OpenPgpKeyUsageFlags,
-    user_id: OpenPgpUserId,
+    user_ids: &[OpenPgpUserId],
     created_at: Timestamp,
     version: OpenPgpVersion,
 ) -> Result<Vec<u8>, crate::Error> {
     if version != OpenPgpVersion::V4 {
         return Err(crate::openpgp::Error::InvalidOpenPgpVersion(version.to_string()).into());
     }
+
+    if user_ids.is_empty() {
+        return Err(crate::openpgp::Error::OpenPgpUserIdMissing.into());
+    }
+
+    let (primary_user_id, user_ids) = {
+        let mut user_ids = user_ids
+            .iter()
+            .map(|user_id| UserId::from_str(Default::default(), user_id))
+            .collect::<Result<Vec<UserId>, _>>()
+            .map_err(Error::Pgp)?;
+
+        (user_ids.remove(0), user_ids)
+    };
+
     let public_key = raw_signer.public()?.to_openpgp_public_key(created_at)?;
     let signer = SigningKey::new(raw_signer, public_key.clone());
 
     let signed_pk = SignedPublicKey {
         details: ComposedKeyDetails::new(
-            Some(UserId::from_str(Default::default(), user_id.as_ref()).map_err(Error::Pgp)?),
-            vec![],
+            Some(primary_user_id),
+            user_ids,
             vec![],
             flags.into(),
             Default::default(),
@@ -944,7 +962,7 @@ mod tests {
         let cert = add_certificate(
             &raw_signer,
             Default::default(),
-            OpenPgpUserId::new("test".into())?,
+            &[OpenPgpUserId::new("test".into())?],
             Timestamp::now(),
             Default::default(),
         )?;

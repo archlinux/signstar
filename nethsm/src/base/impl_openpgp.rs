@@ -125,7 +125,7 @@ impl NetHsm {
     ///         .create_openpgp_cert(
     ///             &"signing1".parse()?,
     ///             OpenPgpKeyUsageFlags::default(),
-    ///             "Test <test@example.org>".parse()?,
+    ///             &["Test <test@example.org>".parse()?],
     ///             Timestamp::now(),
     ///             OpenPgpVersion::V4,
     ///         )?
@@ -146,12 +146,12 @@ impl NetHsm {
         &self,
         key_id: &KeyId,
         flags: OpenPgpKeyUsageFlags,
-        user_id: OpenPgpUserId,
+        user_ids: &[OpenPgpUserId],
         created_at: Timestamp,
         version: OpenPgpVersion,
     ) -> Result<Vec<u8>, Error> {
         debug!(
-            "Create an OpenPGP certificate (User ID: {user_id}; flags: {:?}; creation date: {created_at:?}; version: {version}) for key \"{key_id}\" on the NetHSM at {} using {}",
+            "Create an OpenPGP certificate (User IDs: {user_ids:?}; flags: {:?}; creation date: {created_at:?}; version: {version}) for key \"{key_id}\" on the NetHSM at {} using {}",
             flags.as_ref(),
             self.url.borrow(),
             user_or_no_user_string(self.current_credentials.borrow().as_ref()),
@@ -162,7 +162,7 @@ impl NetHsm {
         Ok(add_certificate(
             &raw_signer,
             flags,
-            user_id,
+            user_ids,
             created_at,
             version,
         )?)
@@ -249,7 +249,7 @@ impl NetHsm {
     /// let openpgp_cert = nethsm.create_openpgp_cert(
     ///     &"signing1".parse()?,
     ///     OpenPgpKeyUsageFlags::default(),
-    ///     "Test <test@example.org>".parse()?,
+    ///     &["Test <test@example.org>".parse()?],
     ///     Timestamp::now(),
     ///     OpenPgpVersion::V4,
     /// )?;
@@ -364,7 +364,7 @@ impl NetHsm {
     /// let openpgp_cert = nethsm.create_openpgp_cert(
     ///     &"signing1".parse()?,
     ///     OpenPgpKeyUsageFlags::default(),
-    ///     "Test <test@example.org>".parse()?,
+    ///     &["Test <test@example.org>".parse()?],
     ///     Timestamp::now(),
     ///     OpenPgpVersion::V4,
     /// )?;

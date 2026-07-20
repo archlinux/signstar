@@ -832,7 +832,7 @@ fn run_command(cli: Cli) -> Result<(), Error> {
                 let cert = nethsm.create_openpgp_cert(
                     &command.key_id,
                     flags,
-                    command.user_id,
+                    &[command.user_id],
                     created_at,
                     command.version.unwrap_or_default(),
                 )?;

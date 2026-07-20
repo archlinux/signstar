@@ -1013,7 +1013,7 @@ impl NetHsm {
     /// let openpgp_cert = nethsm.create_openpgp_cert(
     ///     &"signing1".parse()?,
     ///     OpenPgpKeyUsageFlags::default(),
-    ///     "Test <test@example.org>".parse()?,
+    ///     &["Test <test@example.org>".parse()?],
     ///     Timestamp::now(),
     ///     OpenPgpVersion::V4,
     /// )?;
@@ -1126,7 +1126,7 @@ impl NetHsm {
     /// let openpgp_cert = nethsm.create_openpgp_cert(
     ///     &"signing1".parse()?,
     ///     OpenPgpKeyUsageFlags::default(),
-    ///     "Test <test@example.org>".parse()?,
+    ///     &["Test <test@example.org>".parse()?],
     ///     Timestamp::now(),
     ///     OpenPgpVersion::V4,
     /// )?;
@@ -1240,7 +1240,7 @@ impl NetHsm {
     /// let openpgp_cert = nethsm.create_openpgp_cert(
     ///     &"signing1".parse()?,
     ///     OpenPgpKeyUsageFlags::default(),
-    ///     "Test <test@example.org>".parse()?,
+    ///     &["Test <test@example.org>".parse()?],
     ///     Timestamp::now(),
     ///     OpenPgpVersion::V4,
     /// )?;

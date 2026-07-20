@@ -109,7 +109,7 @@ impl YubiHsm2SigningKey {
         let cert = add_certificate(
             &signer,
             flags,
-            OpenPgpUserId::new("Test".to_owned()).expect("static user ID to be valid"),
+            &[OpenPgpUserId::new("Test".to_owned()).expect("static user ID to be valid")],
             Timestamp::now(),
             OpenPgpVersion::V4,
         )

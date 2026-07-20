@@ -30,6 +30,10 @@ pub enum Error {
     #[error("Invalid OpenPGP version: {0}")]
     InvalidOpenPgpVersion(String),
 
+    /// There is no User ID for an OpenPGP certificate.
+    #[error("The OpenPGP certificate should have at least one User ID")]
+    OpenPgpUserIdMissing,
+
     /// The User ID is too large
     #[error("The OpenPGP User ID is too large: {user_id}")]
     UserIdTooLarge {
