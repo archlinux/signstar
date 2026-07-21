@@ -3,7 +3,7 @@
 use std::fmt::Display;
 
 /// The indicator for where state originates from.
-#[derive(Clone, Copy, Debug, strum::Display, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, strum::Display, Eq, Ord, PartialEq, PartialOrd)]
 #[strum(serialize_all = "lowercase")]
 pub enum StateOrigin {
     /// A backend.
