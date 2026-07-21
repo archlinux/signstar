@@ -488,6 +488,12 @@ impl ScenarioReturnValue {
     }
 }
 
+impl From<ScenarioReturnValue> for Vec<Vec<CommandReturnValue>> {
+    fn from(value: ScenarioReturnValue) -> Self {
+        value.authenticated_command_chains
+    }
+}
+
 /// Runs commands against a physical or in-memory YubiHSM2 token.
 pub struct ScenarioRunner {
     #[cfg_attr(
