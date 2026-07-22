@@ -579,7 +579,7 @@ impl<'a> BeReader<'a> {
 /// assert_eq!(label.to_string(), "test");
 /// # Ok(()) }
 /// ```
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 #[cfg_attr(feature = "serde", serde(try_from = "String", into = "String"))]
 pub struct Label([u8; 40]);
