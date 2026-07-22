@@ -388,6 +388,16 @@ impl From<&WrapKeyKind> for YubiHsmWrapAlgorithm {
     }
 }
 
+impl From<YubiHsmWrapAlgorithm> for WrapKeyKind {
+    fn from(value: YubiHsmWrapAlgorithm) -> Self {
+        match value {
+            YubiHsmWrapAlgorithm::Aes128Ccm => Self::Aes128,
+            YubiHsmWrapAlgorithm::Aes192Ccm => Self::Aes192,
+            YubiHsmWrapAlgorithm::Aes256Ccm => Self::Aes256,
+        }
+    }
+}
+
 /// A wrap key.
 ///
 /// Wrap keys are used to wrap (encrypt) objects (e.g. other keys or data) in a YubiHSM2.
