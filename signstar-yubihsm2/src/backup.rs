@@ -219,6 +219,7 @@ impl AsRef<[u8]> for YubiHsm2Wrap {
 ///
 /// See <https://github.com/Yubico/yubihsm-shell/blob/5a0447b9786d0e6149b67529789bd67530b38d6b/lib/yubihsm.h#L488-L515>.
 #[derive(Clone, Copy, Debug, Eq, FromPrimitive, IntoPrimitive, Ord, PartialEq, PartialOrd)]
+#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 #[repr(u8)]
 pub enum WrapAlgorithm {
     /// CCM using AES-128 keys.
