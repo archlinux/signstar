@@ -20,13 +20,17 @@ use signstar_crypto::{
 };
 use strum::{AsRefStr, IntoStaticStr};
 use yubihsm::{
+    Algorithm as YubiHsmAlgorithm,
     asymmetric::Algorithm as YubiHsmAsymmetricAlgorithm,
     authentication::Key as YubiHsmAuthenticationKey,
     wrap::{Algorithm as YubiHsmWrapAlgorithm, Key as YubiHsmWrapKey},
 };
 use zeroize::Zeroizing;
 
-use crate::object::{Capabilities, Id};
+use crate::{
+    automation::OpaqueDataAlgorithm,
+    object::{Capabilities, Id},
+};
 
 /// YubiHSM2 object domain.
 ///
@@ -652,6 +656,68 @@ impl PartialEq<KeyType> for AsymmetricAlgorithm {
                 | (KeyType::EcBp256, Self::EcBp256)
                 | (KeyType::EcBp384, Self::EcBp384)
         )
+    }
+}
+
+/// The "algorithm" used by a YubiHSM2 object.
+///
+/// # Note
+///
+/// This type is only required because [`yubihsm::Algorithm`] does not implement the interfaces that
+/// we need: <https://github.com/iqlusioninc/yubihsm.rs/pull/665>
+///
+/// As such, this type is less specific than [`yubihsm::Algorithm`], because we are not using some
+/// of its variants.
+#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+pub enum ObjectAlgorithm {
+    /// Asymmetric algorithms
+    Asymmetric(AsymmetricAlgorithm),
+
+    /// YubiHSM 2 symmetric PSK authentication
+    Authentication,
+
+    /// Elliptic Curve Diffie-Hellman (i.e. key exchange) algorithms
+    Ecdh,
+
+    /// ECDSA algorithms
+    Ecdsa,
+
+    /// HMAC algorithms
+    Hmac,
+
+    /// RSA-PSS mask generating functions
+    Mgf,
+
+    /// Opaque data types
+    Opaque(OpaqueDataAlgorithm),
+
+    /// RSA algorithms (signing and encryption)
+    Rsa,
+
+    /// SSH template algorithms
+    Template,
+
+    /// Object wrap (i.e. HSM-to-HSM encryption) algorithms
+    Wrap(WrapKeyKind),
+    /// Yubico OTP algorithms
+    YubicoOtp,
+}
+
+impl From<YubiHsmAlgorithm> for ObjectAlgorithm {
+    fn from(value: YubiHsmAlgorithm) -> Self {
+        match value {
+            YubiHsmAlgorithm::Asymmetric(algorithm) => Self::Asymmetric(algorithm.into()),
+            YubiHsmAlgorithm::Authentication(_) => Self::Authentication,
+            YubiHsmAlgorithm::Ecdh(_) => Self::Ecdh,
+            YubiHsmAlgorithm::Ecdsa(_) => Self::Ecdsa,
+            YubiHsmAlgorithm::Hmac(_) => Self::Hmac,
+            YubiHsmAlgorithm::Mgf(_) => Self::Mgf,
+            YubiHsmAlgorithm::Opaque(algorithm) => Self::Opaque(algorithm.into()),
+            YubiHsmAlgorithm::Rsa(_) => Self::Rsa,
+            YubiHsmAlgorithm::Template(_) => Self::Template,
+            YubiHsmAlgorithm::Wrap(algorithm) => Self::Wrap(algorithm.into()),
+            YubiHsmAlgorithm::YubicoOtp(_) => Self::YubicoOtp,
+        }
     }
 }
 

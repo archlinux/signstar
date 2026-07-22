@@ -14,6 +14,7 @@ pub use key::{
     Domain,
     Domains,
     KeyInfo,
+    ObjectAlgorithm,
     WrapKey,
     WrapKeyFromPassphrase,
     WrapKeyKind,
