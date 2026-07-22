@@ -652,6 +652,12 @@ impl From<&[u8; 40]> for Label {
     }
 }
 
+impl From<YubiHsmObjectLabel> for Label {
+    fn from(value: YubiHsmObjectLabel) -> Self {
+        Label::from(&value.0)
+    }
+}
+
 // NOTE: This is only relevant for serde.
 impl TryFrom<String> for Label {
     type Error = Error;
