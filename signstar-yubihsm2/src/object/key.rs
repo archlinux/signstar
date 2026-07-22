@@ -14,9 +14,13 @@ use getrandom::fill;
 use serde::{Deserialize, Serialize};
 #[cfg(feature = "serde")]
 use serde_repr::{Deserialize_repr, Serialize_repr};
-use signstar_crypto::passphrase::{Passphrase, PassphrasePolicy};
+use signstar_crypto::{
+    key::KeyType,
+    passphrase::{Passphrase, PassphrasePolicy},
+};
 use strum::{AsRefStr, IntoStaticStr};
 use yubihsm::{
+    asymmetric::Algorithm as YubiHsmAsymmetricAlgorithm,
     authentication::Key as YubiHsmAuthenticationKey,
     wrap::{Algorithm as YubiHsmWrapAlgorithm, Key as YubiHsmWrapKey},
 };
@@ -563,6 +567,92 @@ pub struct KeyInfo {
 
     /// Capabilities of this key.
     pub caps: Capabilities,
+}
+
+/// An asymmetric key algorithm.
+///
+/// # Note
+///
+/// This type is only required because [`yubihsm::asymmetric::Algorithm`] does not implement the
+/// interfaces that we need: <https://github.com/iqlusioninc/yubihsm.rs/pull/665>
+///
+/// As such, this type is less specific than [`yubihsm::Algorithm`], because using it we are only
+/// interested in comparing with e.g. [`KeyType`] and not in the underlying data structure.
+#[derive(Clone, Copy, Debug, strum::Display, Eq, Hash, Ord, PartialEq, PartialOrd)]
+pub enum AsymmetricAlgorithm {
+    /// 2048-bit RSA
+    Rsa2048,
+
+    /// 3072-bit RSA
+    Rsa3072,
+
+    /// 4096-bit RSA
+    Rsa4096,
+
+    /// Ed25519
+    Ed25519,
+
+    /// NIST P-224 (secp224r1)
+    EcP224,
+
+    /// NIST P-256 (secp256r1, prime256v1)
+    EcP256,
+
+    /// NIST P-384 (secp384r1)
+    EcP384,
+
+    /// P-521 (secp521r1)
+    EcP521,
+
+    /// secp256k1
+    EcK256,
+
+    /// brainpool256r1
+    EcBp256,
+
+    /// brainpool384r1
+    EcBp384,
+
+    /// brainpool512r1
+    EcBp512,
+}
+
+impl From<YubiHsmAsymmetricAlgorithm> for AsymmetricAlgorithm {
+    fn from(value: YubiHsmAsymmetricAlgorithm) -> Self {
+        match value {
+            YubiHsmAsymmetricAlgorithm::Rsa2048 => Self::Rsa2048,
+            YubiHsmAsymmetricAlgorithm::Rsa3072 => Self::Rsa3072,
+            YubiHsmAsymmetricAlgorithm::Rsa4096 => Self::Rsa4096,
+            YubiHsmAsymmetricAlgorithm::Ed25519 => Self::Ed25519,
+            YubiHsmAsymmetricAlgorithm::EcP224 => Self::EcP224,
+            YubiHsmAsymmetricAlgorithm::EcP256 => Self::EcP256,
+            YubiHsmAsymmetricAlgorithm::EcP384 => Self::EcP384,
+            YubiHsmAsymmetricAlgorithm::EcP521 => Self::EcP521,
+            YubiHsmAsymmetricAlgorithm::EcK256 => Self::EcK256,
+            YubiHsmAsymmetricAlgorithm::EcBp256 => Self::EcBp256,
+            YubiHsmAsymmetricAlgorithm::EcBp384 => Self::EcBp384,
+            YubiHsmAsymmetricAlgorithm::EcBp512 => Self::EcBp512,
+        }
+    }
+}
+
+impl PartialEq<KeyType> for AsymmetricAlgorithm {
+    fn eq(&self, other: &KeyType) -> bool {
+        matches!(
+            (other, self),
+            (KeyType::Rsa, Self::Rsa2048)
+                | (KeyType::Rsa, Self::Rsa3072)
+                | (KeyType::Rsa, Self::Rsa4096)
+                | (KeyType::Curve25519, Self::Ed25519)
+                | (KeyType::EcP224, Self::EcP224)
+                | (KeyType::EcP256, Self::EcP256)
+                | (KeyType::EcP384, Self::EcP384)
+                | (KeyType::EcP521, Self::EcP521)
+                | (KeyType::EcK256, Self::EcK256)
+                | (KeyType::EcBp256, Self::EcBp256)
+                | (KeyType::EcBp384, Self::EcBp384)
+        )
+    }
 }
 
 #[cfg(test)]
