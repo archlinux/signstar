@@ -9,6 +9,7 @@ pub use capability::{Capabilities, Capability};
 pub use error::Error;
 pub use id::{Id, ObjectId};
 pub use key::{
+    AsymmetricAlgorithm,
     AuthenticationKey,
     Domain,
     Domains,
