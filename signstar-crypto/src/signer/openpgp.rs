@@ -69,9 +69,10 @@ use crate::{
 ///
 /// All PGP-related operations executed on objects of this type will be forwarded to
 /// the HSM instance.
-struct SigningKey<'a> {
+pub(crate) struct SigningKey<'a> {
     public_key: PublicKey,
     raw_signer: &'a dyn RawSigningKey,
+    user_id: UserId,
 }
 
 impl std::fmt::Debug for SigningKey<'_> {
@@ -96,11 +97,13 @@ fn to_rpgp_error(e: impl Into<Box<dyn std::error::Error + Send + Sync>>) -> pgp:
 }
 
 impl<'a> SigningKey<'a> {
-    /// Creates a new [`SigningKey`] from a [`RawSigningKey`] implementation and a [`PublicKey`].
-    fn new(raw_signer: &'a dyn RawSigningKey, public_key: PublicKey) -> Self {
+    /// Creates a new [`SigningKey`] from a [`RawSigningKey`] implementation, [`PublicKey`] and the
+    /// [`UserId`] that will be embedded in signatures.
+    fn new(raw_signer: &'a dyn RawSigningKey, public_key: PublicKey, user_id: UserId) -> Self {
         Self {
             raw_signer,
             public_key,
+            user_id,
         }
     }
 
@@ -108,6 +111,7 @@ impl<'a> SigningKey<'a> {
     ///
     /// The [`RawSigningKey`] implementation is expected to already have a certificate setup for
     /// itself.
+    /// In addition, the OpenPGP certificate is expected to have at least one OpenPGP User ID.
     ///
     /// # Errors
     ///
@@ -116,15 +120,33 @@ impl<'a> SigningKey<'a> {
     /// - retrieval of the certificate from `raw_signer` fails
     /// - parsing of the certificate retrieved fails
     /// - the certificate is missing  ([`Error::OpenPpgCertificateMissing`])
-    fn new_provisioned(raw_signer: &'a dyn RawSigningKey) -> Result<Self, crate::Error> {
-        let public_key = if let Some(cert) = raw_signer.certificate()?.as_ref() {
-            SignedPublicKey::from_bytes(Cursor::new(cert))
-                .map_err(Error::Pgp)?
-                .primary_key
+    /// - the certificate does not have at least one OpenPGP User ID
+    pub(crate) fn new_provisioned(raw_signer: &'a dyn RawSigningKey) -> Result<Self, crate::Error> {
+        let certificate = if let Some(cert) = raw_signer.certificate()?.as_ref() {
+            SignedPublicKey::from_bytes(Cursor::new(cert)).map_err(Error::Pgp)?
         } else {
             return Err(Error::OpenPpgCertificateMissing.into());
         };
-        Ok(Self::new(raw_signer, public_key))
+        let user_id = if let Some(user_id) = certificate.details.users.first() {
+            user_id.clone().id
+        } else {
+            return Err(Error::OpenPpgUserIdsMissing {
+                fingerprint: certificate.fingerprint(),
+            }
+            .into());
+        };
+        Ok(Self::new(raw_signer, certificate.primary_key, user_id))
+    }
+
+    /// Returns a reference to the signer's [`UserId`].
+    ///
+    /// This User ID is used to indicate a role responsible for the signing.
+    ///
+    /// See [RFC 9580: Section 5.2.3.30] for details.
+    ///
+    /// [RFC 9580: Section 5.2.3.30]: https://www.rfc-editor.org/info/rfc9580/#signers-user-id-subpacket
+    pub fn user_id(&self) -> &UserId {
+        &self.user_id
     }
 }
 
@@ -250,7 +272,7 @@ pub fn add_certificate(
     };
 
     let public_key = raw_signer.public()?.to_openpgp_public_key(created_at)?;
-    let signer = SigningKey::new(raw_signer, public_key.clone());
+    let signer = SigningKey::new(raw_signer, public_key.clone(), primary_user_id.clone());
 
     let signed_pk = SignedPublicKey {
         details: ComposedKeyDetails::new(
@@ -534,6 +556,10 @@ pub fn sign_hasher_state(
                 value: file_hash.into(),
             }))
             .map_err(Error::Pgp)?,
+            Subpacket::regular(SubpacketData::SignersUserID(
+                signer.user_id().clone().into_bytes(),
+            ))
+            .map_err(Error::Pgp)?,
         ];
         sig_config
     };
@@ -671,6 +697,8 @@ pub fn extract_certificate(key: SignedSecretKey) -> Result<Vec<u8>, crate::Error
 
 #[cfg(test)]
 mod tests {
+    use std::assert_matches;
+
     use ed25519_dalek::{Signer, SigningKey};
     use pgp::{
         composed::{KeyType as ComposedKeyType, SecretKeyParamsBuilder},
@@ -974,6 +1002,39 @@ mod tests {
 
         let signature = sign(&raw_signer, &data_to_sign)?;
         assert!(!signature.is_empty());
+
+        Ok(())
+    }
+
+    #[test]
+    fn check_empty_user_ids() -> TestResult {
+        use crate::signer::error::Error;
+        use crate::signer::openpgp::SigningKey;
+
+        let mut raw_signer = Ed25519SoftKey::new();
+
+        // we need at least one User ID or this function fails
+        let cert = add_certificate(
+            &raw_signer,
+            Default::default(),
+            &[OpenPgpUserId::new("test".into())?],
+            Timestamp::now(),
+            Default::default(),
+        )?;
+
+        // remove user IDs manually
+        let (cert, cert_fingerprint) = {
+            let mut cert = SignedPublicKey::from_bytes(Cursor::new(cert))?;
+            cert.details.users = vec![];
+            (cert.to_bytes()?, cert.fingerprint())
+        };
+
+        raw_signer.certificate = Some(cert);
+
+        assert_matches!(
+            SigningKey::new_provisioned(&raw_signer),
+            Err(crate::Error::Signer(Error::OpenPpgUserIdsMissing { fingerprint })) if fingerprint == cert_fingerprint
+        );
 
         Ok(())
     }

@@ -14,6 +14,13 @@ pub enum Error {
     #[error("There is no OpenPGP certificate for the key")]
     OpenPpgCertificateMissing,
 
+    /// Certificate for the key does not have any User IDs.
+    #[error("There are no User IDs in the OpenPGP certificate")]
+    OpenPpgUserIdsMissing {
+        /// The OpenPGP fingerprint of the certificate.
+        fingerprint: Fingerprint,
+    },
+
     /// Elliptic curve error
     #[error("Elliptic curve error: {0}")]
     EllipticCurve(#[from] p256::elliptic_curve::Error),
