@@ -544,10 +544,15 @@ impl ScenarioRunner {
                 context: "opening new client",
                 source,
             })?;
+
+            {
+                let session = client.session().expect("there to be a session object");
+                error!("session ID: {}", session.id());
+            }
             let mut command_return_values = Vec::new();
 
             for command in authenticated_commands.commands().iter() {
-                info!("Executing {command:?}");
+                error!("Executing {command:?}");
                 match self.run_command(&mut client, command) {
                     Ok(return_value) => command_return_values.push(return_value),
                     Err(error) => {
@@ -572,6 +577,15 @@ impl ScenarioRunner {
             }
 
             authenticated_command_chains.push(command_return_values);
+
+            // NOTE: Close the session manually, so that they do not pile up due to cloning the
+            // reference-counted mutex.
+            client
+                .close_session()
+                .map_err(|source| crate::Error::Client {
+                    context: "closing a session to the YubiHSM2",
+                    source,
+                })?;
         }
 
         Ok(ScenarioReturnValue {
@@ -826,7 +840,7 @@ impl ScenarioRunner {
                             session_key: entry.session_key,
                             target_key: entry.target_key,
                             second_key: entry.second_key,
-                            result: entry.result,
+                            result: entry.result.0,
                             tick: entry.tick,
                             digest: LogDigest(entry.digest.0),
                         })

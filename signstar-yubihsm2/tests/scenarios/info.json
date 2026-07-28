@@ -7,6 +7,189 @@
     "commands": [
       {
         "device_info": null
+      },
+      {
+        "list_objects": [
+          {
+            "type": "asymmetric-key"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "auth": {
+      "id": 1,
+      "passphrase_file": "tests/scenarios/keys/default"
+    },
+    "commands": [
+      {
+        "device_info": null
+      }
+    ]
+  },
+  {
+    "auth": {
+      "id": 1,
+      "passphrase_file": "tests/scenarios/keys/default"
+    },
+    "commands": [
+      {
+        "device_info": null
+      }
+    ]
+  },
+  {
+    "auth": {
+      "id": 1,
+      "passphrase_file": "tests/scenarios/keys/default"
+    },
+    "commands": [
+      {
+        "device_info": null
+      }
+    ]
+  },
+  {
+    "auth": {
+      "id": 1,
+      "passphrase_file": "tests/scenarios/keys/default"
+    },
+    "commands": [
+      {
+        "device_info": null
+      }
+    ]
+  },
+  {
+    "auth": {
+      "id": 1,
+      "passphrase_file": "tests/scenarios/keys/default"
+    },
+    "commands": [
+      {
+        "device_info": null
+      }
+    ]
+  },
+  {
+    "auth": {
+      "id": 1,
+      "passphrase_file": "tests/scenarios/keys/default"
+    },
+    "commands": [
+      {
+        "device_info": null
+      }
+    ]
+  },
+  {
+    "auth": {
+      "id": 1,
+      "passphrase_file": "tests/scenarios/keys/default"
+    },
+    "commands": [
+      {
+        "device_info": null
+      }
+    ]
+  },
+  {
+    "auth": {
+      "id": 1,
+      "passphrase_file": "tests/scenarios/keys/default"
+    },
+    "commands": [
+      {
+        "device_info": null
+      }
+    ]
+  },
+  {
+    "auth": {
+      "id": 1,
+      "passphrase_file": "tests/scenarios/keys/default"
+    },
+    "commands": [
+      {
+        "device_info": null
+      }
+    ]
+  },
+  {
+    "auth": {
+      "id": 1,
+      "passphrase_file": "tests/scenarios/keys/default"
+    },
+    "commands": [
+      {
+        "device_info": null
+      }
+    ]
+  },
+  {
+    "auth": {
+      "id": 1,
+      "passphrase_file": "tests/scenarios/keys/default"
+    },
+    "commands": [
+      {
+        "device_info": null
+      }
+    ]
+  },
+  {
+    "auth": {
+      "id": 1,
+      "passphrase_file": "tests/scenarios/keys/default"
+    },
+    "commands": [
+      {
+        "device_info": null
+      }
+    ]
+  },
+  {
+    "auth": {
+      "id": 1,
+      "passphrase_file": "tests/scenarios/keys/default"
+    },
+    "commands": [
+      {
+        "device_info": null
+      }
+    ]
+  },
+  {
+    "auth": {
+      "id": 1,
+      "passphrase_file": "tests/scenarios/keys/default"
+    },
+    "commands": [
+      {
+        "device_info": null
+      }
+    ]
+  },
+  {
+    "auth": {
+      "id": 1,
+      "passphrase_file": "tests/scenarios/keys/default"
+    },
+    "commands": [
+      {
+        "device_info": null
+      }
+    ]
+  },
+  {
+    "auth": {
+      "id": 1,
+      "passphrase_file": "tests/scenarios/keys/default"
+    },
+    "commands": [
+      {
+        "device_info": null
       }
     ]
   },

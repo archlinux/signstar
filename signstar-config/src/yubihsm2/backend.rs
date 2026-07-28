@@ -94,6 +94,7 @@ fn get_key_ids(
     let ids = {
         let mut ids = Vec::new();
         for entry in entries {
+            debug!("{entry:?}");
             ids.push(Id::try_from(entry.object_id)?);
         }
 
@@ -753,6 +754,7 @@ impl<'admin_creds, 'config> YubiHsm2Backend<'admin_creds, 'config> {
             let mut user_states = Vec::new();
 
             for info in infos {
+                debug!("{info:?}");
                 user_states.push(UserState {
                     id: info.object_id.try_into()?,
                     capabilities: info.capabilities.into(),
@@ -784,6 +786,7 @@ impl<'admin_creds, 'config> YubiHsm2Backend<'admin_creds, 'config> {
             let mut key_states = Vec::new();
 
             for info in infos {
+                debug!("{info:?}");
                 key_states.push(KeyState {
                     id: info.object_id.try_into()?,
                     object_type: info.object_type.into(),
@@ -1106,7 +1109,7 @@ mod tests {
         ];
         backend.sync(&credentials)?;
         // TODO: re-run sync (only possible after switching to our own, new yubihsm2 crate)
-        // backend.sync(&credentials)?;
+        backend.sync(&credentials)?;
 
         Ok(())
     }

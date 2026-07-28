@@ -68,7 +68,8 @@ tokio = { version = "1.42.0", features = ["macros"] }
 toml = "1.0.0"
 ureq = "2.12.1"
 uuid = { version = "1.11.0", features = ["v7"] }
-yubihsm = { version = "0.42.1", features = ["usb"] }
+# yubihsm = { version = "0.42.1", features = ["usb"] }
+yubihsm = { git = "https://gitlab.archlinux.org/dvzrv/yubihsm2.git", branch = "feat/backports", features = ["usb"] }
 zeroize = { version = "1.8.1", features = ["serde", "zeroize_derive"] }
 
 [workspace.lints.rust]
