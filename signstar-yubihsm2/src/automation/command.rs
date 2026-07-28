@@ -524,7 +524,6 @@ pub enum Command {
     /// logged.
     ///
     /// See [Force Audit](https://docs.yubico.com/hardware/yubihsm-2/hsm-2-user-guide/hsm2-core-concepts.html#command-audit) for more details.
-    #[allow(clippy::enum_variant_names)]
     SetCommandAuditOption {
         /// Command of which the setting should be changed.
         command: Code,
@@ -777,7 +776,6 @@ pub enum FileBackedCommand {
     /// logged.
     ///
     /// See [Force Audit](https://docs.yubico.com/hardware/yubihsm-2/hsm-2-user-guide/hsm2-core-concepts.html#command-audit) for more details.
-    #[allow(clippy::enum_variant_names)]
     SetCommandAuditOption {
         /// Command of which the setting should be changed.
         command: Code,

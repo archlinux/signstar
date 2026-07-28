@@ -243,12 +243,11 @@ impl<F: Fn(&[u8]) -> Vec<u8> + Send + Clone> server::Handler for Server<F> {
         Ok(())
     }
 
-    #[allow(unused_variables)]
     async fn exec_request(
         &mut self,
-        channel: ChannelId,
+        _channel: ChannelId,
         data: &[u8],
-        session: &mut ServerSession,
+        _session: &mut ServerSession,
     ) -> Result<(), Self::Error> {
         info!("Exec requested: {}", String::from_utf8_lossy(data));
         Ok(())

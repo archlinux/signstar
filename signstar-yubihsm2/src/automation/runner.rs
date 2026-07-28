@@ -44,22 +44,23 @@ use crate::{
 /// This type exists to augment [`yubihsm::ed25519::Signature`], which does not use serde.
 #[derive(Debug)]
 #[cfg_attr(feature = "serde", derive(Serialize))]
-#[cfg_attr(
-    any(
-        all(not(feature = "serde"), feature = "_yubihsm2-mockhsm"),
-        all(
-            not(feature = "serde"),
-            not(feature = "_yubihsm2-mockhsm"),
-            not(feature = "cli")
-        )
-    ),
-    allow(unused)
-)]
 pub struct Ed25519Signature {
     /// Raw bytes of the `R` component of the signature.
     r: Vec<u8>,
     /// Raw bytes of the `S` component of the signature.
     s: Vec<u8>,
+}
+
+impl Ed25519Signature {
+    /// Returns the raw bytes of the `R` component of the signature.
+    pub fn r(&self) -> &[u8] {
+        &self.r
+    }
+
+    /// Returns the raw bytes of the `S` component of the signature.
+    pub fn s(&self) -> &[u8] {
+        &self.s
+    }
 }
 
 impl From<Signature> for Ed25519Signature {
@@ -496,17 +497,6 @@ impl From<ScenarioReturnValue> for Vec<Vec<CommandReturnValue>> {
 
 /// Runs commands against a physical or in-memory YubiHSM2 token.
 pub struct ScenarioRunner {
-    #[cfg_attr(
-        any(
-            all(not(feature = "serde"), feature = "_yubihsm2-mockhsm"),
-            all(
-                not(feature = "serde"),
-                not(feature = "_yubihsm2-mockhsm"),
-                not(feature = "cli")
-            )
-        ),
-        allow(unused)
-    )]
     connector: Connector,
 }
 
