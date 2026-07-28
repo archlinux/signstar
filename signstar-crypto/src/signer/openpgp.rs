@@ -83,6 +83,53 @@ impl std::fmt::Debug for SigningKey<'_> {
     }
 }
 
+/// Empty signer that can be used to create dummy signatures and certificates.
+///
+/// # Note
+///
+/// This [`RawSigningKey`] implementation may be used to reliably estimate the size (in bytes) of an
+/// Ed25519-based OpenPGP certificate (e.g. when creating it using [`add_certificate`]).
+///
+/// # Warning
+///
+/// This signer must not be used in production, as it returns static data for testing purposes!
+#[derive(Debug)]
+pub struct EmptyEd25519Signer;
+
+impl RawSigningKey for EmptyEd25519Signer {
+    /// Always returns `unused`.
+    fn key_id(&self) -> String {
+        "unused".into()
+    }
+
+    /// Always returns two byte vectors representing `r` and `S` which are filled with zeros.
+    ///
+    /// # Errors
+    ///
+    /// This implementation never fails.
+    fn sign(&self, _digest: &[u8]) -> Result<Vec<Vec<u8>>, crate::Error> {
+        Ok(vec![vec![0; 32], vec![0; 32]])
+    }
+
+    /// Always returns `Ok(None)` representing no certificate.
+    ///
+    /// # Errors
+    ///
+    /// This implementation never fails.
+    fn certificate(&self) -> Result<Option<Vec<u8>>, crate::Error> {
+        Ok(None)
+    }
+
+    /// Always returns a [`RawPublicKey::Ed25519`] with a vector filled with zeros.
+    ///
+    /// # Errors
+    ///
+    /// This implementation never fails.
+    fn public(&self) -> Result<RawPublicKey, crate::Error> {
+        Ok(RawPublicKey::Ed25519(vec![0; 32]))
+    }
+}
+
 /// Wraps an [`Error`] in a [`std::io::Error`] and returns it as a [`pgp::errors::Error`].
 ///
 /// Since it is currently not possible to wrap the arbitrary [`Error`] of an external function
@@ -1006,6 +1053,8 @@ mod tests {
         Ok(())
     }
 
+    /// Ensures, that a certificate created by [`add_certificate`] with [`EmptyEd25519Signer`] can
+    /// be used to reliably estimate the size (in bytes) of an OpenPGP certificate.
     #[test]
     fn check_empty_user_ids() -> TestResult {
         use crate::signer::error::Error;
@@ -1035,6 +1084,33 @@ mod tests {
             SigningKey::new_provisioned(&raw_signer),
             Err(crate::Error::Signer(Error::OpenPpgUserIdsMissing { fingerprint })) if fingerprint == cert_fingerprint
         );
+
+        Ok(())
+    }
+
+    #[test]
+    fn estimate_certificate_size() -> TestResult {
+        let cert = add_certificate(
+            &EmptyEd25519Signer,
+            Default::default(),
+            &[OpenPgpUserId::new("test".into())?],
+            Timestamp::now(),
+            Default::default(),
+        )?;
+
+        assert_eq!(cert.len(), 132);
+
+        // add 5 characters to the user ID
+        let cert = add_certificate(
+            &EmptyEd25519Signer,
+            Default::default(),
+            &[OpenPgpUserId::new("test test".into())?],
+            Timestamp::now(),
+            Default::default(),
+        )?;
+
+        // the size grows by 5 bytes
+        assert_eq!(cert.len(), 137);
 
         Ok(())
     }
