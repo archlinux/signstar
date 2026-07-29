@@ -100,7 +100,10 @@ pub enum HashType {
     /// crate](https://crates.io/crates/sha2) in version `0.11` and
     /// compatible.
     #[serde(rename = "sha2-0.11-SHA512-state")]
-    #[expect(non_camel_case_types)]
+    #[expect(
+        non_camel_case_types,
+        reason = "Rust suggested casing (Sha2_0_11Sha512State) is unreadable"
+    )]
     Sha2_0_11_Sha512_State,
 }
 

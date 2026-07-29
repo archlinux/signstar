@@ -75,6 +75,10 @@ zeroize = { version = "1.8.1", features = ["serde", "zeroize_derive"] }
 missing_debug_implementations = "deny"
 missing_docs = "deny"
 
+[workspace.lints.clippy]
+allow_attributes = "deny"
+allow_attributes_without_reason = "deny"
+
 [workspace.package]
 authors = [
     "David Runge <dvzrv@archlinux.org>",

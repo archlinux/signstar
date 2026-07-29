@@ -95,7 +95,10 @@ enum MappingKind {
         all(feature = "nethsm", not(feature = "yubihsm2")),
         all(not(feature = "nethsm"), feature = "yubihsm2")
     ),
-    expect(clippy::enum_variant_names)
+    expect(
+        clippy::enum_variant_names,
+        reason = "Clippy complains about all variants having the same name but this depends on features enabled"
+    )
 )]
 enum BackendMappingKind {
     #[cfg(not(any(feature = "nethsm", feature = "yubihsm2")))]
