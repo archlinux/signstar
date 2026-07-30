@@ -26,8 +26,6 @@ pub use runner::{
     Ed25519Signature,
     LOG_DIGEST_SIZE,
     LogDigest,
-    LogEntries,
-    LogEntry,
     ScenarioReturnValue,
     ScenarioRunner,
 };

@@ -16,11 +16,10 @@ use yubihsm::{
     Connector,
     Credentials,
     asymmetric::Algorithm as AsymmetricAlgorithm,
-    command::Code as CommandCode,
+    audit::LogEntries,
     device::Info as DeviceInfo,
     ed25519::Signature,
     object::{Entry, Filter, Handle, Id as YubiHsmObjectId, Info as ObjectInfo},
-    response::Code as ResponseCode,
     wrap::{Algorithm as WrapAlgorithm, Message},
 };
 
@@ -70,65 +69,6 @@ impl From<Signature> for Ed25519Signature {
             s: value.s_bytes().to_vec(),
         }
     }
-}
-
-/// Response from [`Client::get_log_entries`].
-///
-/// # Note
-///
-/// This type exists to augment a non-public return type of a public function.
-/// <https://github.com/iqlusioninc/yubihsm.rs/issues/617>
-#[derive(Debug)]
-#[cfg_attr(feature = "serde", derive(Serialize))]
-pub struct LogEntries {
-    /// Number of boot events which weren't logged (if buffer is full and audit enforce is set)
-    pub unlogged_boot_events: u16,
-
-    /// Number of unlogged authentication events (if buffer is full and audit enforce is set)
-    pub unlogged_auth_events: u16,
-
-    /// Number of entries in the response
-    pub num_entries: u8,
-
-    /// Entries in the log
-    pub entries: Vec<LogEntry>,
-}
-
-/// Entry in the log response.
-///
-/// # Note
-///
-/// This type exists to augment a non-public return type of a public function.
-/// <https://github.com/iqlusioninc/yubihsm.rs/issues/617>
-#[derive(Debug, Eq, PartialEq)]
-#[cfg_attr(feature = "serde", derive(Serialize))]
-pub struct LogEntry {
-    /// Entry number
-    pub item: u16,
-
-    /// Command type
-    pub cmd: CommandCode,
-
-    /// Command length
-    pub length: u16,
-
-    /// Session key ID
-    pub session_key: YubiHsmObjectId,
-
-    /// Target key ID
-    pub target_key: YubiHsmObjectId,
-
-    /// Second key affected
-    pub second_key: YubiHsmObjectId,
-
-    /// Result of the operation
-    pub result: ResponseCode,
-
-    /// Tick count of the HSM's internal clock
-    pub tick: u32,
-
-    /// 16-byte truncated SHA-256 digest of this log entry and the digest of the previous entry
-    pub digest: LogDigest,
 }
 
 /// Size of a truncated digest in the log
@@ -802,26 +742,7 @@ impl ScenarioRunner {
                     source,
                 })?;
 
-                CommandReturnValue::GetLogEntries(LogEntries {
-                    unlogged_boot_events: log_entries.unlogged_boot_events,
-                    unlogged_auth_events: log_entries.unlogged_auth_events,
-                    num_entries: log_entries.num_entries,
-                    entries: log_entries
-                        .entries
-                        .into_iter()
-                        .map(|entry| LogEntry {
-                            item: entry.item,
-                            cmd: entry.cmd,
-                            length: entry.length,
-                            session_key: entry.session_key,
-                            target_key: entry.target_key,
-                            second_key: entry.second_key,
-                            result: entry.result,
-                            tick: entry.tick,
-                            digest: LogDigest(entry.digest.0),
-                        })
-                        .collect::<Vec<_>>(),
-                })
+                CommandReturnValue::GetLogEntries(log_entries)
             }
             Command::ListObjects(filters) => {
                 let entries = client
