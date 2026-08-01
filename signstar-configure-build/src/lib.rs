@@ -10,6 +10,7 @@ use std::{
 
 use log::{debug, info};
 use nix::unistd::User;
+use rand::{Rng, distributions::Alphanumeric, thread_rng};
 use signstar_common::{
     ssh::{get_ssh_authorized_key_base_dir, get_sshd_config_dropin_dir},
     system_user::get_home_base_dir_path,
@@ -201,6 +202,7 @@ mod impl_none {
 pub use impl_any::create_system_users;
 #[cfg(not(any(feature = "nethsm", feature = "yubihsm2")))]
 pub use impl_none::create_system_users;
+use yescrypt::{PasswordHasher, Yescrypt};
 
 pub mod cli;
 
@@ -254,6 +256,18 @@ pub enum Error {
     /// No process information could be retrieved from the current PID
     #[error("No user ID could be retrieved for the current process with PID {0}")]
     NoUidForProcess(usize),
+
+    /// A password hash error occurred.
+    #[error("Password hash error while {context}: {source}")]
+    PasswordHash {
+        /// The context in which the error occurred.
+        ///
+        /// This is meant to complete the sentence "Password hash error while ".
+        context: String,
+
+        /// The source error.
+        source: yescrypt::password_hash::Error,
+    },
 
     /// A string could not be converted to a sysinfo::Uid
     #[error("The string {0} could not be converted to a \"sysinfo::Uid\"")]
@@ -387,23 +401,35 @@ fn add_user_and_home(user: &SystemUserId) -> Result<(), Error> {
         debug!("Skipping existing user \"{user}\"...");
     }
 
-    // Modify user to unlock it.
-    info!("Unlocking user \"{user}\"...");
-    let user_mod = Command::new("usermod")
-        .args(["--unlock", user.as_ref()])
-        .output()
-        .map_err(|source| Error::UserMod {
-            user: user.clone(),
+    // Set random 30 char password for the user.
+    let random_passphrase: String = thread_rng()
+        .sample_iter(&Alphanumeric)
+        .take(30)
+        .map(char::from)
+        .collect();
+    let yescrypt = Yescrypt::default();
+    let passphrase_hash = yescrypt
+        .hash_password(random_passphrase.as_bytes())
+        .map_err(|source| Error::PasswordHash {
+            context: format!("creating a passphrase hash for user {user}"),
             source,
         })?;
+    let mut command = Command::new("usermod");
+    command.arg("--password");
+    command.arg(passphrase_hash.as_str());
+    command.arg(user.as_ref());
+    let command_output = command.output().map_err(|source| Error::UserMod {
+        user: user.clone(),
+        source,
+    })?;
 
-    if !user_mod.status.success() {
+    if !command_output.status.success() {
         return Err(Error::CommandNonZero {
-            exit_status: user_mod.status,
-            stderr: String::from_utf8_lossy(&user_mod.stderr).into_owned(),
+            exit_status: command_output.status,
+            stderr: String::from_utf8_lossy(&command_output.stderr).into_owned(),
         });
     }
-    debug!("{}", String::from_utf8_lossy(&user_mod.stdout));
+    debug!("{}", String::from_utf8_lossy(&command_output.stdout));
 
     Ok(())
 }

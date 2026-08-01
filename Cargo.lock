@@ -5188,11 +5188,13 @@ dependencies = [
  "clap",
  "log",
  "nix",
+ "rand 0.8.6",
  "signstar-common",
  "signstar-config",
  "strum",
  "sysinfo 0.39.0",
  "thiserror 2.0.18",
+ "yescrypt",
 ]
 
 [[package]]
