@@ -71,41 +71,6 @@ impl From<Signature> for Ed25519Signature {
     }
 }
 
-/// Size of a truncated digest in the log
-///
-/// # Note
-///
-/// This type exists to augment a non-public return type of a public function.
-/// <https://github.com/iqlusioninc/yubihsm.rs/issues/617>
-pub const LOG_DIGEST_SIZE: usize = 16;
-
-/// Truncated SHA-256 digest of a log entry and the previous log digest
-///
-/// # Note
-///
-/// This type exists to augment a non-public return type of a public function.
-/// <https://github.com/iqlusioninc/yubihsm.rs/issues/617>
-#[derive(Eq, PartialEq)]
-#[cfg_attr(feature = "serde", derive(Serialize))]
-pub struct LogDigest(pub [u8; LOG_DIGEST_SIZE]);
-
-impl AsRef<[u8]> for LogDigest {
-    fn as_ref(&self) -> &[u8] {
-        &self.0[..]
-    }
-}
-
-impl Debug for LogDigest {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "LogDigest(")?;
-        for (i, byte) in self.0.iter().enumerate() {
-            write!(f, "{byte:02x}")?;
-            write!(f, "{}", if i == LOG_DIGEST_SIZE - 1 { ")" } else { ":" })?;
-        }
-        Ok(())
-    }
-}
-
 /// Serializes an `object` to JSON, suffixed by a newline.
 ///
 /// # Errors
