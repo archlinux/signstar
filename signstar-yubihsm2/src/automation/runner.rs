@@ -581,7 +581,7 @@ impl ScenarioRunner {
             } => CommandReturnValue::PutAuthenticationKey(
                 client
                     .put_authentication_key(
-                        key_id.into(),
+                        *key_id,
                         Default::default(),
                         domains.into(),
                         caps.into(),
@@ -604,7 +604,7 @@ impl ScenarioRunner {
             } => CommandReturnValue::GenerateAsymmetricKey(
                 client
                     .generate_asymmetric_key(
-                        key_id.into(),
+                        *key_id,
                         Default::default(),
                         domains.into(),
                         caps.into(),
@@ -617,7 +617,7 @@ impl ScenarioRunner {
             ),
             Command::SignEd25519 { key_id, data } => CommandReturnValue::SignEd25519(
                 client
-                    .sign_ed25519(key_id.into(), &data[..])
+                    .sign_ed25519(*key_id, &data[..])
                     .map_err(|source| Error::Client {
                         context: "signing with ed25519 key",
                         source,
@@ -634,7 +634,7 @@ impl ScenarioRunner {
             } => CommandReturnValue::PutOpaque(
                 client
                     .put_opaque(
-                        id.into(),
+                        *id,
                         label.into(),
                         domains.into(),
                         capabilities.into(),
@@ -658,7 +658,7 @@ impl ScenarioRunner {
             } => CommandReturnValue::PutWrapKey(
                 client
                     .put_wrap_key(
-                        key_id.into(),
+                        *key_id,
                         Default::default(),
                         domains.into(),
                         caps.into(),
@@ -672,7 +672,7 @@ impl ScenarioRunner {
                     })?,
             ),
             Command::GetOpaque { id } => {
-                CommandReturnValue::GetOpaque(client.get_opaque(id.into()).map_err(|source| {
+                CommandReturnValue::GetOpaque(client.get_opaque(*id).map_err(|source| {
                     Error::Client {
                         context: "retrieving opaque data",
                         source,
@@ -684,7 +684,7 @@ impl ScenarioRunner {
                 object,
             } => CommandReturnValue::ExportWrapped(
                 client
-                    .export_wrapped(wrap_key_id.into(), object.object_type(), object.id().into())
+                    .export_wrapped(*wrap_key_id, object.object_type(), object.id())
                     .map_err(|source| Error::Client {
                         context: "exporting wrapped key",
                         source,
@@ -695,7 +695,7 @@ impl ScenarioRunner {
                 message,
             } => CommandReturnValue::ImportWrapped(
                 client
-                    .import_wrapped(wrap_key_id.into(), message.clone())
+                    .import_wrapped(*wrap_key_id, message.clone())
                     .map_err(|source| Error::Client {
                         context: "importing wrapped key",
                         source,
@@ -703,7 +703,7 @@ impl ScenarioRunner {
             ),
             Command::DeleteObject(object) => {
                 client
-                    .delete_object(object.id().into(), object.object_type())
+                    .delete_object(object.id(), object.object_type())
                     .map_err(|source| Error::Client {
                         context: "deleting object",
                         source,
@@ -712,7 +712,7 @@ impl ScenarioRunner {
             }
             Command::GetObjectInfo(object) => CommandReturnValue::GetObjectInfo(
                 client
-                    .get_object_info(object.id().into(), object.object_type())
+                    .get_object_info(object.id(), object.object_type())
                     .map_err(|source| Error::Client {
                         context: "getting object info",
                         source,

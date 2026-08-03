@@ -7,7 +7,7 @@ mod key;
 
 pub use capability::{Capabilities, Capability};
 pub use error::Error;
-pub use id::{Id, ObjectId};
+pub use id::ObjectId;
 pub use key::{
     AsymmetricAlgorithm,
     AuthenticationKey,

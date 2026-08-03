@@ -63,9 +63,9 @@ use signstar_yubihsm2::{
     Error,
     automation::{FileBackedScenario, Scenario, ScenarioRunner},
     backup::{InnerFormat, Label, YubiHsm2Wrap, wrap_ed25519},
-    object::{Capabilities, Capability, Domain, Domains, Id},
+    object::{Capabilities, Capability, Domain, Domains},
 };
-use yubihsm::{Connector, UsbConfig, device::SerialNumber};
+use yubihsm::{Connector, UsbConfig, device::SerialNumber, object::Id};
 
 /// YubiHSM2 command line interface.
 #[derive(Debug, Parser)]

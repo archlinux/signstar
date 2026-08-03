@@ -7,9 +7,16 @@ use signstar_crypto::{
         traits::{RawPublicKey, RawSigningKey},
     },
 };
-use yubihsm::{Connector, UsbConfig, asymmetric::Algorithm, client::Client, device::SerialNumber};
+use yubihsm::{
+    Connector,
+    UsbConfig,
+    asymmetric::Algorithm,
+    client::Client,
+    device::SerialNumber,
+    object::Id,
+};
 
-use crate::{Credentials, Error, object::Id};
+use crate::{Credentials, Error};
 
 /// A signing key stored in the YubiHSM.
 pub struct YubiHsm2SigningKey {
@@ -62,7 +69,7 @@ impl YubiHsm2SigningKey {
         let domain = Domain::DOM1;
         client
             .put_authentication_key(
-                credentials.id().into(),
+                credentials.id(),
                 Default::default(),
                 domain,
                 Capability::empty(),
@@ -77,7 +84,7 @@ impl YubiHsm2SigningKey {
 
         let client = Client::open(
             client.connector().clone(),
-            YubiCredentials::new(credentials.id().into(), auth_key),
+            YubiCredentials::new(credentials.id(), auth_key),
             true,
         )
         .map_err(|source| Error::Client {
@@ -87,7 +94,7 @@ impl YubiHsm2SigningKey {
 
         client
             .generate_asymmetric_key(
-                key_id.into(),
+                key_id,
                 Default::default(),
                 domain,
                 Capability::SIGN_EDDSA,
@@ -121,7 +128,7 @@ impl YubiHsm2SigningKey {
         signer
             .yubihsm
             .put_opaque(
-                key_id.into(),
+                key_id,
                 Default::default(),
                 domain,
                 Capability::empty(),
@@ -192,7 +199,7 @@ impl RawSigningKey for YubiHsm2SigningKey {
     fn sign(&self, digest: &[u8]) -> Result<Vec<Vec<u8>>, SignstarCryptoError> {
         let sig = self
             .yubihsm
-            .sign_ed25519(self.key_id.into(), digest)
+            .sign_ed25519(self.key_id, digest)
             .map_err(|e| SignstarCryptoSignerError::Hsm {
                 context: "calling yubihsm::sign_ed25519",
                 source: Box::new(e),
@@ -212,12 +219,12 @@ impl RawSigningKey for YubiHsm2SigningKey {
     /// [`SignstarCryptoSignerError::Hsm`], which wraps the client-specific HSM error
     /// in its `source` field.
     fn certificate(&self) -> Result<Option<Vec<u8>>, SignstarCryptoError> {
-        Ok(Some(self.yubihsm.get_opaque(self.key_id.into()).map_err(
-            |e| SignstarCryptoSignerError::Hsm {
+        Ok(Some(self.yubihsm.get_opaque(self.key_id).map_err(|e| {
+            SignstarCryptoSignerError::Hsm {
                 context: "retrieving the certificate for a signing key held in a YubiHSM2",
                 source: Box::new(e),
-            },
-        )?))
+            }
+        })?))
     }
 
     /// Returns raw public parts of this signing key.
@@ -231,13 +238,12 @@ impl RawSigningKey for YubiHsm2SigningKey {
     /// [`SignstarCryptoSignerError::Hsm`], which wraps the client-specific HSM error
     /// in its `source` field.
     fn public(&self) -> Result<RawPublicKey, SignstarCryptoError> {
-        let pk = self
-            .yubihsm
-            .get_public_key(self.key_id.into())
-            .map_err(|e| SignstarCryptoSignerError::Hsm {
+        let pk = self.yubihsm.get_public_key(self.key_id).map_err(|e| {
+            SignstarCryptoSignerError::Hsm {
                 context: "retrieving the public key for a signing key held in a YubiHSM2",
                 source: Box::new(e),
-            })?;
+            }
+        })?;
         if pk.algorithm != Algorithm::Ed25519 {
             return Err(SignstarCryptoSignerError::InvalidPublicKeyData {
                 context: format!("algorithm of the HSM key {:?} is unsupported", pk.algorithm),

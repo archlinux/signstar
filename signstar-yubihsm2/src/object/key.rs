@@ -23,14 +23,12 @@ use yubihsm::{
     Algorithm as YubiHsmAlgorithm,
     asymmetric::Algorithm as YubiHsmAsymmetricAlgorithm,
     authentication::Key as YubiHsmAuthenticationKey,
+    object::Id,
     wrap::{Algorithm as YubiHsmWrapAlgorithm, Key as YubiHsmWrapKey},
 };
 use zeroize::Zeroizing;
 
-use crate::{
-    automation::OpaqueDataAlgorithm,
-    object::{Capabilities, Id},
-};
+use crate::{automation::OpaqueDataAlgorithm, object::Capabilities};
 
 /// YubiHSM2 object domain.
 ///
@@ -544,11 +542,9 @@ impl<'wrap_key> TryFrom<&YubiHsmWrapKeyFromWrapKey<'wrap_key>> for YubiHsmWrapKe
     ///
     /// Returns an error if [`YubiHsmWrapKey::from_bytes`] fails.
     fn try_from(value: &YubiHsmWrapKeyFromWrapKey) -> Result<Self, Self::Error> {
-        Self::from_bytes(value.id.into(), &value.wrap_key.data).map_err(|source| {
-            crate::Error::Device {
-                context: "creating a YubiHSM2 wrap key from bytes",
-                source,
-            }
+        Self::from_bytes(value.id, &value.wrap_key.data).map_err(|source| crate::Error::Device {
+            context: "creating a YubiHSM2 wrap key from bytes",
+            source,
         })
     }
 }

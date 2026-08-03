@@ -60,9 +60,9 @@ use ed25519_dalek::{SigningKey, hazmat::ExpandedSecretKey};
 use num_enum::{FromPrimitive, IntoPrimitive};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
-use yubihsm::object::{Handle, Label as YubiHsmObjectLabel, Type};
+use yubihsm::object::{Handle, Id, Label as YubiHsmObjectLabel, Type};
 
-use crate::object::{Capabilities, Domains, Id, ObjectId};
+use crate::object::{Capabilities, Domains, ObjectId};
 
 /// Backup error.
 #[derive(Debug, thiserror::Error)]
@@ -777,10 +777,10 @@ impl<'a> InnerFormat<'a> {
         let id = reader.read_u16()?;
         let datalen = reader.read_u16()?;
         let domains = reader.read_u16()?.into();
-        let object_id = ObjectId::try_from(Handle::new(
+        let object_id = ObjectId::from(Handle::new(
             id,
             Type::from_u8(reader.read_u8()?).map_err(Error::YubiHsmObject)?,
-        ))?;
+        ));
         let object_type = ObjectType::from(reader.read_u8()?);
         let sequence = reader.read_u8()?;
         let origin = reader.read_u8()?;
@@ -809,7 +809,7 @@ impl<'a> InnerFormat<'a> {
     pub fn serialize_into(&self, buffer: &mut Vec<u8>) {
         buffer.push(self.wrap_algorithm.into());
         buffer.extend_from_slice(&<[u8; 8]>::from(&self.capabilities));
-        buffer.extend_from_slice(&u16::from(self.object_id.id()).to_be_bytes());
+        buffer.extend_from_slice(&self.object_id.id().to_be_bytes());
         buffer.extend_from_slice(&(self.key_data.len() as u16).to_be_bytes());
         buffer.extend_from_slice(&self.domains.to_be_bytes());
         buffer.push(self.object_id.object_type().to_u8());
@@ -909,7 +909,7 @@ mod tests {
         assert_eq!(buffer, decrypted);
         assert_eq!(inner.object_type, ObjectType::Ed25519);
         assert_eq!(inner.wrap_algorithm, WrapAlgorithm::Aes128Ccm);
-        assert_eq!(u16::from(inner.object_id.id()), 0x1f_u16);
+        assert_eq!(inner.object_id.id(), 0x1f_u16);
         assert_eq!(inner.domains, Domain::One.into());
         assert_eq!(inner.sequence, 0);
         assert_eq!(inner.origin, 2);
@@ -962,7 +962,7 @@ mod tests {
         assert_eq!(buffer, decrypted);
         assert_eq!(inner.object_type, ObjectType::Ed25519);
         assert_eq!(inner.wrap_algorithm, WrapAlgorithm::Aes128Ccm);
-        assert_eq!(u16::from(inner.object_id.id()), 13);
+        assert_eq!(inner.object_id.id(), 13);
         assert_eq!(inner.domains, Domains::all());
         assert_eq!(inner.sequence, 0);
         assert_eq!(inner.origin, 1);
@@ -1046,7 +1046,7 @@ mod tests {
             Capabilities::from(&[Capability::ExportableUnderWrap][..])
         );
         assert_eq!(inner.domains, Domain::One.into());
-        assert_eq!(u16::from(inner.object_id.id()), 14);
+        assert_eq!(inner.object_id.id(), 14);
         assert_eq!(
             inner.key_data,
             WrappedPayload::AuthAes128(AuthAes128 {
@@ -1079,7 +1079,7 @@ mod tests {
             Capabilities::from(&[Capability::ExportableUnderWrap][..])
         );
         assert_eq!(inner.domains, Domain::One.into());
-        assert_eq!(u16::from(inner.object_id.id()), 13);
+        assert_eq!(inner.object_id.id(), 13);
         assert_eq!(inner.key_data, WrappedPayload::Opaque(&[1, 2, 3]));
         assert_eq!(inner.object_id.object_type(), Type::Opaque);
         assert_eq!(inner.label.to_string(), "random");
@@ -1119,7 +1119,7 @@ mod tests {
         write(&private_key_file, [0; 32])?;
         write(&wrapping_key_file, WRAP_KEY)?;
 
-        let object_id = Id::new(1.try_into()?)?;
+        let object_id = 1;
         let wrapped = wrap_ed25519(
             private_key_file,
             wrapping_key_file,

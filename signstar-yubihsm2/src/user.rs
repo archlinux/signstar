@@ -5,8 +5,7 @@ use std::path::PathBuf;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 use signstar_crypto::{passphrase::Passphrase, traits::UserWithPassphrase};
-
-use crate::object::Id;
+use yubihsm::object::Id;
 
 /// Credentials for a YubiHSM2 device, that are backed by a UTF-8 encoded passphrase file.
 ///
@@ -81,10 +80,7 @@ impl UserWithPassphrase for Credentials {
 
 impl From<&Credentials> for yubihsm::Credentials {
     fn from(value: &Credentials) -> Self {
-        Self::from_password(
-            value.id.into(),
-            value.passphrase.expose_borrowed().as_bytes(),
-        )
+        Self::from_password(value.id, value.passphrase.expose_borrowed().as_bytes())
     }
 }
 

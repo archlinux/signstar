@@ -12,8 +12,8 @@ use signstar_crypto::{key::SigningKeySetup, passphrase::Passphrase, traits::User
 use signstar_yubihsm2::{
     Connection,
     Credentials,
-    object::{Capabilities, Capability, Domain, Domains, Id},
-    yubihsm::Code,
+    object::{Capabilities, Capability, Domain, Domains},
+    yubihsm::{Code, Id},
 };
 
 use crate::{

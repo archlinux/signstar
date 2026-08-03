@@ -14,7 +14,7 @@ use signstar_crypto::passphrase::Passphrase;
 use yubihsm::{
     Capability as YubiHsmCapability,
     command::Code,
-    object::{Filter, Type},
+    object::{Filter, Id, Type},
     opaque::Algorithm,
     wrap::Message,
 };
@@ -23,7 +23,7 @@ use crate::{
     Credentials,
     automation::CommandReturnValue,
     backup::Label,
-    object::{AuthenticationKey, Capabilities, Domains, Id, KeyInfo, ObjectId, WrapKey},
+    object::{AuthenticationKey, Capabilities, Domains, KeyInfo, ObjectId, WrapKey},
 };
 #[cfg(feature = "cli")]
 use crate::{
@@ -272,7 +272,7 @@ impl From<&ListObjectFilter> for Filter {
                 Filter::Capabilities(capabilities.into())
             }
             ListObjectFilter::Domains(domains) => Filter::Domains(domains.into()),
-            ListObjectFilter::Id(id) => Filter::Id(id.into()),
+            ListObjectFilter::Id(id) => Filter::Id(*id),
             ListObjectFilter::Type(typ) => Filter::Type(typ.into()),
         }
     }

@@ -302,7 +302,7 @@ fn create_mapping(
                 return Err(Error::UnexpectedSystemUser { system_user });
             }
             Ok(Box::new(YubiHsm2UserMapping::Admin {
-                authentication_key_id: "1".parse()?,
+                authentication_key_id: 1,
             }))
         }
         #[cfg(feature = "yubihsm2")]
@@ -311,7 +311,7 @@ fn create_mapping(
                 return Err(Error::MissingSystemUser);
             };
             Ok(Box::new(YubiHsm2UserMapping::AuditLog {
-                authentication_key_id: "1".parse()?,
+                authentication_key_id: 1,
                 ssh_authorized_key: dummy_ssh_authorized_key()?,
                 system_user,
             }))
@@ -322,8 +322,8 @@ fn create_mapping(
                 return Err(Error::MissingSystemUser);
             };
             Ok(Box::new(YubiHsm2UserMapping::Backup {
-                authentication_key_id: "1".parse()?,
-                wrapping_key_id: "1".parse()?,
+                authentication_key_id: 1,
+                wrapping_key_id: 1,
                 ssh_authorized_key: dummy_ssh_authorized_key()?,
                 system_user,
             }))
@@ -334,7 +334,7 @@ fn create_mapping(
                 return Err(Error::MissingSystemUser);
             };
             Ok(Box::new(YubiHsm2UserMapping::HermeticAuditLog {
-                authentication_key_id: "1".parse()?,
+                authentication_key_id: 1,
                 system_user,
             }))
         }
@@ -344,7 +344,7 @@ fn create_mapping(
                 return Err(Error::MissingSystemUser);
             };
             Ok(Box::new(YubiHsm2UserMapping::Signing {
-                authentication_key_id: "1".parse()?,
+                authentication_key_id: 1,
                 key_setup: SigningKeySetup::new(
                     KeyType::Curve25519,
                     vec![KeyMechanism::EdDsaSignature],
@@ -358,7 +358,7 @@ fn create_mapping(
                     },
                 )?,
                 domain: signstar_yubihsm2::object::Domain::One,
-                signing_key_id: "1".parse()?,
+                signing_key_id: 1,
                 ssh_authorized_key: dummy_ssh_authorized_key()?,
                 system_user,
             }))
