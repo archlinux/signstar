@@ -13,7 +13,7 @@ use signstar_yubihsm2::{
     Connection,
     Credentials,
     automation::OpaqueData,
-    object::{Capabilities, Capability, Domain, Domains},
+    object::{Capabilities, Capability, Domain, Domains, KeyInfo},
     yubihsm::{Code, Id},
 };
 
@@ -415,6 +415,35 @@ impl YubiHsm2UserMapping {
             Self::HermeticAuditLog { .. } => Self::CAP_HERMETIC_AUDIT_LOG,
             Self::Signing { .. } => Self::CAP_SIGNING,
         })
+    }
+
+    /// Returns the [`KeyInfo`] for the authentication key of the [`YubiHsm2UserMapping`].
+    pub fn authentication_key_info(&self) -> KeyInfo {
+        match self {
+            Self::Admin {
+                authentication_key_id,
+            }
+            | Self::AuditLog {
+                authentication_key_id,
+                ..
+            }
+            | Self::Backup {
+                authentication_key_id,
+                ..
+            }
+            | Self::HermeticAuditLog {
+                authentication_key_id,
+                ..
+            }
+            | Self::Signing {
+                authentication_key_id,
+                ..
+            } => KeyInfo {
+                key_id: *authentication_key_id,
+                domains: self.domains(),
+                caps: self.capabilities(),
+            },
+        }
     }
 }
 
