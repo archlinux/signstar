@@ -111,8 +111,11 @@ pub enum YubiHsm2UserMapping {
     /// [capabilities] for audit log retrieval (see [`YubiHsm2UserMapping::CAP_AUDIT_LOG`] for
     /// details).
     ///
+    /// Further, it is assumed that the [authentication key object] is added to all [domains].
+    ///
     /// [authentication key object]: https://docs.yubico.com/hardware/yubihsm-2/hsm-2-user-guide/hsm2-core-concepts.html#authentication-key-object
     /// [capabilities]: https://docs.yubico.com/hardware/yubihsm-2/hsm-2-user-guide/hsm2-core-concepts.html#capability-protocol-details
+    /// [domains]: https://docs.yubico.com/hardware/yubihsm-2/hsm-2-user-guide/hsm2-core-concepts.html#domains
     AuditLog {
         /// The identifier of the authentication key used to create a session with the YubiHSM2.
         authentication_key_id: Id,
@@ -146,6 +149,7 @@ pub enum YubiHsm2UserMapping {
     /// Further, it is assumed that both the [authentication key object] and [wrap key object] are
     /// added to all [domains].
     ///
+    /// [authentication key object]: https://docs.yubico.com/hardware/yubihsm-2/hsm-2-user-guide/hsm2-core-concepts.html#authentication-key-object
     /// [capabilities]: https://docs.yubico.com/hardware/yubihsm-2/hsm-2-user-guide/hsm2-core-concepts.html#capability-protocol-details
     /// [domains]: https://docs.yubico.com/hardware/yubihsm-2/hsm-2-user-guide/hsm2-core-concepts.html#domains
     /// [wrap key object]: https://docs.yubico.com/hardware/yubihsm-2/hsm-2-user-guide/hsm2-core-concepts.html#hsm2-wrap-key-obj
@@ -193,8 +197,11 @@ pub enum YubiHsm2UserMapping {
     /// [capabilities] for audit log retrieval (see [`YubiHsm2UserMapping::CAP_HERMETIC_AUDIT_LOG`]
     /// for details).
     ///
+    /// Further, it is assumed that the [authentication key object] is added to all [domains].
+    ///
     /// [authentication key object]: https://docs.yubico.com/hardware/yubihsm-2/hsm-2-user-guide/hsm2-core-concepts.html#authentication-key-object
     /// [capabilities]: https://docs.yubico.com/hardware/yubihsm-2/hsm-2-user-guide/hsm2-core-concepts.html#capability-protocol-details
+    /// [domains]: https://docs.yubico.com/hardware/yubihsm-2/hsm-2-user-guide/hsm2-core-concepts.html#domains
     HermeticAuditLog {
         /// The identifier of the authentication key used to create a session with the YubiHSM2.
         authentication_key_id: Id,
@@ -356,14 +363,16 @@ impl YubiHsm2UserMapping {
     /// [capability]: https://docs.yubico.com/hardware/yubihsm-2/hsm-2-user-guide/hsm2-core-concepts.html#capability-protocol-details
     pub const CAP_SIGNING: &[Capability] = &[Capability::SignEddsa];
 
-    /// Returns the optional [`Domains`] of the [`YubiHsm2UserMapping`].
-    pub fn domains(&self) -> Option<Domains> {
+    /// Returns the [`Domains`] of the [`YubiHsm2UserMapping`].
+    pub fn domains(&self) -> Domains {
         match self {
-            Self::Admin { .. } | Self::Backup { .. } => Some(Domains::all()),
-            Self::AuditLog { .. } | Self::HermeticAuditLog { .. } => None,
+            Self::Admin { .. }
+            | Self::Backup { .. }
+            | Self::AuditLog { .. }
+            | Self::HermeticAuditLog { .. } => Domains::all(),
             Self::Signing {
                 domain: key_domain, ..
-            } => Some(Domains::from(*key_domain)),
+            } => Domains::from(*key_domain),
         }
     }
 
@@ -673,7 +682,7 @@ impl BackendDomainFilter for YubiHsm2DomainFilter {}
 
 impl MappingBackendDomain<YubiHsm2DomainFilter> for YubiHsm2UserMapping {
     fn backend_domain(&self, _filter: Option<&YubiHsm2DomainFilter>) -> Option<String> {
-        self.domains().map(|domains| domains.bits().to_string())
+        Some(self.domains().bits().to_string())
     }
 }
 
@@ -881,15 +890,12 @@ fn validate_yubihsm2_config_mappings(
 
     // Collect all duplicate domains.
     //
-    // NOTE: We are not looking for duplicate domains in `YubiHsm2Mapping::Admin` and
-    // `YubiHsm2Mapping::Backup`, as those are (implicitly) always in all domains.
+    // NOTE: We are looking for duplicate domains in `YubiHsm2Mapping::Signing` as all other
+    // variants are (implicitly) always in all domains.
     let duplicate_domains = duplicate_domains(
         &value
             .iter()
-            .filter(|mapping| {
-                !matches!(mapping, YubiHsm2UserMapping::Admin { .. })
-                    && !matches!(mapping, YubiHsm2UserMapping::Backup { .. })
-            })
+            .filter(|mapping| matches!(mapping, YubiHsm2UserMapping::Signing { .. }))
             .collect::<BTreeSet<_>>(),
         None,
         None,
@@ -1031,20 +1037,16 @@ pub struct YubiHsm2ConfigUserData {
     pub capabilities: Capabilities,
 
     /// The optional domains of the authentication key.
-    pub domains: Option<Domains>,
+    pub domains: Domains,
 }
 
 impl Display for YubiHsm2ConfigUserData {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "{} (capabilities: {}",
-            self.authentication_key_id, self.capabilities
+            "{} (capabilities: {}; domains: {})",
+            self.authentication_key_id, self.capabilities, self.domains
         )?;
-        if let Some(domains) = self.domains.as_ref() {
-            write!(f, "; domains: {domains}")?;
-        }
-        write!(f, ")")?;
 
         Ok(())
     }
@@ -2920,32 +2922,22 @@ mod tests {
     #[rstest]
     #[case::single_cap_single_domain(
         Capabilities::from(vec![Capability::SignEddsa].as_slice()),
-        Some(Domains::from(vec![Domain::One].as_slice())),
+        Domains::from(vec![Domain::One].as_slice()),
         "1 (capabilities: sign-eddsa; domains: 1)"
-    )]
-    #[case::single_cap_no_domain(
-        Capabilities::from(vec![Capability::SignEddsa].as_slice()),
-        None,
-        "1 (capabilities: sign-eddsa)"
     )]
     #[case::multi_cap_multi_domain(
         Capabilities::from(vec![Capability::SignEddsa, Capability::SignEcdsa].as_slice()),
-        Some(Domains::from(vec![Domain::One, Domain::Two].as_slice())),
+        Domains::from(vec![Domain::One, Domain::Two].as_slice()),
         "1 (capabilities: sign-ecdsa, sign-eddsa; domains: 1, 2)"
     )]
     #[case::multi_cap_single_domain(
         Capabilities::from(vec![Capability::SignEddsa, Capability::SignEcdsa].as_slice()),
-        Some(Domains::from(vec![Domain::One].as_slice())),
+        Domains::from(vec![Domain::One].as_slice()),
         "1 (capabilities: sign-ecdsa, sign-eddsa; domains: 1)"
-    )]
-    #[case::multi_cap_no_domain(
-        Capabilities::from(vec![Capability::SignEddsa, Capability::SignEcdsa].as_slice()),
-        None,
-        "1 (capabilities: sign-ecdsa, sign-eddsa)"
     )]
     fn yubihsm2_config_user_data_display(
         #[case] capabilities: Capabilities,
-        #[case] domains: Option<Domains>,
+        #[case] domains: Domains,
         #[case] display: &str,
     ) -> TestResult {
         let data = YubiHsm2ConfigUserData {
