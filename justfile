@@ -71,8 +71,8 @@ add-hooks:
 
 # Shows the environment used by `cargo-llvm-cov`.
 [private]
-show_cargo_llvm_cov_env cargo_options='+stable':
-    cargo {{ cargo_options }} llvm-cov show-env --sh
+cargo-llvm-cov-show-env cargo_options='+stable' llvm_cov_show_env_options='':
+    cargo {{ cargo_options }} llvm-cov show-env --sh {{ llvm_cov_show_env_options }}
 
 # Updates the local cargo index and displays which crates would be updated
 [private]
@@ -849,7 +849,8 @@ containerized-integration-tests *options='--locked --workspace':
     if [[ "$coverage" == "true" ]]; then
         just ensure-command bash cargo cargo-llvm-cov cargo-nextest jq podman
         # shellcheck source=/dev/null
-        source <(just show_cargo_llvm_cov_env)
+        source <(just cargo-llvm-cov-show-env +stable)
+        cargo +stable llvm-cov clean --workspace
     else
         just ensure-command bash cargo cargo-nextest jq podman
     fi
@@ -902,7 +903,8 @@ create-coverage-report output_type="cobertura" mode="without-docs" metrics_name=
 
         mkdir --parents "$target_dir/llvm-cov/"
         # shellcheck source=/dev/null
-        source <(just show_cargo_llvm_cov_env "${cargo_options[@]}")
+        source <(just cargo-llvm-cov-show-env "${cargo_options[@]}")
+        # NOTE: Here, we are not calling `cargo-llvm-cov clean` because we assume that it has been done in the recipe that generated the profraw data already.
 
         # Create cobertura coverage report
         cargo "${cargo_options[@]}" llvm-cov report "${cargo_llvm_cov_options[@]}"
@@ -1002,7 +1004,8 @@ nethsm-integration-tests *options='--locked --workspace':
     if [[ "$coverage" == "true" ]]; then
         just ensure-command bash cargo cargo-llvm-cov cargo-nextest jq podman
         # shellcheck source=/dev/null
-        source <(just show_cargo_llvm_cov_env)
+        source <(just cargo-llvm-cov-show-env)
+        cargo +stable llvm-cov clean --workspace
     else
         just ensure-command bash cargo cargo-nextest jq podman
     fi
@@ -1022,12 +1025,13 @@ test *options='--all-targets --locked --workspace':
     if [[ "$coverage" == "true" ]]; then
         just ensure-command cargo cargo-llvm-cov cargo-nextest
         # shellcheck source=/dev/null
-        source <(just show_cargo_llvm_cov_env)
+        source <(just cargo-llvm-cov-show-env)
+        cargo +stable llvm-cov clean --workspace
     else
         just ensure-command cargo cargo-nextest
     fi
 
-    cargo nextest run "${options[@]}"
+    cargo +stable nextest run "${options[@]}"
 
 # Runs all unit tests (in all relevant feature permutations) in succession.
 [group('test')]
@@ -1041,7 +1045,8 @@ test-all:
         commands+=(cargo-llvm-cov)
         just ensure-command "${commands[@]}"
         # shellcheck source=/dev/null
-        source <(just show_cargo_llvm_cov_env)
+        source <(just cargo-llvm-cov-show-env)
+        cargo +stable llvm-cov clean --workspace
     else
         just ensure-command "${commands[@]}"
     fi
@@ -1062,7 +1067,8 @@ test-docs *options='--locked --workspace':
         toolchain="+nightly"
         just ensure-command cargo cargo-llvm-cov
         # shellcheck source=/dev/null
-        source <(just show_cargo_llvm_cov_env "$toolchain")
+        source <(just cargo-llvm-cov-show-env "$toolchain" '--doctests')
+        cargo "$toolchain" llvm-cov clean --workspace
     else
         just ensure-command cargo
     fi
@@ -1081,7 +1087,8 @@ test-docs-all:
         toolchain="+nightly"
         just ensure-command cargo cargo-llvm-cov
         # shellcheck source=/dev/null
-        source <(just show_cargo_llvm_cov_env "$toolchain")
+        source <(just cargo-llvm-cov-show-env "$toolchain" '--doctests')
+        cargo "$toolchain" llvm-cov clean --workspace
     else
         just ensure-command cargo
     fi
