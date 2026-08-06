@@ -206,11 +206,45 @@ test:
     - just --justfile .gitlab/justfile section-start "test" "Run unit tests"
     - just test-all
     - just --justfile .gitlab/justfile section-end "test"
+    - just --justfile .gitlab/justfile section-start "create-coverage-report" "Create coverage report"
+    - just create-coverage-report cobertura without-docs unit-test-coverage
+    - just --justfile .gitlab/justfile section-end "create-coverage-report"
+  stage: test
+  retry:
+    max: 1
+    when: script_failure
+    exit_codes: 1
+
+test-docs:
+  artifacts:
+    reports:
+      # Unit test reports
+      # See: https://gitlab.archlinux.org/help/ci/testing/unit_test_reports#how-to-set-it-up
+      junit: target/nextest/default/junit.xml
+      coverage_report:
+        coverage_format: cobertura
+        path: target/llvm-cov/cobertura-coverage.xml
+      # Expose the code coverage as a GitLab metric.
+      # This allows us to easily spot changes in the overall coverage.
+      metrics: target/llvm-cov/coverage-metrics.txt
+  cache:
+    key:
+      files:
+        - Cargo.lock
+    paths:
+      - .cargo-home
+    policy: pull-push
+  coverage: "/Test-coverage: ([0-9.]*)%/"
+  extends: .default-with-rust
+  script:
+    - just --justfile .gitlab/justfile section-start "install-alpm-packages" "Install ALPM package set 'coverage'"
+    - just install-alpm-package-set coverage
+    - just --justfile .gitlab/justfile section-end "install-alpm-packages"
     - just --justfile .gitlab/justfile section-start "test-docs" "Run doc tests"
     - just test-docs-all
     - just --justfile .gitlab/justfile section-end "test-docs"
     - just --justfile .gitlab/justfile section-start "create-coverage-report" "Create coverage report"
-    - just create-coverage-report cobertura with-docs unit-test-coverage
+    - just create-coverage-report cobertura with-docs doc-test-coverage
     - just --justfile .gitlab/justfile section-end "create-coverage-report"
   stage: test
   retry:
@@ -235,7 +269,36 @@ docs:
     - just --justfile .gitlab/justfile section-end "build-book"
   stage: test
 
-integration-test:
+containerized:
+  artifacts:
+    reports:
+      # Unit test reports
+      # See: https://gitlab.archlinux.org/help/ci/testing/unit_test_reports#how-to-set-it-up
+      junit: target/nextest/default/junit.xml
+      coverage_report:
+        coverage_format: cobertura
+        path: target/llvm-cov/cobertura-coverage.xml
+      # Expose the code coverage as a GitLab metric.
+      # This allows us to easily spot changes in the overall coverage.
+      metrics: target/llvm-cov/coverage-metrics.txt
+  coverage: "/Test-coverage: ([0-9.]*)%/"
+  extends: .default-with-rust-and-testuser
+  script:
+    - just --justfile .gitlab/justfile section-start "install-alpm-packages" "Install ALPM package set 'containerized'"
+    - just install-alpm-package-set containerized
+    - just --justfile .gitlab/justfile section-end "install-alpm-packages"
+    - just --justfile .gitlab/justfile section-start "integration-test-containerized" "Run containerized integration tests as 'testuser'"
+    - WORKDIR="$(pwd)" runuser -w CI,COVERAGE_REPORT,WORKDIR -l testuser -c 'env && cd "$WORKDIR" && just containerized-integration-tests-all'
+    - just --justfile .gitlab/justfile section-end "integration-test-containerized"
+    - just --justfile .gitlab/justfile section-start "create-coverage-report" "Create coverage report as 'testuser'"
+    - WORKDIR="$(pwd)" runuser -w CI,COVERAGE_REPORT,WORKDIR -l testuser -c 'env && cd "$WORKDIR" && just create-coverage-report cobertura without-docs containerized-test-coverage'
+    - just --justfile .gitlab/justfile section-end "create-coverage-report"
+  stage: test
+  tags:
+    - vm
+  timeout: 20m
+
+nethsm-integration:
   artifacts:
     reports:
       # Unit test reports
@@ -256,11 +319,8 @@ integration-test:
     - just --justfile .gitlab/justfile section-start "integration-test-nethsm" "Run integration tests against a NetHSM container as 'testuser'"
     - WORKDIR="$(pwd)" runuser -w CI,COVERAGE_REPORT,WORKDIR -l testuser -c 'env && cd "$WORKDIR" && just nethsm-integration-tests'
     - just --justfile .gitlab/justfile section-end "integration-test-nethsm"
-    - just --justfile .gitlab/justfile section-start "integration-test-containerized" "Run containerized integration tests as 'testuser'"
-    - WORKDIR="$(pwd)" runuser -w CI,COVERAGE_REPORT,WORKDIR -l testuser -c 'env && cd "$WORKDIR" && just containerized-integration-tests-all'
-    - just --justfile .gitlab/justfile section-end "integration-test-containerized"
     - just --justfile .gitlab/justfile section-start "create-coverage-report" "Create coverage report as 'testuser'"
-    - WORKDIR="$(pwd)" runuser -w CI,COVERAGE_REPORT,WORKDIR -l testuser -c 'env && cd "$WORKDIR" && just create-coverage-report cobertura with-docs integration-test-coverage'
+    - WORKDIR="$(pwd)" runuser -w CI,COVERAGE_REPORT,WORKDIR -l testuser -c 'env && cd "$WORKDIR" && just create-coverage-report cobertura without-docs nethsm-integration-test-coverage'
     - just --justfile .gitlab/justfile section-end "create-coverage-report"
   stage: test
   tags:
