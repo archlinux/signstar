@@ -1,5 +1,7 @@
 //! YubiHSM2 objects.
 
+use std::fmt::Display;
+
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 use yubihsm::object::{Handle, Id, Type};
@@ -69,6 +71,21 @@ impl ObjectId {
             ObjectId::Template(_) => Type::Template,
             ObjectId::Otp(_) => Type::OtpAeadKey,
             ObjectId::SymmetricKey(_) => Type::SymmetricKey,
+        }
+    }
+}
+
+impl Display for ObjectId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::AsymmetricKey(id) => write!(f, "asymmetric key {id}"),
+            Self::AuthenticationKey(id) => write!(f, "authentication key {id}"),
+            Self::Hmac(id) => write!(f, "HMAC signing key {id}"),
+            Self::Opaque(id) => write!(f, "opaque data {id}"),
+            Self::Otp(id) => write!(f, "One-time-password AEAD key {id}"),
+            Self::SymmetricKey(id) => write!(f, "symmetric key {id}"),
+            Self::Template(id) => write!(f, "SSH certificate template {id}"),
+            Self::WrappingKey(id) => write!(f, "wrapping key {id}"),
         }
     }
 }
