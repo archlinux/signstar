@@ -25,6 +25,14 @@ pub struct YubiHsm2SigningKey {
 }
 
 impl YubiHsm2SigningKey {
+    /// Creates a new [`YubiHsm2SigningKey`] for a [`Client`] and the [`Id`] of a signing key.
+    pub fn new(client: Client, id: Id) -> Self {
+        Self {
+            yubihsm: client,
+            key_id: id,
+        }
+    }
+
     /// Returns a signing key emulated in software.
     ///
     /// # Warning
