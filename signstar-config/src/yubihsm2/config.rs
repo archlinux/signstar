@@ -978,6 +978,11 @@ impl YubiHsm2Config {
         Code::SignEddsa,
     ];
 
+    /// The object ID of the wrap key.
+    ///
+    /// This key is used to encrypt all backups.
+    pub const WRAP_KEY_ID: Id = 1;
+
     /// Creates a new [`YubiHsm2Config`] from a set of [`Connection`] and a set of
     /// [`YubiHsm2UserMapping`] items.
     pub fn new(
