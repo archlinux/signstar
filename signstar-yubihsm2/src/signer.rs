@@ -33,6 +33,20 @@ impl YubiHsm2SigningKey {
         }
     }
 
+    /// Closes the session for the [`YubiHsm2SigningKey`]'s [`Client`].
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if [`Client::close_session`] fails.
+    pub fn close_session(&self) -> Result<(), crate::Error> {
+        self.yubihsm
+            .close_session()
+            .map_err(|source| crate::Error::Client {
+                context: "closing the session for a YubiHSM signing key implementation",
+                source,
+            })
+    }
+
     /// Returns a signing key emulated in software.
     ///
     /// # Warning
