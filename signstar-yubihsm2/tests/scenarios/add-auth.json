@@ -26,6 +26,12 @@
         }
       },
       {
+        "change_authentication_key": {
+          "key_id": 1,
+          "passphrase_file": "tests/scenarios/keys/change-auth-key"
+        }
+      },
+      {
         "list_objects": [
           {
             "type": "authentication-key"

@@ -105,6 +105,9 @@ pub enum CommandReturnValue {
     /// The return value of [`Client::put_authentication_key`].
     PutAuthenticationKey(YubiHsmObjectId),
 
+    /// The return value of [`Client::change_authentication_key`].
+    ChangeAuthenticationKey(YubiHsmObjectId),
+
     /// The return value of [`Client::generate_asymmetric_key`]
     GenerateAsymmetricKey(YubiHsmObjectId),
 
@@ -158,6 +161,10 @@ impl PartialEq<Command> for &CommandReturnValue {
             | (CommandReturnValue::ResetDeviceAndReconnect, Command::ResetDeviceAndReconnect)
             | (CommandReturnValue::PutAuthenticationKey(_), Command::PutAuthenticationKey { .. })
             | (
+                CommandReturnValue::ChangeAuthenticationKey(_),
+                Command::ChangeAuthenticationKey { .. },
+            )
+            | (
                 CommandReturnValue::GenerateAsymmetricKey(_),
                 Command::GenerateAsymmetricKey { .. },
             )
@@ -176,6 +183,7 @@ impl PartialEq<Command> for &CommandReturnValue {
             (CommandReturnValue::DeviceInfo(_), _)
             | (CommandReturnValue::ResetDeviceAndReconnect, _)
             | (CommandReturnValue::PutAuthenticationKey(_), _)
+            | (CommandReturnValue::ChangeAuthenticationKey(_), _)
             | (CommandReturnValue::GenerateAsymmetricKey(_), _)
             | (CommandReturnValue::SignEd25519(_), _)
             | (CommandReturnValue::PutOpaque(_), _)
@@ -213,6 +221,10 @@ impl PartialEq<FileBackedCommand> for &CommandReturnValue {
                 FileBackedCommand::PutAuthenticationKey { .. },
             )
             | (
+                CommandReturnValue::ChangeAuthenticationKey(_),
+                FileBackedCommand::ChangeAuthenticationKey { .. },
+            )
+            | (
                 CommandReturnValue::GenerateAsymmetricKey(_),
                 FileBackedCommand::GenerateAsymmetricKey { .. },
             )
@@ -237,6 +249,7 @@ impl PartialEq<FileBackedCommand> for &CommandReturnValue {
             (CommandReturnValue::DeviceInfo(_), _)
             | (CommandReturnValue::ResetDeviceAndReconnect, _)
             | (CommandReturnValue::PutAuthenticationKey(_), _)
+            | (CommandReturnValue::ChangeAuthenticationKey(_), _)
             | (CommandReturnValue::GenerateAsymmetricKey(_), _)
             | (CommandReturnValue::SignEd25519(_), _)
             | (CommandReturnValue::PutOpaque(_), _)
@@ -556,6 +569,17 @@ impl ScenarioRunner {
                     )
                     .map_err(|source| Error::Client {
                         context: "putting authentication key",
+                        source,
+                    })?,
+            ),
+            Command::ChangeAuthenticationKey {
+                key_id,
+                authentication_key,
+            } => CommandReturnValue::ChangeAuthenticationKey(
+                client
+                    .change_authentication_key(*key_id, Default::default(), authentication_key)
+                    .map_err(|source| Error::Client {
+                        context: "changing authentication key",
                         source,
                     })?,
             ),

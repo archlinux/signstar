@@ -80,6 +80,9 @@ pub enum CommandName {
     /// Put authentication key on the device.
     PutAuthenticationKey,
 
+    /// Change the currently used authentication key on the device.
+    ChangeAuthenticationKey,
+
     /// Generates a new asymmetric key on the device.
     GenerateAsymmetricKey,
 
@@ -120,6 +123,7 @@ impl From<&Command> for CommandName {
             Command::SetForceAuditOption(_) => Self::SetForceAuditOption,
             Command::SetCommandAuditOption { .. } => Self::SetCommandAuditOption,
             Command::PutAuthenticationKey { .. } => Self::PutAuthenticationKey,
+            Command::ChangeAuthenticationKey { .. } => Self::ChangeAuthenticationKey,
             Command::GenerateAsymmetricKey { .. } => Self::GenerateAsymmetricKey,
             Command::SignEd25519 { .. } => Self::SignEd25519,
             Command::PutOpaque { .. } => Self::PutOpaque,
@@ -143,6 +147,7 @@ impl From<&CommandReturnValue> for CommandName {
             CommandReturnValue::SetForceAuditOption => Self::SetForceAuditOption,
             CommandReturnValue::SetCommandAuditOption => Self::SetCommandAuditOption,
             CommandReturnValue::PutAuthenticationKey { .. } => Self::PutAuthenticationKey,
+            CommandReturnValue::ChangeAuthenticationKey { .. } => Self::ChangeAuthenticationKey,
             CommandReturnValue::GenerateAsymmetricKey { .. } => Self::GenerateAsymmetricKey,
             CommandReturnValue::SignEd25519 { .. } => Self::SignEd25519,
             CommandReturnValue::PutOpaque { .. } => Self::PutOpaque,
@@ -167,6 +172,7 @@ impl From<&FileBackedCommand> for CommandName {
             FileBackedCommand::SetForceAuditOption(_) => Self::SetForceAuditOption,
             FileBackedCommand::SetCommandAuditOption { .. } => Self::SetCommandAuditOption,
             FileBackedCommand::PutAuthenticationKey { .. } => Self::PutAuthenticationKey,
+            FileBackedCommand::ChangeAuthenticationKey { .. } => Self::ChangeAuthenticationKey,
             FileBackedCommand::GenerateAsymmetricKey { .. } => Self::GenerateAsymmetricKey,
             FileBackedCommand::SignEd25519 { .. } => Self::SignEd25519,
             FileBackedCommand::PutOpaque { .. } => Self::PutOpaque,
@@ -552,6 +558,18 @@ pub enum Command {
         authentication_key: AuthenticationKey,
     },
 
+    /// Change the authentication key used for the current session.
+    ///
+    /// This command is used to change an authentication key that is currently used for the
+    /// connection.
+    ChangeAuthenticationKey {
+        /// The key ID.
+        key_id: Id,
+
+        /// The authentication key to put onto the YubiHSM2 instead of the currently used one.
+        authentication_key: AuthenticationKey,
+    },
+
     /// Generates new `ed25519` signing key on the device.
     GenerateAsymmetricKey {
         /// The key identity and capabilities.
@@ -672,6 +690,13 @@ impl TryFrom<&FileBackedCommand> for Command {
             } => Command::PutAuthenticationKey {
                 info: info.clone(),
                 delegated_caps: delegated_caps.clone(),
+                authentication_key: AuthenticationKey::try_from(passphrase_file.as_path())?,
+            },
+            FileBackedCommand::ChangeAuthenticationKey {
+                key_id,
+                passphrase_file,
+            } => Command::ChangeAuthenticationKey {
+                key_id: *key_id,
                 authentication_key: AuthenticationKey::try_from(passphrase_file.as_path())?,
             },
             FileBackedCommand::GenerateAsymmetricKey { info } => {
@@ -802,6 +827,17 @@ pub enum FileBackedCommand {
         delegated_caps: Capabilities,
 
         /// The file containing passphrase of the authenticating user.
+        passphrase_file: PathBuf,
+    },
+
+    /// Change the authentication key on the device, which is currently used for the session.
+    ///
+    /// This command is used to replace the currently used authentication key.
+    ChangeAuthenticationKey {
+        /// The key ID.
+        key_id: Id,
+
+        /// The file containing the passphrase of the authenticating user.
         passphrase_file: PathBuf,
     },
 
