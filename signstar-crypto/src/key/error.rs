@@ -117,6 +117,10 @@ pub enum Error {
         signature_type: SignatureType,
     },
 
+    /// An unsupported context variant has been encountered.
+    #[error("Unsupported context variant has been encountered")]
+    UnsupportedContextVariant,
+
     /// An unsupported key mechanism has been encountered.
     #[error("Unsupported key mechanism: {0}")]
     #[cfg(feature = "nethsm")]

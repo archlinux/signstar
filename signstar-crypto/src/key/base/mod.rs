@@ -8,13 +8,17 @@ pub mod yubihsm2;
 
 use std::fmt::Display;
 
-use pgp::{composed::SignedPublicKey, types::KeyDetails as _};
+use pgp::{
+    composed::SignedPublicKey,
+    types::{KeyDetails as _, Timestamp},
+};
 use serde::{Deserialize, Serialize};
 use strum::{EnumIter, EnumString, IntoStaticStr};
 
 use crate::{
     key::error::Error,
     openpgp::{OpenPgpUserId, OpenPgpUserIdList, OpenPgpVersion},
+    signer::openpgp::{EmptyEd25519Signer, add_certificate},
 };
 
 /// A mode for decrypting a message
@@ -469,6 +473,24 @@ impl CryptographicKeyContext {
             },
         }
         Ok(())
+    }
+
+    /// XXX
+    pub fn openpgp_cert_size(&self) -> Result<usize, crate::Error> {
+        if let CryptographicKeyContext::OpenPgp { user_ids, .. } = self {
+            match add_certificate(
+                &EmptyEd25519Signer,
+                Default::default(),
+                user_ids.as_ref(),
+                Timestamp::now(),
+                Default::default(),
+            ) {
+                Err(error) => Err(error),
+                Ok(cert) => Ok(cert.len()),
+            }
+        } else {
+            Err(Error::UnsupportedContextVariant.into())
+        }
     }
 }
 

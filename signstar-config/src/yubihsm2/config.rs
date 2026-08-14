@@ -12,6 +12,7 @@ use signstar_crypto::{key::SigningKeySetup, passphrase::Passphrase, traits::User
 use signstar_yubihsm2::{
     Connection,
     Credentials,
+    automation::OpaqueData,
     object::{Capabilities, Capability, Domain, Domains},
     yubihsm::{Code, Id},
 };
@@ -785,16 +786,18 @@ fn validate_yubihsm2_config_connections(
 ///
 /// # Errors
 ///
-/// Returns an error if there are
+/// Returns an error if
 ///
-/// - no items in `value`
-/// - duplicate system users
-/// - duplicate SSH authorized keys (by comparing the actual SSH public keys)
-/// - missing administrator backend users
-/// - duplicate backend users
-/// - duplicate signing key IDs
-/// - duplicate wrapping key IDs
-/// - duplicate domains
+/// - there are no items in `value`
+/// - there are duplicate system users
+/// - there are duplicate SSH authorized keys (by comparing the actual SSH public keys)
+/// - there are missing administrator backend users
+/// - there are duplicate backend users
+/// - there are duplicate signing key IDs
+/// - there are duplicate wrapping key IDs
+/// - there are duplicate domains
+/// - the estimated size of an OpenPGP certificate would exceed the maximum size of an opaque data
+///   object
 fn validate_yubihsm2_config_mappings(
     value: &BTreeSet<YubiHsm2UserMapping>,
     _context: &(),
@@ -831,6 +834,27 @@ fn validate_yubihsm2_config_mappings(
             None
         }
     };
+
+    let size_estimations = value.iter().filter_map(|mapping| {
+        if let YubiHsm2UserMapping::Signing { key_setup, .. } = mapping {
+            match key_setup.key_context().openpgp_cert_size() {
+                Err(source) =>
+                    Some(format!(
+                        "dummy certificate creation for size estimation failed because of: {source:?}"
+                    )),
+                Ok(cert_size) if cert_size > OpaqueData::MAX_DATA_SIZE => Some(format!("estimated certificate size {cert_size} exceeds the storage limit of {max_size}", max_size = OpaqueData::MAX_DATA_SIZE)),
+                _ => None
+            }
+        } else {
+            None
+        }
+    }).fold(None, |error, item| {
+        if let Some(error) = error {
+            Some(error + item.as_ref())
+        } else {
+            Some(item)
+        }
+    });
 
     // Collect all duplicate backend user IDs.
     let duplicate_backend_user_ids = duplicate_backend_user_ids(value);
@@ -880,6 +904,7 @@ fn validate_yubihsm2_config_mappings(
         duplicate_signing_key_ids,
         duplicate_wrapping_key_ids,
         duplicate_domains,
+        size_estimations,
     ];
     let error_messages = {
         let mut error_messages = Vec::new();
@@ -2720,6 +2745,53 @@ mod tests {
             },
         ]),
     )]
+    #[case::certificate_too_large_for_backend(
+        "Error message for YubiHsm2Config::new with size estimation",
+        BTreeSet::from_iter([
+            Connection::Usb {serial_number: "0012345678".parse()? },
+        ]),
+        BTreeSet::from_iter([
+            YubiHsm2UserMapping::Admin { authentication_key_id: "1".parse()? },
+            YubiHsm2UserMapping::Signing {
+                authentication_key_id: "4".parse()?,
+                signing_key_id: "1".parse()?,
+                key_setup: SigningKeySetup::new(
+                    KeyType::Curve25519,
+                    vec![KeyMechanism::EdDsaSignature],
+                    None,
+                    SignatureType::EdDsa,
+                    CryptographicKeyContext::OpenPgp {
+                        user_ids: OpenPgpUserIdList::new(vec![
+                            "Foobar McFooface 1 <foobar@example.org>".parse()?,
+                            "Foobar McFooface 2 <foobar@example.org>".parse()?,
+                            "Foobar McFooface 3 <foobar@example.org>".parse()?,
+                            "Foobar McFooface 4 <foobar@example.org>".parse()?,
+                            "Foobar McFooface 5 <foobar@example.org>".parse()?,
+                            "Foobar McFooface 6 <foobar@example.org>".parse()?,
+                            "Foobar McFooface 7 <foobar@example.org>".parse()?,
+                            "Foobar McFooface 8 <foobar@example.org>".parse()?,
+                            "Foobar McFooface 9 <foobar@example.org>".parse()?,
+                            "Foobar McFooface 10 <foobar@example.org>".parse()?,
+                            "Foobar McFooface 11 <foobar@example.org>".parse()?,
+                            "Foobar McFooface 12 <foobar@example.org>".parse()?,
+                            "Foobar McFooface 13 <foobar@example.org>".parse()?,
+                            "Foobar McFooface 14 <foobar@example.org>".parse()?,
+                            "Foobar McFooface 15 <foobar@example.org>".parse()?,
+                            "Foobar McFooface 16 <foobar@example.org>".parse()?,
+                            "Foobar McFooface 17 <foobar@example.org>".parse()?,
+                            "Foobar McFooface 18 <foobar@example.org>".parse()?,
+                            "Foobar McFooface 19 <foobar@example.org>".parse()?,
+                            "Foobar McFooface 20 <foobar@example.org>".parse()?,
+                        ])?,
+                        version: "v4".parse()?,
+                    },
+                )?,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOh96uFTnvX6P1ebbLxXFvy6sK7qFqlMHDOuJ0TmuXQQ user@host".parse()?,
+                system_user: "signing-user".parse()?,
+                domain: Domain::One,
+            },
+        ])
+    )]
     #[case::all_the_issues(
         "Error message for YubiHsm2Config::new with multiple validation issues (connections and mappings)",
         BTreeSet::new(),
@@ -2777,6 +2849,44 @@ mod tests {
                 )?,
                 ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOh96uFTnvX6P1ebbLxXFvy6sK7qFqlMHDOuJ0TmuXQQ user@host".parse()?,
                 system_user: "signing-user2".parse()?,
+                domain: Domain::One,
+            },
+            YubiHsm2UserMapping::Signing {
+                authentication_key_id: "4".parse()?,
+                signing_key_id: "1".parse()?,
+                key_setup: SigningKeySetup::new(
+                    KeyType::Curve25519,
+                    vec![KeyMechanism::EdDsaSignature],
+                    None,
+                    SignatureType::EdDsa,
+                    CryptographicKeyContext::OpenPgp {
+                        user_ids: OpenPgpUserIdList::new(vec![
+                            "Foobar McFooface 1 <foobar@example.org>".parse()?,
+                            "Foobar McFooface 2 <foobar@example.org>".parse()?,
+                            "Foobar McFooface 3 <foobar@example.org>".parse()?,
+                            "Foobar McFooface 4 <foobar@example.org>".parse()?,
+                            "Foobar McFooface 5 <foobar@example.org>".parse()?,
+                            "Foobar McFooface 6 <foobar@example.org>".parse()?,
+                            "Foobar McFooface 7 <foobar@example.org>".parse()?,
+                            "Foobar McFooface 8 <foobar@example.org>".parse()?,
+                            "Foobar McFooface 9 <foobar@example.org>".parse()?,
+                            "Foobar McFooface 10 <foobar@example.org>".parse()?,
+                            "Foobar McFooface 11 <foobar@example.org>".parse()?,
+                            "Foobar McFooface 12 <foobar@example.org>".parse()?,
+                            "Foobar McFooface 13 <foobar@example.org>".parse()?,
+                            "Foobar McFooface 14 <foobar@example.org>".parse()?,
+                            "Foobar McFooface 15 <foobar@example.org>".parse()?,
+                            "Foobar McFooface 16 <foobar@example.org>".parse()?,
+                            "Foobar McFooface 17 <foobar@example.org>".parse()?,
+                            "Foobar McFooface 18 <foobar@example.org>".parse()?,
+                            "Foobar McFooface 19 <foobar@example.org>".parse()?,
+                            "Foobar McFooface 20 <foobar@example.org>".parse()?,
+                        ])?,
+                        version: "v4".parse()?,
+                    },
+                )?,
+                ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOh96uFTnvX6P1ebbLxXFvy6sK7qFqlMHDOuJ0TmuXQQ user@host".parse()?,
+                system_user: "signing-user".parse()?,
                 domain: Domain::One,
             },
         ]),
