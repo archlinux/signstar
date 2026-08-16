@@ -456,7 +456,8 @@ impl From<&OpaqueData> for Vec<u8> {
 ///
 /// [`PUT OPAQUE` command]: https://docs.yubico.com/hardware/yubihsm-2/hsm-2-user-guide/hsm2-cmd-reference.html#put-opaque-command
 /// [`GET OBJECT INFO` command]: https://docs.yubico.com/hardware/yubihsm-2/hsm-2-user-guide/hsm2-cmd-reference.html#get-object-info-command
-#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+#[derive(Clone, Copy, Debug, strum::Display, Eq, Hash, Ord, PartialEq, PartialOrd)]
+#[strum(serialize_all = "kebab-case")]
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 #[cfg_attr(feature = "serde", serde(rename_all = "kebab-case"))]
 pub enum OpaqueDataAlgorithm {
