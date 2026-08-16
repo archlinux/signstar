@@ -668,9 +668,11 @@ impl PartialEq<KeyType> for AsymmetricAlgorithm {
 ///
 /// As such, this type is less specific than [`yubihsm::Algorithm`], because we are not using some
 /// of its variants.
-#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+#[derive(Clone, Copy, Debug, strum::Display, Eq, Hash, Ord, PartialEq, PartialOrd)]
+#[strum(serialize_all = "kebab-case")]
 pub enum ObjectAlgorithm {
     /// Asymmetric algorithms
+    #[strum(to_string = "asymmetric ({0})")]
     Asymmetric(AsymmetricAlgorithm),
 
     /// YubiHSM 2 symmetric PSK authentication
@@ -689,6 +691,7 @@ pub enum ObjectAlgorithm {
     Mgf,
 
     /// Opaque data types
+    #[strum(to_string = "opaque ({0})")]
     Opaque(OpaqueDataAlgorithm),
 
     /// Symmetric algorithms
@@ -701,6 +704,7 @@ pub enum ObjectAlgorithm {
     Template,
 
     /// Object wrap (i.e. HSM-to-HSM encryption) algorithms
+    #[strum(to_string = "wrap ({0})")]
     Wrap(WrapKeyKind),
 
     /// Yubico OTP algorithms
