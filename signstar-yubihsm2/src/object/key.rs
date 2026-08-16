@@ -582,6 +582,7 @@ pub struct KeyInfo {
 /// As such, this type is less specific than [`yubihsm::Algorithm`], because using it we are only
 /// interested in comparing with e.g. [`KeyType`] and not in the underlying data structure.
 #[derive(Clone, Copy, Debug, strum::Display, Eq, Hash, Ord, PartialEq, PartialOrd)]
+#[strum(serialize_all = "kebab-case")]
 pub enum AsymmetricAlgorithm {
     /// 2048-bit RSA
     Rsa2048,
