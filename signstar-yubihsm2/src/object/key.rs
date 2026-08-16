@@ -354,7 +354,10 @@ impl TryFrom<&Passphrase> for AuthenticationKey {
 }
 
 /// The kind of a wrap key as used by the YubiHSM2.
-#[derive(Clone, Copy, Debug, Default, Eq, Hash, IntoStaticStr, Ord, PartialEq, PartialOrd)]
+#[derive(
+    Clone, Copy, Debug, Default, strum::Display, Eq, Hash, IntoStaticStr, Ord, PartialEq, PartialOrd,
+)]
+#[strum(serialize_all = "kebab-case")]
 pub enum WrapKeyKind {
     /// AES-128 in Counter with CBC-MAC (CCM) mode.
     Aes128,
