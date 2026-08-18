@@ -477,10 +477,11 @@ impl CryptographicKeyContext {
 
     /// Estimates the OpenPGP certificate size of this [`CryptographicKeyContext`].
     ///
+    /// For non OpenPGP contexts this function returns [`Option::None`].
+    ///
     /// # Errors
     ///
-    /// Returns an error if the context variant is not `OpenPgp` or if the certificate creation
-    /// fails.
+    /// Returns an error if the certificate creation fails.
     ///
     /// # Examples
     ///
@@ -495,11 +496,15 @@ impl CryptographicKeyContext {
     /// }
     /// .openpgp_cert_size()?;
     ///
-    /// assert_eq!(cert_size, 167);
+    /// assert_eq!(cert_size, Some(167));
+    ///
+    /// let cert_size = CryptographicKeyContext::Raw.openpgp_cert_size()?;
+    ///
+    /// assert_eq!(cert_size, None);
     /// # Ok(())
     /// # }
     /// ```
-    pub fn openpgp_cert_size(&self) -> Result<usize, crate::Error> {
+    pub fn openpgp_cert_size(&self) -> Result<Option<usize>, crate::Error> {
         if let CryptographicKeyContext::OpenPgp { user_ids, .. } = self {
             match add_certificate(
                 &EmptyEd25519Signer,
@@ -509,10 +514,10 @@ impl CryptographicKeyContext {
                 Default::default(),
             ) {
                 Err(error) => Err(error),
-                Ok(cert) => Ok(cert.len()),
+                Ok(cert) => Ok(Some(cert.len())),
             }
         } else {
-            Err(Error::UnsupportedContextVariant.into())
+            Ok(None)
         }
     }
 }

@@ -842,7 +842,7 @@ fn validate_yubihsm2_config_mappings(
                     Some(format!(
                         "dummy certificate creation for size estimation failed because of: {source:?}"
                     )),
-                Ok(cert_size) if cert_size > OpaqueData::MAX_DATA_SIZE => Some(format!("estimated certificate size {cert_size} exceeds the storage limit of {max_size}", max_size = OpaqueData::MAX_DATA_SIZE)),
+                Ok(Some(cert_size)) if cert_size > OpaqueData::MAX_DATA_SIZE => Some(format!("estimated certificate size {cert_size} exceeds the storage limit of {max_size}", max_size = OpaqueData::MAX_DATA_SIZE)),
                 _ => None
             }
         } else {
