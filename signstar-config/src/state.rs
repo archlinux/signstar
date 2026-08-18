@@ -134,6 +134,23 @@ pub enum StateDiffReport<'a, 'b> {
     Success,
 }
 
+impl<'a, 'b> Display for StateDiffReport<'a, 'b> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Failure { messages } => write!(
+                f,
+                "state diff report failure:\n{}",
+                messages
+                    .iter()
+                    .map(ToString::to_string)
+                    .collect::<Vec<String>>()
+                    .join("\n")
+            ),
+            Self::Success => write!(f, "state diff report success"),
+        }
+    }
+}
+
 /// An interface to compare the state of two objects.
 pub trait StateDiff<'a, 'b> {
     /// Returns a [`StateDiffReport`] for two objects.
