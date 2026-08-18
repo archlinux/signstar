@@ -2,6 +2,7 @@
 ignore = [
     "RUSTSEC-2023-0050", # nethsm-sdk-rs uses unmaintained multipart until something else becomes available: https://github.com/Nitrokey/nethsm-sdk-rs/issues/29
     "RUSTSEC-2023-0071", # side-channel attacks are not relevant for our use-case (only used in tests)
+    "RUSTSEC-2026-0258", # low severity and used only in tests, can be removed when h2 v0.3.28 is released, see also https://github.com/actix/actix-web/issues/4199
 ]
 version = 2
 yanked = "deny"
