@@ -1,0 +1,8 @@
+---
+source: signstar-config/src/yubihsm2/state.rs
+description: "State diff of pre-populated YubiHSM2 backend and mismatching YubiHSM2 config: Additional signing key."
+expression: diff
+---
+state diff report failure:
+Present in A (YubiHSM2 config) but not in B (YubiHSM2 backend): 6 (auth type: signing; capabilities: sign-eddsa; domains: 2)
+Present in A (YubiHSM2 config) but not in B (YubiHSM2 backend): 2 (authentication: 6; capabilities: sign-eddsa; domain: 2; type: Curve25519; mechanisms: EdDsaSignature; context: OpenPGP (Version: 4; User IDs: "Foobar McBehface <foobar@mcbehface.org>"))

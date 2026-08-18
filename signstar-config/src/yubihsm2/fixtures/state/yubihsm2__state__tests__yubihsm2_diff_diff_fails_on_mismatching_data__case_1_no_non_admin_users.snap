@@ -1,0 +1,12 @@
+---
+source: signstar-config/src/yubihsm2/state.rs
+description: "State diff of pre-populated YubiHSM2 backend and mismatching YubiHSM2 config: No non-admin users."
+expression: diff
+---
+state diff report failure:
+Present in A (YubiHSM2 backend) but not in B (YubiHSM2 config): 2 (capabilities: export-wrapped; domains: 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16)
+Present in A (YubiHSM2 backend) but not in B (YubiHSM2 config): 3 (capabilities: get-log-entries; domains: 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16)
+Present in A (YubiHSM2 backend) but not in B (YubiHSM2 config): 4 (capabilities: get-log-entries; domains: 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16)
+Present in A (YubiHSM2 backend) but not in B (YubiHSM2 config): 5 (capabilities: sign-eddsa; domains: 1)
+Present in A (YubiHSM2 backend) but not in B (YubiHSM2 config): 1 (type: asymmetric-key; algorithm: asymmetric (ed25519); capabilities: sign-eddsa; domains: 1; label: ; length: 32)
+Present in A (YubiHSM2 backend) but not in B (YubiHSM2 config): 1 (type: opaque; algorithm: opaque (opaque-data); capabilities: exportable-under-wrap; domains: 1; label: ; length: 231)

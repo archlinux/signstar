@@ -1,0 +1,18 @@
+---
+source: signstar-config/src/yubihsm2/state.rs
+description: "State diff of pre-populated YubiHSM2 backend and mismatching YubiHSM2 config: Mismatching user roles."
+expression: diff
+---
+state diff report failure:
+Different in A (YubiHSM2 config) and B (YubiHSM2 backend):
+A: 1 (auth type: signing; capabilities: sign-eddsa; domains: 1)
+B: 1 (capabilities: change-authentication-key, create-otp-aead, decrypt-cbc, decrypt-ecb, decrypt-oaep, decrypt-otp, decrypt-pkcs, delete-asymmetric-key, delete-authentication-key, delete-hmac-key, delete-opaque, delete-otp-aead-key, delete-public-wrap-key, delete-symmetric-key, delete-template, delete-wrap-key, derive-ecdh, encrypt-cbc, encrypt-ecb, exportable-under-wrap, export-wrapped, generate-asymmetric-key, generate-hmac-key, generate-otp-aead-key, generate-symmetric-key, generate-wrap-key, get-log-entries, get-opaque, get-option, get-pseudo-random, get-template, import-wrapped, put-asymmetric-key, put-authentication-key, put-hmac-key, put-opaque, put-otp-aead-key, put-public-wrap-key, put-symmetric-key, put-template, put-wrap-key, randomize-otp-aead, reset-device, rewrap-from-otp-aead-key, rewrap-to-otp-aead-key, set-option, sign-attestation-certificate, sign-ecdsa, sign-eddsa, sign-hmac, sign-pkcs, sign-pss, sign-ssh-certificate, unwrap-data, verify-hmac, wrap-data; domains: 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16)
+Different in A (YubiHSM2 config) and B (YubiHSM2 backend):
+A: 2 (auth type: audit_log; capabilities: get-log-entries; domains: 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16)
+B: 2 (capabilities: export-wrapped; domains: 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16)
+Different in A (YubiHSM2 config) and B (YubiHSM2 backend):
+A: 3 (auth type: backup; capabilities: export-wrapped; domains: 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16)
+B: 3 (capabilities: get-log-entries; domains: 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16)
+Different in A (YubiHSM2 config) and B (YubiHSM2 backend):
+A: 5 (auth type: admin; capabilities: change-authentication-key, delete-asymmetric-key, delete-authentication-key, delete-hmac-key, delete-opaque, delete-template, delete-wrap-key, exportable-under-wrap, generate-asymmetric-key, generate-hmac-key, generate-wrap-key, get-opaque, get-option, get-template, import-wrapped, put-asymmetric-key, put-authentication-key, put-hmac-key, put-opaque, put-template, put-wrap-key, reset-device, set-option, sign-hmac, unwrap-data, verify-hmac, wrap-data; domains: 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16)
+B: 5 (capabilities: sign-eddsa; domains: 1)

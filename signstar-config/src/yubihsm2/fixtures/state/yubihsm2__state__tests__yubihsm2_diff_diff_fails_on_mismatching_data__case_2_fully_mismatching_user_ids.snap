@@ -1,0 +1,19 @@
+---
+source: signstar-config/src/yubihsm2/state.rs
+description: "State diff of pre-populated YubiHSM2 backend and mismatching YubiHSM2 config: Fully mismatching user IDs."
+expression: diff
+---
+state diff report failure:
+Present in A (YubiHSM2 backend) but not in B (YubiHSM2 config): 1 (capabilities: change-authentication-key, create-otp-aead, decrypt-cbc, decrypt-ecb, decrypt-oaep, decrypt-otp, decrypt-pkcs, delete-asymmetric-key, delete-authentication-key, delete-hmac-key, delete-opaque, delete-otp-aead-key, delete-public-wrap-key, delete-symmetric-key, delete-template, delete-wrap-key, derive-ecdh, encrypt-cbc, encrypt-ecb, exportable-under-wrap, export-wrapped, generate-asymmetric-key, generate-hmac-key, generate-otp-aead-key, generate-symmetric-key, generate-wrap-key, get-log-entries, get-opaque, get-option, get-pseudo-random, get-template, import-wrapped, put-asymmetric-key, put-authentication-key, put-hmac-key, put-opaque, put-otp-aead-key, put-public-wrap-key, put-symmetric-key, put-template, put-wrap-key, randomize-otp-aead, reset-device, rewrap-from-otp-aead-key, rewrap-to-otp-aead-key, set-option, sign-attestation-certificate, sign-ecdsa, sign-eddsa, sign-hmac, sign-pkcs, sign-pss, sign-ssh-certificate, unwrap-data, verify-hmac, wrap-data; domains: 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16)
+Present in A (YubiHSM2 backend) but not in B (YubiHSM2 config): 2 (capabilities: export-wrapped; domains: 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16)
+Present in A (YubiHSM2 backend) but not in B (YubiHSM2 config): 3 (capabilities: get-log-entries; domains: 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16)
+Present in A (YubiHSM2 backend) but not in B (YubiHSM2 config): 4 (capabilities: get-log-entries; domains: 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16)
+Present in A (YubiHSM2 backend) but not in B (YubiHSM2 config): 5 (capabilities: sign-eddsa; domains: 1)
+Present in A (YubiHSM2 config) but not in B (YubiHSM2 backend): 7 (auth type: admin; capabilities: change-authentication-key, delete-asymmetric-key, delete-authentication-key, delete-hmac-key, delete-opaque, delete-template, delete-wrap-key, exportable-under-wrap, generate-asymmetric-key, generate-hmac-key, generate-wrap-key, get-opaque, get-option, get-template, import-wrapped, put-asymmetric-key, put-authentication-key, put-hmac-key, put-opaque, put-template, put-wrap-key, reset-device, set-option, sign-hmac, unwrap-data, verify-hmac, wrap-data; domains: 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16)
+Present in A (YubiHSM2 config) but not in B (YubiHSM2 backend): 9 (auth type: audit_log; capabilities: get-log-entries; domains: 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16)
+Present in A (YubiHSM2 config) but not in B (YubiHSM2 backend): 8 (auth type: backup; capabilities: export-wrapped; domains: 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16)
+Present in A (YubiHSM2 config) but not in B (YubiHSM2 backend): 10 (auth type: hermetic_audit_log; capabilities: get-log-entries; domains: 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16)
+Present in A (YubiHSM2 config) but not in B (YubiHSM2 backend): 11 (auth type: signing; capabilities: sign-eddsa; domains: 1)
+Present in A (YubiHSM2 backend) but not in B (YubiHSM2 config): 1 (type: asymmetric-key; algorithm: asymmetric (ed25519); capabilities: sign-eddsa; domains: 1; label: ; length: 32)
+Present in A (YubiHSM2 backend) but not in B (YubiHSM2 config): 1 (type: opaque; algorithm: opaque (opaque-data); capabilities: exportable-under-wrap; domains: 1; label: ; length: 231)
+Present in A (YubiHSM2 config) but not in B (YubiHSM2 backend): 2 (authentication: 11; capabilities: sign-eddsa; domain: 1; type: Curve25519; mechanisms: EdDsaSignature; context: OpenPGP (Version: 4; User IDs: "Foobar McFooface <foobar@mcfooface.org>"))

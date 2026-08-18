@@ -1,0 +1,12 @@
+---
+source: signstar-config/src/yubihsm2/state.rs
+description: State diff of unprovisioned YubiHSM2 backend and YubiHSM2 config.
+expression: diff
+---
+state diff report failure:
+Present in A (YubiHSM2 config) but not in B (YubiHSM2 backend): 3 (auth type: audit_log; capabilities: get-log-entries; domains: 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16)
+Present in A (YubiHSM2 config) but not in B (YubiHSM2 backend): 2 (auth type: backup; capabilities: export-wrapped; domains: 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16)
+Present in A (YubiHSM2 config) but not in B (YubiHSM2 backend): 4 (auth type: hermetic_audit_log; capabilities: get-log-entries; domains: 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16)
+Present in A (YubiHSM2 config) but not in B (YubiHSM2 backend): 5 (auth type: signing; capabilities: sign-eddsa; domains: 1)
+Present in A (YubiHSM2 config) but not in B (YubiHSM2 backend): 1 (type: wrap-key; algorithm: wrap (aes256); capabilities: export-wrapped; domains: 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16; label: ; length: 32)
+Present in A (YubiHSM2 config) but not in B (YubiHSM2 backend): 1 (authentication: 5; capabilities: sign-eddsa; domain: 1; type: Curve25519; mechanisms: EdDsaSignature; context: OpenPGP (Version: 4; User IDs: "Foobar McFooface <foobar@mcfooface.org>"))

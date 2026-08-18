@@ -1,0 +1,9 @@
+---
+source: signstar-config/src/yubihsm2/state.rs
+description: "State diff of pre-populated YubiHSM2 backend and mismatching YubiHSM2 config: Mismatching signing key ID."
+expression: diff
+---
+state diff report failure:
+Present in A (YubiHSM2 backend) but not in B (YubiHSM2 config): 1 (type: asymmetric-key; algorithm: asymmetric (ed25519); capabilities: sign-eddsa; domains: 1; label: ; length: 32)
+Present in A (YubiHSM2 backend) but not in B (YubiHSM2 config): 1 (type: opaque; algorithm: opaque (opaque-data); capabilities: exportable-under-wrap; domains: 1; label: ; length: 231)
+Present in A (YubiHSM2 config) but not in B (YubiHSM2 backend): 2 (authentication: 5; capabilities: sign-eddsa; domain: 1; type: Curve25519; mechanisms: EdDsaSignature; context: OpenPGP (Version: 4; User IDs: "Foobar McFooface <foobar@mcfooface.org>"))

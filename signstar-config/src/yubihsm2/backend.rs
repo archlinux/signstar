@@ -57,6 +57,7 @@ use crate::{
         YubiHsm2Config,
         YubiHsm2UserMapping,
         admin_credentials::YubiHsm2AdminCredentials,
+        state::{YubiHsm2BackendUserData, YubiHsm2BackendUserKeyData},
     },
 };
 
@@ -1360,6 +1361,79 @@ impl<'admin_creds, 'config> YubiHsm2Backend<'admin_creds, 'config> {
         );
 
         Ok(credentials)
+    }
+
+    /// Returns the list of available authentication key objects in the backend.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error, if
+    /// - no usable administrative credentials can be found
+    /// - retrieving the information on authentication key objects fails.
+    pub(crate) fn user_states(&self) -> Result<Vec<YubiHsm2BackendUserData>, crate::Error> {
+        let credentials = self.usable_admin_creds()?;
+        // Get the list of all authentication key IDs.
+        let infos = get_object_infos_for_object_types(
+            &self.runner,
+            &credentials,
+            &[ObjectType::AuthenticationKey],
+        )?;
+
+        let user_states = infos
+            .iter()
+            .map(|info| YubiHsm2BackendUserData {
+                id: info.object_id,
+                capabilities: info.capabilities.into(),
+                domains: info.domains.into(),
+            })
+            .collect::<Vec<_>>();
+
+        Ok(user_states)
+    }
+
+    /// Returns the list of available non-authentication key objects in the backend.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if
+    ///
+    /// - no usable administrative credentials can be found
+    /// - the fetching of one or more object infos fails
+    pub(crate) fn key_states(&self) -> Result<Vec<YubiHsm2BackendUserKeyData>, crate::Error> {
+        let credentials = self.usable_admin_creds()?;
+        // Get the list of IDs for all objects that are not authentication keys.
+        let object_types = [
+            ObjectType::AsymmetricKey,
+            ObjectType::HmacKey,
+            ObjectType::Opaque,
+            ObjectType::OtpAeakey,
+            ObjectType::Template,
+            ObjectType::WrapKey,
+        ];
+        let infos = get_object_infos_for_object_types(&self.runner, &credentials, &object_types)?;
+
+        let key_states = infos
+            .into_iter()
+            .filter_map(|info| {
+                // NOTE: Ignore object IDs reserved by the vendor (<https://docs.yubico.com/hardware/yubihsm-2/hsm-2-user-guide/hsm2-intro-core-concepts.html#object-id>).
+                // This needs fixing for the mockhsm integration and can then be removed, as these objects should never be listed in the first place: https://gitlab.archlinux.org/dvzrv/yubihsm2/-/work_items/11
+                if info.object_id == 0 || info.object_id == Id::MAX {
+                    None
+                } else {
+                    Some(YubiHsm2BackendUserKeyData {
+                        id: info.object_id,
+                        object_type: info.object_type.into(),
+                        capabilities: info.capabilities.into(),
+                        domains: info.domains.into(),
+                        algorithm: info.algorithm.into(),
+                        label: info.label.into(),
+                        length: info.length,
+                    })
+                }
+            })
+            .collect::<Vec<_>>();
+
+        Ok(key_states)
     }
 }
 

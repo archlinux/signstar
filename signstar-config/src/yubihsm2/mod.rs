@@ -4,6 +4,7 @@ pub mod admin_credentials;
 mod backend;
 mod config;
 mod error;
+mod state;
 
 pub use backend::YubiHsm2Backend;
 pub use config::{
@@ -17,3 +18,4 @@ pub use config::{
 pub use error::Error;
 // Re-export of types used from the signstar_yubihsm2 crate.
 pub use signstar_yubihsm2::object::Domain;
+pub use state::{YubiHsm2BackendState, YubiHsm2Diff};
