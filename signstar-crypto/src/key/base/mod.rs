@@ -475,7 +475,30 @@ impl CryptographicKeyContext {
         Ok(())
     }
 
-    /// XXX
+    /// Estimates the OpenPGP certificate size of this [`CryptographicKeyContext`].
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the context variant is not `OpenPgp` or if the certificate creation
+    /// fails.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use signstar_crypto::key::CryptographicKeyContext;
+    /// use signstar_crypto::openpgp::{OpenPgpUserIdList, OpenPgpVersion};
+    ///
+    /// # fn main() -> testresult::TestResult {
+    /// let cert_size = CryptographicKeyContext::OpenPgp {
+    ///     user_ids: OpenPgpUserIdList::new(vec!["Foobar McFooface <foobar@mcfooface.org>".parse()?])?,
+    ///     version: OpenPgpVersion::V4,
+    /// }
+    /// .openpgp_cert_size()?;
+    ///
+    /// assert_eq!(cert_size, 167);
+    /// # Ok(())
+    /// # }
+    /// ```
     pub fn openpgp_cert_size(&self) -> Result<usize, crate::Error> {
         if let CryptographicKeyContext::OpenPgp { user_ids, .. } = self {
             match add_certificate(
