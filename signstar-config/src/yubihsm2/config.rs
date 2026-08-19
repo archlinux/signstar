@@ -1,6 +1,4 @@
 //! YubiHSM2 specific integration for the [`crate::config`] module.
-#![cfg(feature = "yubihsm2")]
-
 use std::{
     collections::{BTreeSet, HashSet},
     fmt::Display,
