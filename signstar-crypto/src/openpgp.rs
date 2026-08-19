@@ -438,7 +438,7 @@ impl TryFrom<Vec<String>> for OpenPgpUserIdList {
 }
 
 /// Key usage flags that can be set on the generated certificate.
-#[derive(Debug, Default)]
+#[derive(Clone, Debug, Default)]
 pub struct OpenPgpKeyUsageFlags(KeyFlags);
 
 impl OpenPgpKeyUsageFlags {
