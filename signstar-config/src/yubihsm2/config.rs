@@ -1061,11 +1061,46 @@ impl ConfigSystemUserIds for YubiHsm2Config {
     }
 }
 
+/// The type of authentication key.
+#[derive(Clone, Copy, Debug, strum::Display, Eq, Hash, Ord, PartialEq, PartialOrd)]
+#[strum(serialize_all = "snake_case")]
+pub enum AuthType {
+    /// An authentication key used for administrative tasks.
+    Admin,
+
+    /// An authentication key used for retrieving the audit log over SSH.
+    AuditLog,
+
+    /// An authentication key used for retrieving the backup.
+    Backup,
+
+    /// An authentication key used for retrieving the audit log locally.
+    HermeticAuditLog,
+
+    /// An authentication key used for requesting digital signatures.
+    Signing,
+}
+
+impl From<&YubiHsm2UserMapping> for AuthType {
+    fn from(value: &YubiHsm2UserMapping) -> Self {
+        match value {
+            YubiHsm2UserMapping::Admin { .. } => Self::Admin,
+            YubiHsm2UserMapping::AuditLog { .. } => Self::AuditLog,
+            YubiHsm2UserMapping::Backup { .. } => Self::Backup,
+            YubiHsm2UserMapping::HermeticAuditLog { .. } => Self::HermeticAuditLog,
+            YubiHsm2UserMapping::Signing { .. } => Self::Signing,
+        }
+    }
+}
+
 /// Data about a YubiHSM2 user.
 #[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct YubiHsm2ConfigUserData {
     /// The ID of the authentication key.
     pub authentication_key_id: Id,
+
+    /// The user type.
+    pub auth_type: AuthType,
 
     /// The capabilities of the authentication key.
     pub capabilities: Capabilities,
@@ -1078,8 +1113,8 @@ impl Display for YubiHsm2ConfigUserData {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "{} (capabilities: {}; domains: {})",
-            self.authentication_key_id, self.capabilities, self.domains
+            "{} (auth type: {}; capabilities: {}; domains: {})",
+            self.authentication_key_id, self.auth_type, self.capabilities, self.domains
         )?;
 
         Ok(())
@@ -1174,6 +1209,7 @@ impl<'config> From<&'config YubiHsm2Config> for YubiHsm2ConfigState<'config> {
 
             user_data.push(YubiHsm2ConfigUserData {
                 authentication_key_id: mapping.backend_user_id(),
+                auth_type: mapping.into(),
                 capabilities: mapping.capabilities(),
                 domains: mapping.domains(),
             })
@@ -2955,27 +2991,32 @@ mod tests {
     /// Ensures that [`YubiHsm2ConfigUserData`] is displayed correctly.
     #[rstest]
     #[case::single_cap_single_domain(
+        AuthType::Signing,
         Capabilities::from(vec![Capability::SignEddsa].as_slice()),
         Domains::from(vec![Domain::One].as_slice()),
-        "1 (capabilities: sign-eddsa; domains: 1)"
+        "1 (auth type: signing; capabilities: sign-eddsa; domains: 1)"
     )]
     #[case::multi_cap_multi_domain(
+        AuthType::Signing,
         Capabilities::from(vec![Capability::SignEddsa, Capability::SignEcdsa].as_slice()),
         Domains::from(vec![Domain::One, Domain::Two].as_slice()),
-        "1 (capabilities: sign-ecdsa, sign-eddsa; domains: 1, 2)"
+        "1 (auth type: signing; capabilities: sign-ecdsa, sign-eddsa; domains: 1, 2)"
     )]
     #[case::multi_cap_single_domain(
+        AuthType::Signing,
         Capabilities::from(vec![Capability::SignEddsa, Capability::SignEcdsa].as_slice()),
         Domains::from(vec![Domain::One].as_slice()),
-        "1 (capabilities: sign-ecdsa, sign-eddsa; domains: 1)"
+        "1 (auth type: signing; capabilities: sign-ecdsa, sign-eddsa; domains: 1)"
     )]
     fn yubihsm2_config_user_data_display(
+        #[case] auth_type: AuthType,
         #[case] capabilities: Capabilities,
         #[case] domains: Domains,
         #[case] display: &str,
     ) -> TestResult {
         let data = YubiHsm2ConfigUserData {
             authentication_key_id: "1".parse()?,
+            auth_type,
             capabilities,
             domains,
         };
