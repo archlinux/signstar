@@ -3,7 +3,10 @@
 use std::{collections::HashSet, fmt::Display};
 
 use log::{debug, info, warn};
-use signstar_crypto::key::base::{CryptographicKeyContext, KeyType};
+use signstar_crypto::key::{
+    SigningKeySetup,
+    base::{CryptographicKeyContext, KeyType},
+};
 use signstar_yubihsm2::{
     automation::ObjectType,
     backup::Label,
@@ -11,6 +14,7 @@ use signstar_yubihsm2::{
         AsymmetricAlgorithm,
         Capabilities,
         Capability,
+        Domain,
         Domains,
         ObjectAlgorithm,
         WrapKeyKind,
@@ -27,15 +31,7 @@ use crate::{
         StateOrigin,
         StateOriginInfo,
     },
-    yubihsm2::{
-        YubiHsm2Backend,
-        YubiHsm2Config,
-        YubiHsm2ConfigState,
-        YubiHsm2ConfigUserData,
-        YubiHsm2ConfigUserKeyData,
-        YubiHsm2UserMapping,
-        config::AuthType,
-    },
+    yubihsm2::{YubiHsm2Backend, YubiHsm2Config, YubiHsm2UserMapping, config::AuthType},
 };
 
 /// Returns information on the (implicitly defined) wrapping key used to backup all objects.
@@ -390,6 +386,145 @@ impl StateOriginInfo for YubiHsm2BackendState {
     }
 }
 
+/// Data about a YubiHSM2 user.
+#[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+pub(crate) struct YubiHsm2ConfigUserData {
+    /// The ID of the authentication key.
+    pub authentication_key_id: Id,
+
+    /// The user type.
+    pub auth_type: AuthType,
+
+    /// The capabilities of the authentication key.
+    pub capabilities: Capabilities,
+
+    /// The optional domains of the authentication key.
+    pub domains: Domains,
+}
+
+impl Display for YubiHsm2ConfigUserData {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{} (auth type: {}; capabilities: {}; domains: {})",
+            self.authentication_key_id, self.auth_type, self.capabilities, self.domains
+        )?;
+
+        Ok(())
+    }
+}
+
+/// Data about a YubiHSM2 signing user associated with a signing key.
+#[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+pub(crate) struct YubiHsm2ConfigUserKeyData<'config> {
+    /// The ID of the signing key.
+    pub signing_key_id: &'config Id,
+
+    /// The ID of the authentication key.
+    pub authentication_key_id: &'config Id,
+
+    /// The capabilities of the signing key.
+    pub capabilities: Capabilities,
+
+    /// The domain of the signing key.
+    pub domain: &'config Domain,
+
+    /// The setup of the signing key.
+    pub key_setup: &'config SigningKeySetup,
+}
+
+impl<'config> Display for YubiHsm2ConfigUserKeyData<'config> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{} (authentication: {}; capabilities: {}; domain: {}; ",
+            self.signing_key_id, self.authentication_key_id, self.capabilities, self.domain,
+        )?;
+        write!(f, "type: {}; ", self.key_setup.key_type())?;
+        write!(
+            f,
+            "mechanisms: {}; ",
+            self.key_setup
+                .key_mechanisms()
+                .iter()
+                .map(|mechanism| mechanism.to_string())
+                .collect::<Vec<String>>()
+                .join(", ")
+        )?;
+        write!(f, "context: {}", self.key_setup.key_context())?;
+        write!(f, ")")?;
+
+        Ok(())
+    }
+}
+
+/// The state of a YubiHSM2 configuration.
+///
+/// Tracks the available backend authentication keys, their capabilities and domains, as well as the
+/// signing key setups associated with those authentication keys.
+#[derive(Debug)]
+pub struct YubiHsm2ConfigState<'config> {
+    /// The user states.
+    pub(crate) user_data: Vec<YubiHsm2ConfigUserData>,
+
+    /// The key states.
+    pub(crate) key_data: Vec<YubiHsm2ConfigUserKeyData<'config>>,
+}
+
+impl<'config> YubiHsm2ConfigState<'config> {
+    /// The name of the origin for the state.
+    pub const STATE_NAME: &'static str = "YubiHSM2 config";
+}
+
+impl<'config> From<&'config YubiHsm2Config> for YubiHsm2ConfigState<'config> {
+    /// Creates a new [`YubiHsm2ConfigState`] from a [`YubiHsm2Config`].
+    fn from(value: &'config YubiHsm2Config) -> Self {
+        let mut user_data = Vec::new();
+        let mut key_data = Vec::new();
+
+        for mapping in value.mappings() {
+            if let YubiHsm2UserMapping::Signing {
+                authentication_key_id,
+                key_setup,
+                domain,
+                signing_key_id,
+                ..
+            } = mapping
+            {
+                key_data.push(YubiHsm2ConfigUserKeyData {
+                    signing_key_id,
+                    authentication_key_id,
+                    capabilities: mapping.capabilities(),
+                    domain,
+                    key_setup,
+                })
+            }
+
+            user_data.push(YubiHsm2ConfigUserData {
+                authentication_key_id: mapping.backend_user_id(),
+                auth_type: mapping.into(),
+                capabilities: mapping.capabilities(),
+                domains: mapping.domains(),
+            })
+        }
+
+        Self {
+            user_data,
+            key_data,
+        }
+    }
+}
+
+impl<'config> StateOriginInfo for YubiHsm2ConfigState<'config> {
+    fn state_name(&self) -> &str {
+        Self::STATE_NAME
+    }
+
+    fn state_origin(&self) -> StateOrigin {
+        StateOrigin::Config
+    }
+}
+
 /// The diff between [`YubiHsm2ConfigState`] and [`YubiHsm2BackendState`].
 #[derive(Debug)]
 pub struct YubiHsm2Diff<'config_state, 'backend_state, 'config_items> {
@@ -713,7 +848,6 @@ mod tests {
         state::{StateDiff, StateDiffReport},
         yubihsm2::{
             YubiHsm2Config,
-            YubiHsm2ConfigState,
             YubiHsm2UserMapping,
             admin_credentials::YubiHsm2AdminCredentials,
         },
@@ -1064,6 +1198,47 @@ mod tests {
         )?)
     }
 
+    #[fixture]
+    fn yubihsm2_mappings() -> TestResult<[YubiHsm2UserMapping; 5]> {
+        Ok([
+                    YubiHsm2UserMapping::Admin { authentication_key_id: "1".parse()? },
+                    YubiHsm2UserMapping::Backup{
+                        authentication_key_id: "2".parse()?,
+                        ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOh9BTe81DC6A0YZALsq9dWcyl6xjjqlxWPwlExTFgBt user@host".parse()?,
+                        system_user: "backup-user".parse()?,
+                        wrapping_key_id: "1".parse()?,
+                    },
+                    YubiHsm2UserMapping::AuditLog {
+                        authentication_key_id: "3".parse()?,
+                        ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPkpXKiNhy39A3bZ1u19a5d4sFwYMBkWQyCbzgUfdKBm user@host".parse()?,
+                        system_user: "metrics-user".parse()?,
+                    },
+                    YubiHsm2UserMapping::HermeticAuditLog {
+                        authentication_key_id: "4".parse()?,
+                        system_user: "hermetic-metrics".parse()?,
+                    },
+                    YubiHsm2UserMapping::Signing {
+                        authentication_key_id: "5".parse()?,
+                        signing_key_id: "1".parse()?,
+                        key_setup: SigningKeySetup::new(
+                            KeyType::Curve25519,
+                            vec![KeyMechanism::EdDsaSignature],
+                            None,
+                            SignatureType::EdDsa,
+                            CryptographicKeyContext::OpenPgp {
+                                user_ids: OpenPgpUserIdList::new(vec![
+                                    "Foobar McFooface <foobar@mcfooface.org>".parse()?,
+                                ])?,
+                                version: "v4".parse()?,
+                            },
+                        )?,
+                        ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOh96uFTnvX6P1ebbLxXFvy6sK7qFqlMHDOuJ0TmuXQQ user@host".parse()?,
+                        system_user: "signing-user".parse()?,
+                        domain: Domain::One,
+                    }
+                ])
+    }
+
     /// Returns a set of default non-administrative credentials (used with the default YubiHSM2
     /// config).
     #[fixture]
@@ -1108,6 +1283,154 @@ mod tests {
             connector,
             admin_creds,
         })
+    }
+
+    /// Ensures that [`YubiHsm2ConfigUserData`] is displayed correctly.
+    #[rstest]
+    #[case::single_cap_single_domain(
+        AuthType::Signing,
+        Capabilities::from(vec![Capability::SignEddsa].as_slice()),
+        Domains::from(vec![Domain::One].as_slice()),
+        "1 (auth type: signing; capabilities: sign-eddsa; domains: 1)"
+    )]
+    #[case::multi_cap_multi_domain(
+        AuthType::Signing,
+        Capabilities::from(vec![Capability::SignEddsa, Capability::SignEcdsa].as_slice()),
+        Domains::from(vec![Domain::One, Domain::Two].as_slice()),
+        "1 (auth type: signing; capabilities: sign-ecdsa, sign-eddsa; domains: 1, 2)"
+    )]
+    #[case::multi_cap_single_domain(
+        AuthType::Signing,
+        Capabilities::from(vec![Capability::SignEddsa, Capability::SignEcdsa].as_slice()),
+        Domains::from(vec![Domain::One].as_slice()),
+        "1 (auth type: signing; capabilities: sign-ecdsa, sign-eddsa; domains: 1)"
+    )]
+    fn yubihsm2_config_user_data_display(
+        #[case] auth_type: AuthType,
+        #[case] capabilities: Capabilities,
+        #[case] domains: Domains,
+        #[case] display: &str,
+    ) -> TestResult {
+        let data = YubiHsm2ConfigUserData {
+            authentication_key_id: "1".parse()?,
+            auth_type,
+            capabilities,
+            domains,
+        };
+
+        assert_eq!(format!("{data}"), display);
+
+        Ok(())
+    }
+
+    /// Ensures that [`YubiHsm2ConfigUserKeyData`] is displayed correctly.
+    #[test]
+    fn yubihsm2_config_user_key_data_display() -> TestResult {
+        let capabilities = Capabilities::from(vec![Capability::SignEddsa].as_slice());
+        let domain = Domain::One;
+        let key_setup = SigningKeySetup::new(
+            KeyType::Curve25519,
+            vec![KeyMechanism::EdDsaSignature],
+            None,
+            SignatureType::EdDsa,
+            CryptographicKeyContext::OpenPgp {
+                user_ids: vec!["John Doe <john.doe@example.org>".to_string()].try_into()?,
+                version: "4".parse()?,
+            },
+        )?;
+        let display = "1 (authentication: 1; capabilities: sign-eddsa; domain: 1; type: Curve25519; mechanisms: EdDsaSignature; context: OpenPGP (Version: 4; User IDs: \"John Doe <john.doe@example.org>\"))";
+        let data = YubiHsm2ConfigUserKeyData {
+            authentication_key_id: &"1".parse()?,
+            signing_key_id: &"1".parse()?,
+            capabilities,
+            domain: &domain,
+            key_setup: &key_setup,
+        };
+
+        assert_eq!(data.to_string(), display);
+
+        Ok(())
+    }
+
+    /// Ensures that [`YubiHsm2ConfigState`] can be created from [`YubiHsm2Config`].
+    #[rstest]
+    fn yubihsm2_config_state_from_yubihsm_config(
+        yubihsm2_config: TestResult<YubiHsm2Config>,
+        yubihsm2_mappings: TestResult<[YubiHsm2UserMapping; 5]>,
+    ) -> TestResult {
+        setup_logging(LevelFilter::Debug)?;
+        let yubihsm2_config = yubihsm2_config?;
+        let yubihsm2_mappings = yubihsm2_mappings?;
+        let state = YubiHsm2ConfigState::from(&yubihsm2_config);
+
+        for authentication_key_id in yubihsm2_mappings
+            .iter()
+            .map(|mapping| mapping.backend_user_id())
+        {
+            debug!(
+                "Ensuring that the YubiHSM2 authentication key ID {authentication_key_id} can be found in the YubiHSM2 config state."
+            );
+            assert!(
+                state
+                    .user_data
+                    .iter()
+                    .any(|user_data| user_data.authentication_key_id == authentication_key_id)
+            );
+        }
+
+        for (authentication_key_id, signing_key_id) in
+            yubihsm2_mappings.iter().filter_map(|mapping| {
+                if let YubiHsm2UserMapping::Signing {
+                    authentication_key_id,
+                    signing_key_id,
+                    ..
+                } = mapping
+                {
+                    Some((authentication_key_id, signing_key_id))
+                } else {
+                    None
+                }
+            })
+        {
+            debug!(
+                "Ensuring that the YubiHSM2 authentication key ID {authentication_key_id} and signing key ID {signing_key_id} can be found in the YubiHSM2 config state."
+            );
+            assert!(
+                state
+                    .key_data
+                    .iter()
+                    .any(|data| data.authentication_key_id == authentication_key_id
+                        && data.signing_key_id == signing_key_id)
+            );
+        }
+
+        Ok(())
+    }
+
+    /// Ensures, that [`YubiHsm2ConfigState::state_name`] returns the correct data.
+    #[rstest]
+    fn yubihsm_config_state_state_name(yubihsm2_config: TestResult<YubiHsm2Config>) -> TestResult {
+        setup_logging(LevelFilter::Debug)?;
+        let yubihsm2_config = yubihsm2_config?;
+        let state = YubiHsm2ConfigState::from(&yubihsm2_config);
+
+        assert_eq!(state.state_name(), YubiHsm2ConfigState::STATE_NAME);
+
+        Ok(())
+    }
+
+    /// Ensures, that [`YubiHsm2ConfigState::state_name`] returns the correct data.
+    #[rstest]
+    fn yubihsm_config_state_state_origin(
+        yubihsm2_config: TestResult<YubiHsm2Config>,
+    ) -> TestResult {
+        setup_logging(LevelFilter::Debug)?;
+        let yubihsm2_config = yubihsm2_config?;
+        let state = YubiHsm2ConfigState::from(&yubihsm2_config);
+
+        assert_eq!(state.state_origin(), StateOrigin::Config);
+
+        Ok(())
     }
 
     /// Ensures that [`YubiHsm2Diff::diff`] fails on mismatching backend and config.
