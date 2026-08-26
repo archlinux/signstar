@@ -687,6 +687,9 @@ pub enum ObjectAlgorithm {
     /// Opaque data types
     Opaque(OpaqueDataAlgorithm),
 
+    /// Symmetric algorithms
+    Symmetric,
+
     /// RSA algorithms (signing and encryption)
     Rsa,
 
@@ -711,6 +714,7 @@ impl From<YubiHsmAlgorithm> for ObjectAlgorithm {
             YubiHsmAlgorithm::Mgf(_) => Self::Mgf,
             YubiHsmAlgorithm::Opaque(algorithm) => Self::Opaque(algorithm.into()),
             YubiHsmAlgorithm::Rsa(_) => Self::Rsa,
+            YubiHsmAlgorithm::Symmetric(_) => Self::Symmetric,
             YubiHsmAlgorithm::Template(_) => Self::Template,
             YubiHsmAlgorithm::Wrap(algorithm) => Self::Wrap(algorithm.into()),
             YubiHsmAlgorithm::YubicoOtp(_) => Self::YubicoOtp,

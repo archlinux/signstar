@@ -68,7 +68,7 @@ tokio = { version = "1.42.0", features = ["macros"] }
 toml = "1.0.0"
 ureq = "2.12.1"
 uuid = { version = "1.11.0", features = ["v7"] }
-yubihsm = { package = "yubihsm2", version = "0.43.1", features = ["usb"] }
+yubihsm = { package = "yubihsm2", version = "0.44.0", features = ["usb"] }
 zeroize = { version = "1.8.1", features = ["serde", "zeroize_derive"] }
 
 [workspace.lints.rust]

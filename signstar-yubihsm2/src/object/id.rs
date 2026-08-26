@@ -38,6 +38,9 @@ pub enum ObjectId {
 
     /// One-Time-Password AEAD key.
     Otp(Id),
+
+    /// Symmetric key used for encryption and decryption.
+    SymmetricKey(Id),
 }
 
 impl ObjectId {
@@ -51,6 +54,7 @@ impl ObjectId {
             ObjectId::Hmac(id) => *id,
             ObjectId::Template(id) => *id,
             ObjectId::Otp(id) => *id,
+            ObjectId::SymmetricKey(id) => *id,
         }
     }
 
@@ -64,6 +68,7 @@ impl ObjectId {
             ObjectId::Hmac(_) => Type::HmacKey,
             ObjectId::Template(_) => Type::Template,
             ObjectId::Otp(_) => Type::OtpAeadKey,
+            ObjectId::SymmetricKey(_) => Type::SymmetricKey,
         }
     }
 }
@@ -78,6 +83,7 @@ impl From<(ObjectType, Id)> for ObjectId {
             ObjectType::OtpAeakey => Self::Otp(value.1),
             ObjectType::Template => Self::Template(value.1),
             ObjectType::WrapKey => Self::WrappingKey(value.1),
+            ObjectType::SymmetricKey => Self::SymmetricKey(value.1),
         }
     }
 }
@@ -92,6 +98,7 @@ impl From<Handle> for ObjectId {
             Type::HmacKey => ObjectId::Hmac(value.object_id),
             Type::Template => ObjectId::Template(value.object_id),
             Type::OtpAeadKey => ObjectId::Otp(value.object_id),
+            Type::SymmetricKey => ObjectId::SymmetricKey(value.object_id),
         }
     }
 }

@@ -211,6 +211,9 @@ pub enum ObjectType {
 
     /// A Yubike-AES OTP encryption and decryption key.
     OtpAeakey,
+
+    /// Symmetric private keys for encryption and decryption.
+    SymmetricKey,
 }
 
 impl From<Type> for ObjectType {
@@ -223,6 +226,7 @@ impl From<Type> for ObjectType {
             Type::HmacKey => Self::HmacKey,
             Type::Template => Self::Template,
             Type::OtpAeadKey => Self::OtpAeakey,
+            Type::SymmetricKey => Self::SymmetricKey,
         }
     }
 }
@@ -237,6 +241,7 @@ impl From<&ObjectType> for Type {
             ObjectType::HmacKey => Self::HmacKey,
             ObjectType::Template => Self::Template,
             ObjectType::OtpAeakey => Self::OtpAeadKey,
+            ObjectType::SymmetricKey => Self::SymmetricKey,
         }
     }
 }

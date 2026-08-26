@@ -11,6 +11,7 @@ use yubihsm::{
     otp::Algorithm as OtpAlgorithm,
     rsa::Algorithm as RsaAlgorithm,
     rsa::mgf::Algorithm as RsaMgfAlgorithm,
+    symmetric::Algorithm as SymmetricAlgorithm,
     template::Algorithm as TemplateAlgorithm,
     wrap::Algorithm as WrapAlgorithm,
 };
@@ -102,6 +103,11 @@ impl TryFrom<Algorithm> for KeyType {
                 RsaAlgorithm::Oaep(_) => KeyType::Rsa,
                 RsaAlgorithm::Pkcs1(_) => KeyType::Rsa,
                 RsaAlgorithm::Pss(_) => KeyType::Rsa,
+            },
+            Algorithm::Symmetric(algorithm) => match algorithm {
+                SymmetricAlgorithm::Aes128
+                | SymmetricAlgorithm::Aes192
+                | SymmetricAlgorithm::Aes256 => KeyType::Generic,
             },
             Algorithm::Template(TemplateAlgorithm::Ssh) => {
                 return Err(Error::YubiHsm2AlgorithmNotAKeyType {
