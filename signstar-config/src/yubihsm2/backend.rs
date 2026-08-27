@@ -680,7 +680,8 @@ impl<'admin_creds, 'config> YubiHsm2Backend<'admin_creds, 'config> {
         // This ensures, that no rogue keys are left on the device, before we start synchronizing
         // its state with that of the configuration.
         if self.check_set_default_credentials() {
-            self.reset()?;
+            warn!("not resetting the backend");
+            //self.reset()?;
         }
 
         self.add_admin_users()?;

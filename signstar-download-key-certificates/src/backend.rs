@@ -197,12 +197,21 @@ pub fn load_certificates() -> Result<Vec<Certificate>, Error> {
                             creds.passphrase().clone(),
                         );
 
-                        let signer = match connection {
+                        let signer = match &connection {
                             #[cfg(feature = "_yubihsm2-mockhsm")]
                             Connection::Mock => YubiHsm2SigningKey::mock(signing_key_id, &creds)?,
                             Connection::Usb { serial_number } => {
                                 YubiHsm2SigningKey::new_with_serial_number(
-                                    serial_number,
+                                    *serial_number,
+                                    signing_key_id,
+                                    &creds,
+                                )?
+                            }
+                            Connection::Http { address, port, tls } => {
+                                YubiHsm2SigningKey::new_remote(
+                                    address.clone(),
+                                    *port,
+                                    *tls,
                                     signing_key_id,
                                     &creds,
                                 )?
