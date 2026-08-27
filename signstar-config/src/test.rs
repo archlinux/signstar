@@ -233,6 +233,14 @@ const ONLY_YUBIHSM2_ADMIN_SSS_NON_ADMIN_PLAINTEXT: &[u8] =
 const ONLY_YUBIHSM2_ADMIN_SSS_NON_ADMIN_SYSTEMD_CREDS: &[u8] =
     include_bytes!("../../fixtures/config/yubihsm2_backend/admin-sss-non-admin-systemd-creds.yaml");
 
+/// Config with YubiHSM2 HTTP backend.
+///
+/// - plaintext for administrative secrets
+/// - plaintext for non-administrative secrets
+const ONLY_YUBIHSM2_HTTP_ADMIN_PLAINTEXT_NON_ADMIN_PLAINTEXT: &[u8] = include_bytes!(
+    "../../fixtures/config/yubihsm2_backend/admin-plaintext-non-admin-plaintext-http.yaml"
+);
+
 /// Config with YubiHSM2 mockhsm backend.
 ///
 /// - plaintext for administrative secrets
@@ -490,6 +498,12 @@ pub enum ConfigFileVariant {
     /// - systemd-creds for non-administrative secrets
     OnlyYubiHsm2BackendAdminSssNonAdminSystemdCreds,
 
+    /// YubiHSM2 HTTP backend.
+    ///
+    /// - plaintext for administrative secrets
+    /// - plaintext for non-administrative secrets
+    OnlyYubiHsm2HttpBackendAdminPlaintextNonAdminPlaintext,
+
     /// YubiHSM2 mockhsm backend.
     ///
     /// - plaintext for administrative secrets
@@ -625,6 +639,9 @@ impl ConfigFileVariant {
             ConfigFileVariant::OnlyYubiHsm2BackendAdminSssNonAdminSystemdCreds => {
                 ONLY_YUBIHSM2_ADMIN_SSS_NON_ADMIN_SYSTEMD_CREDS
             }
+            ConfigFileVariant::OnlyYubiHsm2HttpBackendAdminPlaintextNonAdminPlaintext => {
+                ONLY_YUBIHSM2_HTTP_ADMIN_PLAINTEXT_NON_ADMIN_PLAINTEXT
+            }
             ConfigFileVariant::OnlyYubiHsm2MockHsmBackendAdminPlaintextNonAdminPlaintext => {
                 ONLY_YUBIHSM2_MOCKHSM_ADMIN_PLAINTEXT_NON_ADMIN_PLAINTEXT
             }
@@ -712,6 +729,7 @@ impl ConfigFileVariant {
                     | Self::OnlyYubiHsm2BackendAdminSystemdCredsNonAdminSystemdCreds
                     | Self::OnlyYubiHsm2BackendAdminSssNonAdminPlaintext
                     | Self::OnlyYubiHsm2BackendAdminSssNonAdminSystemdCreds
+                    | Self::OnlyYubiHsm2HttpBackendAdminPlaintextNonAdminPlaintext
                     | Self::OnlyYubiHsm2MockHsmBackendAdminPlaintextNonAdminPlaintext
                     | Self::OnlyYubiHsm2MockHsmBackendAdminPlaintextNonAdminSystemdCreds
                     | Self::OnlyYubiHsm2MockHsmBackendAdminSystemdCredsNonAdminPlaintext
