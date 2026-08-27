@@ -9,6 +9,7 @@ use signstar_crypto::{
 };
 use yubihsm::{
     Connector,
+    HttpConfig,
     UsbConfig,
     asymmetric::Algorithm,
     client::Client,
@@ -163,6 +164,38 @@ impl YubiHsm2SigningKey {
             })?;
 
         Ok(signer)
+    }
+
+    /// Returns a new [`YubiHsm2SigningKey`] backed by specific remote YubiHSM2 hardware.
+    ///
+    /// The target device is identified by a combination of `address`, `port` and `tls.`
+    ///
+    /// # Errors
+    ///
+    /// If the communication with the device fails or the authentication data is incorrect this
+    /// function will return an [`Error`].
+    pub fn new_remote(
+        address: String,
+        port: u16,
+        tls: bool,
+        key_id: Id,
+        credentials: &Credentials,
+    ) -> Result<Self, Error> {
+        let connector = Connector::http(&HttpConfig {
+            addr: address,
+            port,
+            tls,
+            timeout_ms: 5000,
+        });
+        let client =
+            Client::open(connector, credentials.into(), true).map_err(|source| Error::Client {
+                context: "connecting to a hardware device",
+                source,
+            })?;
+        Ok(Self {
+            yubihsm: client,
+            key_id,
+        })
     }
 
     /// Returns a new [`YubiHsm2SigningKey`] backed by specific YubiHSM2 hardware.

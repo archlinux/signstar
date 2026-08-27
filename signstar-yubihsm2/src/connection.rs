@@ -8,6 +8,18 @@ use crate::yubihsm::SerialNumber;
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 #[cfg_attr(feature = "serde", serde(rename_all = "lowercase"))]
 pub enum Connection {
+    /// Connection to a device over HTTP(S).
+    Http {
+        /// Address to connect to.
+        address: String,
+
+        /// Port to connect to.
+        port: u16,
+
+        /// If `true` this will use HTTPS, if `false` it will be HTTP.
+        tls: bool,
+    },
+
     /// Connection to a Mock HSM.
     #[cfg(feature = "_yubihsm2-mockhsm")]
     Mock,

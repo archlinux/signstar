@@ -162,6 +162,18 @@ mod impl_any {
                             signing_key_id,
                             &Credentials::new(authentication_key_id, creds.passphrase().clone()),
                         )?)),
+                        Connection::Http { address, port, tls } => {
+                            Ok(Box::new(YubiHsm2SigningKey::new_remote(
+                                address,
+                                port,
+                                tls,
+                                signing_key_id,
+                                &Credentials::new(
+                                    authentication_key_id,
+                                    creds.passphrase().clone(),
+                                ),
+                            )?))
+                        }
                         Connection::Usb { serial_number } => {
                             Ok(Box::new(YubiHsm2SigningKey::new_with_serial_number(
                                 serial_number,
