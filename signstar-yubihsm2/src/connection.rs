@@ -4,7 +4,7 @@ use log::{debug, error, warn};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 use signstar_common::traits::BackendCheck;
-use yubihsm::{Client, Connector, Credentials, UsbConfig, client::ErrorKind};
+use yubihsm::{Client, Connector, Credentials, HttpConfig, UsbConfig, client::ErrorKind};
 
 use crate::yubihsm::SerialNumber;
 
@@ -13,6 +13,18 @@ use crate::yubihsm::SerialNumber;
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 #[cfg_attr(feature = "serde", serde(rename_all = "lowercase"))]
 pub enum Connection {
+    /// Connection to a device over HTTP(S).
+    Http {
+        /// Address to connect to.
+        address: String,
+
+        /// Port to connect to.
+        port: u16,
+
+        /// If `true` this will use HTTPS, if `false` it will be HTTP.
+        tls: bool,
+    },
+
     /// Connection to a Mock HSM.
     #[cfg(feature = "_yubihsm2-mockhsm")]
     Mock,
@@ -32,6 +44,12 @@ impl BackendCheck for Connection {
         let connector = match self {
             #[cfg(feature = "_yubihsm2-mockhsm")]
             Self::Mock => Connector::mockhsm(),
+            Self::Http { address, port, tls } => Connector::http(&HttpConfig {
+                addr: address.into(),
+                port: *port,
+                tls: *tls,
+                timeout_ms: 5000,
+            }),
             Self::Usb { serial_number } => Connector::usb(&UsbConfig {
                 serial: Some(*serial_number),
                 timeout_ms: 5000,
@@ -58,6 +76,12 @@ impl BackendCheck for Connection {
         let connector = match self {
             #[cfg(feature = "_yubihsm2-mockhsm")]
             Self::Mock => Connector::mockhsm(),
+            Self::Http { address, port, tls } => Connector::http(&HttpConfig {
+                addr: address.into(),
+                port: *port,
+                tls: *tls,
+                timeout_ms: 5000,
+            }),
             Self::Usb { serial_number } => Connector::usb(&UsbConfig {
                 serial: Some(*serial_number),
                 timeout_ms: 5000,
@@ -93,6 +117,12 @@ impl From<&Connection> for Connector {
         match value {
             #[cfg(feature = "_yubihsm2-mockhsm")]
             Connection::Mock => Connector::mockhsm(),
+            Connection::Http { address, port, tls } => Connector::http(&HttpConfig {
+                addr: address.into(),
+                port: *port,
+                tls: *tls,
+                timeout_ms: 5000,
+            }),
             Connection::Usb { serial_number } => Connector::usb(&UsbConfig {
                 serial: Some(*serial_number),
                 timeout_ms: UsbConfig::DEFAULT_TIMEOUT_MILLIS,
