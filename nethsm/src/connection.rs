@@ -2,11 +2,12 @@
 
 use std::{fmt::Display, str::FromStr};
 
+use log::{debug, error, warn};
+use nethsm_sdk_rs::models::SystemState;
 use serde::{Deserialize, Serialize};
+use signstar_common::traits::BackendCheck;
 
-use crate::ConnectionSecurity;
-#[cfg(doc)]
-use crate::NetHsm;
+use crate::{ConnectionSecurity, NetHsm};
 
 /// An error that may occur when working with NetHSM connections.
 #[derive(Debug, thiserror::Error)]
@@ -54,6 +55,68 @@ impl Connection {
     /// Returns a reference to the contained [`ConnectionSecurity`].
     pub fn tls_security(&self) -> &ConnectionSecurity {
         &self.tls_security
+    }
+}
+
+impl BackendCheck for Connection {
+    fn is_available(&self) -> bool {
+        let connection = match NetHsm::new(self.clone(), None, None, None) {
+            Ok(connection) => connection,
+            Err(error) => {
+                error!(
+                    "Error while opening connection to NetHSM {}: {error}",
+                    self.url
+                );
+                return false;
+            }
+        };
+
+        if connection.state().is_err() {
+            warn!(
+                "The NetHSM connection to {} is not available from this host.",
+                self.url
+            );
+            return false;
+        }
+
+        debug!(
+            "The NetHSM connection to {} is available from this host.",
+            self.url
+        );
+
+        true
+    }
+
+    fn is_provisioned(&self) -> bool {
+        let connection = match NetHsm::new(self.clone(), None, None, None) {
+            Ok(connection) => connection,
+            Err(error) => {
+                error!(
+                    "Error while opening connection to NetHSM {}: {error}",
+                    self.url
+                );
+                return false;
+            }
+        };
+
+        match connection.state() {
+            Err(error) => {
+                error!(
+                    "Error while retrieving state of NetHSM {}: {error}",
+                    self.url
+                );
+                false
+            }
+            Ok(state) => {
+                if matches!(state, SystemState::Unprovisioned) {
+                    debug!("The NetHSM {} is unprovisioned.", self.url);
+                    true
+                } else {
+                    warn!("The NetHSM {} is provisioned.", self.url);
+                    false
+                }
+            }
+        }
     }
 }
 
