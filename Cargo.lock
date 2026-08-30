@@ -5151,6 +5151,7 @@ dependencies = [
  "log",
  "simplelog",
  "systemd-journal-logger",
+ "testresult",
  "thiserror 2.0.18",
 ]
 

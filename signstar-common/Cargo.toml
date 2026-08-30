@@ -20,3 +20,6 @@ logging = ["dep:simplelog", "dep:systemd-journal-logger"]
 
 [lints]
 workspace = true
+
+[dev-dependencies]
+testresult.workspace = true
