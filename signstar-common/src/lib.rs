@@ -8,3 +8,4 @@ pub mod logging;
 pub mod nethsm;
 pub mod ssh;
 pub mod system_user;
+pub mod traits;
