@@ -10,7 +10,6 @@ variables:
 stages:
   - check
   - test
-  - signstaros
   - publish
   - report
   - pages
@@ -337,44 +336,6 @@ test-readmes:
     - WORKDIR="$(pwd)" runuser -w CI,WORKDIR -l testuser -c 'env && cd "$WORKDIR" && just test-readmes'
     - just --justfile .gitlab/justfile section-end "test-readmes"
   stage: test
-  tags:
-    - vm
-
-build-image:
-  # NOTE: This fails until a new version of `signstar-configure-build` with support for `signstar_config::BackendConnection` is released and used.
-  allow_failure: true
-  dependencies: []
-  extends: .default
-  script:
-    - just --justfile .gitlab/justfile section-start "install-alpm-packages" "Install ALPM package set 'signstar-os'"
-    - just install-alpm-package-set signstar-os
-    # show the mkosi version
-    - mkosi --version
-    - just --justfile .gitlab/justfile section-end "install-alpm-packages"
-    - just --justfile .gitlab/justfile section-start "create-testuser" "Create 'testuser'"
-    - useradd -m testuser
-    - chown -R testuser:testuser .
-    - just --justfile .gitlab/justfile section-end "create-testuser"
-    - just --justfile .gitlab/justfile section-start "build-image" "Build Signstar OS image as 'testuser'"
-    - WORKDIR="$(pwd)" runuser -w WORKDIR -l testuser -c 'env && cd "$WORKDIR" && just build-image'
-    - just --justfile .gitlab/justfile section-end "build-image"
-  stage: signstaros
-  tags:
-    - vm
-
-build-test-image:
-  extends: .default-with-rust-and-testuser
-  dependencies: []
-  script:
-    - just --justfile .gitlab/justfile section-start "install-alpm-packages" "Install ALPM package set 'signstar-os'"
-    - just install-alpm-package-set signstar-os
-    # show the mkosi version
-    - mkosi --version
-    - just --justfile .gitlab/justfile section-end "install-alpm-packages"
-    - just --justfile .gitlab/justfile section-start "build-image" "Build Signstar OS test image as 'testuser'"
-    - WORKDIR="$(pwd)" runuser -w WORKDIR -l testuser -c 'env && cd "$WORKDIR" && just build-test-image'
-    - just --justfile .gitlab/justfile section-end "build-image"
-  stage: signstaros
   tags:
     - vm
 

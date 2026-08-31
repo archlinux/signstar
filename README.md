@@ -6,6 +6,8 @@ This project provides tools and documentation for running a generic signing encl
 
 Raw cryptographic signatures and [OpenPGP data signatures] are supported.
 
+The dedicated operating system [Signstar OS] makes use the tools developed in the Signstar project and provides central solution targeting commodity hardware.
+
 ## Documentation
 
 The project documentation for the Signstar project can be found at <https://signstar.archlinux.page>
@@ -29,7 +31,7 @@ Signstar consists of several loosely coupled components, some of which are used 
 
 ## Requirements
 
-A Signstar setup requires a [TPM-2.0]-enabled host, allowing to run [SignstarOS] which provides a read-only root filesystem and an encrypted `/var` partition for its state.
+A Signstar setup requires a [TPM-2.0]-enabled host, allowing to run [Signstar OS] which provides a read-only root filesystem and an encrypted `/var` partition for its state.
 This signing service host is connected to one or more HSM devices and exposes *signstar-sign* to clients of the signing service.
 
 Clients use *signstar-request-signature* to connect to a Signstar setup and retrieve a signature for a provided payload.
@@ -97,7 +99,7 @@ Changes to this project - unless stated otherwise - automatically fall under the
 [OpenPGP data signatures]: https://openpgp.dev/book/signing_data.html
 [OpenPGP fingerprints]: https://openpgp.dev/book/certificates.html#fingerprint
 [OpenPGP keyservers]: https://wiki.archlinux.org/title/OpenPGP#Keyserver
-[SignstarOS]: resources/mkosi/signstar/
+[Signstar OS]: https://gitlab.archlinux.org/archlinux/signstar-os
 [TPM-2.0]: https://en.wikipedia.org/wiki/Trusted_Platform_Module
 [Wiktor Kwapisiewicz]: https://archlinux.org/people/support-staff/#wiktor
 [`653909A2F0E37C106F5FAF546C8857E0D8E8F074`]: https://pgpkeys.eu/pks/lookup?search=653909A2F0E37C106F5FAF546C8857E0D8E8F074&fingerprint=on&op=index

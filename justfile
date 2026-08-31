@@ -194,24 +194,6 @@ install-alpm-package-set set:
         pkgconf
         rustup
     )
-    readonly signstar_os=(
-        acl
-        cpio
-        edk2-ovmf
-        erofs-utils
-        git
-        jq
-        mkosi
-        mtools
-        openssl
-        pkgconf
-        qemu
-        rsop
-        sbsigntools
-        swtpm
-        systemd-ukify
-        zstd
-    )
     readonly test=(
         cargo-hack
         cargo-nextest
@@ -254,7 +236,6 @@ install-alpm-package-set set:
                 "${manpages[@]}"
                 "${publish[@]}"
                 "${rust_dev[@]}"
-                "${signstar_os[@]}"
                 "${test[@]}"
                 "${test_containerized[@]}"
                 "${test_coverage[@]}"
@@ -315,9 +296,6 @@ install-alpm-package-set set:
             ;;
         shell)
             packages+=("${check_shell[@]}")
-            ;;
-        signstar-os)
-            packages+=("${signstar_os[@]}")
             ;;
         spelling)
             packages+=("${check_spelling[@]}")
@@ -1220,54 +1198,3 @@ test-readmes:
     just test-readme signstar-configure-build
     just test-readme signstar-request-signature
     just test-readme signstar-yubihsm2
-
-######################
-# Signstar OS recipes.
-######################
-
-# Builds an OS image using mkosi
-[group('signstaros')]
-[working-directory("resources/mkosi/signstar")]
-build-image openpgp_signing_key="openpgp_signing.tsk" openpgp_signing_cert="openpgp_signing.tpk" sb_verity_signing_key="sb_verity_signing.key" sb_verity_signing_cert="sb_verity_signing.pem" mkosi_options="":
-    just ensure-command rsop mkosi
-
-    just create-image-signing-key {{ absolute_path(openpgp_signing_key) }} {{ absolute_path(openpgp_signing_cert) }}
-    just create-secureboot-verity-key {{ absolute_path(sb_verity_signing_key) }} {{ absolute_path(sb_verity_signing_cert) }}
-    cp -v {{ absolute_path(openpgp_signing_cert) }} {{ absolute_path("resources/mkosi/signstar/mkosi.extra/usr/lib/systemd/import-pubring.gpg") }}
-    mkosi -f {{ mkosi_options }} --secure-boot-key={{ absolute_path(sb_verity_signing_key) }} --secure-boot-certificate={{ absolute_path(sb_verity_signing_cert) }} --verity-key={{ absolute_path(sb_verity_signing_key) }} --verity-certificate={{ absolute_path(sb_verity_signing_cert) }} --key={{ absolute_path(openpgp_signing_key) }} build
-
-# Builds an OS image using mkosi
-[group('signstaros')]
-build-test-image openpgp_signing_key="openpgp_signing.tsk" openpgp_signing_cert="openpgp_signing.tpk" sb_verity_signing_key="sb_verity_signing.key" sb_verity_signing_cert="sb_verity_signing.pem" mkosi_options="--profile local-testing":
-    just build signstar-configure-build --features nethsm,yubihsm2
-    install -vDm 755 "`just get-cargo-target-dir`/debug/signstar-configure-build" -t resources/mkosi/signstar/mkosi.profiles/local-testing/mkosi.extra/usr/local/bin/
-    install -vDm 644 fixtures/config/all_backends/admin-systemd-creds-non-admin-systemd-creds.yaml resources/mkosi/signstar/mkosi.profiles/local-testing/mkosi.extra/usr/share/signstar/config.yaml
-    just build-image {{ openpgp_signing_key }} {{ openpgp_signing_cert }} {{ sb_verity_signing_key }} {{ sb_verity_signing_cert }} "{{ mkosi_options }}"
-
-# Creates a signing key and certificate for Secure Boot and verity signing if not both `key` and `cert` exist
-[group('signstaros')]
-create-secureboot-verity-key key cert common_name="archlinux.org" key_settings="rsa:3072":
-    if ! {{ path_exists(key) }} || ! {{ path_exists(cert) }}; then \
-        printf "Creating new Secure Boot/Verity signing key (%s) and certificate (%s)...\n" {{ key }} {{ cert }}; \
-        just ensure-command openssl; \
-        mkdir -p resources/mkosi/signstar/mkosi.output/; \
-        openssl req -x509 -newkey {{ key_settings }} -keyout "{{ key }}" -out "{{ cert }}" -nodes -days 3650 -set_serial 01 -subj /CN={{ common_name }}; \
-    fi
-
-# Creates an OpenPGP signing key and certificate, for signing and verifying the eventual payloads (only if either `key` or `cert` does not exist).
-[group('signstaros')]
-create-image-signing-key key cert user_id="Signstar Update <signstar-update@archlinux.org>":
-    if ! {{ path_exists(key) }} || ! {{ path_exists(cert) }}; then \
-        printf "Creating new OpenPGP image signing key (%s) and certificate (%s)...\n" {{ key }} {{ cert }}; \
-        just ensure-command rsop; \
-        mkdir --parents --verbose `dirname {{ absolute_path(key) }}` `dirname {{ absolute_path(cert) }}`; \
-        rsop generate-key --signing-only "{{ user_id }}" > {{ absolute_path(key) }}; \
-        rsop extract-cert < {{ absolute_path(key) }} > {{ absolute_path(cert) }}; \
-    fi
-
-# Runs an OS image using mkosi qemu
-[group('signstaros')]
-run-image mkosi_options="" qemu_options="":
-    # To forward the host port 2222 to Signstar's SSH port 22 use `just run-image '' '-netdev user,id=n1,hostfwd=tcp::2222-:22 -device virtio-net-pci,netdev=n1'`
-    just ensure-command mkosi
-    mkosi -C resources/mkosi/signstar/ {{ mkosi_options }} qemu {{ qemu_options }}

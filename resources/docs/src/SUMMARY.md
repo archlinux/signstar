@@ -30,9 +30,8 @@
 - [signstar-yubihsm2](./signstar-yubihsm2/README.md)
     - [CHANGELOG](./signstar-yubihsm2/CHANGELOG.md)
 
-# OS
+# Architecture
 
-- [Signstar OS](./resources/mkosi/signstar/README.md)
 - [Design](./architecture/design.md)
 - [Threat Model](./architecture/threat-model.md)
 - [Evaluated Setups](./architecture/evaluated-setups.md)

@@ -32,7 +32,7 @@ The user setup is explained in more detail in the [configuration section].
 
 ### Signing service
 
-The signing service host is a physical machine running the custom image-based operating system [SignstarOS] (based on Arch Linux), running from a read-only root filesystem (with [verity signing] support) and an encrypted `/var` partition for state, such as SSH host keys and per-user configuration.
+The signing service host is a physical machine running the custom image-based operating system [Signstar OS] (based on Arch Linux), running from a read-only root filesystem (with [verity signing] support) and an encrypted `/var` partition for state, such as SSH host keys and per-user configuration.
 Its central configuration and user setup is provided through OS updates.
 
 Per-user configuration files for the integration with the [NetHSM] are created and changed in a persistent location by a dedicated tool, once administrative credentials have been passed to the host.
@@ -62,7 +62,7 @@ All signing service clients should rely on tamper-proof hardware (e.g. [TPM2], o
 
 The Signstar setup is run on a dedicated host, that on one hand is exposed to the network of its clients, and on the other to the network of the NethHSM.
 
-It is advisable to not expose the [NetHSM] to the network beyond that of the host running [SignstarOS].
+It is advisable to not expose the [NetHSM] to the network beyond that of the host running [Signstar OS].
 
 ```mermaid
 ---
@@ -144,7 +144,7 @@ title: Simplified syslog setup
 ---
 sequenceDiagram
     participant N as NetHSM
-    participant S as SignstarOS
+    participant S as Signstar OS
     participant L as Loki
 
     loop logs
@@ -152,7 +152,7 @@ sequenceDiagram
             N ->> S: syslog to syslog-ng
             S ->> S: syslog-ng to Grafana Alloy
         end
-        loop SignstarOS journal
+        loop Signstar OS journal
             S ->> S: journal to Grafana Alloy
         end
         S -->> L: Grafana Alloy send<br>(WireGuard)
@@ -169,7 +169,7 @@ title: Simplified metrics setup
 ---
 sequenceDiagram
     participant N as NetHSM
-    participant S as SignstarOS
+    participant S as Signstar OS
     participant M as Prometheus
 
     loop metrics
@@ -177,7 +177,7 @@ sequenceDiagram
             S ->> N: request
             N ->> S: return
         end
-        loop SignstarOS metrics
+        loop Signstar OS metrics
             S ->> S: Export host metrics
         end
         S -->> M: scrape metrics<br>(WireGuard)
@@ -186,7 +186,7 @@ sequenceDiagram
 
 ### Configuration
 
-The configuration of the signing service host is changed by [upgrading] its read-only operating system [SignstarOS].
+The configuration of the signing service host is changed by [upgrading] its read-only operating system [Signstar OS].
 The basic configuration of the [NetHSM] (i.e. its available users and keys) is set and altered using a central, versioned configuration file on the signing service host, which does not include any passphrases.
 
 Passphrases for common (unprivileged) operations towards the [NetHSM] are kept in per-user configuration files and can only be created when (re)configuring the HSM using administrative credentials.
@@ -290,7 +290,7 @@ Ongoing key and user configuration entails the addition, removal and modificatio
 
 ### Deployment
 
-The signing service host is instantiated by deploying an [installation image] of [SignstarOS] onto a host with [UEFI] support in ["setup mode"].
+The signing service host is instantiated by deploying an [installation image] of [Signstar OS] onto a host with [UEFI] support in ["setup mode"].
 
 During first boot, relevant partitions and [encrypted credentials] are created.
 
@@ -312,9 +312,9 @@ sequenceDiagram
     participant N as NetHSM
     participant L as Logging server
 
-    Note over S: SignstarOS
+    Note over S: Signstar OS
 
-    C ->> S: SignstarOS installation image
+    C ->> S: Signstar OS installation image
     S --> S: Install and first boot
     S ->> C: Download WireGuard public key
     C --> L: Configure WireGuard tunnel
@@ -330,7 +330,7 @@ sequenceDiagram
 ### Upgrading
 
 The signing service host is upgraded by providing relevant [update artifacts] on a specific webserver.
-[SignstarOS] upgrades autonomously with the help of [systemd-sysupdate].
+[Signstar OS] upgrades autonomously with the help of [systemd-sysupdate].
 
 Upgrades to the [NetHSM] are uploaded to the signing service host using designated credentials, which make use of *signstar-upload-update*.
 Once sufficient shares of the shared administrative credentials are uploaded after that, the [NetHSM] is updated using *signstar-configure*.
@@ -556,7 +556,7 @@ sequenceDiagram
 [OpenPGP signing]: #openpgp
 [Prometheus]: https://prometheus.io/
 [Shamir's Secret Sharing]: https://en.wikipedia.org/wiki/Shamir%27s_secret_sharing
-[SignstarOS]: ../mkosi/signstar/README.md
+[Signstar OS]: https://gitlab.archlinux.org/archlinux/signstar-os
 [SSS]: https://en.wikipedia.org/wiki/Shamir%27s_secret_sharing
 [WireGuard]: https://en.wikipedia.org/wiki/WireGuard
 [TPM2]: https://en.wikipedia.org/wiki/Trusted_Platform_Module
@@ -573,7 +573,7 @@ sequenceDiagram
 [encrypted credentials]: https://systemd.io/CREDENTIALS/
 [evaluated setups]: evaluated-setups.md
 [hashed area]: https://openpgp.dev/book/signatures.html#hashed-and-unhashed-signature-subpackets
-[installation image]: ../mkosi/signstar/README.md#installation
+[installation image]: https://gitlab.archlinux.org/archlinux/signstar-os/#installation
 [namespaces]: https://docs.nitrokey.com/nethsm/administration#namespaces
 [notations]: https://openpgp.dev/book/glossary.html#term-Notation
 [option C]: evaluated-setups.md#signing-service-signing-files-or-hashes
@@ -588,7 +588,7 @@ sequenceDiagram
 [systemd-journal-upload]: https://man.archlinux.org/man/core/systemd/systemd-journal-upload.8.en
 [systemd-journald]: https://man.archlinux.org/man/core/systemd/systemd-journald.8.en
 [unhashed area]: https://openpgp.dev/book/signatures.html#hashed-and-unhashed-signature-subpackets
-[update artifacts]: ../mkosi/signstar/README.md#updating
+[update artifacts]: https://gitlab.archlinux.org/archlinux/signstar-os/#updating
 [upgrading]: #upgrading
 ["setup mode"]: https://wiki.archlinux.org/title/Unified_Extensible_Firmware_Interface/Secure_Boot#Putting_firmware_in_%22Setup_Mode%22
 [systemd-sysupdate]: https://man.archlinux.org/man/systemd-sysupdate.8
