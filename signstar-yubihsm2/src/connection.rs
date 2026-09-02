@@ -91,6 +91,19 @@ impl BackendCheck for Connection {
     }
 }
 
+impl From<&Connection> for Connector {
+    fn from(value: &Connection) -> Self {
+        match value {
+            #[cfg(feature = "_yubihsm2-mockhsm")]
+            Connection::Mock => Connector::mockhsm(),
+            Connection::Usb { serial_number } => Connector::usb(&UsbConfig {
+                serial: Some(*serial_number),
+                timeout_ms: UsbConfig::DEFAULT_TIMEOUT_MILLIS,
+            }),
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use log::LevelFilter;
