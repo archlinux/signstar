@@ -22,3 +22,8 @@ pub use config::{
 };
 pub use error::Error;
 pub use state::NetHsmDiff;
+
+/// Public re-exports of [`nethsm`] types.
+pub mod nethsm_export {
+    pub use nethsm::{Connection, Error as NetHsmError, FullCredentials, NetHsm, UserId};
+}
