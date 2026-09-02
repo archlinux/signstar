@@ -5161,6 +5161,13 @@ dependencies = [
 [[package]]
 name = "signstar-configure"
 version = "0.1.0"
+dependencies = [
+ "log",
+ "signstar-common",
+ "signstar-config",
+ "testresult",
+ "thiserror 2.0.18",
+]
 
 [[package]]
 name = "signstar-configure-build"
