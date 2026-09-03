@@ -70,7 +70,7 @@ mod impl_any {
     pub fn create_system_users(config: &Config) -> Result<(), Error> {
         // Only operate on non-administrative users.
         for user_backend_connection in config
-            .user_backend_connections(UserBackendConnectionFilter::NonAdmin)
+            .user_backend_connections(&[UserBackendConnectionFilter::NonAdmin])
             .iter()
         {
             let user = {

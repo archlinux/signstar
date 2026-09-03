@@ -115,7 +115,7 @@ use signstar_crypto::AdministrativeSecretHandling;
 let config = Config::from_system_path()?;
 
 // Get the user backend connections for all non-administrative users.
-let user_backend_connections = config.user_backend_connections(UserBackendConnectionFilter::NonAdmin);
+let user_backend_connections = config.user_backend_connections(&[UserBackendConnectionFilter::NonAdmin]);
 
 // Create secrets for each system user and their backend users.
 for user_backend_connection in user_backend_connections.iter() {
