@@ -11,10 +11,11 @@ version = "0.3.0"
 
 [dependencies]
 clap = { workspace = true, features = ["cargo", "derive", "env"] }
+clap-verbosity-flag.workspace = true
 log.workspace = true
 nix.workspace = true
 rand.workspace = true
-signstar-common.workspace = true
+signstar-common = { features = ["logging"], workspace = true }
 signstar-config.workspace = true
 strum.workspace = true
 sysinfo = "0.39.0"

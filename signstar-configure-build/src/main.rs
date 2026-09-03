@@ -17,6 +17,12 @@ fn run_command(cli: Cli) -> Result<(), Error> {
 
 fn main() -> ExitCode {
     let cli = Cli::parse();
+
+    if let Err(error) = signstar_common::logging::setup_logging(cli.verbosity) {
+        eprintln!("{error}");
+        return ExitCode::FAILURE;
+    }
+
     let result = run_command(cli);
 
     if let Err(error) = result {

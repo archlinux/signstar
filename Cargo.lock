@@ -5192,6 +5192,7 @@ name = "signstar-configure-build"
 version = "0.3.0"
 dependencies = [
  "clap",
+ "clap-verbosity-flag",
  "log",
  "nix",
  "rand 0.8.6",
