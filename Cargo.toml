@@ -86,7 +86,7 @@ authors = [
     "Wiktor Kwapisiewicz <wiktor@archlinux.org>",
 ]
 edition = "2024"
-homepage = "https://gitlab.archlinux.org/archlinux/signstar"
+homepage = "https://signstar.archlinux.page"
 license = "Apache-2.0 OR MIT"
 repository = "https://gitlab.archlinux.org/archlinux/signstar"
 rust-version = "1.96.1"
