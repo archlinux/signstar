@@ -991,7 +991,10 @@ nethsm-integration-tests *options='--locked --workspace':
         just ensure-command bash cargo cargo-nextest jq podman
     fi
 
-    cargo +stable build --examples --bins --features nethsm
+    cargo +stable build --bins --examples --package nethsm-backup
+    cargo +stable build --bins --examples --package nethsm
+    cargo +stable build --bins --examples --features nethsm --package signstar-config
+
     NETHSM_IMAGE_TAG="$nethsm_image_tag" cargo +stable nextest run --features _nethsm-integration-test --filterset 'kind(test) and binary_id(/::nethsm$/)' "${options[@]}"
 
 # Runs all unit tests with default features.
