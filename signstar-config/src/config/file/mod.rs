@@ -84,17 +84,27 @@ pub enum UserBackendConnection {
     },
 }
 
-/// A filter for the retrieval of lists of [`UserBackendConnection`] from a [`Config`].
-#[derive(Clone, Copy, Debug)]
-pub enum UserBackendConnectionFilter {
-    /// Target all backend users.
-    All,
+/// The type of a supported HSM backend.
+#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
+pub enum BackendType {
+    /// The NetHSM backend.
+    NetHsm,
 
+    /// The YubiHSM2 backend.
+    YubiHsm2,
+}
+
+/// A filter for the retrieval of lists of [`UserBackendConnection`] from a [`Config`].
+#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
+pub enum UserBackendConnectionFilter {
     /// Only target administrative backend users.
     Admin,
 
     /// Only target non-administrative backend users.
     NonAdmin,
+
+    /// Only target a specific type of backend.
+    Backend(BackendType),
 }
 
 /// Validates overlapping assumptions of two configuration objects.
@@ -1473,8 +1483,8 @@ mod tests {
         /// Ensures, that [`Config::user_backend_connections`] returns the correct list of
         /// [`UserBackendConnection`] items according to a [`UserBackendConnectionFilter`].
         #[rstest]
-        #[case::filter_all(
-            UserBackendConnectionFilter::All,
+        #[case::no_filter(
+            &[],
             vec![
                 UserBackendConnection::NetHsm {
                     admin_secret_handling: AdministrativeSecretHandling::ShamirsSecretSharing {
@@ -1569,7 +1579,7 @@ mod tests {
             ],
         )]
         #[case::filter_admin(
-            UserBackendConnectionFilter::Admin,
+            &[UserBackendConnectionFilter::Admin],
             vec![
                 UserBackendConnection::NetHsm {
                     admin_secret_handling: AdministrativeSecretHandling::ShamirsSecretSharing {
@@ -1586,7 +1596,7 @@ mod tests {
             ],
         )]
         #[case::filter_non_admin(
-            UserBackendConnectionFilter::NonAdmin,
+            &[UserBackendConnectionFilter::NonAdmin],
             vec![
                 UserBackendConnection::NetHsm {
                     admin_secret_handling: AdministrativeSecretHandling::ShamirsSecretSharing {
@@ -1670,14 +1680,14 @@ mod tests {
         )]
         fn config_user_backend_connections(
             default_config: TestResult<Config>,
-            #[case] filter: UserBackendConnectionFilter,
+            #[case] filters: &[UserBackendConnectionFilter],
             #[case] expected_connections: Vec<UserBackendConnection>,
         ) -> TestResult {
             let config = default_config?;
 
             assert_eq!(
                 expected_connections,
-                config.user_backend_connections(filter)
+                config.user_backend_connections(filters)
             );
 
             Ok(())
@@ -2315,8 +2325,8 @@ mod tests {
         /// Ensures, that [`Config::user_backend_connections`] returns the correct list of
         /// [`UserBackendConnection`] items according to a [`UserBackendConnectionFilter`].
         #[rstest]
-        #[case::filter_all(
-            UserBackendConnectionFilter::All,
+        #[case::no_filter(
+            &[],
             vec![
                 UserBackendConnection::YubiHsm2 {
                     admin_secret_handling: AdministrativeSecretHandling::ShamirsSecretSharing {
@@ -2412,7 +2422,7 @@ mod tests {
             ],
         )]
         #[case::filter_admin(
-            UserBackendConnectionFilter::Admin,
+            &[UserBackendConnectionFilter::Admin],
             vec![
                 UserBackendConnection::YubiHsm2 {
                     admin_secret_handling: AdministrativeSecretHandling::ShamirsSecretSharing {
@@ -2429,7 +2439,7 @@ mod tests {
             ],
         )]
         #[case::filter_non_admin(
-            UserBackendConnectionFilter::NonAdmin,
+            &[UserBackendConnectionFilter::NonAdmin],
             vec![
                 UserBackendConnection::YubiHsm2 {
                     admin_secret_handling: AdministrativeSecretHandling::ShamirsSecretSharing {
@@ -2514,14 +2524,14 @@ mod tests {
         )]
         fn config_user_backend_connections(
             default_config: TestResult<Config>,
-            #[case] filter: UserBackendConnectionFilter,
+            #[case] filters: &[UserBackendConnectionFilter],
             #[case] expected_connections: Vec<UserBackendConnection>,
         ) -> TestResult {
             let config = default_config?;
 
             assert_eq!(
                 expected_connections,
-                config.user_backend_connections(filter)
+                config.user_backend_connections(filters)
             );
 
             Ok(())
@@ -2743,7 +2753,9 @@ mod tests {
     /// Tests, that are only available when using all available backends.
     #[cfg(all(feature = "nethsm", feature = "yubihsm2"))]
     mod all_backends {
+        use log::LevelFilter;
         use pretty_assertions::assert_eq;
+        use signstar_common::logging::setup_logging;
 
         use super::*;
         use crate::config::{
@@ -3278,10 +3290,10 @@ mod tests {
         }
 
         /// Ensures, that [`Config::user_backend_connections`] returns the correct list of
-        /// [`UserBackendConnection`] items according to a [`UserBackendConnectionFilter`].
+        /// [`UserBackendConnection`] items according to a set of [`UserBackendConnectionFilter`].
         #[rstest]
-        #[case::filter_all(
-            UserBackendConnectionFilter::All,
+        #[case::no_filter(
+            &[],
             vec![
                 UserBackendConnection::NetHsm {
                     admin_secret_handling: AdministrativeSecretHandling::ShamirsSecretSharing {
@@ -3467,7 +3479,7 @@ mod tests {
             ],
         )]
         #[case::filter_admin(
-            UserBackendConnectionFilter::Admin,
+            &[UserBackendConnectionFilter::Admin],
             vec![
                 UserBackendConnection::NetHsm {
                     admin_secret_handling: AdministrativeSecretHandling::ShamirsSecretSharing {
@@ -3496,7 +3508,7 @@ mod tests {
             ],
         )]
         #[case::filter_non_admin(
-            UserBackendConnectionFilter::NonAdmin,
+            &[UserBackendConnectionFilter::NonAdmin],
             vec![
                 UserBackendConnection::NetHsm {
                     admin_secret_handling: AdministrativeSecretHandling::ShamirsSecretSharing {
@@ -3659,14 +3671,15 @@ mod tests {
         )]
         fn config_user_backend_connections(
             default_config: TestResult<Config>,
-            #[case] filter: UserBackendConnectionFilter,
+            #[case] filters: &[UserBackendConnectionFilter],
             #[case] expected_connections: Vec<UserBackendConnection>,
         ) -> TestResult {
+            setup_logging(LevelFilter::Debug)?;
             let config = default_config?;
 
             assert_eq!(
                 expected_connections,
-                config.user_backend_connections(filter)
+                config.user_backend_connections(filters)
             );
 
             Ok(())

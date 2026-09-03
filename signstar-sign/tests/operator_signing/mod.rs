@@ -218,7 +218,7 @@ async fn run_signstar_sign(#[case] prepare_config: SystemPrepareConfig) -> TestR
 
     // Run `signstar-sign`, only using users configured for signing.
     for user_backend_connection in config
-        .user_backend_connections(UserBackendConnectionFilter::NonAdmin)
+        .user_backend_connections(&[UserBackendConnectionFilter::NonAdmin])
         .iter()
     {
         let signing_user = {

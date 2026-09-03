@@ -42,7 +42,7 @@ pub mod impl_any {
         pub fn apply(&self, config: &Config) -> Result<(), crate::Error> {
             if self.create_secrets {
                 let user_backend_connections =
-                    config.user_backend_connections(UserBackendConnectionFilter::NonAdmin);
+                    config.user_backend_connections(&[UserBackendConnectionFilter::NonAdmin]);
 
                 for user_backend_connection in user_backend_connections {
                     user_backend_connection.create_non_admin_backend_user_secrets()?;
@@ -51,7 +51,7 @@ pub mod impl_any {
 
             if self.create_ssh_authorized_keys {
                 let user_backend_connections =
-                    config.user_backend_connections(UserBackendConnectionFilter::NonAdmin);
+                    config.user_backend_connections(&[UserBackendConnectionFilter::NonAdmin]);
                 for user_backend_connection in user_backend_connections {
                     user_backend_connection.write_authorized_key_entry()?;
                 }

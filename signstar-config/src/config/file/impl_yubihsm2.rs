@@ -16,6 +16,7 @@ use signstar_crypto::{
 use crate::{
     config::{
         AuthorizedKeyEntry,
+        BackendType,
         Config,
         ConfigAuthorizedKeyEntries,
         ConfigBuilder,
@@ -137,32 +138,37 @@ impl Config {
         None
     }
 
-    /// Returns a list of [`UserBackendConnection`] objects matching a `filter`.
+    /// Returns a list of [`UserBackendConnection`] objects matching a set of `filters`.
     ///
-    /// Using the [`UserBackendConnectionFilter`] `filter` it is possible to only return
-    /// administrative or non-administrative, or all [`UserBackendConnection`] objects..
+    /// If no `filters` are provided, returns all available [`UserBackendConnection`] objects of all
+    /// backends.
+    ///
+    /// Beyond filtering for specific backend types, it is possible to only return administrative or
+    /// non-administrative objects.
     pub fn user_backend_connections(
         &self,
-        filter: UserBackendConnectionFilter,
+        filters: &[UserBackendConnectionFilter],
     ) -> Vec<UserBackendConnection> {
         let mut user_backend_connections = Vec::new();
 
-        if let Some(yubihsm2_config) = &self.yubihsm2 {
-            let mappings = match filter {
-                UserBackendConnectionFilter::All => {
-                    yubihsm2_config.mappings().iter().collect::<Vec<_>>()
-                }
-                UserBackendConnectionFilter::Admin => yubihsm2_config
-                    .mappings()
+        if let Some(yubihsm2_config) = &self.yubihsm2
+            && (filters.is_empty()
+                || filters.contains(&UserBackendConnectionFilter::Backend(BackendType::YubiHsm2))
+                || !filters
                     .iter()
-                    .filter(|mapping| matches!(mapping, YubiHsm2UserMapping::Admin { .. }))
-                    .collect::<Vec<_>>(),
-                UserBackendConnectionFilter::NonAdmin => yubihsm2_config
-                    .mappings()
-                    .iter()
-                    .filter(|mapping| !matches!(mapping, YubiHsm2UserMapping::Admin { .. }))
-                    .collect::<Vec<_>>(),
-            };
+                    .any(|filter| matches!(filter, UserBackendConnectionFilter::Backend(_))))
+        {
+            let mappings = yubihsm2_config
+                .mappings()
+                .iter()
+                .filter(|mapping| {
+                    filters.is_empty()
+                        || (matches!(mapping, YubiHsm2UserMapping::Admin { .. })
+                            && filters.contains(&UserBackendConnectionFilter::Admin))
+                        || (!matches!(mapping, YubiHsm2UserMapping::Admin { .. })
+                            && filters.contains(&UserBackendConnectionFilter::NonAdmin))
+                })
+                .collect::<Vec<_>>();
             for mapping in mappings {
                 user_backend_connections.push(UserBackendConnection::YubiHsm2 {
                     admin_secret_handling: *self.system.admin_secret_handling(),

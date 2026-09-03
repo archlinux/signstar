@@ -61,7 +61,7 @@ mod impl_any {
             Command::Create => {
                 let creds_list = {
                     let user_backend_connections =
-                        config.user_backend_connections(UserBackendConnectionFilter::NonAdmin);
+                        config.user_backend_connections(&[UserBackendConnectionFilter::NonAdmin]);
 
                     let mut creds_list = Vec::new();
                     for user_backend_connection in user_backend_connections {

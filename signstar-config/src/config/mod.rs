@@ -11,6 +11,7 @@ mod utils;
 pub use credentials::{AuthorizedKeyEntry, SystemUserData, SystemUserHostState, SystemUserId};
 pub use error::Error;
 pub use file::{
+    BackendType,
     Config,
     ConfigBuilder,
     SystemUserConfigState,
