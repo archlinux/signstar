@@ -381,6 +381,8 @@ fn add_user_and_home(user: &SystemUserId) -> Result<(), Error> {
             .arg("--base-dir")
             .arg(home_base_dir.as_path())
             .arg("--user-group")
+            .arg("--groups")
+            .arg("_yubihsm2")
             .arg("--shell")
             .arg("/usr/bin/bash")
             .arg(user.as_ref())

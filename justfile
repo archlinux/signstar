@@ -213,6 +213,7 @@ install-alpm-package-set set:
         rsop
         sequoia-sop
         tangler
+        yubihsm-udev-rules
     )
 
     # Start with an empty set of packages and add to it in the below switch-case.
@@ -1108,7 +1109,7 @@ test-readme project:
                 "--mount=type=bind,source=fixtures/config/all_backends/admin-sss-non-admin-systemd-creds.yaml,destination=/usr/share/signstar/config.yaml,ro=true"
                 --workdir=/mnt
                 "$arch_container"
-                sh -c 'pacman-key --init && pacman -Sy --needed --noconfirm archlinux-keyring && pacman -Syu --needed --noconfirm tangler && tangler bash < /mnt/README.md | bash -euxo pipefail -'
+                sh -c 'pacman-key --init && pacman -Sy --needed --noconfirm archlinux-keyring && pacman -Syu --needed --noconfirm tangler yubihsm-udev-rules && tangler bash < /mnt/README.md | bash -euxo pipefail -'
             )
             podman_start_options+=(
                 --attach
