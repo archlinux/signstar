@@ -34,7 +34,7 @@ nethsm-sdk-rs = "1.1.1"
 nix = { version = "0.31.0", features = ["user"] }
 num_enum = "0.7.6"
 p224 = "0.13.2"
-p256 = "0.13.2"
+p256 = "0.14.0"
 p384 = "0.13.1"
 p521 = "0.13.3"
 pgp = { version = "0.20", default-features = false }
