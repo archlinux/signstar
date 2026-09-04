@@ -5217,7 +5217,7 @@ dependencies = [
  "digest 0.10.7",
  "ed25519-dalek 2.2.0",
  "email_address",
- "k256 0.13.4",
+ "k256 0.14.0",
  "log",
  "nethsm-sdk-rs",
  "nix",
