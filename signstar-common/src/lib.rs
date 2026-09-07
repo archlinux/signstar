@@ -1,6 +1,7 @@
 //! Common components and data for Signstar crates.
 
 pub mod admin_credentials;
+pub mod backend;
 pub mod common;
 pub mod config;
 #[cfg(feature = "logging")]
