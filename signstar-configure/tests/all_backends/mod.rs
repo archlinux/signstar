@@ -53,6 +53,134 @@ mod all {
 
         Ok(())
     }
+
+    #[cfg(feature = "cli")]
+    mod cli {
+        use std::process::{ExitCode, Termination};
+
+        use assert_cmd::cargo::cargo_bin_cmd;
+
+        use super::*;
+
+        /// Ensures, that calling the `signstar-configure` CLI aborts on unavailable backend
+        /// connections.
+        #[test]
+        fn abort_on_unavailable_backend_connections() -> TestResult {
+            setup_logging(LevelFilter::Debug)?;
+
+            let system_prepare_config = SystemPrepareConfig {
+                machine_id: false,
+                credentials_socket: false,
+                signstar_config: ConfigFileConfig {
+                    location: Some(ConfigFileLocation::UsrShare),
+                    variant: ConfigFileVariant::AllBackendsAdminPlaintextNonAdminPlaintext,
+                    system_user_config: Some(SystemUserConfig {
+                        create_secrets: false,
+                        create_ssh_authorized_keys: true,
+                    }),
+                },
+            };
+            system_prepare_config.apply()?;
+
+            let exit_code = {
+                let mut command = cargo_bin_cmd!();
+                let output = command
+                    .arg("--verbose")
+                    .arg("--verbose")
+                    .arg("--verbose")
+                    .output()?;
+
+                ExitCode::from(u8::try_from(
+                    output.status.code().expect("there to be an exit code"),
+                )?)
+            };
+
+            assert_eq!(
+                exit_code,
+                ConfigurationResult::NoAvailableBackendConnection.report()
+            );
+
+            Ok(())
+        }
+
+        /// Ensures, that calling the `signstar-configure` CLI aborts on no configuration items for
+        /// any backends.
+        #[test]
+        fn abort_on_no_config_item_form_backends() -> TestResult {
+            setup_logging(LevelFilter::Debug)?;
+
+            let system_prepare_config = SystemPrepareConfig {
+                machine_id: false,
+                credentials_socket: false,
+                signstar_config: ConfigFileConfig {
+                    location: Some(ConfigFileLocation::UsrShare),
+                    variant: ConfigFileVariant::NoBackendAdminPlaintextNonAdminPlaintext,
+                    system_user_config: Some(SystemUserConfig {
+                        create_secrets: false,
+                        create_ssh_authorized_keys: true,
+                    }),
+                },
+            };
+            system_prepare_config.apply()?;
+
+            let exit_code = {
+                let mut command = cargo_bin_cmd!();
+                let output = command
+                    .arg("--verbose")
+                    .arg("--verbose")
+                    .arg("--verbose")
+                    .output()?;
+
+                ExitCode::from(u8::try_from(
+                    output.status.code().expect("there to be an exit code"),
+                )?)
+            };
+
+            assert_eq!(
+                exit_code,
+                ConfigurationResult::MissingConfigurationForBackend.report()
+            );
+
+            Ok(())
+        }
+
+        /// Ensures, that calling the `signstar-configure` CLI fails on no configuration file.
+        #[test]
+        fn fail_on_no_configuration_file() -> TestResult {
+            setup_logging(LevelFilter::Debug)?;
+
+            let system_prepare_config = SystemPrepareConfig {
+                machine_id: false,
+                credentials_socket: false,
+                signstar_config: ConfigFileConfig {
+                    location: None,
+                    variant: ConfigFileVariant::NoBackendAdminPlaintextNonAdminPlaintext,
+                    system_user_config: Some(SystemUserConfig {
+                        create_secrets: false,
+                        create_ssh_authorized_keys: true,
+                    }),
+                },
+            };
+            system_prepare_config.apply()?;
+
+            let exit_code = {
+                let mut command = cargo_bin_cmd!();
+                let output = command
+                    .arg("--verbose")
+                    .arg("--verbose")
+                    .arg("--verbose")
+                    .output()?;
+
+                ExitCode::from(u8::try_from(
+                    output.status.code().expect("there to be an exit code"),
+                )?)
+            };
+
+            assert_eq!(exit_code, ExitCode::FAILURE);
+
+            Ok(())
+        }
+    }
 }
 
 /// Tests against the NetHSM backend type.
@@ -89,6 +217,56 @@ mod nethsm {
         );
 
         Ok(())
+    }
+
+    #[cfg(feature = "cli")]
+    mod cli {
+        use std::process::{ExitCode, Termination};
+
+        use assert_cmd::cargo::cargo_bin_cmd;
+
+        use super::*;
+
+        /// Ensures, that calling the `signstar-configure` CLI aborts on unavailable backend
+        /// connections.
+        #[test]
+        fn abort_on_unavailable_backend_connections() -> TestResult {
+            setup_logging(LevelFilter::Debug)?;
+
+            let system_prepare_config = SystemPrepareConfig {
+                machine_id: false,
+                credentials_socket: false,
+                signstar_config: ConfigFileConfig {
+                    location: Some(ConfigFileLocation::UsrShare),
+                    variant: ConfigFileVariant::OnlyNetHsmBackendAdminPlaintextNonAdminPlaintext,
+                    system_user_config: Some(SystemUserConfig {
+                        create_secrets: false,
+                        create_ssh_authorized_keys: true,
+                    }),
+                },
+            };
+            system_prepare_config.apply()?;
+
+            let exit_code = {
+                let mut command = cargo_bin_cmd!();
+                let output = command
+                    .arg("--verbose")
+                    .arg("--verbose")
+                    .arg("--verbose")
+                    .output()?;
+
+                ExitCode::from(u8::try_from(
+                    output.status.code().expect("there to be an exit code"),
+                )?)
+            };
+
+            assert_eq!(
+                exit_code,
+                ConfigurationResult::NoAvailableBackendConnection.report()
+            );
+
+            Ok(())
+        }
     }
 }
 
@@ -157,5 +335,96 @@ mod yubihsm {
         );
 
         Ok(())
+    }
+
+    #[cfg(feature = "cli")]
+    mod cli {
+        use std::process::{ExitCode, Termination};
+
+        use assert_cmd::cargo::cargo_bin_cmd;
+
+        use super::*;
+
+        /// Ensures, that calling the `signstar-configure` CLI succeeds if a Signstar configuration
+        /// file is present in one of the default system locations and a YubiHSM2 mockhsm
+        /// backend is used.
+        #[test]
+        #[cfg(feature = "_yubihsm2-mockhsm")]
+        fn succeeds_on_host_without_admin_creds_and_mockhsm() -> TestResult {
+            setup_logging(LevelFilter::Debug)?;
+
+            let system_prepare_config = SystemPrepareConfig {
+                machine_id: false,
+                credentials_socket: false,
+                signstar_config: ConfigFileConfig {
+                    location: Some(ConfigFileLocation::UsrShare),
+                    variant:
+                        ConfigFileVariant::OnlyYubiHsm2MockHsmBackendAdminPlaintextNonAdminPlaintext,
+                    system_user_config: Some(SystemUserConfig {
+                        create_secrets: false,
+                        create_ssh_authorized_keys: true,
+                    }),
+                },
+            };
+            system_prepare_config.apply()?;
+
+            let exit_code = {
+                let mut command = cargo_bin_cmd!();
+                let output = command
+                    .arg("--verbose")
+                    .arg("--verbose")
+                    .arg("--verbose")
+                    .output()?;
+
+                ExitCode::from(u8::try_from(
+                    output.status.code().expect("there to be an exit code"),
+                )?)
+            };
+
+            assert_eq!(exit_code, ConfigurationResult::SyncSucceeded.report());
+
+            Ok(())
+        }
+
+        /// Ensures, that calling the `signstar-configure` CLI aborts on unavailable backend
+        /// connections.
+        #[test]
+        fn abort_on_unavailable_backend_connections() -> TestResult {
+            setup_logging(LevelFilter::Debug)?;
+
+            let system_prepare_config = SystemPrepareConfig {
+                machine_id: false,
+                credentials_socket: false,
+                signstar_config: ConfigFileConfig {
+                    location: Some(ConfigFileLocation::UsrShare),
+                    variant: ConfigFileVariant::OnlyYubiHsm2BackendAdminPlaintextNonAdminPlaintext,
+                    system_user_config: Some(SystemUserConfig {
+                        create_secrets: false,
+                        create_ssh_authorized_keys: true,
+                    }),
+                },
+            };
+            system_prepare_config.apply()?;
+
+            let exit_code = {
+                let mut command = cargo_bin_cmd!();
+                let output = command
+                    .arg("--verbose")
+                    .arg("--verbose")
+                    .arg("--verbose")
+                    .output()?;
+
+                ExitCode::from(u8::try_from(
+                    output.status.code().expect("there to be an exit code"),
+                )?)
+            };
+
+            assert_eq!(
+                exit_code,
+                ConfigurationResult::NoAvailableBackendConnection.report()
+            );
+
+            Ok(())
+        }
     }
 }
