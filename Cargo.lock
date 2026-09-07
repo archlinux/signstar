@@ -5162,6 +5162,8 @@ dependencies = [
 name = "signstar-configure"
 version = "0.1.0"
 dependencies = [
+ "clap",
+ "clap-verbosity-flag",
  "log",
  "signstar-common",
  "signstar-config",
