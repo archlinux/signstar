@@ -47,12 +47,12 @@ use std::{
     str::FromStr,
 };
 
-use aes::{Aes128, cipher::typenum::Unsigned};
+use aes::{Aes128, cipher::typenum::Unsigned as _};
 use base64ct::{Base64, Encoding as _};
 use ccm::{
     Ccm,
     Nonce,
-    aead::{Aead, KeyInit, rand_core::RngCore},
+    aead::{Aead, Generate, KeyInit},
     consts::{U13, U16},
 };
 use curve25519_dalek::Scalar;
@@ -149,11 +149,9 @@ impl TryFrom<PlainWrappedDataWithKey<'_, '_>> for YubiHsm2Wrap {
     ///
     /// Returns an error if encryption of `wrapped_data` with `wrapping_key` fails.
     fn try_from(value: PlainWrappedDataWithKey<'_, '_>) -> Result<Self, Self::Error> {
-        let cipher = Aes128Ccm::new(value.key.into());
-        let mut nonce = [0; 13];
-        let mut rng = aes::cipher::crypto_common::rand_core::OsRng;
-        rng.fill_bytes(&mut nonce);
-        let mut wrapped = cipher.encrypt(Nonce::from_slice(&nonce), value.data)?;
+        let cipher = Aes128Ccm::new(value.key.try_into()?);
+        let nonce = Nonce::<U13>::generate();
+        let mut wrapped = cipher.encrypt(&nonce, value.data)?;
         wrapped.splice(0..0, nonce);
 
         Ok(Self { wrapped })
@@ -201,9 +199,9 @@ impl YubiHsm2Wrap {
     ///
     /// Returns an error if decrypting the data using `wrapping_key` fails.
     pub fn decrypt(&self, wrapping_key: &[u8]) -> Result<Vec<u8>, Error> {
-        let cipher = Aes128Ccm::new(wrapping_key.into());
+        let cipher = Aes128Ccm::new(wrapping_key.try_into()?);
         let (nonce, ciphertext) = self.wrapped.split_at(U13::to_usize());
-        let plaintext = cipher.decrypt(nonce.into(), ciphertext)?;
+        let plaintext = cipher.decrypt(nonce.try_into()?, ciphertext)?;
 
         Ok(plaintext)
     }
