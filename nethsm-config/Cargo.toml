@@ -19,7 +19,7 @@ thiserror.workspace = true
 zeroize.workspace = true
 
 [dev-dependencies]
-dirs = "6.0.0"
+dirs = "7.0.0"
 rstest.workspace = true
 testdir.workspace = true
 testresult.workspace = true
