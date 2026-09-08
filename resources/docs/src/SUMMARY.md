@@ -18,6 +18,7 @@
     - [CHANGELOG](./signstar-config/CHANGELOG.md)
 - [signstar-configure](./signstar-configure/README.md)
     - [CHANGELOG](./signstar-configure/CHANGELOG.md)
+    - [Architecture](./signstar-configure/ARCHITECTURE.md)
 - [signstar-configure-build](./signstar-configure-build/README.md)
     - [CHANGELOG](./signstar-configure-build/CHANGELOG.md)
 - [signstar-crypto](./signstar-crypto/README.md)
