@@ -438,7 +438,7 @@ impl TryFrom<Vec<String>> for OpenPgpUserIdList {
 }
 
 /// Key usage flags that can be set on the generated certificate.
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug)]
 pub struct OpenPgpKeyUsageFlags(KeyFlags);
 
 impl OpenPgpKeyUsageFlags {
@@ -450,6 +450,14 @@ impl OpenPgpKeyUsageFlags {
     /// Makes it impossible for this key to issue data signatures.
     pub fn clear_sign(&mut self) {
         self.0.set_sign(false);
+    }
+}
+
+impl Default for OpenPgpKeyUsageFlags {
+    fn default() -> Self {
+        let mut key_usage_flags = KeyFlags::default();
+        key_usage_flags.set_sign(true);
+        Self(key_usage_flags)
     }
 }
 
