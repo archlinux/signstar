@@ -205,7 +205,7 @@ fn validate_system_config_mappings(
 ///   the system
 /// - the `mappings` which describe user mappings for system users (e.g. SSS shareholders or users
 ///   for downloading wireguard configurations)
-#[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize, Validate)]
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize, Validate)]
 #[serde(rename_all = "snake_case")]
 pub struct SystemConfig {
     #[garde(skip)]
