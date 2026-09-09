@@ -2,7 +2,7 @@
 
 use log::{LevelFilter, Log};
 use simplelog::{ColorChoice, TermLogger, TerminalMode};
-use systemd_journal_logger::{JournalLog, connected_to_journal};
+use systemd_journal_logger::JournalLog;
 
 /// Logging setup error.
 #[derive(Debug, thiserror::Error)]
@@ -18,26 +18,27 @@ pub enum Error {
 
 /// Sets up logging facilities.
 ///
+/// This function first tries to connect to journald socket for logging.
+/// Only when that fails a simple logger is used.
+///
 /// # Errors
 ///
 /// An error is returned if a logger has already been set.
 pub fn setup_logging(max_level: impl Into<LevelFilter>) -> Result<(), Error> {
-    if connected_to_journal()
-        && let Ok(log) = JournalLog::new().map(|log| {
-            Box::new(log.with_extra_fields(vec![("VERSION", env!("CARGO_PKG_VERSION"))]))
-                as Box<dyn Log>
-        })
-    {
+    if let Ok(log) = JournalLog::new().map(|log| {
+        Box::new(log.with_extra_fields(vec![("VERSION", env!("CARGO_PKG_VERSION"))]))
+            as Box<dyn Log>
+    }) {
         log::set_boxed_logger(log)?;
         log::set_max_level(max_level.into());
-        return Ok(());
+    } else {
+        TermLogger::init(
+            max_level.into(),
+            Default::default(),
+            // simplelog needs to be explicitly instructed to always use stderr
+            TerminalMode::Stderr,
+            ColorChoice::Auto,
+        )?;
     }
-    TermLogger::init(
-        max_level.into(),
-        Default::default(),
-        // simplelog needs to be explicitly instructed to always use stderr
-        TerminalMode::Stderr,
-        ColorChoice::Auto,
-    )?;
     Ok(())
 }
