@@ -8,6 +8,11 @@
 
 coverage := env("COVERAGE_REPORT", "false")
 
+# Whether the workspace for profraw files used for coverage should be cleaned (`true` by default).
+#
+# Set this to `false` to accumulate and combine coverage reports of several targets.
+clean_coverage_workspace := env("CLEAN_COVERAGE_WORKSPACE", "true")
+
 # The output directory for documentation artifacts
 
 output_dir := "output"
@@ -825,6 +830,7 @@ containerized-integration-tests *options='--locked --workspace':
     set -euo pipefail
 
     readonly coverage="{{ coverage }}"
+    readonly clean_coverage_workspace="{{ clean_coverage_workspace }}"
     readonly cargo_target_dir="$(just get-cargo-target-dir)"
     read -r -a options <<< "{{ options }}"
 
@@ -832,7 +838,9 @@ containerized-integration-tests *options='--locked --workspace':
         just ensure-command bash cargo cargo-llvm-cov cargo-nextest jq podman
         # shellcheck source=/dev/null
         source <(just cargo-llvm-cov-show-env +stable)
-        cargo +stable llvm-cov clean --workspace
+        if [[ "$clean_coverage_workspace" == "true" ]]; then
+            cargo +stable llvm-cov clean --workspace
+        fi
     else
         just ensure-command bash cargo cargo-nextest jq podman
     fi
@@ -979,6 +987,7 @@ nethsm-integration-tests *options='--locked --workspace':
     set -euo pipefail
 
     readonly coverage="{{ coverage }}"
+    readonly clean_coverage_workspace="{{ clean_coverage_workspace }}"
     readonly cargo_target_dir="$(just get-cargo-target-dir)"
     readonly nethsm_image_tag="{{ nethsm_image_tag }}"
     read -r -a options <<< "{{ options }}"
@@ -987,7 +996,9 @@ nethsm-integration-tests *options='--locked --workspace':
         just ensure-command bash cargo cargo-llvm-cov cargo-nextest jq podman
         # shellcheck source=/dev/null
         source <(just cargo-llvm-cov-show-env)
-        cargo +stable llvm-cov clean --workspace
+        if [[ "$clean_coverage_workspace" == "true" ]]; then
+            cargo +stable llvm-cov clean --workspace
+        fi
     else
         just ensure-command bash cargo cargo-nextest jq podman
     fi
@@ -1005,13 +1016,16 @@ test *options='--all-targets --locked --workspace':
     set -euo pipefail
 
     readonly coverage="{{ coverage }}"
+    readonly clean_coverage_workspace="{{ clean_coverage_workspace }}"
     read -r -a options <<< "{{ options }}"
 
     if [[ "$coverage" == "true" ]]; then
         just ensure-command cargo cargo-llvm-cov cargo-nextest
         # shellcheck source=/dev/null
         source <(just cargo-llvm-cov-show-env)
-        cargo +stable llvm-cov clean --workspace
+        if [[ "$clean_coverage_workspace" == "true" ]]; then
+            cargo +stable llvm-cov clean --workspace
+        fi
     else
         just ensure-command cargo cargo-nextest
     fi
@@ -1025,13 +1039,16 @@ test-all:
     set -euo pipefail
 
     readonly coverage="{{ coverage }}"
+    readonly clean_coverage_workspace="{{ clean_coverage_workspace }}"
     commands=(cargo cargo-hack cargo-nextest)
     if [[ "$coverage" == "true" ]]; then
         commands+=(cargo-llvm-cov)
         just ensure-command "${commands[@]}"
         # shellcheck source=/dev/null
         source <(just cargo-llvm-cov-show-env)
-        cargo +stable llvm-cov clean --workspace
+        if [[ "$clean_coverage_workspace" == "true" ]]; then
+            cargo +stable llvm-cov clean --workspace
+        fi
     else
         just ensure-command "${commands[@]}"
     fi
@@ -1045,6 +1062,7 @@ test-docs *options='--locked --workspace':
     set -euo pipefail
 
     readonly coverage="{{ coverage }}"
+    readonly clean_coverage_workspace="{{ clean_coverage_workspace }}"
     toolchain="+stable"
     read -r -a options <<< "{{ options }}"
 
@@ -1053,7 +1071,9 @@ test-docs *options='--locked --workspace':
         just ensure-command cargo cargo-llvm-cov
         # shellcheck source=/dev/null
         source <(just cargo-llvm-cov-show-env "$toolchain" '--doctests')
-        cargo "$toolchain" llvm-cov clean --workspace
+        if [[ "$clean_coverage_workspace" == "true" ]]; then
+            cargo "$toolchain" llvm-cov clean --workspace
+        fi
     else
         just ensure-command cargo
     fi
@@ -1067,13 +1087,16 @@ test-docs-all:
     set -euo pipefail
 
     readonly coverage="{{ coverage }}"
+    readonly clean_coverage_workspace="{{ clean_coverage_workspace }}"
     toolchain="+stable"
     if [[ "$coverage" == "true" ]]; then
         toolchain="+nightly"
         just ensure-command cargo cargo-llvm-cov
         # shellcheck source=/dev/null
         source <(just cargo-llvm-cov-show-env "$toolchain" '--doctests')
-        cargo "$toolchain" llvm-cov clean --workspace
+        if [[ "$clean_coverage_workspace" == "true" ]]; then
+            cargo "$toolchain" llvm-cov clean --workspace
+        fi
     else
         just ensure-command cargo
     fi
