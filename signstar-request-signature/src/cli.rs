@@ -50,9 +50,9 @@ If unspecified, one of the following configuration files is used if it exists, i
 
     /// The user to use for connecting.
     ///
-    /// If this option is set only connections with matching username are considered.
+    /// The configuration file must contain the respective user section.
     #[arg(long)]
-    pub user: Option<String>,
+    pub user: String,
 
     /// The path to a file being signed
     #[arg(env = "SIGNSTAR_REQUEST_FILE")]

@@ -28,7 +28,7 @@ async fn send_request_via_ssh(send_command: SendCommand) -> Result<Response, Err
     } else {
         ConnectConfig::from_first_system_config()?
     };
-    let mut session = options.connect(&send_command.user.expect("FIXME")).await?;
+    let mut session = options.connect(&send_command.user).await?;
     let response: Response = session
         .send(&Request::for_file(send_command.input)?)
         .await?;
