@@ -269,7 +269,7 @@ enum ConfigFileFormat {
 /// The configuration of a Signstar system.
 ///
 /// Tracks system-wide configuration items, as well as configurations for specific backends.
-#[derive(Clone, Debug, Default, Deserialize, Serialize, Validate)]
+#[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize, Validate)]
 #[serde(rename_all = "snake_case")]
 pub struct Config {
     /// System configuration object.
