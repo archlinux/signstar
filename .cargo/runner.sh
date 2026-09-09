@@ -23,9 +23,9 @@ else
   arch_container="registry.archlinux.org/archlinux/archlinux-docker:base-master"
 fi
 
-# If the test file name contains "integration" and the invocation is not for listing the test, run the test in a container.
+# If the test file name contains "containerized" and the invocation is not for listing the test, run the test in a container.
 # Otherwise run on the host.
-if [[ "$test_executable_path" == *integration* ]] && [[ "$first_test_argument" != "--list" ]]; then
+if [[ "$test_executable_path" == *containerized* ]] && [[ "$first_test_argument" != "--list" ]]; then
   target_dir="$(just get-cargo-target-dir)"
 
   readonly podman_run_options=(

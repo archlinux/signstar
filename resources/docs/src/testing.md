@@ -36,7 +36,7 @@ For convenience `just nethsm-integration-tests` runs all NetHSM tests.
 ### Containerized integration tests
 
 Some tests need to be run in a container, as they depend on global system state.
-These are marked with a `_containerized-integration-test` feature.
+These are marked with a `_containerized-integration-test` feature and reside in a integration test module named `containerized`.
 A custom runner script (`.cargo/runner.sh`) ensures that matching tests are run in a dedicated Arch Linux container each.
 
 For convenience `just containerized-integration-tests-all` runs all containerized tests (in all relevant feature permutations).
