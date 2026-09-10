@@ -18,5 +18,5 @@ pub mod yubihsm2_export {
 
 /// Re-export of types from the signstar-yubihsm2 crate.
 pub mod signstar_yubihsm2_export {
-    pub use signstar_yubihsm2::{Credentials, object::Domain};
+    pub use signstar_yubihsm2::{Connection, Credentials, object::Domain};
 }
