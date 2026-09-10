@@ -103,12 +103,60 @@ nethsm.use_credentials(&"user1".parse()?)?;
 # }
 ```
 
+### Backup
+
+Backup features require enabling the `backup` feature of this crate.
+
+Listing all fields in a backup file:
+
+```rust no_run
+# #[cfg(feature = "backup")] {
+use std::collections::HashMap;
+
+use nethsm::backup::Backup;
+
+let backup = Backup::parse(std::fs::File::open("tests/nethsm.backup-file.bkp")?)?;
+let decryptor = backup.decrypt(b"my-very-unsafe-backup-passphrase")?;
+
+assert_eq!(decryptor.version()?, [0]);
+
+for item in decryptor.items_iter() {
+    let (key, value) = item?;
+    println!("Found {key} with value: {value:X?}");
+}
+# } testresult::TestResult::Ok(())
+```
+
+Dumping the value of one specified field (here `/config/version`):
+
+```rust no_run
+# #[cfg(feature = "backup")] {
+use std::collections::HashMap;
+
+use nethsm::backup::Backup;
+
+let backup = Backup::parse(std::fs::File::open("tests/nethsm.backup-file.bkp")?)?;
+let decryptor = backup.decrypt(b"my-very-unsafe-backup-passphrase")?;
+
+assert_eq!(decryptor.version()?, [0]);
+
+for (key, value) in decryptor
+    .items_iter()
+    .flat_map(|item| item.ok())
+    .filter(|(key, _)| key == "/config/version")
+{
+    println!("Found {key} with value: {value:X?}");
+}
+# } testresult::TestResult::Ok(())
+```
+
 ## Features
 
 - `_nethsm-integration-test`: Integration tests that require a containerized NetHSM test environment.
   **NOTE**: Unless you are developing this crate, you will very likely not want to use this feature.
 - `_test-helpers`: Enables the `nethsm::test` module which provides utilities for test setups that may also be useful for other crates.
   **NOTE**: Unless you are developing this crate or write NetHSM related integration tests in your own crate, you will very likely not want to use this feature.
+- `backup` - enables the use of `nethsm::backup` module for reading, verifying and extracting NetHSM backup files
 
 ## Contributing
 

@@ -10,6 +10,7 @@ repository.workspace = true
 version = "0.10.0"
 
 [dependencies]
+aes-gcm = { version = "0.11.0", optional = true }
 base64ct.workspace = true
 chrono = { workspace = true, features = ["alloc"] }
 ed25519-dalek = { workspace = true, features = ["pem", "pkcs8"] }
@@ -27,6 +28,7 @@ rstest = { optional = true, workspace = true }
 rustainers = { optional = true, workspace = true }
 rustls = { version = "0.23.19" }
 rustls-native-certs = "0.8.1"
+scrypt = { version = "0.12.0", optional = true }
 serde.workspace = true
 serde_json.workspace = true
 sha1.workspace = true
@@ -55,6 +57,7 @@ uuid.workspace = true
 [features]
 _nethsm-integration-test = ["_test-helpers"]
 _test-helpers = ["dep:rstest", "dep:rustainers", "dep:testresult", "dep:uuid"]
+backup = ["dep:aes-gcm", "dep:scrypt"]
 default = []
 
 [lints]

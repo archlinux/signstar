@@ -1,5 +1,7 @@
 #![doc = include_str!("../README.md")]
 
+#[cfg(feature = "backup")]
+pub mod backup;
 mod base;
 pub mod connection;
 mod error;

@@ -37,8 +37,8 @@ use nethsm::{
     Timestamp,
     UserId,
     UserRole,
+    backup::validate_backup,
 };
-use nethsm_backup::validate_backup;
 use nethsm_config::{
     Config,
     ConfigCredentials,
@@ -90,7 +90,7 @@ pub enum Error {
 
     /// Error processing backup file
     #[error("Backup file is corrupted: {0}")]
-    Backup(#[from] nethsm_backup::Error),
+    Backup(#[from] nethsm::backup::Error),
 
     /// Request deserialization error
     #[error("Request deserialization failed: {0}")]

@@ -3157,6 +3157,7 @@ dependencies = [
 name = "nethsm"
 version = "0.10.0"
 dependencies = [
+ "aes-gcm 0.11.0",
  "base64ct",
  "chrono",
  "ed25519-dalek 2.2.0",
@@ -3174,6 +3175,7 @@ dependencies = [
  "rustainers",
  "rustls",
  "rustls-native-certs",
+ "scrypt",
  "serde",
  "serde_json",
  "sha1 0.11.0",
@@ -3191,23 +3193,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "nethsm-backup"
-version = "0.2.0"
-dependencies = [
- "aes-gcm 0.11.0",
- "log",
- "nethsm",
- "rstest",
- "rustainers",
- "scrypt",
- "signstar-crypto",
- "testdir",
- "testresult",
- "thiserror 2.0.18",
- "tokio",
-]
-
-[[package]]
 name = "nethsm-cli"
 version = "0.9.0"
 dependencies = [
@@ -3215,7 +3200,6 @@ dependencies = [
  "clap",
  "expression_format",
  "nethsm",
- "nethsm-backup",
  "nethsm-config",
  "rand 0.8.6",
  "rstest",

@@ -1,7 +1,6 @@
 [workspace]
 members = [
     "nethsm",
-    "nethsm-backup",
     "nethsm-cli",
     "nethsm-config",
     "signstar-common",
@@ -28,7 +27,6 @@ garde = { version = "0.23.0", features = ["derive"] }
 insta = "1.46.1"
 log = { version = "0.4.27", features = ["kv_std"] }
 nethsm = { path = "nethsm", version = "0.10.0" }
-nethsm-backup = { path = "nethsm-backup", version = "0.2.0" }
 nethsm-config = { path = "nethsm-config", version = "0.5.0" }
 nethsm-sdk-rs = "1.1.1"
 nix = { version = "0.31.0", features = ["user"] }
