@@ -1,6 +1,6 @@
 //! Administrative credentials for [`NetHsm`] backends.
 
-use log::warn;
+use log::{info, warn};
 use nethsm::{FullCredentials, Passphrase};
 #[cfg(doc)]
 use nethsm::{NetHsm, UserId};
@@ -9,6 +9,7 @@ use signstar_crypto::passphrase::PassphrasePolicy;
 
 use crate::{
     admin_credentials::{AdminCredentials, Error},
+    config::Config,
     nethsm::{NetHsmConfig, NetHsmUserMapping},
 };
 
@@ -402,15 +403,85 @@ impl AdminCredentials for NetHsmAdminCredentials {
     }
 }
 
+impl TryFrom<&Config> for NetHsmAdminCredentials {
+    type Error = crate::Error;
+
+    /// Creates a new [`NetHsmAdminCredentials`] from a [`Config`].
+    ///
+    /// # Note
+    ///
+    /// This generates a new backup passphrase and administrative passphrases, adhering to the
+    /// hardcoded passphrase policies (e.g. minimum length).
+    ///
+    /// # Errors
+    ///
+    /// Returns an error, if
+    ///
+    /// - `config` does not contain a [`NetHsmConfig`][`crate::nethsm::NetHsmConfig`]
+    /// - [`NetHsmAdminCredentials::new`] fails on the generated data
+    fn try_from(config: &Config) -> Result<Self, Self::Error> {
+        info!(
+            "Create new administrative credentials for NetHSM based on the Signstar configuration."
+        );
+
+        let Some(nethsm_config) = config.nethsm() else {
+            return Err(crate::config::Error::NetHsmSectionMissing.into());
+        };
+
+        let administrators = nethsm_config
+            .mappings()
+            .iter()
+            .filter_map(|mapping| {
+                if let NetHsmUserMapping::Admin(user_id) = mapping
+                    && !user_id.is_namespaced()
+                {
+                    Some(FullCredentials::new(
+                        user_id.clone(),
+                        Passphrase::generate(Some(Self::ADMIN_PASSPHRASE_POLICY.minimum_length)),
+                    ))
+                } else {
+                    None
+                }
+            })
+            .collect::<Vec<_>>();
+        let namespace_administrators = nethsm_config
+            .mappings()
+            .iter()
+            .filter_map(|mapping| {
+                if let NetHsmUserMapping::Admin(user_id) = mapping
+                    && user_id.is_namespaced()
+                {
+                    Some(FullCredentials::new(
+                        user_id.clone(),
+                        Passphrase::generate(Some(Self::ADMIN_PASSPHRASE_POLICY.minimum_length)),
+                    ))
+                } else {
+                    None
+                }
+            })
+            .collect::<Vec<_>>();
+
+        Self::new(
+            config.system().iteration(),
+            Passphrase::generate(Some(Self::BACKUP_PASSPHRASE_POLICY.minimum_length)),
+            Passphrase::generate(Some(Self::UNLOCK_PASSPHRASE_POLICY.minimum_length)),
+            administrators,
+            namespace_administrators,
+        )
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use std::{collections::BTreeSet, str::FromStr};
 
-    use nethsm::{Connection, UserId};
+    use nethsm::{Connection, ConnectionSecurity, UserId};
     use rstest::{fixture, rstest};
+    use signstar_crypto::{AdministrativeSecretHandling, NonAdministrativeSecretHandling};
     use testresult::TestResult;
 
     use super::*;
+    use crate::config::{ConfigBuilder, SystemConfig};
 
     #[fixture]
     fn nethsm_admin_credentials() -> TestResult<NetHsmAdminCredentials> {
@@ -487,6 +558,55 @@ mod tests {
             .collect::<Vec<_>>();
 
         assert_eq!(users, vec![UserId::from_str("ns1~admin")?]);
+
+        Ok(())
+    }
+
+    /// Ensures, that creating [`NetHsmAdminCredentials`] from [`Config`] fails if it doesn't
+    /// contain a section for NetHSM devices.
+    #[test]
+    fn nethsm_admin_credentials_try_from_config_fails_on_no_nethsm_config() -> TestResult {
+        let config = ConfigBuilder::new(SystemConfig::new(
+            1,
+            AdministrativeSecretHandling::Plaintext,
+            NonAdministrativeSecretHandling::Plaintext,
+            BTreeSet::new(),
+        )?)
+        .finish()?;
+
+        match NetHsmAdminCredentials::try_from(&config) {
+            Err(crate::Error::Config(crate::config::Error::NetHsmSectionMissing)) => {}
+            Err(error) => panic!(
+                "Expected to fail with Error::NetHsmSectionMissing but failed differently: {error}"
+            ),
+            Ok(creds) => panic!(
+                "Expected to fail with Error::NetHsmSectionMissing but succeeded instead: {creds:?}"
+            ),
+        }
+
+        Ok(())
+    }
+
+    /// Ensures, that creating [`NetHsmAdminCredentials`] from [`Config`] succeeds if it contains
+    /// a section for NetHSM devices.
+    #[test]
+    fn nethsm_admin_credentials_try_from_config_succeeds() -> TestResult {
+        let config = ConfigBuilder::new(SystemConfig::new(
+            1,
+            AdministrativeSecretHandling::Plaintext,
+            NonAdministrativeSecretHandling::Plaintext,
+            BTreeSet::new(),
+        )?)
+        .set_nethsm_config(NetHsmConfig::new(
+            BTreeSet::from_iter([Connection::new(
+                "https://localhost".parse()?,
+                ConnectionSecurity::Unsafe,
+            )]),
+            BTreeSet::from_iter([NetHsmUserMapping::Admin("admin".parse()?)]),
+        )?)
+        .finish()?;
+
+        let _ = NetHsmAdminCredentials::try_from(&config)?;
 
         Ok(())
     }
