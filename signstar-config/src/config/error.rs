@@ -139,6 +139,11 @@ pub enum Error {
     #[error("No system user for uploading shares of a shared secret exists.")]
     MissingShareUploadSystemUser,
 
+    /// The Signstar configuration does not contain a NetHSM section.
+    #[cfg(feature = "nethsm")]
+    #[error("No NetHSM section found in the Signstar configuration file.")]
+    NetHsmSectionMissing,
+
     /// There are no SSH authorized keys
     #[error("No SSH authorized key provided!")]
     NoAuthorizedKeys,
