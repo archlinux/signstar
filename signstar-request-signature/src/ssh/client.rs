@@ -29,6 +29,7 @@ use garde::Validate;
 use rand::seq::SliceRandom;
 use rand::thread_rng;
 use russh::client::AuthResult;
+use russh::keys::PublicKeyOrCertificate;
 use russh::keys::agent::client::AgentClient;
 use russh::keys::ssh_key::known_hosts::Entry;
 use russh::keys::ssh_key::{HashAlg, PublicKey};
@@ -575,13 +576,20 @@ impl client::Handler for KeyValidator {
     /// of a list of `entries` in the SSH known_hosts file format. Returns `true`, if the
     /// combination of `key`, `host` and `port` matches an entry in the list of `entries` and that
     /// entry is not a CA key or a revoked key. Returns `false` in all other cases.
-    async fn check_server_key(&mut self, server_public_key: &PublicKey) -> Result<bool> {
-        Ok(crate::ssh::known_hosts::is_server_known(
-            self.entries.iter(),
-            &self.host,
-            self.port,
-            server_public_key,
-        ))
+    async fn check_server_key(
+        &mut self,
+        server_public_key: &PublicKeyOrCertificate,
+    ) -> Result<bool> {
+        if let PublicKeyOrCertificate::PublicKey { key, .. } = server_public_key {
+            Ok(crate::ssh::known_hosts::is_server_known(
+                self.entries.iter(),
+                &self.host,
+                self.port,
+                key,
+            ))
+        } else {
+            Ok(false)
+        }
     }
 }
 

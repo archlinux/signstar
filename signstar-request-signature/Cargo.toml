@@ -17,7 +17,7 @@ garde.workspace = true
 hmac = { version = "0.13.0" }
 log.workspace = true
 rand.workspace = true
-russh = { version = "0.62.0", features = ["serde"] }
+russh = { version = "0.63.0", features = ["serde"] }
 semver = { version = "1.0.23", features = ["serde"] }
 serde.workspace = true
 serde_json.workspace = true
