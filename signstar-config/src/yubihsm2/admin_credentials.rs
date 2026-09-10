@@ -1,5 +1,6 @@
 //! Administrative credentials for YubiHSM2 backends.
 
+use log::info;
 use serde::{Deserialize, Serialize};
 use signstar_crypto::{
     passphrase::{Passphrase, PassphrasePolicy},
@@ -7,7 +8,11 @@ use signstar_crypto::{
 };
 use signstar_yubihsm2::{Credentials, object::WrapKey, yubihsm::Id};
 
-use crate::admin_credentials::{AdminCredentials, Error};
+use crate::{
+    admin_credentials::{AdminCredentials, Error},
+    config::Config,
+    yubihsm2::YubiHsm2UserMapping,
+};
 
 /// Administrative credentials for YubiHSM2 backends.
 ///
@@ -143,11 +148,71 @@ impl AdminCredentials for YubiHsm2AdminCredentials {
     }
 }
 
+impl TryFrom<&Config> for YubiHsm2AdminCredentials {
+    type Error = crate::Error;
+
+    /// Creates a new [`YubiHsm2AdminCredentials`] from a [`Config`].
+    ///
+    /// # Note
+    ///
+    /// This generates a new backup passphrase and administrative passphrases, adhering to the
+    /// hardcoded passphrase policies (e.g. minimum length).
+    ///
+    /// # Errors
+    ///
+    /// Returns an error, if
+    ///
+    /// - `config` does not contain a [`YubiHsm2Config`][`crate::yubihsm2::YubiHsm2Config`]
+    /// - [`YubiHsm2AdminCredentials::new`] fails on the generated data
+    fn try_from(config: &Config) -> Result<Self, Self::Error> {
+        info!("Create new administrative credentials for the Signstar configuration...");
+
+        let Some(yubihsm2_config) = config.yubihsm2() else {
+            return Err(crate::config::Error::YubiHsm2SectionMissing.into());
+        };
+
+        let administrators = yubihsm2_config
+            .mappings()
+            .iter()
+            .filter_map(|mapping| {
+                let YubiHsm2UserMapping::Admin {
+                    authentication_key_id,
+                } = mapping
+                else {
+                    return None;
+                };
+                Some(Credentials::new(
+                    *authentication_key_id,
+                    Passphrase::generate(Some(
+                        YubiHsm2AdminCredentials::ADMIN_PASSPHRASE_POLICY.minimum_length,
+                    )),
+                ))
+            })
+            .collect::<Vec<_>>();
+
+        YubiHsm2AdminCredentials::new(
+            config.system().iteration(),
+            Passphrase::generate(Some(
+                YubiHsm2AdminCredentials::BACKUP_PASSPHRASE_POLICY.minimum_length,
+            )),
+            administrators,
+        )
+    }
+}
+
 #[cfg(test)]
 mod tests {
+    use std::collections::BTreeSet;
+
+    use signstar_crypto::{AdministrativeSecretHandling, NonAdministrativeSecretHandling};
+    #[cfg(feature = "_yubihsm2-mockhsm")]
+    use signstar_yubihsm2::Connection;
     use testresult::TestResult;
 
     use super::*;
+    use crate::config::{ConfigBuilder, SystemConfig};
+    #[cfg(feature = "_yubihsm2-mockhsm")]
+    use crate::yubihsm2::YubiHsm2Config;
 
     #[test]
     fn yubihsm2_admin_credentials_new_succeeds() -> TestResult {
@@ -229,6 +294,55 @@ mod tests {
                 signstar_crypto::passphrase::Error::Length)) but failed differently instead:\n{error}"
             ),
         }
+
+        Ok(())
+    }
+
+    /// Ensures, that creating [`YubiHsm2AdminCredentials`] from [`Config`] fails if it doesn't
+    /// contain a section for YubiHSM2 devices.
+    #[test]
+    fn yubihsm2_admin_credentials_try_from_config_fails_on_no_yubihsm2_config() -> TestResult {
+        let config = ConfigBuilder::new(SystemConfig::new(
+            1,
+            AdministrativeSecretHandling::Plaintext,
+            NonAdministrativeSecretHandling::Plaintext,
+            BTreeSet::new(),
+        )?)
+        .finish()?;
+
+        match YubiHsm2AdminCredentials::try_from(&config) {
+            Err(crate::Error::Config(crate::config::Error::YubiHsm2SectionMissing)) => {}
+            Err(error) => panic!(
+                "Expected to fail with Error::YubiHsm2SectionMissing but failed differently: {error}"
+            ),
+            Ok(creds) => panic!(
+                "Expected to fail with Error::YubiHsm2SectionMissing but succeeded instead: {creds:?}"
+            ),
+        }
+
+        Ok(())
+    }
+
+    /// Ensures, that creating [`YubiHsm2AdminCredentials`] from [`Config`] succeeds if it contains
+    /// a section for YubiHSM2 devices.
+    #[cfg(feature = "_yubihsm2-mockhsm")]
+    #[test]
+    fn yubihsm2_admin_credentials_try_from_config_succeeds() -> TestResult {
+        let config = ConfigBuilder::new(SystemConfig::new(
+            1,
+            AdministrativeSecretHandling::Plaintext,
+            NonAdministrativeSecretHandling::Plaintext,
+            BTreeSet::new(),
+        )?)
+        .set_yubihsm2_config(YubiHsm2Config::new(
+            BTreeSet::from_iter([Connection::Mock]),
+            BTreeSet::from_iter([YubiHsm2UserMapping::Admin {
+                authentication_key_id: 1,
+            }]),
+        )?)
+        .finish()?;
+
+        let _ = YubiHsm2AdminCredentials::try_from(&config)?;
 
         Ok(())
     }
