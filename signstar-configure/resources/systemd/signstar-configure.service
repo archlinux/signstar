@@ -1,0 +1,24 @@
+[Unit]
+After=sshd.service
+Description=Signstar host configuration
+Documentation=man:signstar-configure(8)
+Documentation=https://signstar.archlinux.page/signstar-configure/
+Wants=network.target sshd.service
+
+[Service]
+ExecStart=/usr/bin/signstar-configure
+LockPersonality=yes
+NoNewPrivileges=yes
+MemoryDenyWriteExecute=yes
+ProtectClock=yes
+ProtectControlGroups=yes
+ProtectHome=yes
+ProtectKernelLogs=yes
+ProtectKernelModules=yes
+ProtectProc=invisible
+ProtectSystem=strict
+RestrictAddressFamilies=AF_INET AF_INET6
+RestrictNamespaces=yes
+RestrictSUIDSGID=yes
+SystemCallArchitectures=native
+Type=onehsot

@@ -1,0 +1,10 @@
+[Unit]
+Description=Configure a Signstar host
+
+[Timer]
+OnCalendar="*:0,10,20,30,40,50"
+Persistent=true
+AccuracySec=1us
+
+[Install]
+WantedBy=timers.target
