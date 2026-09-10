@@ -2,6 +2,7 @@
 
 use std::{collections::HashSet, fs::write};
 
+use log::warn;
 use nix::unistd::User;
 use signstar_common::ssh::get_ssh_authorized_key_base_dir;
 use signstar_crypto::{
@@ -106,14 +107,20 @@ pub trait MappingSystemUserId {
             return Ok(None);
         };
 
-        // NOTE: We ignore the potential `None` return value of `User::from_name` because it would
-        // mean an invalid system user name (which cannot happen due to validation).
-        Ok(User::from_name(system_user_id.as_ref()).map_err(|source| {
+        let user = User::from_name(system_user_id.as_ref()).map_err(|source| {
             crate::utils::Error::SystemUserLookup {
                 user: crate::utils::NameOrUid::Name(system_user_id.clone()),
                 source,
             }
-        })?)
+        })?;
+
+        if user.is_none() {
+            warn!(
+                "There is no matching system user for the configured system user ID {system_user_id}"
+            );
+        }
+
+        Ok(user)
     }
 
     /// Returns the tracked system user ID as the current [`User`] if it exists.
