@@ -147,7 +147,7 @@ The following assumptions about the setup of the system provide a baseline for i
 
 [response and mitigation categories]: https://cheatsheetseries.owasp.org/cheatsheets/Threat_Modeling_Cheat_Sheet.html#response-and-mitigations
 [threat categories]: https://cheatsheetseries.owasp.org/cheatsheets/Threat_Modeling_Cheat_Sheet.html#threat-identification
-[threat dragon]: https://owasp.org/www-project-threat-dragon/
+[threat dragon]: https://github.com/owasp/threat-dragon#owasp-threat-dragon
 [threat modeling capabilities]: https://www.threatmodelingmanifesto.org/capabilities/
 [threat modeling manifesto]: https://www.threatmodelingmanifesto.org/
 [veritysetup]: https://man.archlinux.org/man/core/cryptsetup/veritysetup.8.en
