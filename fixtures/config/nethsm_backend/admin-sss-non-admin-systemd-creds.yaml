@@ -8,24 +8,16 @@ system:
   mappings:
     - share_holder:
         system_user: share-holder1
-        ssh_authorized_key: >-
-          ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAN54Gd1jMz+yNDjBRwX1SnOtWuUsVF64RJIeYJ8DI7b
-          user@host
+        ssh_authorized_key: ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAN54Gd1jMz+yNDjBRwX1SnOtWuUsVF64RJIeYJ8DI7b user@host
     - share_holder:
         system_user: share-holder2
-        ssh_authorized_key: >-
-          ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPDgwGfIRBAsOUuDEZw/uJQZSwOYr4sg2DAZpcc7MfOj
-          user@host
+        ssh_authorized_key: ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPDgwGfIRBAsOUuDEZw/uJQZSwOYr4sg2DAZpcc7MfOj user@host
     - share_holder:
         system_user: share-holder3
-        ssh_authorized_key: >-
-          ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILWqWyMCk5BdSl1c3KYoLEokKr7qNVPbI1IbBhgEBQj5
-          user@host
+        ssh_authorized_key: ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILWqWyMCk5BdSl1c3KYoLEokKr7qNVPbI1IbBhgEBQj5 user@host
     - wire_guard_download:
         system_user: wireguard-downloader
-        ssh_authorized_key: >-
-          ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOh9BTe81DC6A0YZALsq9dWcyl6xjjqlxWPwlExTFgBt
-          user@host
+        ssh_authorized_key: ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOh9BTe81DC6A0YZALsq9dWcyl6xjjqlxWPwlExTFgBt user@host
 nethsm:
   connections:
     - url: https://localhost:8080/
@@ -37,9 +29,7 @@ nethsm:
     - admin: ns1~admin
     - backup:
         backend_user: backup
-        ssh_authorized_key: >-
-          ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINrIYA+bfMBThUP5lKbMFEHiytmcCPhpkGrB/85n0mAN
-          user@host
+        ssh_authorized_key: ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINrIYA+bfMBThUP5lKbMFEHiytmcCPhpkGrB/85n0mAN user@host
         system_user: backup-user
     - hermetic_metrics:
         backend_users:
@@ -52,9 +42,7 @@ nethsm:
           metrics_user: metrics
           operator_users:
             - keymetrics
-        ssh_authorized_key: >-
-          ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPkpXKiNhy39A3bZ1u19a5d4sFwYMBkWQyCbzgUfdKBm
-          user@host
+        ssh_authorized_key: ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPkpXKiNhy39A3bZ1u19a5d4sFwYMBkWQyCbzgUfdKBm user@host
         system_user: metrics-user
     - signing:
         backend_user: signing
@@ -69,9 +57,7 @@ nethsm:
               user_ids:
                 - Foobar McFooface <foobar@mcfooface.org>
               version: "4"
-        ssh_authorized_key: >-
-          ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOh96uFTnvX6P1ebbLxXFvy6sK7qFqlMHDOuJ0TmuXQQ
-          user@host
+        ssh_authorized_key: ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOh96uFTnvX6P1ebbLxXFvy6sK7qFqlMHDOuJ0TmuXQQ user@host
         system_user: signing-user
         tag: signing1
     - signing:
@@ -87,8 +73,6 @@ nethsm:
               user_ids:
                 - Barfoo McBarface <barfoo@mcbarface.org>
               version: "4"
-        ssh_authorized_key: >-
-          ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJr4wdlEv3ZKkDufEQTZSLOjDLO3DeNN2pqKmp00ufIu
-          user@host
+        ssh_authorized_key: ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJr4wdlEv3ZKkDufEQTZSLOjDLO3DeNN2pqKmp00ufIu user@host
         system_user: ns1-signing-user
         tag: signing1

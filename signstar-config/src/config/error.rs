@@ -177,7 +177,7 @@ pub enum Error {
         /// This is meant to complete the sentence "YAML deserialization error while ".
         context: String,
         /// The error source.
-        source: serde_saphyr::Error,
+        source: Box<serde_saphyr::Error>,
     },
 
     /// An error occurred while serializing an object as a YAML string.
@@ -188,6 +188,6 @@ pub enum Error {
         /// This is meant to complete the sentence "YAML serialization error while ".
         context: &'static str,
         /// The error source.
-        source: serde_saphyr::ser_error::Error,
+        source: Box<serde_saphyr::ser_error::Error>,
     },
 }

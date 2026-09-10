@@ -23,6 +23,7 @@ use log::info;
 #[cfg(feature = "nethsm")]
 use nethsm::Connection;
 use serde::{Deserialize, Serialize};
+use serde_saphyr::{ser_options, to_string_with_options};
 use signstar_common::backend::BackendType;
 #[cfg(any(feature = "nethsm", feature = "yubihsm2"))]
 use signstar_crypto::{AdministrativeSecretHandling, NonAdministrativeSecretHandling};
@@ -387,7 +388,7 @@ impl Config {
     fn from_yaml_str(s: &str) -> Result<Self, crate::Error> {
         let config: Self = serde_saphyr::from_str(s).map_err(|source| Error::YamlDeserialize {
             context: "creating a Signstar configuration object".to_string(),
-            source,
+            source: Box::new(source),
         })?;
 
         config
@@ -473,10 +474,17 @@ impl Config {
     ///
     /// Returns an error if serialization fails.
     pub fn to_yaml_string(&self) -> Result<String, crate::Error> {
-        serde_saphyr::to_string(&self).map_err(|source| {
+        let options = ser_options! {
+            compact_list_indent: false,
+            prefer_block_scalars: false,
+            empty_as_braces: true,
+            indent_step: 2,
+        };
+
+        to_string_with_options(&self, options).map_err(|source| {
             Error::YamlSerialize {
                 context: "serializing Signstar config",
-                source,
+                source: Box::new(source),
             }
             .into()
         })
