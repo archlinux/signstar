@@ -1,1 +1,0 @@
-../../../../nethsm-backup/README.md

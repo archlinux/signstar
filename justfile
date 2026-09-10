@@ -1082,7 +1082,6 @@ nethsm-integration-tests *options='--locked --workspace':
         just ensure-command bash cargo cargo-nextest jq podman
     fi
 
-    cargo +stable build --bins --examples --package nethsm-backup
     cargo +stable build --bins --examples --package nethsm
     cargo +stable build --bins --examples --features nethsm --package signstar-config
 
