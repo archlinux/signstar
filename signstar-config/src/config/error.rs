@@ -190,4 +190,9 @@ pub enum Error {
         /// The error source.
         source: Box<serde_saphyr::ser_error::Error>,
     },
+
+    /// The Signstar configuration does not contain a YubiHSM2 section.
+    #[cfg(feature = "yubihsm2")]
+    #[error("No YubiHSM2 section found in the Signstar configuration file.")]
+    YubiHsm2SectionMissing,
 }
