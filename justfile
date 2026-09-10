@@ -1011,7 +1011,7 @@ nethsm-integration-tests *options='--locked --workspace':
 
 # Runs all unit tests with default features.
 [group('test')]
-test *options='--all-targets --locked --workspace':
+test *options='--all-targets --final-status-level fail --locked --no-fail-fast --status-level fail  --workspace':
     #!/usr/bin/env bash
     set -euo pipefail
 
@@ -1053,7 +1053,7 @@ test-all:
         just ensure-command "${commands[@]}"
     fi
 
-    cargo +stable hack --feature-powerset --exclude-features _containerized-integration-test,_nethsm-integration-test nextest run --locked --all-targets --no-tests warn
+    cargo +stable hack --feature-powerset --exclude-features _containerized-integration-test,_nethsm-integration-test nextest run --locked --no-fail-fast --status-level fail --final-status-level fail --all-targets --no-tests warn
 
 # Runs all doc tests. Always implies the `--doc` option to `cargo test`.
 [group('test')]
