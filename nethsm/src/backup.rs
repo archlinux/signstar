@@ -81,7 +81,7 @@
 //! # fn main() -> testresult::TestResult {
 //! use std::collections::HashMap;
 //!
-//! use nethsm_backup::Backup;
+//! use nethsm::backup::Backup;
 //!
 //! let backup = Backup::parse(std::fs::File::open("tests/nethsm.backup-file.bkp")?)?;
 //! let decryptor = backup.decrypt(b"my-very-unsafe-backup-passphrase")?;
@@ -101,7 +101,7 @@
 //! # fn main() -> testresult::TestResult {
 //! use std::collections::HashMap;
 //!
-//! use nethsm_backup::Backup;
+//! use nethsm::backup::Backup;
 //!
 //! let backup = Backup::parse(std::fs::File::open("tests/nethsm.backup-file.bkp")?)?;
 //! let decryptor = backup.decrypt(b"my-very-unsafe-backup-passphrase")?;
@@ -176,7 +176,7 @@ pub enum Error {
     },
 }
 
-/// Custom [`Result`] wrapper for [`Error`]s that may occur when using `nethsm_backup`.
+/// Custom [`Result`] wrapper for [`Error`]s that may occur when using `nethsm::backup`.
 pub type Result<T> = std::result::Result<T, Error>;
 
 /// Magic value that is contained in all NetHSM backups.
@@ -470,8 +470,8 @@ impl Iterator for BackupItemDecryptor<'_> {
 /// # Examples
 ///
 /// ```no_run
+/// use nethsm::backup::validate_backup;
 /// use nethsm::{Connection, ConnectionSecurity, Credentials, NetHsm};
-/// use nethsm_backup::validate_backup;
 /// use signstar_crypto::passphrase::Passphrase;
 ///
 /// # fn main() -> testresult::TestResult {

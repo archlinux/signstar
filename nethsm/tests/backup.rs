@@ -1,12 +1,15 @@
 //! Creates a fresh backup and tries to decrypt it.
 //!
 //! Attempts to verify several properties of the decrypted backup and writes out all keys.
-#![cfg(feature = "_nethsm-integration-test")]
+#![cfg(all(feature = "_nethsm-integration-test", feature = "backup"))]
 
-/// Integration tests
-use nethsm::test::{ADMIN_USER_ID, BACKUP_USER_ID, NetHsmImage, nethsm_with_users};
-use nethsm::{NetHsm, Passphrase, UserId};
-use nethsm_backup::{Backup, validate_backup};
+use nethsm::{
+    NetHsm,
+    Passphrase,
+    UserId,
+    backup::{Backup, validate_backup},
+    test::{ADMIN_USER_ID, BACKUP_USER_ID, NetHsmImage, nethsm_with_users},
+};
 use rstest::rstest;
 use rustainers::Container;
 use testdir::testdir;
