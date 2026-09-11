@@ -51,7 +51,16 @@ impl TryFrom<Algorithm> for KeyType {
                 AsymmetricAlgorithm::EcBp384 => KeyType::EcBp384,
                 AsymmetricAlgorithm::EcBp512 => KeyType::EcBp512,
             },
-            Algorithm::Authentication(AuthenticationAlgorithm::YubicoAes) => KeyType::Generic,
+            Algorithm::Authentication(algorithm) => match algorithm {
+                AuthenticationAlgorithm::YubicoAes => KeyType::Generic,
+                AuthenticationAlgorithm::YubicoP256 => {
+                    return Err(Error::YubiHsm2AlgorithmNotAKeyType {
+                        algorithm: value,
+                        context: "it is a custom Yubico format",
+                    }
+                    .into());
+                }
+            },
             Algorithm::Ecdh(EcdhAlgorithm::Ecdh) => {
                 return Err(Error::YubiHsm2AlgorithmNotAKeyType {
                     algorithm: value,
@@ -103,11 +112,15 @@ impl TryFrom<Algorithm> for KeyType {
                 RsaAlgorithm::Oaep(_) => KeyType::Rsa,
                 RsaAlgorithm::Pkcs1(_) => KeyType::Rsa,
                 RsaAlgorithm::Pss(_) => KeyType::Rsa,
+                RsaAlgorithm::Pkcs1Decrypt => KeyType::Rsa,
             },
             Algorithm::Symmetric(algorithm) => match algorithm {
                 SymmetricAlgorithm::Aes128
                 | SymmetricAlgorithm::Aes192
-                | SymmetricAlgorithm::Aes256 => KeyType::Generic,
+                | SymmetricAlgorithm::Aes256
+                | SymmetricAlgorithm::AesEcb
+                | SymmetricAlgorithm::AesCbc
+                | SymmetricAlgorithm::AesKwp => KeyType::Generic,
             },
             Algorithm::Template(TemplateAlgorithm::Ssh) => {
                 return Err(Error::YubiHsm2AlgorithmNotAKeyType {
@@ -126,6 +139,13 @@ impl TryFrom<Algorithm> for KeyType {
                     KeyType::Generic
                 }
             },
+            Algorithm::Unknown(_) => {
+                return Err(Error::YubiHsm2AlgorithmNotAKeyType {
+                    algorithm: value,
+                    context: "it is unknown/unsupported",
+                }
+                .into());
+            }
         })
     }
 }

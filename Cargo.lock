@@ -6963,9 +6963,9 @@ dependencies = [
 
 [[package]]
 name = "yubihsm2"
-version = "0.44.2"
+version = "0.45.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "120f6788c951ce4554c9e5788ee48643713b4c39d2c73183ad668987db7f997d"
+checksum = "0f9fa53fed51c4b7ee596ff42e7975c7c47b4b65e3898db0618b89a302ddc8d5"
 dependencies = [
  "aes 0.9.1",
  "bitflags",
