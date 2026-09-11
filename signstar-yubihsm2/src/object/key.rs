@@ -709,6 +709,9 @@ pub enum ObjectAlgorithm {
 
     /// Yubico OTP algorithms
     YubicoOtp,
+
+    /// An unknown algorithm ID.
+    Unknown(u8),
 }
 
 impl From<YubiHsmAlgorithm> for ObjectAlgorithm {
@@ -726,6 +729,7 @@ impl From<YubiHsmAlgorithm> for ObjectAlgorithm {
             YubiHsmAlgorithm::Template(_) => Self::Template,
             YubiHsmAlgorithm::Wrap(algorithm) => Self::Wrap(algorithm.into()),
             YubiHsmAlgorithm::YubicoOtp(_) => Self::YubicoOtp,
+            YubiHsmAlgorithm::Unknown(id) => Self::Unknown(id),
         }
     }
 }
