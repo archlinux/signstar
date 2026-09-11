@@ -36,7 +36,7 @@ num_enum = "0.7.6"
 p224 = "0.13.2"
 p256 = "0.13.2"
 p384 = "0.13.1"
-p521 = "0.13.3"
+p521 = "0.14.0"
 pgp = { version = "0.20", default-features = false }
 pretty_assertions = "1.4.1"
 rand = "0.8.5"
