@@ -582,6 +582,32 @@ impl<'a> BeReader<'a> {
 #[cfg_attr(feature = "serde", serde(try_from = "String", into = "String"))]
 pub struct Label([u8; 40]);
 
+impl Label {
+    /// Creates a new [`Label`] from a truncated string slice.
+    ///
+    /// # Note
+    ///
+    /// The string slice `s` is truncated to be maximum 40 bytes long.
+    /// If it is shorter, it is zero-padded.
+    pub fn from_truncated_str(s: &str) -> Self {
+        let buffer = {
+            let label = {
+                let mut label = s.as_bytes().to_vec();
+                // NOTE: This cannot panic because we do not exceed isize::MAX.
+                label.resize(40, 0);
+                label
+            };
+
+            let mut buffer = [0u8; 40];
+            // NOTE: This cannot panic, because label is exactly 40 bytes long.
+            buffer.copy_from_slice(&label);
+            buffer
+        };
+
+        Label::from(&buffer)
+    }
+}
+
 impl FromStr for Label {
     type Err = Error;
 
