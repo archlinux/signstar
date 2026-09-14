@@ -35,7 +35,6 @@ use signstar_yubihsm2::{
         Scenario,
         ScenarioRunner,
     },
-    backup::Label,
     object::{
         AuthenticationKey,
         Capabilities,
@@ -693,7 +692,7 @@ impl<'admin_creds, 'config> YubiHsm2Backend<'admin_creds, 'config> {
 
                     commands.push(Command::PutOpaque {
                         id: *signing_key_id,
-                        label: Label::from(&[0u8; 40]),
+                        label: YubiHsm2Config::openpgp_certificate_label(),
                         domains: Domains::from(*domain),
                         capabilities: OpaqueDataCapabilities::ExportableUnderWrap,
                         algorithm: OpaqueDataAlgorithm::OpaqueData,
@@ -813,6 +812,7 @@ impl<'admin_creds, 'config> YubiHsm2Backend<'admin_creds, 'config> {
                             key_id: *signing_key_id,
                             domains: Domains::from(*domain),
                             caps: mapping.capabilities(),
+                            label: mapping.label(),
                         },
                     });
                     ids.push(*signing_key_id);
@@ -1053,6 +1053,7 @@ impl<'admin_creds, 'config> YubiHsm2Backend<'admin_creds, 'config> {
                     key_id: YubiHsm2Config::WRAP_KEY_ID,
                     domains: Domains::all(),
                     caps: Capabilities::from(YubiHsm2UserMapping::CAP_BACKUP),
+                    label: YubiHsm2Config::wrap_key_label(),
                 },
                 delegated_caps: Capabilities::from(YubiHsm2UserMapping::CAP_BACKUP),
                 wrapping_key,
@@ -1207,6 +1208,7 @@ impl<'admin_creds, 'config> YubiHsm2Backend<'admin_creds, 'config> {
                         key_id: creds.id(),
                         domains: mapping.domains(),
                         caps: mapping.capabilities(),
+                        label: mapping.label(),
                     },
                     delegated_caps: mapping.capabilities(),
                     authentication_key: AuthenticationKey::try_from(creds.passphrase())?,

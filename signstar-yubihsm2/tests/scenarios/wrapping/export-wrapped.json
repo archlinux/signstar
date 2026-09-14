@@ -14,7 +14,8 @@
           "caps": [
             "sign-eddsa",
             "exportable-under-wrap"
-          ]
+          ],
+          "label": ""
         }
       },
       {
@@ -30,7 +31,8 @@
             "sign-eddsa",
             "exportable-under-wrap"
           ],
-          "passphrase_file": "tests/scenarios/keys/wrap-key"
+          "passphrase_file": "tests/scenarios/keys/wrap-key",
+          "label": "wrap key"
         }
       },
       {
@@ -43,7 +45,8 @@
             "export-wrapped"
           ],
           "delegated_caps": [],
-          "passphrase_file": "tests/scenarios/keys/auth-key"
+          "passphrase_file": "tests/scenarios/keys/auth-key",
+          "label": "backup"
         }
       }
     ]

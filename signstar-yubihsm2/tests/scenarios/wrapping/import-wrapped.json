@@ -18,7 +18,8 @@
             "sign-eddsa",
             "export-wrapped"
           ],
-          "passphrase_file": "tests/scenarios/keys/wrap-key"
+          "passphrase_file": "tests/scenarios/keys/wrap-key",
+          "label": "wrap key"
         }
       },
       {
@@ -31,7 +32,8 @@
             "import-wrapped"
           ],
           "delegated_caps": [],
-          "passphrase_file": "tests/scenarios/keys/auth-key"
+          "passphrase_file": "tests/scenarios/keys/auth-key",
+          "label": "admin"
         }
       }
     ]
@@ -78,7 +80,8 @@
             "sign-eddsa"
           ],
           "delegated_caps": [],
-          "passphrase_file": "tests/scenarios/keys/auth-key"
+          "passphrase_file": "tests/scenarios/keys/auth-key",
+          "label": "signing"
         }
       }
     ]

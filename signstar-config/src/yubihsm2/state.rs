@@ -42,7 +42,7 @@ fn implicit_wrap_key_state() -> YubiHsm2BackendUserKeyData {
         capabilities: Capabilities::from(YubiHsm2UserMapping::CAP_BACKUP),
         domains: Domains::all(),
         algorithm: ObjectAlgorithm::Wrap(WrapKeyKind::Aes256),
-        label: Label::from(&[0; 40]),
+        label: YubiHsm2Config::wrap_key_label(),
         length: 32,
     }
 }
@@ -731,7 +731,8 @@ impl<'config_state, 'backend_state, 'config_items> StateDiff<'config_state, 'bac
                                         )
                                     && backend_user_key_data.domains
                                         == Domains::from(*config_user_key_data.domain)
-                                    && backend_user_key_data.label == Label::from(&[0; 40]))
+                                    && backend_user_key_data.label
+                                        == YubiHsm2Config::openpgp_certificate_label())
                             {
                                 matched_config_states.push(config_user_key_data);
                                 debug!(
@@ -1576,7 +1577,7 @@ mod tests {
             WrapKeyFromPassphrase::new(passphrase, WrapKeyKind::Aes256)?.try_into()?;
         client.put_wrap_key(
             2,
-            (&Label::from(&[0u8; 40])).into(),
+            (&Label::from_truncated_str("foo")).into(),
             (&Domains::all()).into(),
             (&Capabilities::from(YubiHsm2UserMapping::CAP_BACKUP)).into(),
             (&Capabilities::from(YubiHsm2UserMapping::CAP_BACKUP)).into(),

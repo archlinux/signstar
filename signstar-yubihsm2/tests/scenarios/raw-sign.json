@@ -15,7 +15,8 @@
             "sign-eddsa"
           ],
           "delegated_caps": [],
-          "passphrase_file": "tests/scenarios/keys/auth-key"
+          "passphrase_file": "tests/scenarios/keys/auth-key",
+          "label": "signing"
         }
       },
       {
@@ -26,7 +27,8 @@
           ],
           "caps": [
             "sign-eddsa"
-          ]
+          ],
+          "label": ""
         }
       },
       {

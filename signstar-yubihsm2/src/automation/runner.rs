@@ -553,6 +553,7 @@ impl ScenarioRunner {
                         key_id,
                         domains,
                         caps,
+                        label,
                     },
                 delegated_caps,
                 authentication_key,
@@ -560,7 +561,7 @@ impl ScenarioRunner {
                 client
                     .put_authentication_key(
                         *key_id,
-                        Default::default(),
+                        label.into(),
                         domains.into(),
                         caps.into(),
                         delegated_caps.into(),
@@ -589,12 +590,13 @@ impl ScenarioRunner {
                         key_id,
                         domains,
                         caps,
+                        label,
                     },
             } => CommandReturnValue::GenerateAsymmetricKey(
                 client
                     .generate_asymmetric_key(
                         *key_id,
-                        Default::default(),
+                        label.into(),
                         domains.into(),
                         caps.into(),
                         AsymmetricAlgorithm::Ed25519,
@@ -641,6 +643,7 @@ impl ScenarioRunner {
                         key_id,
                         domains,
                         caps,
+                        label,
                     },
                 delegated_caps,
                 wrapping_key,
@@ -648,7 +651,7 @@ impl ScenarioRunner {
                 client
                     .put_wrap_key(
                         *key_id,
-                        Default::default(),
+                        label.into(),
                         domains.into(),
                         caps.into(),
                         delegated_caps.into(),

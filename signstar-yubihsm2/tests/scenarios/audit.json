@@ -23,7 +23,8 @@
           "caps": [
             "sign-eddsa",
             "exportable-under-wrap"
-          ]
+          ],
+          "label": ""
         }
       },
       {

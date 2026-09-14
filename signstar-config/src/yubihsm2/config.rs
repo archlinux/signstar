@@ -8,6 +8,7 @@ use signstar_yubihsm2::{
     Connection,
     Credentials,
     automation::OpaqueData,
+    backup::Label,
     object::{Capabilities, Capability, Domain, Domains, KeyInfo},
     yubihsm::{Code, Id},
 };
@@ -412,6 +413,17 @@ impl YubiHsm2UserMapping {
         })
     }
 
+    /// Returns the [`Label`] for a variant of [`YubiHsm2UserMapping`].
+    pub fn label(&self) -> Label {
+        Label::from_truncated_str(match self {
+            Self::Admin { .. } => "admin",
+            Self::AuditLog { .. } => "audit log",
+            Self::Backup { .. } => "backup",
+            Self::HermeticAuditLog { .. } => "hermetic audit log",
+            Self::Signing { .. } => "signing",
+        })
+    }
+
     /// Returns the [`KeyInfo`] for the authentication key of the [`YubiHsm2UserMapping`].
     pub fn authentication_key_info(&self) -> KeyInfo {
         match self {
@@ -437,6 +449,7 @@ impl YubiHsm2UserMapping {
                 key_id: *authentication_key_id,
                 domains: self.domains(),
                 caps: self.capabilities(),
+                label: self.label(),
             },
         }
     }
@@ -1007,6 +1020,12 @@ impl YubiHsm2Config {
     /// This key is used to encrypt all backups.
     pub const WRAP_KEY_ID: Id = 1;
 
+    /// The label of the wrap key.
+    pub const WRAP_KEY_LABEL: &str = "wrap key";
+
+    /// The label of an opaque object.
+    pub const OPENPGP_CERTIFICATE_LABEL: &str = "OpenPGP certificate";
+
     /// Creates a new [`YubiHsm2Config`] from a set of [`Connection`] and a set of
     /// [`YubiHsm2UserMapping`] items.
     pub fn new(
@@ -1035,6 +1054,16 @@ impl YubiHsm2Config {
     /// Returns a reference to the set of [`YubiHsm2UserMapping`] objects.
     pub fn mappings(&self) -> &BTreeSet<YubiHsm2UserMapping> {
         &self.mappings
+    }
+
+    /// Returns the [`Label`] of the wrap key.
+    pub fn wrap_key_label() -> Label {
+        Label::from_truncated_str(Self::WRAP_KEY_LABEL)
+    }
+
+    /// Returns the [`Label`] of an opaque object.
+    pub fn openpgp_certificate_label() -> Label {
+        Label::from_truncated_str(Self::OPENPGP_CERTIFICATE_LABEL)
     }
 }
 
