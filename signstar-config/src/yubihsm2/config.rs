@@ -298,6 +298,7 @@ impl YubiHsm2UserMapping {
         Capability::DeleteTemplate,
         Capability::DeleteWrapKey,
         Capability::ExportableUnderWrap,
+        Capability::ExportWrapped,
         Capability::GenerateAsymmetricKey,
         Capability::GenerateHmacKey,
         Capability::GenerateWrapKey,
