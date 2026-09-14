@@ -28,7 +28,7 @@ use yubihsm::{
 };
 use zeroize::Zeroizing;
 
-use crate::{automation::OpaqueDataAlgorithm, object::Capabilities};
+use crate::{automation::OpaqueDataAlgorithm, backup::Label, object::Capabilities};
 
 /// YubiHSM2 object domain.
 ///
@@ -570,6 +570,9 @@ pub struct KeyInfo {
 
     /// Capabilities of this key.
     pub caps: Capabilities,
+
+    /// Label of this key.
+    pub label: Label,
 }
 
 /// An asymmetric key algorithm.

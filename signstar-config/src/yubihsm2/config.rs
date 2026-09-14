@@ -1,5 +1,8 @@
 //! YubiHSM2 specific integration for the [`crate::config`] module.
-use std::collections::{BTreeSet, HashSet};
+use std::{
+    collections::{BTreeSet, HashSet},
+    str::FromStr as _,
+};
 
 use garde::Validate;
 use serde::{Deserialize, Serialize};
@@ -8,6 +11,7 @@ use signstar_yubihsm2::{
     Connection,
     Credentials,
     automation::OpaqueData,
+    backup::Label,
     object::{Capabilities, Capability, Domain, Domains, KeyInfo},
     yubihsm::{Code, Id},
 };
@@ -412,6 +416,22 @@ impl YubiHsm2UserMapping {
 
     /// Returns the [`KeyInfo`] for the authentication key of the [`YubiHsm2UserMapping`].
     pub fn authentication_key_info(&self) -> KeyInfo {
+        let label = Label::from_str(match self {
+            Self::Admin {
+                ..
+            } => "admin",
+            Self::AuditLog {
+                ..
+            } => "audit log",
+            | Self::Backup {
+                ..
+            } => "backup",
+            | Self::HermeticAuditLog {
+                ..
+            } => "hermetic audit log",
+            | Self::Signing {
+                ..
+            } => "signing" }).expect("should never happen as the label is shorter than 40 bytes and does not contain null bytes");
         match self {
             Self::Admin {
                 authentication_key_id,
@@ -435,6 +455,7 @@ impl YubiHsm2UserMapping {
                 key_id: *authentication_key_id,
                 domains: self.domains(),
                 caps: self.capabilities(),
+                label,
             },
         }
     }

@@ -9,7 +9,7 @@
 //! Most notably, the wrap key, used for backups is always stored using the ID `1`.
 //! Further, certificates created using a specific asymmetric key are always stored as opaque
 //! objects using the same ID as the asymmetric key.
-use std::{cell::RefCell, collections::HashSet, fmt::Debug};
+use std::{cell::RefCell, collections::HashSet, fmt::Debug, str::FromStr};
 
 use log::{debug, error, info, warn};
 use pgp::types::Timestamp;
@@ -813,6 +813,7 @@ impl<'admin_creds, 'config> YubiHsm2Backend<'admin_creds, 'config> {
                             key_id: *signing_key_id,
                             domains: Domains::from(*domain),
                             caps: mapping.capabilities(),
+                            label: Label::from_str("signing").map_err(|_| crate::Error::YubiHsm2Backend(crate::yubihsm2::Error::Generic { context: "should never happen as the label is shorter than 40 bytes and does not contain null bytes" }))?,
                         },
                     });
                     ids.push(*signing_key_id);
@@ -1053,6 +1054,7 @@ impl<'admin_creds, 'config> YubiHsm2Backend<'admin_creds, 'config> {
                     key_id: YubiHsm2Config::WRAP_KEY_ID,
                     domains: Domains::all(),
                     caps: Capabilities::from(YubiHsm2UserMapping::CAP_BACKUP),
+                    label: Label::from_str("wrap key").map_err(|_| crate::Error::YubiHsm2Backend(crate::yubihsm2::Error::Generic { context: "should never happen as the label is shorter than 40 bytes and does not contain null bytes" }))?,
                 },
                 delegated_caps: Capabilities::from(YubiHsm2UserMapping::CAP_BACKUP),
                 wrapping_key,
@@ -1207,6 +1209,7 @@ impl<'admin_creds, 'config> YubiHsm2Backend<'admin_creds, 'config> {
                         key_id: creds.id(),
                         domains: mapping.domains(),
                         caps: mapping.capabilities(),
+                        label: Label::from_str("admin user").map_err(|_| crate::Error::YubiHsm2Backend(crate::yubihsm2::Error::Generic { context: "should never happen as the label is shorter than 40 bytes and does not contain null bytes" }))?,
                     },
                     delegated_caps: mapping.capabilities(),
                     authentication_key: AuthenticationKey::try_from(creds.passphrase())?,
