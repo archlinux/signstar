@@ -7,7 +7,7 @@ use std::fmt::Debug;
 
 use rsa::{
     RsaPrivateKey,
-    pkcs8::DecodePrivateKey,
+    pkcs8::DecodePrivateKey as _,
     traits::PrivateKeyParts,
     traits::PublicKeyParts,
 };
@@ -140,13 +140,12 @@ impl PrivateKeyImport {
     /// ```
     /// # use testresult::TestResult;
     /// use ed25519_dalek::{SigningKey, pkcs8::EncodePrivateKey};
-    /// use rand::rngs::OsRng;
+    /// use rand::{SeedableRng, rng, rngs::ChaCha20Rng};
     /// use signstar_crypto::key::{KeyType, PrivateKeyImport};
     /// # fn main() -> TestResult {
     ///
     /// let key_data = {
-    ///     let mut csprng = OsRng;
-    ///     let signing_key: SigningKey = SigningKey::generate(&mut csprng);
+    ///     let signing_key: SigningKey = SigningKey::generate(&mut ChaCha20Rng::from_rng(&mut rng()));
     ///     signing_key.to_pkcs8_der()?.as_bytes().to_vec()
     /// };
     ///
@@ -224,13 +223,15 @@ impl PrivateKeyImport {
                             .primes()
                             .first()
                             .ok_or(Error::NoPrimes)?
-                            .to_bytes_be(),
+                            .to_be_bytes()
+                            .to_vec(),
                         prime_q: private_key
                             .primes()
                             .get(1)
                             .ok_or(Error::NoPrimes)?
-                            .to_bytes_be(),
-                        public_exponent: private_key.e().to_bytes_be(),
+                            .to_be_bytes()
+                            .to_vec(),
+                        public_exponent: private_key.e().to_be_bytes().to_vec(),
                     },
                 }
             }
@@ -258,13 +259,12 @@ impl PrivateKeyImport {
     /// use std::ops::Deref;
     ///
     /// use ed25519_dalek::{SigningKey, pkcs8::EncodePrivateKey, pkcs8::spki::der::pem::LineEnding};
-    /// use rand::rngs::OsRng;
+    /// use rand::{SeedableRng, rng, rngs::ChaCha20Rng};
     /// use signstar_crypto::key::{KeyType, PrivateKeyImport};
     /// # fn main() -> TestResult {
     ///
     /// let key_data = {
-    ///     let mut csprng = OsRng;
-    ///     let signing_key: SigningKey = SigningKey::generate(&mut csprng);
+    ///     let signing_key: SigningKey = SigningKey::generate(&mut ChaCha20Rng::from_rng(&mut rng()));
     ///     signing_key.to_pkcs8_pem(LineEnding::default())?
     /// };
     ///
@@ -342,13 +342,15 @@ impl PrivateKeyImport {
                             .primes()
                             .first()
                             .ok_or(Error::NoPrimes)?
-                            .to_bytes_be(),
+                            .to_be_bytes()
+                            .to_vec(),
                         prime_q: private_key
                             .primes()
                             .get(1)
                             .ok_or(Error::NoPrimes)?
-                            .to_bytes_be(),
-                        public_exponent: private_key.e().to_bytes_be(),
+                            .to_be_bytes()
+                            .to_vec(),
+                        public_exponent: private_key.e().to_be_bytes().to_vec(),
                     },
                 }
             }
@@ -424,6 +426,8 @@ impl PrivateKeyImport {
 
 #[cfg(test)]
 mod tests {
+    use k256::elliptic_curve::Generate;
+    use rand::{SeedableRng, rng, rngs::ChaCha20Rng};
     use rsa::RsaPrivateKey;
     use rsa::pkcs8::EncodePrivateKey;
     use rstest::rstest;
@@ -432,58 +436,56 @@ mod tests {
     use super::*;
 
     fn ed25519_private_key() -> TestResult<Vec<u8>> {
-        use ed25519_dalek::SigningKey;
-        use rand::rngs::OsRng;
-        let mut csprng = OsRng;
-        let signing_key: SigningKey = SigningKey::generate(&mut csprng);
+        let signing_key =
+            ed25519_dalek::SigningKey::generate(&mut ChaCha20Rng::from_rng(&mut rng()));
         Ok(signing_key.to_pkcs8_der()?.as_bytes().to_vec())
     }
 
     fn bp256_private_key() -> TestResult<Vec<u8>> {
-        use bp256::elliptic_curve::rand_core::OsRng;
-        let private_key = bp256::r1::SecretKey::random(&mut OsRng);
+        let private_key =
+            bp256::r1::SecretKey::generate_from_rng(&mut ChaCha20Rng::from_rng(&mut rng()));
         Ok(private_key.to_pkcs8_der()?.as_bytes().to_vec())
     }
 
     fn bp384_private_key() -> TestResult<Vec<u8>> {
-        use bp384::elliptic_curve::rand_core::OsRng;
-        let private_key = bp384::r1::SecretKey::random(&mut OsRng);
+        let private_key =
+            bp384::r1::SecretKey::generate_from_rng(&mut ChaCha20Rng::from_rng(&mut rng()));
         Ok(private_key.to_pkcs8_der()?.as_bytes().to_vec())
     }
 
     fn k256_private_key() -> TestResult<Vec<u8>> {
-        use k256::elliptic_curve::rand_core::OsRng;
-        let private_key = k256::SecretKey::random(&mut OsRng);
+        let private_key =
+            k256::SecretKey::generate_from_rng(&mut ChaCha20Rng::from_rng(&mut rng()));
         Ok(private_key.to_pkcs8_der()?.as_bytes().to_vec())
     }
 
     fn p224_private_key() -> TestResult<Vec<u8>> {
-        use p224::elliptic_curve::rand_core::OsRng;
-        let private_key = p224::SecretKey::random(&mut OsRng);
+        let private_key =
+            p224::SecretKey::generate_from_rng(&mut ChaCha20Rng::from_rng(&mut rng()));
         Ok(private_key.to_pkcs8_der()?.as_bytes().to_vec())
     }
 
     fn p256_private_key() -> TestResult<Vec<u8>> {
-        use p256::elliptic_curve::rand_core::OsRng;
-        let private_key = p256::SecretKey::random(&mut OsRng);
+        let private_key =
+            p256::SecretKey::generate_from_rng(&mut ChaCha20Rng::from_rng(&mut rng()));
         Ok(private_key.to_pkcs8_der()?.as_bytes().to_vec())
     }
 
     fn p384_private_key() -> TestResult<Vec<u8>> {
-        use p384::elliptic_curve::rand_core::OsRng;
-        let private_key = p384::SecretKey::random(&mut OsRng);
+        let private_key =
+            p384::SecretKey::generate_from_rng(&mut ChaCha20Rng::from_rng(&mut rng()));
         Ok(private_key.to_pkcs8_der()?.as_bytes().to_vec())
     }
 
     fn p521_private_key() -> TestResult<Vec<u8>> {
-        use p521::elliptic_curve::rand_core::OsRng;
-        let private_key = p521::SecretKey::random(&mut OsRng);
+        let private_key =
+            p521::SecretKey::generate_from_rng(&mut ChaCha20Rng::from_rng(&mut rng()));
         Ok(private_key.to_pkcs8_der()?.as_bytes().to_vec())
     }
 
     fn rsa_private_key() -> TestResult<Vec<u8>> {
-        let mut rng = rand::thread_rng();
-        let private_key = RsaPrivateKey::new(&mut rng, 2048.try_into()?)?;
+        let private_key =
+            RsaPrivateKey::new(&mut ChaCha20Rng::from_rng(&mut rng()), 2048.try_into()?)?;
         Ok(private_key.to_pkcs8_der()?.as_bytes().to_vec())
     }
 

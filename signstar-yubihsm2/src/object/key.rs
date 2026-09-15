@@ -742,8 +742,8 @@ mod tests {
     use std::io::Write;
 
     use rand::{
-        distributions::{Alphanumeric, DistString},
-        thread_rng,
+        distr::{Alphanumeric, SampleString},
+        rng,
     };
     use rstest::{fixture, rstest};
     use tempfile::{NamedTempFile, TempDir};
@@ -767,7 +767,7 @@ mod tests {
     fn authentication_key_try_from_path_succeeds() -> TestResult {
         let file = {
             let mut file = NamedTempFile::new()?;
-            let passphrase = Alphanumeric.sample_string(&mut thread_rng(), 30);
+            let passphrase = Alphanumeric.sample_string(&mut rng(), 30);
             file.write_all(passphrase.as_bytes())?;
             file
         };
@@ -786,7 +786,7 @@ mod tests {
     fn authentication_key_try_from_path_fails_on_short_passphrase() -> TestResult {
         let file = {
             let mut file = NamedTempFile::new()?;
-            let passphrase = Alphanumeric.sample_string(&mut thread_rng(), 10);
+            let passphrase = Alphanumeric.sample_string(&mut rng(), 10);
             file.write_all(passphrase.as_bytes())?;
             file
         };

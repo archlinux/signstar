@@ -287,6 +287,7 @@ impl NetHsm {
     ///
     /// ```no_run
     /// use nethsm::{Connection, ConnectionSecurity, Credentials, PrivateKeyImport, KeyMechanism, KeyType, NetHsm, Passphrase};
+    /// use rand::{SeedableRng, rngs::ChaCha20Rng, rng};
     /// use rsa::pkcs8::{DecodePrivateKey, EncodePrivateKey};
     /// use rsa::RsaPrivateKey;
     ///
@@ -307,8 +308,7 @@ impl NetHsm {
     ///
     /// // create a 4096 bit RSA private key and return it as PKCS#8 private key in ASN.1 DER-encoded format
     /// let private_key = {
-    ///     let mut rng = rand::thread_rng();
-    ///     let private_key = RsaPrivateKey::new(&mut rng, 4096)?;
+    ///     let private_key = RsaPrivateKey::new(&mut ChaCha20Rng::from_rng(&mut rng()), 4096)?;
     ///     private_key.to_pkcs8_der()?
     /// };
     ///
@@ -1901,6 +1901,7 @@ impl NetHsm {
     ///     Passphrase,
     ///     UserRole
     /// };
+    /// use rand::{SeedableRng, rngs::ChaCha20Rng, rng};
     /// use rsa::{pkcs8::DecodePublicKey, Pkcs1v15Encrypt, RsaPublicKey};
     ///
     /// # fn main() -> testresult::TestResult {
@@ -1959,8 +1960,7 @@ impl NetHsm {
     ///
     /// // get the public key of an asymmetric key and encrypt the message with it
     /// let pubkey = RsaPublicKey::from_public_key_pem(&nethsm.get_public_key(&"encryption2".parse()?)?)?;
-    /// let mut rng = rand::thread_rng();
-    /// let encrypted_message = pubkey.encrypt(&mut rng, Pkcs1v15Encrypt, message.as_bytes())?;
+    /// let encrypted_message = pubkey.encrypt(&mut ChaCha20Rng::from_rng(&mut rng()), Pkcs1v15Encrypt, message.as_bytes())?;
     /// println!("raw encrypted message: {:?}", encrypted_message);
     ///
     /// let decrypted_message =

@@ -15,8 +15,6 @@ use change_user_run::{create_users, get_command};
 use log::debug;
 #[cfg(feature = "nethsm")]
 use nethsm::{FullCredentials, UserId};
-#[cfg(feature = "nethsm")]
-use rand::{Rng, distributions::Alphanumeric, thread_rng};
 use signstar_common::system_user::get_home_base_dir_path;
 #[cfg(feature = "nethsm")]
 use signstar_crypto::AdministrativeSecretHandling;
@@ -1041,17 +1039,8 @@ pub fn nethsm_admin_credentials(
 /// constructs a [`FullCredentials`].
 #[cfg(feature = "nethsm")]
 pub fn create_full_credentials(users: &[UserId]) -> Vec<FullCredentials> {
-    /// Creates a passphrase
-    fn create_passphrase() -> String {
-        thread_rng()
-            .sample_iter(&Alphanumeric)
-            .take(30)
-            .map(char::from)
-            .collect()
-    }
-
     users
         .iter()
-        .map(|user| FullCredentials::new(user.clone(), Passphrase::new(create_passphrase())))
+        .map(|user| FullCredentials::new(user.clone(), Passphrase::generate(Some(30))))
         .collect()
 }

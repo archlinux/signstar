@@ -26,8 +26,8 @@ use std::str::FromStr;
 use std::{path::PathBuf, sync::Arc, time::Duration};
 
 use garde::Validate;
-use rand::seq::SliceRandom;
-use rand::thread_rng;
+use rand::rng;
+use rand::seq::IndexedRandom;
 use russh::client::AuthResult;
 use russh::keys::PublicKeyOrCertificate;
 use russh::keys::agent::client::AgentClient;
@@ -199,9 +199,9 @@ impl ConnectConfig {
         let user = &self.users.get(username).ok_or(Error::InvalidUser {
             user: username.to_string(),
         })?;
-        let host_id = user.hosts.choose(&mut thread_rng());
-        let target = if let Some(host_id) = host_id {
-            &self.hosts.get(host_id).ok_or(Error::InvalidSignstarHost {
+        let host_id = user.hosts.sample(&mut rng(), 1).next();
+        let target = if let Some(host_id) = host_id.as_ref() {
+            &self.hosts.get(*host_id).ok_or(Error::InvalidSignstarHost {
                 host: host_id.to_string(),
             })?
         } else {

@@ -17,14 +17,14 @@ resolver = "3"
 
 [workspace.dependencies]
 base64ct = { version = "1.6.0", features = ["alloc", "std"] }
-bp256 = "0.6.1"
-bp384 = "0.6.1"
+bp256 = "0.14.0"
+bp384 = "0.14.0"
 change-user-run = "0.1.2"
 chrono = "0.4.38"
 clap = { version = "4.5.23", features = ["derive", "env"] }
 clap-verbosity-flag = "3.0.3"
 confy = "2.0.0"
-ed25519-dalek = "2.1.1"
+ed25519-dalek = "3.0.0"
 garde = { version = "0.23.0", features = ["derive"] }
 insta = "1.46.1"
 log = { version = "0.4.27", features = ["kv_std"] }
@@ -34,14 +34,14 @@ nethsm-config = { path = "nethsm-config", version = "0.5.0" }
 nethsm-sdk-rs = "1.1.1"
 nix = { version = "0.31.0", features = ["user"] }
 num_enum = "0.7.6"
-p224 = "0.13.2"
-p256 = "0.13.2"
-p384 = "0.13.1"
-p521 = "0.13.3"
+p224 = "0.14.0-rc.15"
+p256 = "0.14.0"
+p384 = "0.14.0"
+p521 = "0.14.0"
 pgp = { version = "0.20", default-features = false }
 pretty_assertions = "1.4.1"
-rand = "0.8.5"
-rsa = "0.9.7"
+rand = "0.10.2"
+rsa = "0.10.0-rc.18"
 # Upgrading rstest may mean the lint suppression in `nethsm/src/test.rs` could be removed
 rstest = "0.27.0"
 rustainers = "0.15"

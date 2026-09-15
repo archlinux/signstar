@@ -16,7 +16,6 @@ log.workspace = true
 nethsm = { workspace = true, optional = true }
 nix.workspace = true
 pgp.workspace = true
-rand.workspace = true
 serde.workspace = true
 serde-saphyr = "1.0.0"
 signstar-common.workspace = true

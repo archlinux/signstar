@@ -10,7 +10,7 @@ use std::{
 
 use log::{debug, info};
 use nix::unistd::User;
-use rand::{Rng, distributions::Alphanumeric, thread_rng};
+use rand::{RngExt, distr::Alphanumeric, rng};
 use signstar_common::{
     ssh::{get_ssh_authorized_key_base_dir, get_sshd_config_dropin_dir},
     system_user::get_home_base_dir_path,
@@ -404,7 +404,7 @@ fn add_user_and_home(user: &SystemUserId) -> Result<(), Error> {
     }
 
     // Set random 30 char password for the user.
-    let random_passphrase: String = thread_rng()
+    let random_passphrase: String = rng()
         .sample_iter(&Alphanumeric)
         .take(30)
         .map(char::from)

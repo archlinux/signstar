@@ -19,6 +19,7 @@ use std::sync::Arc;
 
 use base64ct::{Base64, Encoding as _};
 use log::{LevelFilter, debug, info};
+use rand::rng;
 use russh::keys::ssh_key::{PrivateKey, PublicKey, private::Ed25519Keypair};
 use russh::server::{self, ChannelOpenHandle, Msg, Server as _, Session as ServerSession};
 use russh::{Channel, ChannelId};
@@ -57,7 +58,7 @@ async fn start(temp_dir: impl AsRef<std::path::Path>) -> TestResult<SshSetup> {
     };
     let listener = TcpListener::bind("127.0.0.1:0").await?;
     let addr = listener.local_addr()?;
-    let key_pair: PrivateKey = Ed25519Keypair::random(&mut rand_010::rng()).into();
+    let key_pair: PrivateKey = Ed25519Keypair::random(&mut rng()).into();
     let public_key = key_pair.public_key().to_string();
 
     let agent_socket_path = temp_dir.as_ref().join("agent.sock");

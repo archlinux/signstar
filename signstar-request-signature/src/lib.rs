@@ -5,7 +5,7 @@ use std::time::SystemTime;
 use std::{collections::HashMap, path::PathBuf};
 
 use digest_io::IoWrapper;
-use rand::Rng;
+use rand::{RngExt, distr::Alphanumeric, rng};
 use semver::Version;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -273,8 +273,8 @@ impl Request {
         // Add "grease" so that the server can handle any optional data
         // See: https://lobste.rs/s/utmsph/age_plugins#c_i76hkd
         // See: https://community.letsencrypt.org/t/adding-random-entries-to-the-directory/33417
-        let grease: String = rand::thread_rng()
-            .sample_iter(&rand::distributions::Alphanumeric)
+        let grease: String = rng()
+            .sample_iter(&Alphanumeric)
             .take(7)
             .map(char::from)
             .collect();

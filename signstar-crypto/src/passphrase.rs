@@ -2,7 +2,7 @@
 
 use std::{fmt::Display, fs::read_to_string, path::Path, str::FromStr};
 
-use rand::{Rng, distributions::Alphanumeric, thread_rng};
+use rand::{RngExt, distr::Alphanumeric, rng};
 use secrecy::{ExposeSecret, SecretString};
 use serde::{Deserialize, Serialize};
 
@@ -125,7 +125,7 @@ impl Passphrase {
         };
 
         Self::new(
-            thread_rng()
+            rng()
                 .sample_iter(&Alphanumeric)
                 .take(length)
                 .map(char::from)

@@ -16,6 +16,8 @@ use nethsm::test::NAMESPACE2_OPERATOR_USER_ID;
 use nethsm::test::NetHsmImage;
 use nethsm::test::nethsm_with_users;
 use nethsm::{KeyMechanism, KeyType, NetHsm};
+use p256::elliptic_curve::Generate;
+use rand::{SeedableRng, rng, rngs::ChaCha20Rng};
 use rstest::{fixture, rstest};
 use rustainers::Container;
 use testresult::TestResult;
@@ -201,7 +203,7 @@ async fn generate_keys(
 
 #[fixture]
 fn ed25519_key() -> TestResult<PrivateKeyImport> {
-    let private_key = ed25519_dalek::SigningKey::generate(&mut rand::rngs::OsRng);
+    let private_key = ed25519_dalek::SigningKey::generate(&mut ChaCha20Rng::from_rng(&mut rng()));
 
     Ok(PrivateKeyImport::new(
         KeyType::Curve25519,
@@ -211,7 +213,7 @@ fn ed25519_key() -> TestResult<PrivateKeyImport> {
 
 #[fixture]
 fn ecp256_key() -> TestResult<PrivateKeyImport> {
-    let private_key = p256::SecretKey::random(&mut rand::rngs::OsRng);
+    let private_key = p256::SecretKey::generate_from_rng(&mut ChaCha20Rng::from_rng(&mut rng()));
 
     Ok(PrivateKeyImport::new(
         KeyType::EcP256,
@@ -221,7 +223,7 @@ fn ecp256_key() -> TestResult<PrivateKeyImport> {
 
 #[fixture]
 fn ecp384_key() -> TestResult<PrivateKeyImport> {
-    let private_key = p384::SecretKey::random(&mut rand::rngs::OsRng);
+    let private_key = p384::SecretKey::generate_from_rng(&mut ChaCha20Rng::from_rng(&mut rng()));
 
     Ok(PrivateKeyImport::new(
         KeyType::EcP384,
@@ -231,7 +233,7 @@ fn ecp384_key() -> TestResult<PrivateKeyImport> {
 
 #[fixture]
 fn ecp521_key() -> TestResult<PrivateKeyImport> {
-    let private_key = p521::SecretKey::random(&mut rand::rngs::OsRng);
+    let private_key = p521::SecretKey::generate_from_rng(&mut ChaCha20Rng::from_rng(&mut rng()));
 
     Ok(PrivateKeyImport::new(
         KeyType::EcP521,
@@ -241,8 +243,10 @@ fn ecp521_key() -> TestResult<PrivateKeyImport> {
 
 #[fixture]
 fn rsa_key() -> TestResult<PrivateKeyImport> {
-    let private_key =
-        rsa::RsaPrivateKey::new(&mut rand::rngs::OsRng, DEFAULT_RSA_BITS.try_into()?)?;
+    let private_key = rsa::RsaPrivateKey::new(
+        &mut ChaCha20Rng::from_rng(&mut rng()),
+        DEFAULT_RSA_BITS.try_into()?,
+    )?;
 
     Ok(PrivateKeyImport::new(
         KeyType::Rsa,

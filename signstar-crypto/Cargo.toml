@@ -14,20 +14,28 @@ base64ct = { workspace = true, optional = true }
 bp256.workspace = true
 bp384.workspace = true
 change-user-run.workspace = true
-digest = { version = "0.10.7", features = ["alloc"] }
+digest_0_10_for_rpgp = { version = "0.10.7", package = "digest", features = [
+    "alloc",
+] }
 ed25519-dalek = { workspace = true, features = ["pem", "pkcs8"] }
+ed25519-dalek_2_for_rpgp = { version = "2", package = "ed25519-dalek" }
 email_address = "0.2.9"
-k256 = "0.13.4"
+k256 = "0.14.0"
 log.workspace = true
 nethsm-sdk-rs = { workspace = true, optional = true }
 nix.workspace = true
 p224.workspace = true
 p256.workspace = true
+p256_0_13_for_rpgp = { version = "0.13.0", package = "p256" }
 p384.workspace = true
+p384_0_13_for_rpgp = { version = "0.13.0", package = "p384" }
 p521.workspace = true
+p521_0_13_for_rpgp = { version = "0.13.0", package = "p521" }
 pgp.workspace = true
-rand.workspace = true
+rand = { workspace = true, features = ["chacha"] }
+rand_0_8_for_rpgp = { version = "0.8", package = "rand" }
 rsa.workspace = true
+rsa_0_9_for_rpgp = { version = "0.9", package = "rsa" }
 secrecy = { version = "0.10.3", features = ["serde"] }
 serde.workspace = true
 sha2.workspace = true
@@ -37,10 +45,11 @@ thiserror.workspace = true
 yubihsm = { workspace = true, optional = true }
 
 [dev-dependencies]
-bp256 = { workspace = true, features = ["wip-arithmetic-do-not-use"] }
-bp384 = { workspace = true, features = ["wip-arithmetic-do-not-use"] }
+bp256 = { workspace = true, features = ["arithmetic"] }
+bp384 = { workspace = true, features = ["arithmetic"] }
 clap.workspace = true
 clap-verbosity-flag.workspace = true
+ed25519-dalek = { workspace = true, features = ["pem", "pkcs8", "rand_core"] }
 rstest.workspace = true
 signstar-common = { workspace = true, features = ["logging"] }
 tempfile.workspace = true

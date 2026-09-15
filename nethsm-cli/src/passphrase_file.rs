@@ -52,7 +52,7 @@ mod tests {
     use std::fs::File;
     use std::io::Write;
 
-    use rand::{Rng, thread_rng};
+    use rand::{RngExt, rng};
     use rstest::rstest;
     use testdir::testdir;
     use testresult::TestResult;
@@ -63,8 +63,7 @@ mod tests {
     fn passphrase_file() -> TestResult {
         let mut i = 0;
         while i < 20 {
-            let mut rng = thread_rng();
-            let lines = rng.gen_range(0..20);
+            let lines = rng().random_range(0..20);
             let lines_vec = (0..lines)
                 .map(|_x| "this is a passphrase".to_string())
                 .collect::<Vec<String>>();

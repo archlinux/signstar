@@ -12,6 +12,7 @@ use nethsm::test::OTHER_OPERATOR_USER_ID;
 use nethsm::test::OTHER_TAG;
 use nethsm::test::nethsm_with_users;
 use nethsm::{DistinguishedName, KeyMechanism, KeyType, NetHsm, PrivateKeyImport};
+use rand::{SeedableRng, rng, rngs::ChaCha20Rng};
 use rsa::RsaPrivateKey;
 use rsa::pkcs8::EncodePrivateKey;
 use rstest::rstest;
@@ -70,8 +71,10 @@ async fn generate_signing_key(nethsm: &NetHsm) -> TestResult {
 /// Import a pre-generated RSA key
 async fn import_key(nethsm: &NetHsm) -> TestResult {
     let private_key = {
-        let mut rng = rand::thread_rng();
-        let private_key = RsaPrivateKey::new(&mut rng, DEFAULT_RSA_BITS.try_into()?)?;
+        let private_key = RsaPrivateKey::new(
+            &mut ChaCha20Rng::from_rng(&mut rng()),
+            DEFAULT_RSA_BITS.try_into()?,
+        )?;
         let file = testdir!().join("rsa_private_key.pem");
         private_key.write_pkcs8_der_file(file.clone())?;
         private_key.to_pkcs8_der()?

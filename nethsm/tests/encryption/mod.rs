@@ -11,6 +11,7 @@ use nethsm::test::OTHER_OPERATOR_USER_ID;
 use nethsm::test::OTHER_OPERATOR_USER_PASSPHRASE;
 use nethsm::test::nethsm_with_keys;
 use nethsm::{DecryptMode, EncryptMode, NetHsm};
+use rand::{SeedableRng, rng, rngs::ChaCha20Rng};
 use rsa::Pkcs1v15Encrypt;
 use rsa::RsaPublicKey;
 use rsa::pkcs8::DecodePublicKey;
@@ -84,8 +85,11 @@ async fn asymmetric_decryption(
 
     let pubkey =
         RsaPublicKey::from_public_key_pem(&nethsm.get_public_key(&OTHER_KEY_ID.parse()?)?)?;
-    let mut rng = rand::thread_rng();
-    let encrypted_message = pubkey.encrypt(&mut rng, Pkcs1v15Encrypt, MESSAGE.as_bytes())?;
+    let encrypted_message = pubkey.encrypt(
+        &mut ChaCha20Rng::from_rng(&mut rng()),
+        Pkcs1v15Encrypt,
+        MESSAGE.as_bytes(),
+    )?;
     println!("raw encrypted message: {encrypted_message:?}");
 
     let decrypted_message = nethsm.decrypt(

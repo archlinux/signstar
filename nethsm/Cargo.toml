@@ -22,7 +22,7 @@ p521.workspace = true
 picky-asn1-der = "0.5.1"
 picky-asn1-x509 = "0.15.0"
 rand.workspace = true
-rsa = { workspace = true, features = ["pem"] }
+rsa.workspace = true
 rstest = { optional = true, workspace = true }
 rustainers = { optional = true, workspace = true }
 rustls = { version = "0.23.19" }
@@ -44,7 +44,8 @@ uuid = { optional = true, workspace = true }
 
 [dev-dependencies]
 ed25519-dalek = { workspace = true, features = ["pem", "pkcs8", "rand_core"] }
-rsa = { workspace = true, features = ["getrandom", "pem", "sha2"] }
+rand = { workspace = true, features = ["chacha"] }
+rsa = { workspace = true, features = ["getrandom", "sha2"] }
 rstest.workspace = true
 rustainers.workspace = true
 testdir.workspace = true

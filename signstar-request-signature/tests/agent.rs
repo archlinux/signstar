@@ -3,10 +3,14 @@
 use std::path::Path;
 use std::sync::{Arc, Mutex};
 
-use rsa::pkcs1v15::SigningKey;
-use rsa::sha2::{Sha256, Sha512};
-use rsa::signature::{RandomizedSigner, SignatureEncoding};
-use rsa::{RsaPrivateKey, RsaPublicKey};
+use rand_0_8_for_ssh_agent_lib::thread_rng;
+use rsa_0_9_for_ssh_agent_lib::{
+    RsaPrivateKey,
+    RsaPublicKey,
+    pkcs1v15::SigningKey,
+    sha2::{Sha256, Sha512},
+    signature::{RandomizedSigner, SignatureEncoding},
+};
 use ssh_agent_lib::agent::{Session as AgentSession, listen};
 use ssh_agent_lib::error::AgentError;
 use ssh_agent_lib::proto::{Identity, SignRequest, signature};
@@ -22,8 +26,7 @@ struct RandomKey {
 
 impl RandomKey {
     pub fn new() -> Result<Self, AgentError> {
-        let private_key =
-            rsa::RsaPrivateKey::new(&mut rand::thread_rng(), 2048).map_err(AgentError::other)?;
+        let private_key = RsaPrivateKey::new(&mut thread_rng(), 2048).map_err(AgentError::other)?;
         Ok(Self {
             private_key: Arc::new(Mutex::new(private_key)),
         })
@@ -34,7 +37,6 @@ impl RandomKey {
 impl AgentSession for RandomKey {
     async fn sign(&mut self, sign_request: SignRequest) -> Result<Signature, AgentError> {
         let private_key = self.private_key.lock().unwrap();
-        let mut rng = rand::thread_rng();
         let data = &sign_request.data;
 
         Ok(if sign_request.flags & signature::RSA_SHA2_512 != 0 {
@@ -43,7 +45,7 @@ impl AgentSession for RandomKey {
                     hash: Some(HashAlg::Sha512),
                 },
                 SigningKey::<Sha512>::new(private_key.clone())
-                    .sign_with_rng(&mut rng, data)
+                    .sign_with_rng(&mut thread_rng(), data)
                     .to_bytes(),
             )
         } else if sign_request.flags & signature::RSA_SHA2_256 != 0 {
@@ -52,7 +54,7 @@ impl AgentSession for RandomKey {
                     hash: Some(HashAlg::Sha256),
                 },
                 SigningKey::<Sha256>::new(private_key.clone())
-                    .sign_with_rng(&mut rng, data)
+                    .sign_with_rng(&mut thread_rng(), data)
                     .to_bytes(),
             )
         } else {

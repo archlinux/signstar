@@ -23,7 +23,7 @@ pub enum Error {
 
     /// Elliptic curve error
     #[error("Elliptic curve error: {0}")]
-    EllipticCurve(#[from] p256::elliptic_curve::Error),
+    EllipticCurve(#[from] p256_0_13_for_rpgp::elliptic_curve::Error),
 
     /// Public key data is invalid.
     #[error("Public key data is invalid because {context}")]

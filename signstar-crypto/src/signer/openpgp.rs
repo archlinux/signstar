@@ -2,9 +2,12 @@
 
 use std::{backtrace::Backtrace, io::Cursor};
 
-use digest::DynDigest;
-use ed25519_dalek::VerifyingKey;
+use digest_0_10_for_rpgp::{DynDigest, InvalidBufferSize};
+use ed25519_dalek_2_for_rpgp::VerifyingKey;
 use log::{error, warn};
+use p256_0_13_for_rpgp::PublicKey as P256PublicKey;
+use p384_0_13_for_rpgp::PublicKey as P384PublicKey;
+use p521_0_13_for_rpgp::PublicKey as P521PublicKey;
 use pgp::composed::SignedKeyDetails;
 // Publicly re-export `pgp` facilities, used in the API of `signstar_crypto::signer::openpgp`.
 pub use pgp::composed::{Deserializable, SignedSecretKey};
@@ -47,8 +50,8 @@ use pgp::{
         SigningKey as RpgpSigningKey,
     },
 };
-use rand::thread_rng;
-use rsa::{BigUint, RsaPublicKey, traits::PublicKeyParts as _};
+use rand_0_8_for_rpgp::thread_rng;
+use rsa_0_9_for_rpgp::{BigUint, RsaPublicKey, traits::PublicKeyParts as _};
 use sha2::digest::Digest as _;
 
 use crate::{
@@ -598,9 +601,8 @@ impl DynDigest for Hasher {
     /// # Errors
     ///
     /// Returns an error if the length of `buf` is too small for `self`.
-    fn finalize_into(self, buf: &mut [u8]) -> Result<(), digest::InvalidBufferSize> {
-        sha2::digest::DynDigest::finalize_into(self.0, buf)
-            .map_err(|_| digest::InvalidBufferSize)?;
+    fn finalize_into(self, buf: &mut [u8]) -> Result<(), InvalidBufferSize> {
+        sha2::digest::DynDigest::finalize_into(self.0, buf).map_err(|_| InvalidBufferSize)?;
         Ok(())
     }
 
@@ -609,9 +611,9 @@ impl DynDigest for Hasher {
     /// # Errors
     ///
     /// Returns an error if the length of `buf` is too small for `self`.
-    fn finalize_into_reset(&mut self, out: &mut [u8]) -> Result<(), digest::InvalidBufferSize> {
+    fn finalize_into_reset(&mut self, out: &mut [u8]) -> Result<(), InvalidBufferSize> {
         sha2::digest::DynDigest::finalize_into_reset(&mut self.0, out)
-            .map_err(|_| digest::InvalidBufferSize)?;
+            .map_err(|_| InvalidBufferSize)?;
         Ok(())
     }
 
@@ -785,21 +787,21 @@ impl RawPublicKey {
             RawPublicKey::P256(pubkey) => ecdsa_to_public_key(
                 created_at,
                 EcdsaPublicParams::P256 {
-                    key: p256::PublicKey::from_sec1_bytes(pubkey)?,
+                    key: P256PublicKey::from_sec1_bytes(pubkey)?,
                 },
             )?,
 
             RawPublicKey::P384(pubkey) => ecdsa_to_public_key(
                 created_at,
                 EcdsaPublicParams::P384 {
-                    key: p384::PublicKey::from_sec1_bytes(pubkey)?,
+                    key: P384PublicKey::from_sec1_bytes(pubkey)?,
                 },
             )?,
 
             RawPublicKey::P521(pubkey) => ecdsa_to_public_key(
                 created_at,
                 EcdsaPublicParams::P521 {
-                    key: p521::PublicKey::from_sec1_bytes(pubkey)?,
+                    key: P521PublicKey::from_sec1_bytes(pubkey)?,
                 },
             )?,
         })
@@ -835,8 +837,8 @@ mod tests {
         crypto::ecc_curve::ECCCurve,
         types::{EcdsaPublicParams, PublicParams},
     };
-    use rand::RngCore;
-    use rsa::rand_core::OsRng;
+    use rand::{Rng, SeedableRng, rng, rngs::ChaCha20Rng};
+    use rsa_0_9_for_rpgp::rand_core::OsRng;
     use testresult::TestResult;
 
     use super::*;
@@ -1070,7 +1072,8 @@ mod tests {
             Self {
                 // ed25519-dalek does not re-export rand_core so reusing rsa one
                 // which is maintained by the same Rust Crypto team
-                signing_key: SigningKey::generate(&mut OsRng),
+                // signing_key: SigningKey::generate(&mut OsRng),
+                signing_key: SigningKey::generate(&mut ChaCha20Rng::from_rng(&mut rng())),
                 certificate: None,
             }
         }
@@ -1129,7 +1132,7 @@ mod tests {
         raw_signer.certificate = Some(cert);
 
         let mut data_to_sign = [0; 32];
-        OsRng::fill_bytes(&mut OsRng, &mut data_to_sign);
+        rng().fill_bytes(&mut data_to_sign);
 
         let signature = sign(&raw_signer, &data_to_sign)?;
         assert!(!signature.is_empty());
