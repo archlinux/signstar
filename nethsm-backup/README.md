@@ -2,6 +2,10 @@
 
 A library to parse, decrypt, validate and browse NetHSM backups.
 
+> [!WARNING]
+> The backup functions have been moved to the [nethsm crate] as a `backup` module and as such this crate is deprecated.
+> Please, use the [nethsm crate] to continue receiving fixes and new features.
+
 ## Documentation
 
 - <https://signstar.archlinux.page/rustdoc/nethsm_backup/> for development version of the crate
@@ -70,3 +74,5 @@ Changes to this project - unless stated otherwise - automatically fall under the
 [Apache-2.0]: https://www.apache.org/licenses/LICENSE-2.0
 [MIT]: https://opensource.org/licenses/MIT
 [contributing guidelines]: ../CONTRIBUTING.md
+
+[nethsm crate]: https://crates.io/crates/nethsm
