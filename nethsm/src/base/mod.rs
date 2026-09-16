@@ -10,7 +10,7 @@ pub mod utils;
 
 use std::{cell::RefCell, collections::HashMap};
 
-use ureq::Agent;
+use nethsm_sdk_rs::ureq::Agent;
 
 use crate::{Credentials, Url, UserId};
 

@@ -1,49 +1,55 @@
 //! [`NetHsm`] implementation for system functionality.
 
-use std::net::Ipv4Addr;
+use std::{collections::HashMap, io::Read, net::Ipv4Addr};
 
 use base64ct::{Base64, Encoding};
 use chrono::{DateTime, Utc};
 use log::debug;
 use nethsm_sdk_rs::{
-    apis::default_api::{
-        config_backup_passphrase_put,
-        config_logging_get,
-        config_logging_put,
-        config_network_get,
-        config_network_put,
-        config_time_get,
-        config_time_put,
-        config_tls_cert_pem_get,
-        config_tls_cert_pem_put,
-        config_tls_csr_pem_post,
-        config_tls_generate_post,
-        config_tls_public_pem_get,
-        config_unattended_boot_get,
-        config_unattended_boot_put,
-        config_unlock_passphrase_put,
-        lock_post,
-        metrics_get,
-        provision_post,
-        random_post,
-        system_backup_post,
-        system_cancel_update_post,
-        system_commit_update_post,
-        system_factory_reset_post,
-        system_info_get,
-        system_reboot_post,
-        system_restore_post,
-        system_shutdown_post,
-        system_update_post,
-        unlock_post,
+    apis::{
+        ResponseContent,
+        configuration::Configuration,
+        default_api::{
+            ConfigTlsCertPemPutError,
+            config_backup_passphrase_put,
+            config_logging_get,
+            config_logging_put,
+            config_network_get,
+            config_network_put,
+            config_time_get,
+            config_time_put,
+            config_tls_cert_pem_get,
+            config_tls_csr_pem_post,
+            config_tls_generate_post,
+            config_tls_public_pem_get,
+            config_unattended_boot_get,
+            config_unattended_boot_put,
+            config_unlock_passphrase_put,
+            lock_post,
+            metrics_get,
+            provision_post,
+            random_post,
+            system_backup_post,
+            system_cancel_update_post,
+            system_commit_update_post,
+            system_factory_reset_post,
+            system_info_get,
+            system_reboot_post,
+            system_restore_post,
+            system_shutdown_post,
+            system_update_post,
+            unlock_post,
+        },
     },
     models::{
         BackupPassphraseConfig,
         DistinguishedName,
         LoggingConfig,
-        NetworkConfig,
+        NetworkConfigInput,
+        NetworkConfigOutput,
         ProvisionRequestData,
         RandomRequestData,
+        RestoreRequestArguments,
         SystemInfo,
         SystemUpdateData,
         TimeConfig,
@@ -362,7 +368,7 @@ impl NetHsm {
         );
 
         self.validate_namespace_access(NamespaceSupport::Unsupported, None, None)?;
-        Ok(BootMode::from(
+        BootMode::try_from(
             config_unattended_boot_get(&self.create_connection_config())
                 .map_err(|error| {
                     Error::Api(format!(
@@ -371,7 +377,7 @@ impl NetHsm {
                     ))
                 })?
                 .entity,
-        ))
+        )
     }
 
     /// Sets the [boot mode].
@@ -663,34 +669,22 @@ impl NetHsm {
     /// nethsm.add_namespace(&"namespace1".parse()?)?;
     ///
     /// // R-Administrators can get a CSR for the TLS certificate
-    /// println!(
-    ///     "{}",
-    ///     nethsm.get_tls_csr(DistinguishedName {
-    ///         country_name: Some("DE".to_string()),
-    ///         state_or_province_name: Some("Berlin".to_string()),
-    ///         locality_name: Some("Berlin".to_string()),
-    ///         organization_name: Some("Foobar Inc".to_string()),
-    ///         organizational_unit_name: Some("Department of Foo".to_string()),
-    ///         common_name: "Foobar Inc".to_string(),
-    ///         email_address: Some("foobar@mcfooface.com".to_string()),
-    ///     })?
-    /// );
+    /// let distinguished_name = {
+    ///     let mut distinguished_name = DistinguishedName::new("example.org".to_string());
+    ///     distinguished_name.country_name = Some("DE".to_string());
+    ///     distinguished_name.state_or_province_name = Some("Berlin".to_string());
+    ///     distinguished_name.locality_name = Some("Berlin".to_string());
+    ///     distinguished_name.organization_name = Some("Foobar Inc".to_string());
+    ///     distinguished_name.organizational_unit_name = Some("Department of Foo".to_string());
+    ///     distinguished_name.email_address = Some("foobar@mcfooface.com".to_string());
+    ///     distinguished_name.subject_alt_names = Some(vec!["other.example.org".to_string()]);
+    ///     distinguished_name
+    /// };
+    /// println!("{}", nethsm.get_tls_csr(distinguished_name.clone())?);
     ///
     /// // N-Administrators can not get a CSR for the TLS certificate
     /// nethsm.use_credentials(&"namespace1~admin1".parse()?)?;
-    /// assert!(
-    ///     nethsm
-    ///         .get_tls_csr(DistinguishedName {
-    ///             country_name: Some("DE".to_string()),
-    ///             state_or_province_name: Some("Berlin".to_string()),
-    ///             locality_name: Some("Berlin".to_string()),
-    ///             organization_name: Some("Foobar Inc".to_string()),
-    ///             organizational_unit_name: Some("Department of Foo".to_string()),
-    ///             common_name: "Foobar Inc".to_string(),
-    ///             email_address: Some("foobar@mcfooface.com".to_string()),
-    ///         })
-    ///         .is_err()
-    /// );
+    /// assert!(nethsm.get_tls_csr(distinguished_name).is_err());
     /// # Ok(())
     /// # }
     /// ```
@@ -809,12 +803,21 @@ impl NetHsm {
         self.validate_namespace_access(NamespaceSupport::Unsupported, None, None)?;
         // ensure the tls_key_type - length combination is valid
         tls_key_type_matches_length(tls_key_type, length)?;
+
+        // WARNING: Upstream has decided to set all models non-exhaustive.
+        //
+        // On each update to nethsm-sdk-rs, check whether TlsKeyGenerateRequestData has gained
+        // further fields.
+        let tls_keygenerate_request_data = {
+            let mut tls_keygenerate_request_data =
+                TlsKeyGenerateRequestData::new(tls_key_type.try_into()?);
+            tls_keygenerate_request_data.length = length.map(|length| length as i32);
+            tls_keygenerate_request_data
+        };
+
         config_tls_generate_post(
             &self.create_connection_config(),
-            TlsKeyGenerateRequestData {
-                r#type: tls_key_type.into(),
-                length: length.map(|length| length as i32),
-            },
+            tls_keygenerate_request_data,
         )
         .map_err(|error| {
             Error::Api(format!(
@@ -902,6 +905,107 @@ impl NetHsm {
         );
 
         self.validate_namespace_access(NamespaceSupport::Unsupported, None, None)?;
+
+        // NOTE: The function `nethsm_sdk_rs::apis::default_api::config_tls_cert_pem_put` is
+        // defective, so we replicate a somewhat fixed version of it, inline.
+        //
+        // See <https://github.com/Nitrokey/nethsm-sdk-rs/issues/61>
+        //
+        // The below can be removed, once we have a released upstream fix and we can start using
+        // `nethsm_sdk_rs::apis::default_api::config_tls_cert_pem_put` again.
+
+        /// Set certificate for NetHSMs https API e.g. to replace self-signed initial certificate.
+        fn config_tls_cert_pem_put(
+            configuration: &Configuration,
+            body: &str,
+        ) -> Result<ResponseContent<()>, nethsm_sdk_rs::apis::Error<ConfigTlsCertPemPutError>>
+        {
+            let client = &configuration.client;
+
+            let request_builder = {
+                let mut request_builder = client
+                    .put(&format!("{}/config/tls/cert.pem", configuration.base_path))
+                    .config()
+                    .http_status_as_error(false)
+                    .build();
+
+                if let Some(user_agent) = &configuration.user_agent {
+                    request_builder = request_builder.header("user-agent", user_agent);
+                }
+
+                if let Some((user, passphrase)) = &configuration.basic_auth {
+                    request_builder = request_builder.header(
+                        "authorization",
+                        &format!(
+                            "Basic {}",
+                            Base64::encode_string(
+                                format!("{user}:{}", passphrase.as_deref().unwrap_or(""))
+                                    .as_bytes()
+                            )
+                        ),
+                    );
+                };
+
+                request_builder = request_builder.header("content-type", "application/x-pem-file");
+
+                request_builder
+            };
+
+            let response = request_builder.send(body)?;
+            let status = response.status().as_u16();
+            let headers = {
+                let mut headers = HashMap::new();
+
+                let names = response.headers();
+                for (name, value) in names {
+                    if let Ok(value) = value.to_str() {
+                        headers.insert(name.as_str().into(), value.into());
+                    }
+                }
+
+                headers
+            };
+            let content = {
+                let mut content = Vec::new();
+                response
+                    .into_body()
+                    .into_reader()
+                    .read_to_end(&mut content)?;
+
+                content
+            };
+
+            if status < 400 {
+                Ok(ResponseContent {
+                    status,
+                    content,
+                    entity: (),
+                    headers,
+                })
+            } else {
+                let error = match status {
+                    400 => ConfigTlsCertPemPutError::Status400(serde_json::from_slice(
+                        content.as_slice(),
+                    )?),
+                    401 => ConfigTlsCertPemPutError::Status401(),
+                    403 => ConfigTlsCertPemPutError::Status403(),
+                    406 => ConfigTlsCertPemPutError::Status406(),
+                    _ => ConfigTlsCertPemPutError::UnknownValue(if content.is_empty() {
+                        serde_json::Value::Null
+                    } else {
+                        serde_json::from_slice(content.as_slice())?
+                    }),
+                };
+
+                Err(nethsm_sdk_rs::apis::Error::ResponseError(ResponseContent {
+                    status,
+                    content,
+                    entity: error,
+                    headers,
+                }))
+            }
+        }
+
         config_tls_cert_pem_put(&self.create_connection_config(), certificate).map_err(
             |error| {
                 Error::Api(format!(
@@ -915,7 +1019,7 @@ impl NetHsm {
 
     /// Gets the [network configuration].
     ///
-    /// Retrieves the [network configuration] of the NetHSM as [`NetworkConfig`].
+    /// Retrieves the [network configuration] of the NetHSM as [`NetworkConfigOutput`].
     ///
     /// This call requires using [`Credentials`] of a system-wide user in the
     /// [`Administrator`][`UserRole::Administrator`] [role] (*R-Administrator*).
@@ -969,7 +1073,7 @@ impl NetHsm {
     /// [network configuration]: https://docs.nitrokey.com/nethsm/administration#network
     /// [role]: https://docs.nitrokey.com/nethsm/administration#roles
     /// [state]: https://docs.nitrokey.com/nethsm/administration#state
-    pub fn get_network(&self) -> Result<NetworkConfig, Error> {
+    pub fn get_network(&self) -> Result<NetworkConfigOutput, Error> {
         debug!(
             "Get network configuration for the NetHSM at {} using {}",
             self.url.borrow(),
@@ -989,7 +1093,7 @@ impl NetHsm {
 
     /// Sets the [network configuration].
     ///
-    /// Sets the [network configuration] of the NetHSM on the basis of a [`NetworkConfig`].
+    /// Sets the [network configuration] of the NetHSM on the basis of a [`NetworkConfigInput`].
     ///
     /// This call requires using [`Credentials`] of a system-wide user in the
     /// [`Administrator`][`UserRole::Administrator`] [role] (*R-Administrator*).
@@ -1011,7 +1115,7 @@ impl NetHsm {
     ///     ConnectionSecurity,
     ///     Credentials,
     ///     NetHsm,
-    ///     NetworkConfig,
+    ///     NetworkConfigInput,
     ///     Passphrase,
     ///     UserRole,
     /// };
@@ -1040,30 +1144,31 @@ impl NetHsm {
     /// // create accompanying namespace
     /// nethsm.add_namespace(&"namespace1".parse()?)?;
     ///
-    /// let network_config = NetworkConfig::new(
-    ///     "192.168.1.1".to_string(),
-    ///     "255.255.255.0".to_string(),
-    ///     "0.0.0.0".to_string(),
-    /// );
+    /// let network_config_input = {
+    ///     let mut network_config_input =
+    ///         NetworkConfigInput::new("192.168.1.1".to_string(), "255.255.255.0".to_string());
+    ///     network_config_input.gateway = Some("0.0.0.0".to_string());
+    ///     network_config_input
+    /// };
     ///
     /// // R-Administrators can set the network configuration
-    /// nethsm.set_network(network_config.clone())?;
+    /// nethsm.set_network(network_config_input.clone())?;
     ///
     /// // N-Administrators can not set the network configuration
     /// nethsm.use_credentials(&"namespace1~admin1".parse()?)?;
-    /// assert!(nethsm.set_network(network_config).is_err());
+    /// assert!(nethsm.set_network(network_config_input).is_err());
     /// # Ok(())
     /// # }
     /// ```
     /// [network configuration]: https://docs.nitrokey.com/nethsm/administration#network
     /// [role]: https://docs.nitrokey.com/nethsm/administration#roles
     /// [state]: https://docs.nitrokey.com/nethsm/administration#state
-    pub fn set_network(&self, network_config: NetworkConfig) -> Result<(), Error> {
+    pub fn set_network(&self, network_config: NetworkConfigInput) -> Result<(), Error> {
         debug!(
             "Set a new network configuration (IP: {}, Netmask: {}, Gateway: {}) for the NetHSM at {} using {}",
             network_config.ip_address,
             network_config.netmask,
-            network_config.gateway,
+            network_config.gateway.as_deref().unwrap_or_default(),
             self.url.borrow(),
             user_or_no_user_string(self.current_credentials.borrow().as_ref()),
         );
@@ -1744,12 +1849,22 @@ impl NetHsm {
         );
 
         self.validate_namespace_access(NamespaceSupport::Unsupported, None, None)?;
+
+        // WARNING: Upstream has decided to set all models non-exhaustive.
+        //
+        // On each update to nethsm-sdk-rs, check whether RestoreRequestArguments has gained further
+        // fields.
+        let restore_request_arguments = {
+            let mut restore_request_arguments = RestoreRequestArguments::default();
+            restore_request_arguments.backup_passphrase = Some(backup_passphrase.expose_owned());
+            restore_request_arguments.system_time =
+                Some(system_time.to_rfc3339_opts(chrono::SecondsFormat::Secs, true));
+            restore_request_arguments
+        };
+
         system_restore_post(
             &self.create_connection_config(),
-            Some(nethsm_sdk_rs::models::RestoreRequestArguments {
-                backup_passphrase: Some(backup_passphrase.expose_owned()),
-                system_time: Some(system_time.to_rfc3339_opts(chrono::SecondsFormat::Secs, true)),
-            }),
+            Some(restore_request_arguments),
             Some(backup),
         )
         .map_err(|error| {

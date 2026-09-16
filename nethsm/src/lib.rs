@@ -24,7 +24,8 @@ pub use nethsm_sdk_rs::models::{
     DistinguishedName,
     InfoData,
     LoggingConfig,
-    NetworkConfig,
+    NetworkConfigInput,
+    NetworkConfigOutput,
     PublicKey,
     SystemInfo,
     SystemState,
@@ -54,12 +55,7 @@ pub use signstar_crypto::{
         openpgp::{Deserializable, SignedSecretKey, Timestamp},
     },
 };
-pub use tls::{
-    ConnectionSecurity,
-    DEFAULT_MAX_IDLE_CONNECTIONS,
-    DEFAULT_TIMEOUT_SECONDS,
-    HostCertificateFingerprints,
-};
+pub use tls::{ConnectionSecurity, DEFAULT_MAX_IDLE_CONNECTIONS, DEFAULT_TIMEOUT_SECONDS};
 pub use user::{
     Credentials,
     Error as UserError,

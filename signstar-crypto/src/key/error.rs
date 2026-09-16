@@ -118,9 +118,20 @@ pub enum Error {
     },
 
     /// An unsupported key mechanism has been encountered.
-    #[error("Unsupported key mechanism: {0}")]
+    #[error("The nethsm-sdk-rs key mechanism {key_mechanism} is not supported by Signstar")]
     #[cfg(feature = "nethsm")]
-    UnsupportedNetHsmKeyMechanism(nethsm_sdk_rs::models::KeyMechanism),
+    UnsupportedNetHsmSdkRsKeyMechanism {
+        /// The unsupported key mechanism.
+        key_mechanism: nethsm_sdk_rs::models::KeyMechanism,
+    },
+
+    /// An unsupported key mechanism has been encountered.
+    #[error("The nethsm-sdk-rs key type {key_type} is not supported by Signstar")]
+    #[cfg(feature = "nethsm")]
+    UnsupportedNetHsmSdkRsKeyType {
+        /// The unsupported key type.
+        key_type: nethsm_sdk_rs::models::KeyType,
+    },
 
     /// Unsupported private key data for a specific key type has been encountered.
     #[error("Private key data for key type {key_type} is not supported because {context}")]

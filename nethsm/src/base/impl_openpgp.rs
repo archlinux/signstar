@@ -117,6 +117,7 @@ impl NetHsm {
     ///     None,
     ///     Some("signing1".parse()?),
     ///     Some(vec!["tag1".to_string()]),
+    ///     Some("label1".to_string()),
     /// )?;
     /// // tag system-wide user in Operator role for access to signing key
     /// nethsm.add_user_tag(&"operator1".parse()?, "tag1")?;
@@ -247,6 +248,7 @@ impl NetHsm {
     ///     None,
     ///     Some("signing1".parse()?),
     ///     Some(vec!["tag1".to_string()]),
+    ///     Some("label1".to_string()),
     /// )?;
     /// // tag system-wide user in Operator role for access to signing key
     /// nethsm.add_user_tag(&"operator1".parse()?, "tag1")?;
@@ -363,6 +365,7 @@ impl NetHsm {
     ///     None,
     ///     Some("signing1".parse()?),
     ///     Some(vec!["tag1".to_string()]),
+    ///     Some("label1".to_string()),
     /// )?;
     /// // tag system-wide user in Operator role for access to signing key
     /// nethsm.add_user_tag(&"operator1".parse()?, "tag1")?;

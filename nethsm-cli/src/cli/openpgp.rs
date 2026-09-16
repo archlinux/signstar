@@ -220,4 +220,15 @@ Tags on keys are used to grant access to those keys for users that carry the sam
         short
     )]
     pub tags: Option<Vec<String>>,
+
+    #[arg(
+        env = "NETHSM_OPENPGP_KEY_LABEL",
+        help = "An optional label that is assigned to the imported key",
+        long_help = "An optional label that is assigned to the imported key
+
+Labels can be used to filter keys in the list of all keys.",
+        long,
+        short
+    )]
+    pub label: Option<String>,
 }

@@ -1,9 +1,45 @@
 use std::fmt::Display;
 
 use log::Level;
-use nethsm_sdk_rs::models::{Switch, UnattendedBootConfig};
+use nethsm_sdk_rs::models::{
+    KeyType,
+    Switch,
+    UnattendedBootConfig,
+    UserRole as NetHsmSdkRsUserRole,
+};
+use nethsm_sdk_rs::ureq::http::response::Response;
 use serde::{Deserialize, Serialize};
-use ureq::Response;
+
+#[derive(Debug, thiserror::Error)]
+pub enum Error {
+    /// A variant of [`nethsm_sdk_rs::models::KeyType`] is unsupported.
+    #[error("The nethsm-sdk-rs key type {key_type} is not supported by Signstar")]
+    NetHsmSdkRsKeyTypeUnsupportedInSignstar {
+        /// The unsupported key type.
+        key_type: KeyType,
+    },
+
+    /// A switch for [`nethsm_sdk_rs::models::UnattendedBootConfig`] is unsupported.
+    #[error("The nethsm-sdk-rs switch {switch} is not supported by Signstar")]
+    NetHsmSdkRsSwitchUnsupportedInSignstar {
+        /// The unsupported switch for the unattended boot config.
+        switch: Switch,
+    },
+
+    /// A [`nethsm_sdk_rs::models::UserRole`] is unsupported.
+    #[error("The nethsm-sdk-rs user role {user_role} is not supported by Signstar")]
+    NetHsmSdkRsUserRoleUnsupportedInSignstar {
+        /// The unsupported user role.
+        user_role: NetHsmSdkRsUserRole,
+    },
+
+    /// A switch for [`nethsm_sdk_rs::models::UnattendedBootConfig`] is unsupported
+    #[error("The TLS key type {tls_key_type} is not supported by nethsm-sdk-rs")]
+    TlsKeyTypeUnsupportedInNetHsmSdkRs {
+        /// The unsupported switch for the unattended boot config.
+        tls_key_type: TlsKeyType,
+    },
+}
 
 /// A representation of a message body in an HTTP response
 ///
@@ -14,14 +50,10 @@ pub struct Message {
     message: String,
 }
 
-impl From<Response> for Message {
-    fn from(value: Response) -> Self {
-        if let Ok(message) = value.into_json() {
-            message
-        } else {
-            Message {
-                message: "Deserialization error (no message in body)".to_string(),
-            }
+impl From<Response<String>> for Message {
+    fn from(value: Response<String>) -> Self {
+        Message {
+            message: value.into_body(),
         }
     }
 }
@@ -67,15 +99,27 @@ pub struct NetHsmApiError<T> {
 
 impl<T> From<nethsm_sdk_rs::apis::Error<T>> for NetHsmApiError<T> {
     fn from(value: nethsm_sdk_rs::apis::Error<T>) -> Self {
-        match value {
+        match &value {
             nethsm_sdk_rs::apis::Error::Ureq(error) => match error {
-                nethsm_sdk_rs::ureq::Error::Status(code, response) => Self {
+                nethsm_sdk_rs::ureq::Error::StatusCode(code) => Self {
                     error: None,
-                    message: Some(ApiErrorMessage::from((code, response.into())).to_string()),
+                    message: Some(
+                        ApiErrorMessage::from((
+                            *code,
+                            Message {
+                                message: "".to_string(),
+                            },
+                        ))
+                        .to_string(),
+                    ),
                 },
-                nethsm_sdk_rs::ureq::Error::Transport(transport) => Self {
+                nethsm_sdk_rs::ureq::Error::Http(transport) => Self {
                     error: None,
                     message: Some(format!("{transport}")),
+                },
+                _ => Self {
+                    error: Some(value),
+                    message: None,
                 },
             },
             nethsm_sdk_rs::apis::Error::ResponseError(resp) => Self {
@@ -136,22 +180,27 @@ pub enum BootMode {
     Unattended,
 }
 
-impl From<UnattendedBootConfig> for BootMode {
-    fn from(value: UnattendedBootConfig) -> Self {
-        match value.status {
+impl TryFrom<UnattendedBootConfig> for BootMode {
+    type Error = crate::Error;
+
+    fn try_from(value: UnattendedBootConfig) -> Result<Self, Self::Error> {
+        Ok(match value.status {
             Switch::On => BootMode::Unattended,
             Switch::Off => BootMode::Attended,
-        }
+            // WARNING: Upstream has decided to set all models non-exhaustive.
+            //
+            // On each update to nethsm-sdk-rs, check whether Switch has gained further
+            // fields.
+            switch => return Err(Error::NetHsmSdkRsSwitchUnsupportedInSignstar { switch }.into()),
+        })
     }
 }
 
 impl From<BootMode> for UnattendedBootConfig {
     fn from(value: BootMode) -> Self {
         match value {
-            BootMode::Unattended => UnattendedBootConfig { status: Switch::On },
-            BootMode::Attended => UnattendedBootConfig {
-                status: Switch::Off,
-            },
+            BootMode::Unattended => UnattendedBootConfig::new(Switch::On),
+            BootMode::Attended => UnattendedBootConfig::new(Switch::Off),
         }
     }
 }
@@ -241,6 +290,15 @@ pub enum TlsKeyType {
     /// A Montgomery curve key over a prime field for the prime number 2^255-19
     Curve25519,
 
+    /// An elliptic (Brainpool) curve key over a prime field for a prime of size 256 bit
+    EcBp256,
+
+    /// An elliptic (Brainpool) curve key over a prime field for a prime of size 384 bit
+    EcBp384,
+
+    /// An elliptic (Brainpool) curve key over a prime field for a prime of size 512 bit
+    EcBp512,
+
     /// An elliptic-curve key over a prime field for a prime of size 224 bit
     EcP224,
 
@@ -258,16 +316,26 @@ pub enum TlsKeyType {
     Rsa,
 }
 
-impl From<TlsKeyType> for nethsm_sdk_rs::models::TlsKeyType {
-    fn from(value: TlsKeyType) -> Self {
-        match value {
+impl TryFrom<TlsKeyType> for nethsm_sdk_rs::models::TlsKeyType {
+    type Error = crate::Error;
+
+    fn try_from(value: TlsKeyType) -> Result<Self, Self::Error> {
+        Ok(match value {
             TlsKeyType::Curve25519 => Self::Curve25519,
-            TlsKeyType::EcP224 => Self::EcP224,
+            TlsKeyType::EcBp256 => Self::BrainpoolP256,
+            TlsKeyType::EcBp384 => Self::BrainpoolP384,
+            TlsKeyType::EcBp512 => Self::BrainpoolP512,
+            TlsKeyType::EcP224 => {
+                return Err(Error::TlsKeyTypeUnsupportedInNetHsmSdkRs {
+                    tls_key_type: value,
+                }
+                .into());
+            }
             TlsKeyType::EcP256 => Self::EcP256,
             TlsKeyType::EcP384 => Self::EcP384,
             TlsKeyType::EcP521 => Self::EcP521,
             TlsKeyType::Rsa => Self::Rsa,
-        }
+        })
     }
 }
 
@@ -302,25 +370,36 @@ pub enum UserRole {
     Operator,
 }
 
-impl From<UserRole> for nethsm_sdk_rs::models::UserRole {
-    fn from(value: UserRole) -> Self {
-        match value {
+impl TryFrom<UserRole> for NetHsmSdkRsUserRole {
+    type Error = crate::Error;
+
+    fn try_from(value: UserRole) -> Result<Self, Self::Error> {
+        Ok(match value {
             UserRole::Administrator => Self::Administrator,
             UserRole::Backup => Self::Backup,
             UserRole::Metrics => Self::Metrics,
             UserRole::Operator => Self::Operator,
-        }
+        })
     }
 }
 
-impl From<nethsm_sdk_rs::models::UserRole> for UserRole {
-    fn from(value: nethsm_sdk_rs::models::UserRole) -> Self {
-        match value {
-            nethsm_sdk_rs::models::UserRole::Administrator => Self::Administrator,
-            nethsm_sdk_rs::models::UserRole::Backup => Self::Backup,
-            nethsm_sdk_rs::models::UserRole::Metrics => Self::Metrics,
-            nethsm_sdk_rs::models::UserRole::Operator => Self::Operator,
-        }
+impl TryFrom<NetHsmSdkRsUserRole> for UserRole {
+    type Error = crate::Error;
+
+    fn try_from(value: NetHsmSdkRsUserRole) -> Result<Self, Self::Error> {
+        Ok(match value {
+            NetHsmSdkRsUserRole::Administrator => Self::Administrator,
+            NetHsmSdkRsUserRole::Backup => Self::Backup,
+            NetHsmSdkRsUserRole::Metrics => Self::Metrics,
+            NetHsmSdkRsUserRole::Operator => Self::Operator,
+            // WARNING: Upstream has decided to set all models non-exhaustive.
+            //
+            // On each update to nethsm-sdk-rs, check whether UserRole has gained further
+            // fields.
+            user_role => {
+                return Err(Error::NetHsmSdkRsUserRoleUnsupportedInSignstar { user_role }.into());
+            }
+        })
     }
 }
 

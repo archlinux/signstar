@@ -42,16 +42,21 @@ pub struct NetHsmKey<'a, 'b> {
 ///
 /// # Errors
 ///
-/// Returns an error if the key type is unsupported. This includes [`KeyType::EcP224`] and
-/// [`KeyType::Generic`].
+/// Returns an error if the key type is unsupported (e.g. [`KeyType::Generic`],
+/// [`KeyType::BrainpoolP256`], [`KeyType::BrainpoolP384`], [`KeyType::BrainpoolP512`],
+/// [`KeyType::EcP256K1`]).
 pub(crate) fn nethsm_signature_type(key_type: KeyType) -> Result<SignatureType, crate::Error> {
     Ok(match key_type {
         KeyType::Rsa => SignatureType::Pkcs1,
         KeyType::Curve25519 => SignatureType::EdDsa,
-        KeyType::EcP224 => {
-            return Err(crate::Error::Default(
-                "P-224 keys are unsupported by the NetHSM".into(),
-            ));
+        KeyType::BrainpoolP256
+        | KeyType::BrainpoolP384
+        | KeyType::BrainpoolP512
+        | KeyType::EcP256K1 => {
+            return Err(
+                crate::nethsm_sdk::Error::NetHsmSdkRsKeyTypeUnsupportedInSignstar { key_type }
+                    .into(),
+            );
         }
         KeyType::EcP256 => SignatureType::EcdsaP256,
         KeyType::EcP384 => SignatureType::EcdsaP384,
@@ -60,6 +65,12 @@ pub(crate) fn nethsm_signature_type(key_type: KeyType) -> Result<SignatureType, 
             return Err(crate::Error::Default(
                 "Generic keys cannot be used to sign OpenPGP data".into(),
             ));
+        }
+        key_type => {
+            return Err(
+                crate::nethsm_sdk::Error::NetHsmSdkRsKeyTypeUnsupportedInSignstar { key_type }
+                    .into(),
+            );
         }
     })
 }
@@ -185,7 +196,12 @@ impl RawSigningKey for NetHsmKey<'_, '_> {
             KeyType::EcP521 => {
                 RawPublicKey::P521(ec_public_key_data_to_bytes(public.data.as_deref())?)
             }
-            KeyType::EcP224 | KeyType::Generic => {
+            KeyType::EcP256K1
+            | KeyType::BrainpoolP256
+            | KeyType::BrainpoolP384
+            | KeyType::BrainpoolP512
+            | KeyType::Generic
+            | _ => {
                 warn!("Unsupported key type: {key_type}");
                 return Err(SignstarCryptoSignerError::InvalidPublicKeyData {
                     context: format!("Unsupported key type: {key_type}"),

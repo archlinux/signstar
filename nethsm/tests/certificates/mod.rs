@@ -23,15 +23,16 @@ use testresult::TestResult;
 /// Generate a key and create a CSR with it
 async fn generate_signing_key(nethsm: &NetHsm) -> TestResult {
     println!("Generate signing key...");
-    assert!(nethsm.get_keys(None)?.is_empty());
+    assert!(nethsm.get_keys(None, None)?.is_empty());
     nethsm.generate_key(
         KeyType::Curve25519,
         vec![KeyMechanism::EdDsaSignature],
         None,
         Some(DEFAULT_KEY_ID.parse()?),
         None,
+        None,
     )?;
-    assert_eq!(nethsm.get_keys(None)?.len(), 1);
+    assert_eq!(nethsm.get_keys(None, None)?.len(), 1);
 
     println!(
         "Default key on NetHSM: {:?}",
@@ -48,22 +49,28 @@ async fn generate_signing_key(nethsm: &NetHsm) -> TestResult {
         nethsm.get_key(&DEFAULT_KEY_ID.parse()?)?
     );
 
+    // WARNING: Upstream has decided to set all models non-exhaustive.
+    //
+    // On each update to nethsm-sdk-rs, check whether DistinguishedName has gained
+    // further fields.
+    let distinguished_name = {
+        let mut distinguished_name = DistinguishedName::new("example.org".to_string());
+        distinguished_name.country_name = Some("DE".to_string());
+        distinguished_name.state_or_province_name = Some("Berlin".to_string());
+        distinguished_name.locality_name = Some("Berlin".to_string());
+        distinguished_name.organization_name = Some("Foobar Inc".to_string());
+        distinguished_name.organizational_unit_name = Some("Department of Foo".to_string());
+        distinguished_name.email_address = Some("foobar@mcfooface.com".to_string());
+        // NOTE: only works with API >= 3
+        // distinguished_name.subject_alt_names = Some(vec!["other.example.org".to_string()]);
+        distinguished_name
+    };
+
     println!(
         "Certificate Signing Request (CSR) from NetHSM: {}",
-        nethsm.get_key_csr(
-            &DEFAULT_KEY_ID.parse()?,
-            DistinguishedName {
-                country_name: Some("DE".to_string()),
-                state_or_province_name: Some("Berlin".to_string()),
-                locality_name: Some("Berlin".to_string()),
-                organization_name: Some("Foobar Inc".to_string()),
-                organizational_unit_name: Some("Department of Foo".to_string()),
-                common_name: "Foobar Inc".to_string(),
-                email_address: Some("foobar@mcfooface.com".to_string())
-            }
-        )?
+        nethsm.get_key_csr(&DEFAULT_KEY_ID.parse()?, distinguished_name)?
     );
-    println!("keys: {:?}", nethsm.get_keys(None)?);
+    println!("keys: {:?}", nethsm.get_keys(None, None)?);
 
     Ok(())
 }
@@ -85,8 +92,9 @@ async fn import_key(nethsm: &NetHsm) -> TestResult {
         PrivateKeyImport::new(KeyType::Rsa, private_key.as_bytes())?,
         Some(OTHER_KEY_ID.parse()?),
         Some(vec![OTHER_TAG.to_string()]),
+        None,
     )?;
-    assert_eq!(nethsm.get_keys(None)?.len(), 2);
+    assert_eq!(nethsm.get_keys(None, None)?.len(), 2);
 
     println!(
         "An imported key on the NetHSM: {:?}",
@@ -133,6 +141,7 @@ async fn generate_symmetric_encryption_key(nethsm: &NetHsm) -> TestResult {
         Some(DEFAULT_AES_BITS),
         Some(ENC_KEY_ID.parse()?),
         None,
+        None,
     )?;
 
     Ok(())
@@ -143,7 +152,7 @@ async fn user_tags(nethsm: &NetHsm) -> TestResult {
     // NOTE: tags on users need to be created after attaching tags to keys
     println!("Adding user tags...");
     println!("users: {:?}", nethsm.get_users()?);
-    println!("keys: {:?}", nethsm.get_keys(None)?);
+    println!("keys: {:?}", nethsm.get_keys(None, None)?);
     nethsm.add_user_tag(&DEFAULT_OPERATOR_USER_ID.parse()?, DEFAULT_TAG)?;
     assert_eq!(
         nethsm
@@ -175,7 +184,7 @@ async fn user_tags(nethsm: &NetHsm) -> TestResult {
     nethsm.delete_key_tag(&DEFAULT_KEY_ID.parse()?, DEFAULT_TAG)?;
 
     nethsm.delete_key(&DEFAULT_KEY_ID.parse()?)?;
-    assert_eq!(nethsm.get_keys(None)?.len(), 2);
+    assert_eq!(nethsm.get_keys(None, None)?.len(), 2);
 
     Ok(())
 }

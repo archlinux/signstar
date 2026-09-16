@@ -6,10 +6,6 @@ use crate::{NetHsm, connection};
 /// An error that may occur when using a NetHSM.
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
-    /// Wraps a [`rustls::Error`] for issues with rustls based TLS setups
-    #[error("TLS error: {0}")]
-    Rustls(#[from] rustls::Error),
-
     /// A Base64 encoded string can not be decode
     #[error("Decoding Base64 string failed: {0}")]
     Base64Decode(#[from] base64ct::Error),
@@ -17,19 +13,6 @@ pub enum Error {
     /// A generic error with a custom message
     #[error("NetHSM error: {0}")]
     Default(String),
-
-    /// The loading of TLS root certificates from the platform's native certificate store failed
-    #[error("Loading system TLS certs failed: {0:?}")]
-    CertLoading(Vec<rustls_native_certs::Error>),
-
-    /// No TLS root certificates from the platform's native certificate store could be added
-    ///
-    /// Provides the number certificates that failed to be added
-    #[error("Unable to load any system TLS certs ({failed} failed)")]
-    NoSystemCertsAdded {
-        /// The number of certificates that failed to be added.
-        failed: usize,
-    },
 
     /// A call to the NetHSM API failed
     #[error("NetHSM API error: {0}")]
@@ -50,4 +33,8 @@ pub enum Error {
     /// A [`signstar_crypto::Error`] occurred.
     #[error(transparent)]
     SignstarCrypto(#[from] signstar_crypto::Error),
+
+    /// An compatibility issue occurred in the NetHSM SDK translation interface.
+    #[error("Compatibility issue with nethsm-sdk-rs: {0}")]
+    NetHsmSdkRsCompatibility(#[from] crate::nethsm_sdk::Error),
 }

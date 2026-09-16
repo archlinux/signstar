@@ -6,8 +6,6 @@ use std::{cell::RefCell, collections::HashMap};
 
 use log::{debug, trace};
 use nethsm_sdk_rs::apis::configuration::Configuration;
-#[cfg(doc)]
-use ureq::Agent;
 
 use crate::{
     Connection,
@@ -108,8 +106,9 @@ impl NetHsm {
 
     /// Creates a connection configuration.
     ///
-    /// Uses the [`Agent`] configured during creation of the [`NetHsm`], the current [`Url`] and
-    /// [`Credentials`] to create a [`Configuration`] for a connection to the API of a NetHSM.
+    /// Uses the [`Agent`][`nethsm_sdk_rs::ureq::Agent`] configured during creation of the
+    /// [`NetHsm`], the current [`Url`] and [`Credentials`] to create a [`Configuration`] for a
+    /// connection to the API of a NetHSM.
     pub(crate) fn create_connection_config(&self) -> Configuration {
         debug!(
             "Create connection config for NetHSM at {}",

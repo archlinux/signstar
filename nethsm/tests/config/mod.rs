@@ -18,7 +18,7 @@ use nethsm::{
     DistinguishedName,
     LogLevel,
     NetHsm,
-    NetworkConfig,
+    NetworkConfigInput,
     Passphrase,
     TlsKeyType,
 };
@@ -84,37 +84,38 @@ async fn tls_cert(
 
     // N-Administrators can not a TLS CSR
     nethsm.use_credentials(&NAMESPACE1_ADMIN_USER_ID.parse()?)?;
-    assert!(
-        nethsm
-            .get_tls_csr(DistinguishedName {
-                country_name: Some("DE".to_string()),
-                state_or_province_name: Some("Berlin".to_string()),
-                locality_name: Some("Berlin".to_string()),
-                organization_name: Some("Foobar Inc".to_string()),
-                organizational_unit_name: Some("Department of Foo".to_string()),
-                common_name: "Foobar Inc".to_string(),
-                email_address: Some("foobar@mcfooface.com".to_string()),
-            })
-            .is_err()
-    );
+
+    // WARNING: Upstream has decided to set all models non-exhaustive.
+    //
+    // On each update to nethsm-sdk-rs, check whether DistinguishedName has gained
+    // further fields.
+    let distinguished_name = {
+        let mut distinguished_name = DistinguishedName::new("example.org".to_string());
+        distinguished_name.country_name = Some("DE".to_string());
+        distinguished_name.state_or_province_name = Some("Berlin".to_string());
+        distinguished_name.locality_name = Some("Berlin".to_string());
+        distinguished_name.organization_name = Some("Foobar Inc".to_string());
+        distinguished_name.organizational_unit_name = Some("Department of Foo".to_string());
+        distinguished_name.email_address = Some("foobar@mcfooface.com".to_string());
+        // NOTE: only works with API >= 3
+        // distinguished_name.subject_alt_names = Some(vec!["other.example.org".to_string()]);
+        distinguished_name
+    };
+
+    assert!(nethsm.get_tls_csr(distinguished_name.clone()).is_err());
 
     nethsm.use_credentials(&ADMIN_USER_ID.parse()?)?;
-    let csr = nethsm.get_tls_csr(DistinguishedName {
-        country_name: Some("DE".to_string()),
-        state_or_province_name: Some("Berlin".to_string()),
-        locality_name: Some("Berlin".to_string()),
-        organization_name: Some("Foobar Inc".to_string()),
-        organizational_unit_name: Some("Department of Foo".to_string()),
-        common_name: "Foobar Inc".to_string(),
-        email_address: Some("foobar@mcfooface.com".to_string()),
-    })?;
+    let csr = nethsm.get_tls_csr(distinguished_name)?;
     println!("A TLS CSR for the NetHSM:\n{csr}");
     std::fs::write(csr_file, csr)?;
 
     // N-Administrators can not set the TLS cert
     nethsm.use_credentials(&NAMESPACE1_ADMIN_USER_ID.parse()?)?;
     assert!(nethsm.set_tls_cert(&updated_cert).is_err());
+    println!("Failing with namespace admin successful");
 
+    // NOTE: This for some reason now fails with 406 - "Content type in Accept header not supported"
+    // (also with newer API version).
     nethsm.use_credentials(&ADMIN_USER_ID.parse()?)?;
     nethsm.set_tls_cert(&updated_cert)?;
 
@@ -132,15 +133,19 @@ async fn network(
     // N-Administrators can neither get nor set network settings
     nethsm.use_credentials(&NAMESPACE1_ADMIN_USER_ID.parse()?)?;
     assert!(nethsm.get_network().is_err());
-    assert!(
-        nethsm
-            .set_network(NetworkConfig::new(
-                ip_address.clone(),
-                "255.255.255.0".to_string(),
-                "0.0.0.0".to_string(),
-            ))
-            .is_err()
-    );
+
+    // WARNING: Upstream has decided to set all models non-exhaustive.
+    //
+    // On each update to nethsm-sdk-rs, check whether NetworkConfigInput has gained
+    // further fields.
+    let network_config_input = {
+        let mut network_config_input =
+            NetworkConfigInput::new(ip_address.clone(), "255.255.255.0".to_string());
+        network_config_input.gateway = Some("0.0.0.0".to_string());
+        network_config_input
+    };
+
+    assert!(nethsm.set_network(network_config_input.clone()).is_err());
 
     // R-Administrators can get and set network settings
     nethsm.use_credentials(&ADMIN_USER_ID.parse()?)?;
@@ -148,11 +153,7 @@ async fn network(
     println!("NetHSM network config: {network_config:?}");
     assert_eq!("192.168.1.1".to_string(), network_config.ip_address);
 
-    nethsm.set_network(NetworkConfig::new(
-        ip_address.clone(),
-        "255.255.255.0".to_string(),
-        "0.0.0.0".to_string(),
-    ))?;
+    nethsm.set_network(network_config_input)?;
     let network_config = nethsm.get_network()?;
     println!("NetHSM network config: {network_config:?}");
     assert_eq!(ip_address, network_config.ip_address);

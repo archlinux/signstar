@@ -4,6 +4,7 @@ use std::fs::File;
 use std::path::PathBuf;
 
 use chrono::Utc;
+use nethsm_sdk_rs::ureq::get;
 use rstest::fixture;
 // Publicly re-export, so that consumers do not have to rely on rustainers directly .
 pub use rustainers::Container;
@@ -302,7 +303,14 @@ fn add_keys_to_nethsm(nethsm: &NetHsm) -> TestResult {
     println!("Adding keys to NetHSM...");
     for (mechanisms, key_type, length, key_id, tag, user_id) in keys {
         let key_id: &KeyId = &key_id.parse()?;
-        nethsm.generate_key(key_type, mechanisms, length, Some((*key_id).clone()), None)?;
+        nethsm.generate_key(
+            key_type,
+            mechanisms,
+            length,
+            Some((*key_id).clone()),
+            None,
+            None,
+        )?;
         nethsm.add_key_tag(key_id, tag)?;
         nethsm.add_user_tag(&user_id.parse()?, tag)?;
         // skip symmetric keys, as for those we do not have a public key
@@ -312,7 +320,7 @@ fn add_keys_to_nethsm(nethsm: &NetHsm) -> TestResult {
     }
 
     println!("users: {:?}", nethsm.get_users()?);
-    println!("keys: {:?}", nethsm.get_keys(None)?);
+    println!("keys: {:?}", nethsm.get_keys(None, None)?);
     Ok(())
 }
 
@@ -364,7 +372,7 @@ pub fn update_file() -> TestResult<PathBuf> {
     let file = download_dir.join(file_name);
 
     if !file.exists() {
-        let mut file_bytes = ureq::get(&update_link).call()?.into_reader();
+        let mut file_bytes = get(&update_link).call()?.into_body().into_reader();
         let mut file_writer = File::create(&file)?;
         std::io::copy(&mut file_bytes, &mut file_writer)?;
         assert!(file.exists());

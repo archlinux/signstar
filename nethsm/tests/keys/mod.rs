@@ -48,13 +48,14 @@ async fn generate_keys(
     let namespace2_admin_user_id: UserId = NAMESPACE2_ADMIN_USER_ID.parse()?;
     let namespace2_operator_user_id: UserId = NAMESPACE2_OPERATOR_USER_ID.parse()?;
 
-    let _free_key = nethsm.generate_key(key_type, mechanisms.clone(), length, None, None)?;
+    let _free_key = nethsm.generate_key(key_type, mechanisms.clone(), length, None, None, None)?;
     let sw_key = nethsm.generate_key(
         key_type,
         mechanisms.clone(),
         length,
         None,
         Some(vec![sw_tag.clone()]),
+        None,
     )?;
     println!("Created system-wide key: {}", sw_key);
     nethsm.add_user_tag(&default_operator_user_id, &sw_tag)?;
@@ -71,6 +72,7 @@ async fn generate_keys(
         length,
         None,
         Some(vec![ns1_tag.clone()]),
+        None,
     )?;
     println!("Created namespace1 key: {}", ns1_key);
     // namespace operator can get key info without tags
@@ -115,6 +117,7 @@ async fn generate_keys(
         length,
         None,
         Some(vec![ns2_tag.clone()]),
+        None,
     )?;
     println!("Created namespace2 key: {}", ns2_key);
     nethsm.add_user_tag(&namespace2_operator_user_id, &ns2_tag)?;
@@ -125,22 +128,22 @@ async fn generate_keys(
 
     // system-wide operator only has access to system-wide keys
     nethsm.use_credentials(&default_operator_user_id)?;
-    assert_eq!(nethsm.get_keys(None)?.len(), 2);
-    println!("system-wide keys: {:?}", nethsm.get_keys(None)?);
+    assert_eq!(nethsm.get_keys(None, None)?.len(), 2);
+    println!("system-wide keys: {:?}", nethsm.get_keys(None, None)?);
     assert!(nethsm.get_key(&sw_key).is_ok());
     println!("system-wide key: {:?}", nethsm.get_key(&sw_key)?);
 
     // namespace1 operator only has access to namespace1 keys
     nethsm.use_credentials(&namespace1_operator_user_id)?;
-    assert_eq!(nethsm.get_keys(None)?.len(), 1);
-    println!("namespace1 keys: {:?}", nethsm.get_keys(None)?);
+    assert_eq!(nethsm.get_keys(None, None)?.len(), 1);
+    println!("namespace1 keys: {:?}", nethsm.get_keys(None, None)?);
     assert!(nethsm.get_key(&ns1_key).is_ok());
     println!("namespace1 key: {:?}", nethsm.get_key(&ns1_key)?);
 
     // namespace2 operator only has access to namespace2 keys
     nethsm.use_credentials(&namespace2_operator_user_id)?;
-    assert_eq!(nethsm.get_keys(None)?.len(), 1);
-    println!("namespace2 keys: {:?}", nethsm.get_keys(None)?);
+    assert_eq!(nethsm.get_keys(None, None)?.len(), 1);
+    println!("namespace2 keys: {:?}", nethsm.get_keys(None, None)?);
     assert!(nethsm.get_key(&ns2_key).is_ok());
     println!("namespace2 key: {:?}", nethsm.get_key(&ns2_key)?);
 
@@ -190,12 +193,12 @@ async fn generate_keys(
     nethsm.use_credentials(&namespace1_operator_user_id)?;
     // although the namespace1 operator is now not in a namespace anymore it does not have access to
     // any other key!
-    assert!(nethsm.get_keys(None).is_err());
+    assert!(nethsm.get_keys(None, None).is_err());
     assert!(nethsm.get_key(&ns1_key).is_err());
     nethsm.use_credentials(&namespace1_admin_user_id)?;
     // although the namespace1 administrator is now not in a namespace anymore it does not have
     // access to any other key!
-    assert!(nethsm.get_keys(None).is_err());
+    assert!(nethsm.get_keys(None, None).is_err());
     assert!(nethsm.get_key(&ns1_key).is_err());
 
     Ok(())
@@ -270,42 +273,46 @@ async fn import_keys(
     let ecp384_key = ecp384_key?;
     let ecp521_key = ecp521_key?;
     let rsa_key = rsa_key?;
-    assert_eq!(nethsm.get_keys(None)?.len(), 0);
+    assert_eq!(nethsm.get_keys(None, None)?.len(), 0);
 
     nethsm.import_key(
         KeyMechanism::curve25519_mechanisms(),
         ed25519_key,
         None,
         None,
+        None,
     )?;
-    assert_eq!(nethsm.get_keys(None)?.len(), 1);
+    assert_eq!(nethsm.get_keys(None, None)?.len(), 1);
 
     nethsm.import_key(
         KeyMechanism::elliptic_curve_mechanisms(),
         ecp256_key,
         None,
         None,
+        None,
     )?;
-    assert_eq!(nethsm.get_keys(None)?.len(), 2);
+    assert_eq!(nethsm.get_keys(None, None)?.len(), 2);
 
     nethsm.import_key(
         KeyMechanism::elliptic_curve_mechanisms(),
         ecp384_key,
         None,
         None,
+        None,
     )?;
-    assert_eq!(nethsm.get_keys(None)?.len(), 3);
+    assert_eq!(nethsm.get_keys(None, None)?.len(), 3);
 
     nethsm.import_key(
         KeyMechanism::elliptic_curve_mechanisms(),
         ecp521_key,
         None,
         None,
+        None,
     )?;
-    assert_eq!(nethsm.get_keys(None)?.len(), 4);
+    assert_eq!(nethsm.get_keys(None, None)?.len(), 4);
 
-    nethsm.import_key(KeyMechanism::rsa_mechanisms(), rsa_key, None, None)?;
-    assert_eq!(nethsm.get_keys(None)?.len(), 5);
+    nethsm.import_key(KeyMechanism::rsa_mechanisms(), rsa_key, None, None, None)?;
+    assert_eq!(nethsm.get_keys(None, None)?.len(), 5);
 
     Ok(())
 }

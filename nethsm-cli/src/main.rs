@@ -26,7 +26,7 @@ use nethsm::{
     Error as NetHsmError,
     KeyFormat,
     KeyMechanism,
-    NetworkConfig,
+    NetworkConfigInput,
     OpenPgpKeyUsageFlags,
     Passphrase,
     PrivateKeyImport,
@@ -63,6 +63,17 @@ pub enum Error {
     /// The NetHSM is locked
     #[error("The NetHsm is locked")]
     Locked,
+
+    /// The NetHSM is failed
+    #[error("The NetHSM is failed")]
+    Failed,
+
+    /// The NetHSM is failed
+    #[error("The NetHSM system state is unknown: {system_state:?}")]
+    UnknownSystemState {
+        /// The unknown system state.
+        system_state: SystemState,
+    },
 
     /// A NetHsm error
     #[error("NetHsm error: {0}")]
@@ -215,19 +226,25 @@ fn run_command(cli: Cli) -> Result<(), Error> {
                         )?;
                     let output = FileOrStdout::new(command.output.as_deref(), command.force)?;
 
-                    output.output().write_all(
-                        nethsm
-                            .get_tls_csr(DistinguishedName {
-                                country_name: command.country,
-                                state_or_province_name: command.state,
-                                locality_name: command.locality,
-                                organization_name: command.org_name,
-                                organizational_unit_name: command.org_unit,
-                                common_name: command.common_name,
-                                email_address: command.email,
-                            })?
-                            .as_bytes(),
-                    )?;
+                    // WARNING: Upstream has decided to set all models non-exhaustive.
+                    //
+                    // On each update to nethsm-sdk-rs, check whether DistinguishedName has gained
+                    // further fields.
+                    let distinguished_name = {
+                        let mut distinguished_name = DistinguishedName::new(command.common_name);
+                        distinguished_name.country_name = command.country;
+                        distinguished_name.state_or_province_name = command.state;
+                        distinguished_name.locality_name = command.locality;
+                        distinguished_name.organization_name = command.org_name;
+                        distinguished_name.organizational_unit_name = command.org_unit;
+                        distinguished_name.email_address = command.email;
+                        distinguished_name.subject_alt_names = command.subject_alt_names;
+                        distinguished_name
+                    };
+
+                    output
+                        .output()
+                        .write_all(nethsm.get_tls_csr(distinguished_name)?.as_bytes())?;
                 }
                 ConfigGetCommand::TlsPublicKey(command) => {
                     let nethsm = config
@@ -307,11 +324,20 @@ fn run_command(cli: Cli) -> Result<(), Error> {
                             &auth_passphrases,
                         )?;
 
-                    nethsm.set_network(NetworkConfig {
-                        ip_address: command.ip_address.to_string(),
-                        netmask: command.netmask,
-                        gateway: command.gateway.to_string(),
-                    })?;
+                    // WARNING: Upstream has decided to set all models non-exhaustive.
+                    //
+                    // On each update to nethsm-sdk-rs, check whether NetworkConfigInput has gained
+                    // further fields.
+                    let network_config_input = {
+                        let mut network_config_input = NetworkConfigInput::new(
+                            command.ip_address.to_string(),
+                            command.netmask,
+                        );
+                        network_config_input.gateway = Some(command.gateway.to_string());
+                        network_config_input
+                    };
+
+                    nethsm.set_network(network_config_input)?;
                 }
                 ConfigSetCommand::Time(command) => {
                     let nethsm = config
@@ -538,20 +564,25 @@ fn run_command(cli: Cli) -> Result<(), Error> {
                     )?;
                 let output = FileOrStdout::new(command.output.as_deref(), command.force)?;
 
+                // WARNING: Upstream has decided to set all models non-exhaustive.
+                //
+                // On each update to nethsm-sdk-rs, check whether DistinguishedName has gained
+                // further fields.
+                let distinguished_name = {
+                    let mut distinguished_name = DistinguishedName::new(command.common_name);
+                    distinguished_name.country_name = command.country;
+                    distinguished_name.state_or_province_name = command.state;
+                    distinguished_name.locality_name = command.locality;
+                    distinguished_name.organization_name = command.org_name;
+                    distinguished_name.organizational_unit_name = command.org_unit;
+                    distinguished_name.email_address = command.email;
+                    distinguished_name.subject_alt_names = command.subject_alt_names;
+                    distinguished_name
+                };
+
                 output.output().write_all(
                     nethsm
-                        .get_key_csr(
-                            &command.key_id,
-                            DistinguishedName {
-                                country_name: command.country,
-                                state_or_province_name: command.state,
-                                locality_name: command.locality,
-                                organization_name: command.org_name,
-                                organizational_unit_name: command.org_unit,
-                                common_name: command.common_name,
-                                email_address: command.email,
-                            },
-                        )?
+                        .get_key_csr(&command.key_id, distinguished_name)?
                         .as_bytes(),
                 )?;
             }
@@ -626,6 +657,7 @@ fn run_command(cli: Cli) -> Result<(), Error> {
                         command.length,
                         command.key_id,
                         command.tags,
+                        command.label,
                     )?
                 );
             }
@@ -666,6 +698,7 @@ fn run_command(cli: Cli) -> Result<(), Error> {
                         key_data,
                         command.key_id,
                         command.tags,
+                        command.label,
                     )?
                 );
             }
@@ -679,7 +712,7 @@ fn run_command(cli: Cli) -> Result<(), Error> {
                     )?;
 
                 nethsm
-                    .get_keys(command.filter.as_deref())?
+                    .get_keys(command.filter.as_deref(), command.label.as_deref())?
                     .iter()
                     .for_each(|key_id| println!("{key_id}"));
             }
@@ -869,6 +902,7 @@ fn run_command(cli: Cli) -> Result<(), Error> {
                     key_data,
                     command.key_id,
                     command.tags,
+                    command.label,
                 )?;
 
                 let cert = nethsm::extract_openpgp_certificate(private_key)?;
@@ -1052,6 +1086,10 @@ fn run_command(cli: Cli) -> Result<(), Error> {
                     let nethsm = config
                         .get_device(cli.label.as_deref())?
                         .nethsm_with_matching_creds(&[], &[], &[])?;
+                    // WARNING: Upstream has decided to set all models non-exhaustive.
+                    //
+                    // On each update to nethsm-sdk-rs, check whether SystemState has gained further
+                    // fields.
                     match nethsm.state()? {
                         SystemState::Unprovisioned => nethsm,
                         // we only need credentials if the device is already provisioned and
@@ -1064,6 +1102,8 @@ fn run_command(cli: Cli) -> Result<(), Error> {
                                 &auth_passphrases,
                             )?,
                         SystemState::Locked => return Err(Error::Locked),
+                        SystemState::Failed => return Err(Error::Failed),
+                        system_state => return Err(Error::UnknownSystemState { system_state }),
                     }
                 };
                 let backup_passphrase =
@@ -1168,7 +1208,7 @@ fn run_command(cli: Cli) -> Result<(), Error> {
                 let user_data = nethsm.get_user(&command.name)?;
                 println!("{user_data:?}");
                 // only users in the Operator role can have tags
-                if user_data.role == UserRole::Operator.into() {
+                if user_data.role == UserRole::Operator.try_into()? {
                     println!("{:?}", nethsm.get_user_tags(&command.name)?);
                 }
             }

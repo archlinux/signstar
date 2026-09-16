@@ -24,7 +24,7 @@ Using the central [`NetHsm`] struct it is possible to establish a TLS connection
 TLS validation can be configured based on a variant of the [`ConnectionSecurity`] enum:
 
 - [`ConnectionSecurity::Unsafe`]: The host certificate is not validated.
-- [`ConnectionSecurity::Fingerprints`]: The host certificate is validated based on configurable
+- [`ConnectionSecurity::RootCertificates`]: The host certificate is validated based on configurable
   fingerprints.
 - [`ConnectionSecurity::Native`]: The host certificate is validated using the native Operating
   System trust store.
@@ -57,7 +57,8 @@ Re-exports ensure that the respective dependencies do not have to be relied upon
 - [`nethsm_sdk_rs::models::DistinguishedName`]
 - [`nethsm_sdk_rs::models::InfoData`]
 - [`nethsm_sdk_rs::models::LoggingConfig`]
-- [`nethsm_sdk_rs::models::NetworkConfig`]
+- [`nethsm_sdk_rs::models::NetworkConfigInput`]
+- [`nethsm_sdk_rs::models::NetworkConfigOutput`]
 - [`nethsm_sdk_rs::models::PublicKey`]
 - [`nethsm_sdk_rs::models::SystemInfo`]
 - [`nethsm_sdk_rs::models::SystemState`]

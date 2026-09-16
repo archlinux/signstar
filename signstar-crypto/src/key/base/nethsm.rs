@@ -1,22 +1,27 @@
 //! NetHSM specific integration for cryptographic keys.
 
-use nethsm_sdk_rs::models::SignMode;
+use nethsm_sdk_rs::models::{
+    KeyMechanism as NetHsmRsKeyMechanism,
+    KeyType as NetHsmSdkRsKeyType,
+    SignMode,
+};
 
 use crate::key::{
     Error,
     base::{DecryptMode, EncryptMode, KeyMechanism, KeyType, SignatureType},
 };
 
-impl TryFrom<KeyType> for nethsm_sdk_rs::models::KeyType {
+impl TryFrom<KeyType> for NetHsmSdkRsKeyType {
     type Error = crate::Error;
 
     fn try_from(value: KeyType) -> Result<Self, Self::Error> {
         Ok(match value {
             KeyType::Curve25519 => Self::Curve25519,
-            KeyType::EcBp256 | KeyType::EcBp384 | KeyType::EcBp512 | KeyType::EcK256 => {
-                return Err(Error::UnsupportedKeyType(value).into());
-            }
-            KeyType::EcP224 => Self::EcP224,
+            KeyType::EcBp256 => Self::BrainpoolP256,
+            KeyType::EcBp384 => Self::BrainpoolP384,
+            KeyType::EcBp512 => Self::BrainpoolP512,
+            KeyType::EcK256 => Self::EcP256K1,
+            KeyType::EcP224 => return Err(Error::UnsupportedKeyType(value).into()),
             KeyType::EcP256 => Self::EcP256,
             KeyType::EcP384 => Self::EcP384,
             KeyType::EcP521 => Self::EcP521,
@@ -26,77 +31,73 @@ impl TryFrom<KeyType> for nethsm_sdk_rs::models::KeyType {
     }
 }
 
-impl TryFrom<nethsm_sdk_rs::models::KeyType> for KeyType {
+impl TryFrom<NetHsmSdkRsKeyType> for KeyType {
     type Error = crate::Error;
 
     /// Creates a [`KeyType`] from a [`nethsm_sdk_rs::models::KeyType`].
     ///
-    /// # Panics
+    /// # Errors
     ///
-    /// Panics if `value` is [`nethsm_sdk_rs::models::KeyType::EcP224`].
-    /// This variant is about to be removed from [`nethsm_sdk_rs::models::KeyType`] and [`KeyType`]
-    /// does not support it.
-    fn try_from(value: nethsm_sdk_rs::models::KeyType) -> Result<Self, Self::Error> {
+    /// Returns an error, if an unsupported [`nethsm_sdk_rs::models::KeyType`] is used.
+    fn try_from(value: NetHsmSdkRsKeyType) -> Result<Self, Self::Error> {
         Ok(match value {
-            nethsm_sdk_rs::models::KeyType::Curve25519 => Self::Curve25519,
-            nethsm_sdk_rs::models::KeyType::EcP224 => Self::EcP224,
-            nethsm_sdk_rs::models::KeyType::EcP256 => Self::EcP256,
-            nethsm_sdk_rs::models::KeyType::EcP384 => Self::EcP384,
-            nethsm_sdk_rs::models::KeyType::EcP521 => Self::EcP521,
-            nethsm_sdk_rs::models::KeyType::Generic => Self::Generic,
-            nethsm_sdk_rs::models::KeyType::Rsa => Self::Rsa,
+            NetHsmSdkRsKeyType::BrainpoolP256 => Self::EcBp256,
+            NetHsmSdkRsKeyType::BrainpoolP384 => Self::EcBp384,
+            NetHsmSdkRsKeyType::BrainpoolP512 => Self::EcBp512,
+            NetHsmSdkRsKeyType::Curve25519 => Self::Curve25519,
+            NetHsmSdkRsKeyType::EcP256 => Self::EcP256,
+            NetHsmSdkRsKeyType::EcP256K1 => Self::EcK256,
+            NetHsmSdkRsKeyType::EcP384 => Self::EcP384,
+            NetHsmSdkRsKeyType::EcP521 => Self::EcP521,
+            NetHsmSdkRsKeyType::Generic => Self::Generic,
+            NetHsmSdkRsKeyType::Rsa => Self::Rsa,
+            // NOTE: Upstream has marked all of their models non-exhaustive.
+            // Thus, comment the below on every update to nethsm-sdk-rs to check if there are new
+            // variants that should be supported... :(
+            key_type => return Err(Error::UnsupportedNetHsmSdkRsKeyType { key_type }.into()),
         })
     }
 }
 
-impl TryFrom<&nethsm_sdk_rs::models::KeyMechanism> for KeyMechanism {
+impl TryFrom<NetHsmRsKeyMechanism> for KeyMechanism {
     type Error = crate::Error;
-    fn try_from(value: &nethsm_sdk_rs::models::KeyMechanism) -> Result<Self, Self::Error> {
+    fn try_from(value: NetHsmRsKeyMechanism) -> Result<Self, Self::Error> {
         Ok(match value {
-            nethsm_sdk_rs::models::KeyMechanism::AesDecryptionCbc => Self::AesDecryptionCbc,
-            nethsm_sdk_rs::models::KeyMechanism::AesEncryptionCbc => Self::AesEncryptionCbc,
-            nethsm_sdk_rs::models::KeyMechanism::EcdsaSignature => Self::EcdsaSignature,
-            nethsm_sdk_rs::models::KeyMechanism::EdDsaSignature => Self::EdDsaSignature,
-            nethsm_sdk_rs::models::KeyMechanism::RsaDecryptionOaepMd5 => Self::RsaDecryptionOaepMd5,
-            nethsm_sdk_rs::models::KeyMechanism::RsaDecryptionOaepSha1 => {
-                Self::RsaDecryptionOaepSha1
+            NetHsmRsKeyMechanism::AesDecryptionCbc => Self::AesDecryptionCbc,
+            NetHsmRsKeyMechanism::AesEncryptionCbc => Self::AesEncryptionCbc,
+            NetHsmRsKeyMechanism::EcdsaSignature => Self::EcdsaSignature,
+            NetHsmRsKeyMechanism::EdDsaSignature => Self::EdDsaSignature,
+            NetHsmRsKeyMechanism::RsaDecryptionOaepMd5 => Self::RsaDecryptionOaepMd5,
+            NetHsmRsKeyMechanism::RsaDecryptionOaepSha1 => Self::RsaDecryptionOaepSha1,
+            NetHsmRsKeyMechanism::RsaDecryptionOaepSha224 => Self::RsaDecryptionOaepSha224,
+            NetHsmRsKeyMechanism::RsaDecryptionOaepSha256 => Self::RsaDecryptionOaepSha256,
+            NetHsmRsKeyMechanism::RsaDecryptionOaepSha384 => Self::RsaDecryptionOaepSha384,
+            NetHsmRsKeyMechanism::RsaDecryptionOaepSha512 => Self::RsaDecryptionOaepSha512,
+            NetHsmRsKeyMechanism::RsaDecryptionPkcs1 => Self::RsaDecryptionPkcs1,
+            NetHsmRsKeyMechanism::RsaDecryptionRaw => Self::RsaDecryptionRaw,
+            NetHsmRsKeyMechanism::RsaSignaturePkcs1 => Self::RsaSignaturePkcs1,
+            NetHsmRsKeyMechanism::RsaSignaturePssSha1 => Self::RsaSignaturePssSha1,
+            NetHsmRsKeyMechanism::RsaSignaturePssSha224 => Self::RsaSignaturePssSha224,
+            NetHsmRsKeyMechanism::RsaSignaturePssSha256 => Self::RsaSignaturePssSha256,
+            NetHsmRsKeyMechanism::RsaSignaturePssSha384 => Self::RsaSignaturePssSha384,
+            NetHsmRsKeyMechanism::RsaSignaturePssSha512 => Self::RsaSignaturePssSha512,
+            NetHsmRsKeyMechanism::RsaSignaturePssMd5 => {
+                return Err(Error::UnsupportedNetHsmSdkRsKeyMechanism {
+                    key_mechanism: value,
+                }
+                .into());
             }
-            nethsm_sdk_rs::models::KeyMechanism::RsaDecryptionOaepSha224 => {
-                Self::RsaDecryptionOaepSha224
-            }
-            nethsm_sdk_rs::models::KeyMechanism::RsaDecryptionOaepSha256 => {
-                Self::RsaDecryptionOaepSha256
-            }
-            nethsm_sdk_rs::models::KeyMechanism::RsaDecryptionOaepSha384 => {
-                Self::RsaDecryptionOaepSha384
-            }
-            nethsm_sdk_rs::models::KeyMechanism::RsaDecryptionOaepSha512 => {
-                Self::RsaDecryptionOaepSha512
-            }
-            nethsm_sdk_rs::models::KeyMechanism::RsaDecryptionPkcs1 => Self::RsaDecryptionPkcs1,
-            nethsm_sdk_rs::models::KeyMechanism::RsaDecryptionRaw => Self::RsaDecryptionRaw,
-            nethsm_sdk_rs::models::KeyMechanism::RsaSignaturePkcs1 => Self::RsaSignaturePkcs1,
-            nethsm_sdk_rs::models::KeyMechanism::RsaSignaturePssSha1 => Self::RsaSignaturePssSha1,
-            nethsm_sdk_rs::models::KeyMechanism::RsaSignaturePssSha224 => {
-                Self::RsaSignaturePssSha224
-            }
-            nethsm_sdk_rs::models::KeyMechanism::RsaSignaturePssSha256 => {
-                Self::RsaSignaturePssSha256
-            }
-            nethsm_sdk_rs::models::KeyMechanism::RsaSignaturePssSha384 => {
-                Self::RsaSignaturePssSha384
-            }
-            nethsm_sdk_rs::models::KeyMechanism::RsaSignaturePssSha512 => {
-                Self::RsaSignaturePssSha512
-            }
-            nethsm_sdk_rs::models::KeyMechanism::RsaSignaturePssMd5 => {
-                return Err(Error::UnsupportedNetHsmKeyMechanism(*value).into());
+            // NOTE: Upstream has marked all of their models non-exhaustive.
+            // Thus, comment the below on every update to nethsm-sdk-rs to check if there are new
+            // variants that should be supported... :(
+            key_mechanism => {
+                return Err(Error::UnsupportedNetHsmSdkRsKeyMechanism { key_mechanism }.into());
             }
         })
     }
 }
 
-impl From<KeyMechanism> for nethsm_sdk_rs::models::KeyMechanism {
+impl From<KeyMechanism> for NetHsmRsKeyMechanism {
     fn from(value: KeyMechanism) -> Self {
         match value {
             KeyMechanism::AesDecryptionCbc => Self::AesDecryptionCbc,

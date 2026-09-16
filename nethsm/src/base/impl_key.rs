@@ -4,6 +4,7 @@ use base64ct::{Base64, Encoding};
 use log::debug;
 use nethsm_sdk_rs::{
     apis::default_api::{
+        KeysKeyIdPutBody,
         KeysPostBody,
         keys_generate_post,
         keys_get,
@@ -145,6 +146,7 @@ impl NetHsm {
     ///     None,
     ///     Some("signing1".parse()?),
     ///     Some(vec!["sign_tag1".to_string(), "sign_tag2".to_string()]),
+    ///     Some("label1".to_string()),
     /// )?;
     ///
     /// // generate a generic key for symmetric encryption and decryption
@@ -157,6 +159,7 @@ impl NetHsm {
     ///     Some(128),
     ///     Some("encryption1".parse()?),
     ///     Some(vec!["encryption_tag1".to_string()]),
+    ///     Some("label2".to_string()),
     /// )?;
     /// # Ok(())
     /// # }
@@ -172,6 +175,7 @@ impl NetHsm {
         length: Option<u32>,
         key_id: Option<KeyId>,
         tags: Option<Vec<String>>,
+        label: Option<String>,
     ) -> Result<KeyId, Error> {
         debug!(
             "Generate a key (key type: {key_type}; mechanisms: {}; length: {}; ID: {}, tags: {}) on the NetHSM at {} using {}",
@@ -205,28 +209,41 @@ impl NetHsm {
         // ensure the key_type - length combination is valid
         key_type_matches_length(key_type, length)?;
 
-        Ok(keys_generate_post(
-            &self.create_connection_config(),
-            KeyGenerateRequestData {
-                mechanisms: mechanisms
+        // WARNING: Upstream has decided to set all models non-exhaustive.
+        //
+        // On each update to nethsm-sdk-rs, check whether KeyGenerateRequestData has gained further
+        // fields.
+        let key_generate_request_data = {
+            let mut key_generate_request_data = KeyGenerateRequestData::new(
+                mechanisms
                     .into_iter()
                     .map(|mechanism| mechanism.into())
                     .collect(),
-                r#type: key_type.try_into()?,
-                length: length.map(|length| length as i32),
-                id: key_id.map(Into::into),
-                restrictions: tags.map(|tags| Box::new(KeyRestrictions { tags: Some(tags) })),
-            },
+                key_type.try_into()?,
+            );
+            key_generate_request_data.length = length.map(|length| length as i32);
+            key_generate_request_data.id = key_id.map(Into::into);
+            key_generate_request_data.restrictions = tags.map(|tags| {
+                let mut key_restrictions = KeyRestrictions::new();
+                key_restrictions.tags = Some(tags);
+                Box::new(key_restrictions)
+            });
+            key_generate_request_data.label = label;
+            key_generate_request_data
+        };
+
+        Ok(
+            keys_generate_post(&self.create_connection_config(), key_generate_request_data)
+                .map_err(|error| {
+                    Error::Api(format!(
+                        "Creating key failed: {}",
+                        NetHsmApiError::from(error)
+                    ))
+                })?
+                .entity
+                .id
+                .parse()?,
         )
-        .map_err(|error| {
-            Error::Api(format!(
-                "Creating key failed: {}",
-                NetHsmApiError::from(error)
-            ))
-        })?
-        .entity
-        .id
-        .parse()?)
     }
 
     /// Imports an existing private key.
@@ -318,6 +335,7 @@ impl NetHsm {
     ///     PrivateKeyImport::new(KeyType::Rsa, private_key.as_bytes())?,
     ///     Some("signing2".parse()?),
     ///     Some(vec!["signing_tag3".to_string()]),
+    ///     Some("label3".to_string()),
     /// )?;
     /// # Ok(())
     /// # }
@@ -332,6 +350,7 @@ impl NetHsm {
         key_data: PrivateKeyImport,
         key_id: Option<KeyId>,
         tags: Option<Vec<String>>,
+        label: Option<String>,
     ) -> Result<KeyId, Error> {
         debug!(
             "Import a key (mechanisms: {}; ID: {}, tags: {}) to the NetHSM at {} using {}",
@@ -359,23 +378,38 @@ impl NetHsm {
         let key_type = key_data.key_type();
         key_type_matches_mechanisms(key_type, &mechanisms)?;
 
-        let restrictions = tags.map(|tags| Box::new(KeyRestrictions { tags: Some(tags) }));
-        let private = Box::new(key_data.try_into()?);
+        // WARNING: Upstream has decided to set all models non-exhaustive.
+        //
+        // On each update to nethsm-sdk-rs, check whether KeyRestrictions has gained further
+        // fields.
+        let restrictions = tags.map(|tags| {
+            let mut key_restrictions = KeyRestrictions::new();
+            key_restrictions.tags = Some(tags);
+            Box::new(key_restrictions)
+        });
+
         let mechanisms = mechanisms
             .into_iter()
             .map(|mechanism| mechanism.into())
             .collect();
 
+        // WARNING: Upstream has decided to set all models non-exhaustive.
+        //
+        // On each update to nethsm-sdk-rs, check whether PrivateKey has gained further
+        // fields.
+        let private_key = {
+            let mut private_key =
+                PrivateKey::new(mechanisms, key_type.try_into()?, key_data.try_into()?);
+            private_key.restrictions = restrictions;
+            private_key.label = label;
+            private_key
+        };
+
         if let Some(key_id) = key_id {
             keys_key_id_put(
                 &self.create_connection_config(),
                 key_id.as_ref(),
-                nethsm_sdk_rs::apis::default_api::KeysKeyIdPutBody::ApplicationJson(PrivateKey {
-                    mechanisms,
-                    r#type: key_type.try_into()?,
-                    private,
-                    restrictions,
-                }),
+                KeysKeyIdPutBody::ApplicationJson(private_key),
             )
             .map_err(|error| {
                 Error::Api(format!(
@@ -387,12 +421,7 @@ impl NetHsm {
         } else {
             Ok(keys_post(
                 &self.create_connection_config(),
-                KeysPostBody::ApplicationJson(PrivateKey {
-                    mechanisms,
-                    r#type: key_type.try_into()?,
-                    private,
-                    restrictions,
-                }),
+                KeysPostBody::ApplicationJson(private_key),
             )
             .map_err(|error| {
                 Error::Api(format!(
@@ -591,10 +620,13 @@ impl NetHsm {
     /// )?;
     ///
     /// // get all Key IDs
-    /// println!("{:?}", nethsm.get_keys(None)?);
+    /// println!("{:?}", nethsm.get_keys(None, None)?);
     ///
     /// // get all Key IDs that begin with "signing"
-    /// println!("{:?}", nethsm.get_keys(Some("signing"))?);
+    /// println!("{:?}", nethsm.get_keys(Some("signing"), None)?);
+    ///
+    /// // get all Key IDs that begin with "signing" and have the label "label"
+    /// println!("{:?}", nethsm.get_keys(Some("signing"), Some("label"))?);
     /// # Ok(())
     /// # }
     /// ```
@@ -602,7 +634,7 @@ impl NetHsm {
     /// [namespace]: https://docs.nitrokey.com/nethsm/administration#namespaces
     /// [role]: https://docs.nitrokey.com/nethsm/administration#roles
     /// [state]: https://docs.nitrokey.com/nethsm/administration#state
-    pub fn get_keys(&self, filter: Option<&str>) -> Result<Vec<KeyId>, Error> {
+    pub fn get_keys(&self, filter: Option<&str>, label: Option<&str>) -> Result<Vec<KeyId>, Error> {
         debug!(
             "Get key IDs{} from the NetHSM at {} using {}",
             if let Some(filter) = filter {
@@ -617,7 +649,7 @@ impl NetHsm {
         self.validate_namespace_access(NamespaceSupport::Supported, None, None)?;
         let valid_keys = {
             let mut invalid_keys = Vec::new();
-            let valid_keys = keys_get(&self.create_connection_config(), filter)
+            let valid_keys = keys_get(&self.create_connection_config(), filter, label)
                 .map_err(|error| {
                     Error::Api(format!(
                         "Getting keys failed: {}",
@@ -708,6 +740,7 @@ impl NetHsm {
     ///     None,
     ///     Some("signing1".parse()?),
     ///     Some(vec!["tag1".to_string()]),
+    ///     Some("label1".to_string()),
     /// )?;
     ///
     /// // get public key for a key with Key ID "signing1"
@@ -805,6 +838,7 @@ impl NetHsm {
     ///     None,
     ///     Some("signing1".parse()?),
     ///     Some(vec!["tag1".to_string()]),
+    ///     Some("label".to_string()),
     /// )?;
     ///
     /// // add the tag "important" to a key with Key ID "signing1"
@@ -901,6 +935,7 @@ impl NetHsm {
     ///     None,
     ///     Some("signing1".parse()?),
     ///     Some(vec!["tag1".to_string(), "important".to_string()]),
+    ///     Some("label1".to_string()),
     /// )?;
     ///
     /// // remove the tag "important" from a key with Key ID "signing1"
@@ -1005,6 +1040,7 @@ impl NetHsm {
     ///     None,
     ///     Some("signing1".parse()?),
     ///     Some(vec!["tag1".to_string()]),
+    ///     Some("label1".to_string()),
     /// )?;
     /// // tag system-wide user in Operator role for access to signing key
     /// nethsm.add_user_tag(&"operator1".parse()?, "tag1")?;
@@ -1119,6 +1155,7 @@ impl NetHsm {
     ///     None,
     ///     Some("signing1".parse()?),
     ///     Some(vec!["tag1".to_string()]),
+    ///     Some("label1".to_string()),
     /// )?;
     /// // tag system-wide user in Operator role for access to signing key
     /// nethsm.add_user_tag(&"operator1".parse()?, "tag1")?;
@@ -1234,6 +1271,7 @@ impl NetHsm {
     ///     None,
     ///     Some("signing1".parse()?),
     ///     Some(vec!["tag1".to_string()]),
+    ///     Some("label1".to_string()),
     /// )?;
     /// // tag system-wide user in Operator role for access to signing key
     /// nethsm.add_user_tag(&"operator1".parse()?, "tag1")?;
@@ -1338,23 +1376,24 @@ impl NetHsm {
     ///     None,
     ///     Some("signing1".parse()?),
     ///     Some(vec!["tag1".to_string()]),
+    ///     Some("label1".to_string()),
     /// )?;
     ///
     /// // get a CSR for a key
+    /// let distinguished_name = {
+    ///     let mut distinguished_name = DistinguishedName::new("example.org".to_string());
+    ///     distinguished_name.country_name = Some("DE".to_string());
+    ///     distinguished_name.state_or_province_name = Some("Berlin".to_string());
+    ///     distinguished_name.locality_name = Some("Berlin".to_string());
+    ///     distinguished_name.organization_name = Some("Foobar Inc".to_string());
+    ///     distinguished_name.organizational_unit_name = Some("Department of Foo".to_string());
+    ///     distinguished_name.email_address = Some("foobar@mcfooface.com".to_string());
+    ///     distinguished_name.subject_alt_names = Some(vec!["other.example.org".to_string()]);
+    ///     distinguished_name
+    /// };
     /// println!(
     ///     "{}",
-    ///     nethsm.get_key_csr(
-    ///         &"signing1".parse()?,
-    ///         DistinguishedName {
-    ///             country_name: Some("DE".to_string()),
-    ///             state_or_province_name: Some("Berlin".to_string()),
-    ///             locality_name: Some("Berlin".to_string()),
-    ///             organization_name: Some("Foobar Inc".to_string()),
-    ///             organizational_unit_name: Some("Department of Foo".to_string()),
-    ///             common_name: "Foobar Inc".to_string(),
-    ///             email_address: Some("foobar@mcfooface.com".to_string()),
-    ///         }
-    ///     )?
+    ///     nethsm.get_key_csr(&"signing1".parse()?, distinguished_name)?
     /// );
     /// # Ok(())
     /// # }
@@ -1488,6 +1527,7 @@ impl NetHsm {
     ///     None,
     ///     Some("signing1".parse()?),
     ///     Some(vec!["tag1".to_string()]),
+    ///     Some("label1".to_string()),
     /// )?;
     /// // tag system-wide user in Operator role for access to signing key
     /// nethsm.add_user_tag(&"operator1".parse()?, "tag1")?;
@@ -1637,6 +1677,7 @@ impl NetHsm {
     ///     None,
     ///     Some("signing1".parse()?),
     ///     Some(vec!["tag1".to_string()]),
+    ///     Some("label1".to_string()),
     /// )?;
     /// // tag system-wide user in Operator role for access to signing key
     /// nethsm.add_user_tag(&"operator1".parse()?, "tag1")?;
@@ -1783,6 +1824,7 @@ impl NetHsm {
     ///     Some(128),
     ///     Some("encryption1".parse()?),
     ///     Some(vec!["tag1".to_string()]),
+    ///     Some("label1".to_string()),
     /// )?;
     /// // tag system-wide user in Operator role for access to signing key
     /// nethsm.add_user_tag(&"operator1".parse()?, "tag1")?;
@@ -1823,16 +1865,22 @@ impl NetHsm {
         let message = Base64::encode_string(message);
         let iv = iv.map(Base64::encode_string);
 
+        // WARNING: Upstream has decided to set all models non-exhaustive.
+        //
+        // On each update to nethsm-sdk-rs, check whether EncryptRequestData has gained further
+        // fields.
+        let encrypt_request_data = {
+            let mut encrypt_request_data = EncryptRequestData::new(mode.into(), message);
+            encrypt_request_data.iv = iv;
+            encrypt_request_data
+        };
+
         // decode base64 encoded data from the API
         Base64::decode_vec(
             &keys_key_id_encrypt_post(
                 &self.create_connection_config(),
                 key_id.as_ref(),
-                EncryptRequestData {
-                    mode: mode.into(),
-                    message,
-                    iv,
-                },
+                encrypt_request_data,
             )
             .map_err(|error| {
                 Error::Api(format!(
@@ -1932,13 +1980,15 @@ impl NetHsm {
     ///     Some(128),
     ///     Some("encryption1".parse()?),
     ///     Some(vec!["tag1".to_string()]),
+    ///     Some("label".to_string()),
     /// )?;
     /// nethsm.generate_key(
     ///     KeyType::Rsa,
     ///     vec![KeyMechanism::RsaDecryptionPkcs1],
     ///     None,
     ///     Some("encryption2".parse()?),
-    ///     Some(vec!["tag1".to_string()]),
+    ///     Some(vec!["tag2".to_string()]),
+    ///     Some("label2".to_string()),
     /// )?;
     /// // tag system-wide user in Operator role for access to signing key
     /// nethsm.add_user_tag(&"operator1".parse()?, "tag1")?;
@@ -1996,16 +2046,22 @@ impl NetHsm {
         let encrypted = Base64::encode_string(message);
         let iv = iv.map(Base64::encode_string);
 
+        // WARNING: Upstream has decided to set all models non-exhaustive.
+        //
+        // On each update to nethsm-sdk-rs, check whether EncryptRequestData has gained further
+        // fields.
+        let decrypt_request_data = {
+            let mut decrypt_request_data = DecryptRequestData::new(mode.into(), encrypted);
+            decrypt_request_data.iv = iv;
+            decrypt_request_data
+        };
+
         // decode base64 encoded data from the API
         Base64::decode_vec(
             &keys_key_id_decrypt_post(
                 &self.create_connection_config(),
                 key_id.as_ref(),
-                DecryptRequestData {
-                    mode: mode.into(),
-                    encrypted,
-                    iv,
-                },
+                decrypt_request_data,
             )
             .map_err(|error| {
                 Error::Api(format!(

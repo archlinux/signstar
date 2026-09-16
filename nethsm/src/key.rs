@@ -182,6 +182,9 @@ pub fn tls_key_type_matches_length(
 ) -> Result<(), Error> {
     match tls_key_type {
         TlsKeyType::Curve25519
+        | TlsKeyType::EcBp256
+        | TlsKeyType::EcBp384
+        | TlsKeyType::EcBp512
         | TlsKeyType::EcP224
         | TlsKeyType::EcP256
         | TlsKeyType::EcP384

@@ -246,6 +246,17 @@ The organization contact, usually of the certificate administrator or IT departm
     pub email: Option<String>,
 
     #[arg(
+        env = "NETHSM_KEY_CSR_SUBJECT_ALT_NAMES",
+        help = "The optional list of subject alt names (SAN) for the CSR",
+        long_help = "The optional list of subject alt names (SAN) for the CSR
+
+If omitted, it is set to the same value as common_name.
+If it is set to an empty list, no SAN Extension is added.
+All SANs are considered DNS names, unless they start with \"IP:\" to signal IP names."
+    )]
+    pub subject_alt_names: Option<Vec<String>>,
+
+    #[arg(
         env = "NETHSM_FORCE",
         help = "Write to output file even if it exists already",
         long,
@@ -466,6 +477,17 @@ Tags on keys are used to grant access to those keys for users that carry the sam
         short
     )]
     pub tags: Option<Vec<String>>,
+
+    #[arg(
+        env = "NETHSM_KEY_LABEL",
+        help = "An optional label that is assigned to the generated key",
+        long_help = "An optional label that is assigned to the generated key
+
+Labels can be used to filter keys in the list of all keys.",
+        long,
+        short
+    )]
+    pub label: Option<String>,
 }
 
 #[derive(Debug, Parser)]
@@ -580,6 +602,17 @@ Tags on keys are used to grant access to those keys for users that carry the sam
         short
     )]
     pub tags: Option<Vec<String>>,
+
+    #[arg(
+        env = "NETHSM_KEY_LABEL",
+        help = "An optional label that is assigned to the imported key",
+        long_help = "An optional label that is assigned to the imported key
+
+Labels can be used to filter keys in the list of all keys.",
+        long,
+        short
+    )]
+    pub label: Option<String>,
 }
 
 #[derive(Debug, Parser)]
@@ -598,9 +631,19 @@ Requires authentication of a user in the \"{Administrator}\" or \"{Operator}\" r
 pub struct KeyListCommand {
     #[arg(
         env = "NETHSM_KEY_ID_FILTER",
-        help = "A filter to apply to the list of key IDs"
+        help = "An optional filter to apply to the list of key IDs",
+        long,
+        short
     )]
     pub filter: Option<String>,
+
+    #[arg(
+        env = "NETHSM_KEY_ID_LABEL",
+        help = "An optional label to search for",
+        long,
+        short
+    )]
+    pub label: Option<String>,
 }
 
 #[derive(Debug, Parser)]

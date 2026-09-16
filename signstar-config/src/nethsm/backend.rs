@@ -140,7 +140,7 @@ fn get_first_available_namespace_admin(
 
     let mut checked_namespace_admins = Vec::new();
     for namespace_admin in namespace_admins {
-        if Into::<UserRole>::into(nethsm.get_user(&namespace_admin)?.role)
+        if TryInto::<UserRole>::try_into(nethsm.get_user(&namespace_admin)?.role)?
             == UserRole::Administrator
         {
             checked_namespace_admins.push(namespace_admin);
@@ -624,7 +624,7 @@ fn add_system_wide_keys(
     let default_admin = &admin_credentials.default_administrator()?.name;
     nethsm.use_credentials(default_admin)?;
 
-    let available_keys = nethsm.get_keys(None)?;
+    let available_keys = nethsm.get_keys(None, None)?;
 
     for user_mapping in user_mappings {
         let Some(user_key_data) =
@@ -658,7 +658,7 @@ fn add_system_wide_keys(
                     key_mechanisms: info
                         .mechanisms
                         .iter()
-                        .filter_map(|mechanism| mechanism.try_into().ok())
+                        .filter_map(|mechanism| (*mechanism).try_into().ok())
                         .collect(),
                 },
             );
@@ -679,6 +679,7 @@ fn add_system_wide_keys(
                 user_key_data.key_setup.key_length(),
                 Some(user_key_data.key_id.clone()),
                 Some(vec![user_key_data.tag.to_string()]),
+                None, // NOTE: currently we do not yet support labels
             )?;
         }
     }
@@ -776,7 +777,7 @@ fn add_namespaced_keys(
             namespace,
         )?)?;
 
-        let available_keys = nethsm.get_keys(None)?;
+        let available_keys = nethsm.get_keys(None, None)?;
 
         if available_keys.contains(user_key_data.key_id) {
             let key_info = nethsm.get_key(user_key_data.key_id)?;
@@ -801,7 +802,7 @@ fn add_namespaced_keys(
                     key_mechanisms: key_info
                         .mechanisms
                         .iter()
-                        .filter_map(|mechanism| mechanism.try_into().ok())
+                        .filter_map(|mechanism| (*mechanism).try_into().ok())
                         .collect(),
                 },
             );
@@ -839,6 +840,7 @@ fn add_namespaced_keys(
                 user_key_data.key_setup.key_length(),
                 Some(user_key_data.key_id.clone()),
                 Some(vec![user_key_data.tag.to_string()]),
+                None, // NOTE: currently we do not yet support labels
             )?;
         }
     }
@@ -948,7 +950,7 @@ fn add_system_wide_openpgp_certificates(
             .into());
         }
 
-        let available_keys = nethsm.get_keys(None)?;
+        let available_keys = nethsm.get_keys(None, None)?;
 
         // Ensure the targeted key exists.
         if !available_keys.contains(user_key_data.key_id) {
@@ -1148,7 +1150,7 @@ fn add_namespaced_openpgp_certificates(
             .into());
         }
 
-        let available_keys = nethsm.get_keys(None)?;
+        let available_keys = nethsm.get_keys(None, None)?;
 
         // Ensure the targeted key exists.
         if !available_keys.contains(user_key_data.key_id) {
@@ -1435,7 +1437,7 @@ impl<'a, 'b> NetHsmBackend<'a, 'b> {
                 let user_data = self.nethsm.get_user(&user_id)?;
                 let tag = {
                     // Only Operator users can have tags assigned to them.
-                    if user_data.role == UserRole::Operator.into() {
+                    if user_data.role == UserRole::Operator.try_into()? {
                         let user_tags = self.nethsm.get_user_tags(&user_id)?;
                         match user_tags.len() {
                             0 => None,
@@ -1453,7 +1455,7 @@ impl<'a, 'b> NetHsmBackend<'a, 'b> {
 
                 users.push(UserState {
                     name: user_id,
-                    role: user_data.role.into(),
+                    role: user_data.role.try_into()?,
                     tag,
                 });
             }
@@ -1560,7 +1562,7 @@ impl<'a, 'b> NetHsmBackend<'a, 'b> {
 
         let mut keys = Vec::new();
         // Get the state of system-wide keys.
-        for key_id in self.nethsm.get_keys(None)? {
+        for key_id in self.nethsm.get_keys(None, None)? {
             let key = self.nethsm.get_key(&key_id)?;
             let key_context = self.key_certificate_state(&key_id, None);
             let tag = {
@@ -1591,7 +1593,7 @@ impl<'a, 'b> NetHsmBackend<'a, 'b> {
                 mechanisms: key
                     .mechanisms
                     .iter()
-                    .filter_map(|mechanism| KeyMechanism::try_from(mechanism).ok())
+                    .filter_map(|mechanism| KeyMechanism::try_from(*mechanism).ok())
                     .collect(),
                 key_cert_state: key_context,
             });
@@ -1620,7 +1622,7 @@ impl<'a, 'b> NetHsmBackend<'a, 'b> {
             seen_namespaces.insert(namespace.clone());
 
             self.nethsm.use_credentials(&user_id)?;
-            for key_id in self.nethsm.get_keys(None)? {
+            for key_id in self.nethsm.get_keys(None, None)? {
                 let key = self.nethsm.get_key(&key_id)?;
                 let key_context = self.key_certificate_state(&key_id, Some(namespace));
                 let tag = {
@@ -1651,7 +1653,7 @@ impl<'a, 'b> NetHsmBackend<'a, 'b> {
                     mechanisms: key
                         .mechanisms
                         .iter()
-                        .filter_map(|mechanism| KeyMechanism::try_from(mechanism).ok())
+                        .filter_map(|mechanism| KeyMechanism::try_from(*mechanism).ok())
                         .collect(),
                     key_cert_state: key_context,
                 });
@@ -1731,6 +1733,10 @@ impl<'a, 'b> NetHsmBackend<'a, 'b> {
             .filter(|mapping| !matches!(mapping, NetHsmUserMapping::Admin(..)))
             .collect::<Vec<_>>();
 
+        // WARNING: Upstream has decided to set all models non-exhaustive.
+        //
+        // On each update to nethsm-sdk-rs, check whether SystemState has gained further
+        // fields.
         match self.nethsm.state()? {
             SystemState::Unprovisioned => {
                 debug!(
@@ -1761,6 +1767,19 @@ impl<'a, 'b> NetHsmBackend<'a, 'b> {
                     "Operational NetHSM backend detected at {}",
                     self.nethsm.get_url()
                 );
+            }
+            SystemState::Failed => {
+                return Err(Error::FailedSystemState {
+                    url: self.nethsm.get_url(),
+                }
+                .into());
+            }
+            system_state => {
+                return Err(Error::UnknownSystemState {
+                    url: self.nethsm.get_url(),
+                    system_state,
+                }
+                .into());
             }
         }
 
@@ -1914,6 +1933,10 @@ impl<'a, 'b> TryFrom<&NetHsmBackend<'a, 'b>> for NetHsmBackendState {
             value.nethsm().get_url()
         );
 
+        // WARNING: Upstream has decided to set all models non-exhaustive.
+        //
+        // On each update to nethsm-sdk-rs, check whether SystemState has gained further
+        // fields.
         let (user_states, key_states) = match value.nethsm().state()? {
             SystemState::Unprovisioned => {
                 debug!(
@@ -1946,6 +1969,19 @@ impl<'a, 'b> TryFrom<&NetHsmBackend<'a, 'b>> for NetHsmBackendState {
                 let key_states = value.key_states()?;
 
                 (user_states, key_states)
+            }
+            SystemState::Failed => {
+                return Err(Error::FailedSystemState {
+                    url: value.nethsm.get_url(),
+                }
+                .into());
+            }
+            system_state => {
+                return Err(Error::UnknownSystemState {
+                    url: value.nethsm.get_url(),
+                    system_state,
+                }
+                .into());
             }
         };
 

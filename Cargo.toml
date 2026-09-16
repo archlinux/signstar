@@ -31,7 +31,7 @@ log = { version = "0.4.27", features = ["kv_std"] }
 nethsm = { path = "nethsm", version = "0.10.0" }
 nethsm-backup = { path = "nethsm-backup", version = "0.2.0" }
 nethsm-config = { path = "nethsm-config", version = "0.5.0" }
-nethsm-sdk-rs = "1.1.1"
+nethsm-sdk-rs = "4"
 nix = { version = "0.31.0", features = ["user"] }
 num_enum = "0.7.6"
 p224 = "0.14.0-rc.15"
@@ -67,7 +67,6 @@ testresult = "0.4.1"
 thiserror = "2.0.4"
 tokio = { version = "1.42.0", features = ["macros"] }
 toml = "1.0.0"
-ureq = "2.12.1"
 uuid = { version = "1.11.0", features = ["v7"] }
 yubihsm = { package = "yubihsm2", version = "0.45.0", features = ["usb"] }
 zeroize = { version = "1.8.1", features = ["serde", "zeroize_derive"] }

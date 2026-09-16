@@ -177,4 +177,21 @@ pub enum Error {
         /// The encountered number of tags.
         number: usize,
     },
+
+    /// A NetHSM is in a failed system state.
+    #[error("The NetHSM at {url} is in a failed system state")]
+    FailedSystemState {
+        /// The URL of the NetHSM with an unknown state.
+        url: Url,
+    },
+
+    /// A NetHSM is in an unknown system state.
+    #[error("The NetHSM at {url} has an unknown system state: {system_state}")]
+    UnknownSystemState {
+        /// The URL of the NetHSM with an unknown state.
+        url: Url,
+
+        /// The unknown system state of the NetHSM.
+        system_state: nethsm::SystemState,
+    },
 }

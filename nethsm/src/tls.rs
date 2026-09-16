@@ -3,17 +3,12 @@ use std::thread::available_parallelism;
 use std::time::Duration;
 use std::{fmt::Display, str::FromStr};
 
-use log::{debug, error, info, trace};
-use nethsm_sdk_rs::ureq::{Agent, AgentBuilder};
-use rustls::client::{
-    ClientConfig,
-    danger::{HandshakeSignatureValid, ServerCertVerified, ServerCertVerifier},
+use log::info;
+use nethsm_sdk_rs::ureq::{
+    Agent,
+    tls::{Certificate, RootCerts, TlsConfig, TlsProvider},
 };
-use rustls::crypto::{CryptoProvider, ring as tls_provider};
-use rustls::pki_types::{CertificateDer, ServerName, UnixTime};
-use rustls::{DigitallySignedStruct, SignatureScheme};
 use serde::{Deserialize, Serialize};
-use sha2::{Digest, Sha256};
 
 use crate::Error;
 #[cfg(doc)]
@@ -25,65 +20,18 @@ pub const DEFAULT_MAX_IDLE_CONNECTIONS: usize = 100;
 /// The default timeout in seconds for a TLS connections for a [`NetHsm`].
 pub const DEFAULT_TIMEOUT_SECONDS: u64 = 10;
 
-/// The fingerprint of a TLS certificate (as hex)
+/// A list of TLS certificates to validate TLS communication with.
 #[derive(Clone, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
-pub struct CertFingerprint(
-    #[serde(
-        deserialize_with = "hex::serde::deserialize",
-        serialize_with = "hex::serde::serialize"
-    )]
-    Vec<u8>,
-);
+pub struct RootCertificates(Vec<Vec<u8>>);
 
-impl Display for CertFingerprint {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        for byte in self.0.iter() {
-            write!(f, "{byte:02x?}")?
-        }
-        Ok(())
-    }
-}
-
-impl FromStr for CertFingerprint {
-    type Err = Error;
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(Self(s.as_bytes().to_vec()))
-    }
-}
-
-impl From<Vec<u8>> for CertFingerprint {
-    fn from(value: Vec<u8>) -> Self {
-        Self(value)
-    }
-}
-
-/// Certificate fingerprints to use for matching against a host's TLS
-/// certificate
-#[derive(Clone, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
-pub struct HostCertificateFingerprints {
-    /// An optional list of SHA-256 checksums
-    sha256: Option<Vec<CertFingerprint>>,
-}
-
-impl Display for HostCertificateFingerprints {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "{}",
-            if let Some(fingerprints) = self.sha256.as_ref() {
-                if fingerprints.is_empty() {
-                    "n/a".to_string()
-                } else {
-                    fingerprints
-                        .iter()
-                        .map(|fingerprint| format!("sha256:{fingerprint}"))
-                        .collect::<Vec<String>>()
-                        .join("\n")
-                }
-            } else {
-                "n/a".to_string()
-            }
-        )
+impl From<&RootCertificates> for RootCerts {
+    fn from(value: &RootCertificates) -> Self {
+        let certs = value
+            .0
+            .iter()
+            .map(|cert| Certificate::from_der(cert).to_owned())
+            .collect::<Vec<_>>();
+        RootCerts::Specific(Arc::new(certs))
     }
 }
 
@@ -94,8 +42,8 @@ pub enum ConnectionSecurity {
     Unsafe,
     /// Use the native trust store to evaluate the trust of a host
     Native,
-    /// Use a list of checksums (fingerprints) to verify a host's TLS certificate
-    Fingerprints(HostCertificateFingerprints),
+    /// Use a list of root certificate objects to verify a host's TLS certificate.
+    RootCertificates(RootCertificates),
 }
 
 impl Display for ConnectionSecurity {
@@ -103,7 +51,7 @@ impl Display for ConnectionSecurity {
         match self {
             Self::Unsafe => write!(f, "unsafe"),
             Self::Native => write!(f, "native"),
-            Self::Fingerprints(fingerprints) => write!(f, "{fingerprints}"),
+            Self::RootCertificates(_) => write!(f, "custom root certificates"),
         }
     }
 }
@@ -130,176 +78,14 @@ impl FromStr for ConnectionSecurity {
     ///
     /// assert!(ConnectionSecurity::from_str("unsafe").is_ok());
     /// assert!(ConnectionSecurity::from_str("native").is_ok());
-    /// assert!(
-    ///     ConnectionSecurity::from_str(
-    ///         "sha256:324f7bd1530c55cf6812ca6865445de21dfc74cf7a3bb5fae7585e849e3553b7"
-    ///     )
-    ///     .is_ok()
-    /// );
     /// assert!(ConnectionSecurity::from_str("something").is_err());
     /// ```
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
             "unsafe" | "Unsafe" => Ok(Self::Unsafe),
             "native" | "Native" => Ok(Self::Native),
-            _ => {
-                let sha256_fingerprints: Vec<Vec<u8>> = s
-                    .split(',')
-                    .filter_map(|checksum| {
-                        checksum
-                            .strip_prefix("sha256:")
-                            .filter(|x| x.len() == 64 && x.chars().all(|x| x.is_ascii_hexdigit()))
-                            .map(|checksum| checksum.as_bytes().to_vec())
-                    })
-                    .collect();
-                if sha256_fingerprints.is_empty() {
-                    Err(Error::Default(
-                        "No valid TLS certificate fingerprints detected.".to_string(),
-                    ))
-                } else {
-                    Ok(Self::Fingerprints(HostCertificateFingerprints {
-                        sha256: Some(
-                            sha256_fingerprints
-                                .iter()
-                                .map(|checksum| checksum.clone().into())
-                                .collect(),
-                        ),
-                    }))
-                }
-            }
+            _ => Err(Error::Default(format!("Invalid connection security: {s}"))),
         }
-    }
-}
-
-/// A verifier for server certificates that always accepts them
-///
-/// This verifier is used when choosing [`ConnectionSecurity::Unsafe`]. It is **unsafe** and should
-/// not be used unless for initial setup scenarios of a NetHSM! Instead use [`FingerprintVerifier`]
-/// (selected by [`ConnectionSecurity::Fingerprints`]) or better yet rely on
-/// [`ConnectionSecurity::Native`].
-#[derive(Debug)]
-pub struct DangerIgnoreVerifier(pub CryptoProvider);
-
-impl ServerCertVerifier for DangerIgnoreVerifier {
-    fn verify_server_cert(
-        &self,
-        _end_entity: &CertificateDer<'_>,
-        _intermediates: &[CertificateDer<'_>],
-        _server_name: &ServerName<'_>,
-        _ocsp_response: &[u8],
-        _now: UnixTime,
-    ) -> Result<ServerCertVerified, rustls::Error> {
-        // always accept the certificate
-        Ok(ServerCertVerified::assertion())
-    }
-
-    fn verify_tls12_signature(
-        &self,
-        message: &[u8],
-        cert: &CertificateDer<'_>,
-        dss: &DigitallySignedStruct,
-    ) -> Result<HandshakeSignatureValid, rustls::Error> {
-        rustls::crypto::verify_tls12_signature(
-            message,
-            cert,
-            dss,
-            &self.0.signature_verification_algorithms,
-        )
-    }
-
-    fn verify_tls13_signature(
-        &self,
-        message: &[u8],
-        cert: &CertificateDer<'_>,
-        dss: &DigitallySignedStruct,
-    ) -> Result<HandshakeSignatureValid, rustls::Error> {
-        rustls::crypto::verify_tls13_signature(
-            message,
-            cert,
-            dss,
-            &self.0.signature_verification_algorithms,
-        )
-    }
-
-    fn supported_verify_schemes(&self) -> Vec<SignatureScheme> {
-        self.0.signature_verification_algorithms.supported_schemes()
-    }
-}
-
-/// A verifier for server certificates that verifies them based on fingerprints
-///
-/// This verifier is selected when using [`ConnectionSecurity::Fingerprints`] and relies on
-/// [`HostCertificateFingerprints`] to be able to match a host certificate fingerprint against a
-/// predefined list of fingerprints. It should be preferred over the use of [`DangerIgnoreVerifier`]
-/// (selected by [`ConnectionSecurity::Unsafe`]), but ideally a setup should make use of
-/// [`ConnectionSecurity::Native`] instead!
-#[derive(Debug)]
-pub struct FingerprintVerifier {
-    pub fingerprints: HostCertificateFingerprints,
-    pub provider: CryptoProvider,
-}
-
-impl ServerCertVerifier for FingerprintVerifier {
-    fn verify_server_cert(
-        &self,
-        end_entity: &CertificateDer<'_>,
-        _intermediates: &[CertificateDer<'_>],
-        _server_name: &ServerName<'_>,
-        _ocsp_response: &[u8],
-        _now: UnixTime,
-    ) -> Result<ServerCertVerified, rustls::Error> {
-        if let Some(sha256_fingerprints) = self.fingerprints.sha256.as_ref() {
-            let mut hasher = Sha256::new();
-            hasher.update(end_entity.as_ref());
-            let result = hasher.finalize();
-            for fingerprint in sha256_fingerprints.iter() {
-                if fingerprint.0 == result[..] {
-                    trace!("Certificate fingerprint matches");
-                    return Ok(ServerCertVerified::assertion());
-                }
-            }
-        } else {
-            return Err(rustls::Error::General(
-                "Could not verify certificate fingerprint as no fingerprints were provided to match against".to_string(),
-            ));
-        }
-        Err(rustls::Error::General(
-            "Could not verify certificate fingerprint".to_string(),
-        ))
-    }
-
-    fn verify_tls12_signature(
-        &self,
-        message: &[u8],
-        cert: &CertificateDer<'_>,
-        dss: &DigitallySignedStruct,
-    ) -> Result<HandshakeSignatureValid, rustls::Error> {
-        rustls::crypto::verify_tls12_signature(
-            message,
-            cert,
-            dss,
-            &self.provider.signature_verification_algorithms,
-        )
-    }
-
-    fn verify_tls13_signature(
-        &self,
-        message: &[u8],
-        cert: &CertificateDer<'_>,
-        dss: &DigitallySignedStruct,
-    ) -> Result<HandshakeSignatureValid, rustls::Error> {
-        rustls::crypto::verify_tls13_signature(
-            message,
-            cert,
-            dss,
-            &self.provider.signature_verification_algorithms,
-        )
-    }
-
-    fn supported_verify_schemes(&self) -> Vec<SignatureScheme> {
-        self.provider
-            .signature_verification_algorithms
-            .supported_schemes()
     }
 }
 
@@ -324,54 +110,6 @@ pub(crate) fn create_agent(
     max_idle_connections: Option<usize>,
     timeout_seconds: Option<u64>,
 ) -> Result<Agent, Error> {
-    let tls_conf = {
-        let tls_conf = ClientConfig::builder_with_provider(Arc::new(CryptoProvider {
-            cipher_suites: tls_provider::ALL_CIPHER_SUITES.into(),
-            ..tls_provider::default_provider()
-        }))
-        .with_protocol_versions(rustls::DEFAULT_VERSIONS)?;
-
-        match tls_security {
-            ConnectionSecurity::Unsafe => {
-                let dangerous = tls_conf.dangerous();
-                dangerous
-                    .with_custom_certificate_verifier(Arc::new(DangerIgnoreVerifier(
-                        tls_provider::default_provider(),
-                    )))
-                    .with_no_client_auth()
-            }
-            ConnectionSecurity::Native => {
-                let native_certs = rustls_native_certs::load_native_certs();
-                if !native_certs.errors.is_empty() {
-                    return Err(Error::CertLoading(native_certs.errors));
-                }
-                let native_certs = native_certs.certs;
-
-                let roots = {
-                    let mut roots = rustls::RootCertStore::empty();
-                    let (added, failed) = roots.add_parsable_certificates(native_certs);
-                    debug!("Added {added} certificates and failed to parse {failed} certificates");
-                    if added == 0 {
-                        error!("Added no native certificates");
-                        return Err(Error::NoSystemCertsAdded { failed });
-                    }
-                    roots
-                };
-
-                tls_conf.with_root_certificates(roots).with_no_client_auth()
-            }
-            ConnectionSecurity::Fingerprints(fingerprints) => {
-                let dangerous = tls_conf.dangerous();
-                dangerous
-                    .with_custom_certificate_verifier(Arc::new(FingerprintVerifier {
-                        fingerprints,
-                        provider: tls_provider::default_provider(),
-                    }))
-                    .with_no_client_auth()
-            }
-        }
-    };
-
     let max_idle_connections = max_idle_connections
         .or_else(|| available_parallelism().ok().map(Into::into))
         .unwrap_or(DEFAULT_MAX_IDLE_CONNECTIONS);
@@ -379,13 +117,30 @@ pub(crate) fn create_agent(
     info!(
         "NetHSM connection configured with \"max_idle_connection\" {max_idle_connections} and \"timeout_seconds\" {timeout_seconds}."
     );
+    let tls_config = {
+        let mut tls_config_builder = TlsConfig::builder().provider(TlsProvider::Rustls);
 
-    Ok(AgentBuilder::new()
-        .tls_config(Arc::new(tls_conf))
+        tls_config_builder = match &tls_security {
+            ConnectionSecurity::Unsafe => tls_config_builder.disable_verification(true),
+            ConnectionSecurity::Native => {
+                tls_config_builder.root_certs(RootCerts::PlatformVerifier)
+            }
+            ConnectionSecurity::RootCertificates(root_certs) => {
+                tls_config_builder.root_certs(RootCerts::from(root_certs))
+            }
+        };
+
+        tls_config_builder.build()
+    };
+    let agent = Agent::config_builder()
         .max_idle_connections(max_idle_connections)
         .max_idle_connections_per_host(max_idle_connections)
-        .timeout_connect(Duration::from_secs(timeout_seconds))
-        .build())
+        .timeout_connect(Some(Duration::from_secs(timeout_seconds)))
+        .tls_config(tls_config)
+        .build()
+        .new_agent();
+
+    Ok(agent)
 }
 
 #[cfg(test)]
@@ -395,78 +150,15 @@ mod tests {
 
     use super::*;
 
-    #[test]
-    fn certfingerprint_display() -> TestResult {
-        // the hash digest of "foo"
-        let digest = vec![
-            181, 187, 157, 128, 20, 160, 249, 177, 214, 30, 33, 231, 150, 215, 141, 204, 223, 19,
-            82, 242, 60, 211, 40, 18, 244, 133, 11, 135, 138, 228, 148, 76,
-        ];
-        let cert_fingerprint = CertFingerprint::from(digest);
-
-        assert_eq!(
-            cert_fingerprint.to_string(),
-            "b5bb9d8014a0f9b1d61e21e796d78dccdf1352f23cd32812f4850b878ae4944c"
-        );
-
-        Ok(())
-    }
-
-    #[rstest]
-    #[case(HostCertificateFingerprints { sha256: Some(vec![CertFingerprint::from(vec![
-            181, 187, 157, 128, 20, 160, 249, 177, 214, 30, 33, 231, 150, 215, 141, 204, 223, 19,
-            82, 242, 60, 211, 40, 18, 244, 133, 11, 135, 138, 228, 148, 76,
-        ])]) }, "sha256:b5bb9d8014a0f9b1d61e21e796d78dccdf1352f23cd32812f4850b878ae4944c")]
-    #[case(HostCertificateFingerprints { sha256: Some(Vec::new()) }, "n/a")]
-    #[case(HostCertificateFingerprints { sha256: None }, "n/a")]
-    fn hostcertfingerprints_display(
-        #[case] fingerprints: HostCertificateFingerprints,
-        #[case] expected: &str,
-    ) -> TestResult {
-        assert_eq!(fingerprints.to_string(), expected);
-        Ok(())
-    }
-
     #[rstest]
     #[case(ConnectionSecurity::Native, "native")]
     #[case(ConnectionSecurity::Unsafe, "unsafe")]
-    #[case(ConnectionSecurity::Fingerprints(HostCertificateFingerprints { sha256: Some(vec![CertFingerprint::from(vec![
-            181, 187, 157, 128, 20, 160, 249, 177, 214, 30, 33, 231, 150, 215, 141, 204, 223, 19,
-            82, 242, 60, 211, 40, 18, 244, 133, 11, 135, 138, 228, 148, 76,
-        ])]) }), "sha256:b5bb9d8014a0f9b1d61e21e796d78dccdf1352f23cd32812f4850b878ae4944c")]
+    #[case(ConnectionSecurity::RootCertificates(RootCertificates(vec![vec![]])), "custom root certificates")]
     fn connectionsecurity_display(
         #[case] connection_security: ConnectionSecurity,
         #[case] expected: &str,
     ) -> TestResult {
         assert_eq!(connection_security.to_string(), expected);
-        Ok(())
-    }
-
-    #[rstest]
-    #[case("native", Some(ConnectionSecurity::Native))]
-    #[case("unsafe", Some(ConnectionSecurity::Unsafe))]
-    #[case("sha256:324f7bd1530c55cf6812ca6865445de21dfc74cf7a3bb5fae7585e849e3553b7", Some(ConnectionSecurity::Fingerprints(HostCertificateFingerprints { sha256: Some(vec![CertFingerprint::from_str("324f7bd1530c55cf6812ca6865445de21dfc74cf7a3bb5fae7585e849e3553b7")?]) })))]
-    #[case(
-        "324f7bd1530c55cf6812ca6865445de21dfc74cf7a3bb5fae7585e849e3553b7",
-        None
-    )]
-    #[case(
-        "sha256:324f7bd1530c55cf6812ca6865445de21dfc74cf7a3bb5fae7585e849e",
-        None
-    )]
-    #[case(
-        "sha256:324f7bd1530c55cf6812ca6865445de21dfc74cf7a3bb5fae7585e849e3553b73553b7",
-        None
-    )]
-    fn connection_security_fromstr(
-        #[case] input: &str,
-        #[case] expected: Option<ConnectionSecurity>,
-    ) -> TestResult {
-        if let Some(expected) = expected {
-            assert_eq!(ConnectionSecurity::from_str(input)?, expected);
-        } else {
-            assert!(ConnectionSecurity::from_str(input).is_err());
-        }
         Ok(())
     }
 }

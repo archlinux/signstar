@@ -202,6 +202,17 @@ The organization contact, usually of the certificate administrator or IT departm
     pub email: Option<String>,
 
     #[arg(
+        env = "NETHSM_TLS_CSR_SUBJECT_ALT_NAME",
+        help = "The optional list of subject alt names (SAN) for the CSR",
+        long_help = "The optional list of subject alt names (SAN) for the CSR
+
+If omitted, it is set to the same value as common_name.
+If it is set to an empty list, no SAN Extension is added.
+All SANs are considered DNS names, unless they start with \"IP:\" to signal IP names."
+    )]
+    pub subject_alt_names: Option<Vec<String>>,
+
+    #[arg(
         env = "NETHSM_FORCE",
         help = "Write to output file even if it exists already",
         long,

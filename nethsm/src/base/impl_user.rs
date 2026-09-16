@@ -411,7 +411,7 @@ impl NetHsm {
             users_user_id_put(
                 &self.create_connection_config(),
                 &user_id.to_string(),
-                UserPostData::new(real_name, role.into(), passphrase.expose_owned()),
+                UserPostData::new(real_name, role.try_into()?, passphrase.expose_owned()),
             )
             .map_err(|error| {
                 Error::Api(format!(
@@ -424,7 +424,7 @@ impl NetHsm {
             UserId::new(
                 users_post(
                     &self.create_connection_config(),
-                    UserPostData::new(real_name, role.into(), passphrase.expose_owned()),
+                    UserPostData::new(real_name, role.try_into()?, passphrase.expose_owned()),
                 )
                 .map_err(|error| {
                     Error::Api(format!(
@@ -964,6 +964,7 @@ impl NetHsm {
     ///     None,
     ///     Some("signing1".parse()?),
     ///     Some(vec!["tag1".to_string()]),
+    ///     Some("label1".to_string()),
     /// )?;
     ///
     /// // R-Administrators can add tags for system-wide users
@@ -984,6 +985,7 @@ impl NetHsm {
     ///     None,
     ///     Some("signing2".parse()?),
     ///     Some(vec!["tag2".to_string()]),
+    ///     Some("label2".to_string()),
     /// )?;
     /// // N-Administrators can not add tags to system-wide users
     /// assert!(nethsm.add_user_tag(&"user1".parse()?, "tag2").is_err());
@@ -1099,6 +1101,7 @@ impl NetHsm {
     ///     None,
     ///     Some("signing1".parse()?),
     ///     Some(vec!["tag1".to_string()]),
+    ///     Some("label1".to_string()),
     /// )?;
     /// // add tag for system-wide user
     /// nethsm.add_user_tag(&"user1".parse()?, "tag1")?;

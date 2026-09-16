@@ -25,8 +25,6 @@ rand.workspace = true
 rsa.workspace = true
 rstest = { optional = true, workspace = true }
 rustainers = { optional = true, workspace = true }
-rustls = { version = "0.23.19" }
-rustls-native-certs = "0.8.1"
 serde.workspace = true
 serde_json.workspace = true
 sha1.workspace = true
@@ -38,7 +36,6 @@ signstar-crypto = { version = "0.1.0", path = "../signstar-crypto", features = [
 strum.workspace = true
 testresult = { optional = true, workspace = true }
 thiserror.workspace = true
-ureq = { workspace = true, features = ["json"] }
 url = { version = "2.5.4", features = ["serde"] }
 uuid = { optional = true, workspace = true }
 
