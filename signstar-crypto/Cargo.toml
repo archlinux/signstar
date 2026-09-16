@@ -18,7 +18,7 @@ digest_0_10_for_rpgp = { version = "0.10.7", package = "digest", features = [
     "alloc",
 ] }
 ed25519-dalek = { workspace = true, features = ["pem", "pkcs8"] }
-ed25519-dalek_2_for_rpgp = { version = "2", package = "ed25519-dalek" }
+ed25519-dalek_2_for_rpgp = { version = "3", package = "ed25519-dalek" }
 email_address = "0.2.9"
 k256 = "0.14.0"
 log.workspace = true
