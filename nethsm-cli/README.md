@@ -2,6 +2,10 @@
 
 A command line interface (CLI) for the Nitrokey [NetHSM] based on the [nethsm crate].
 
+> [!WARNING]
+> The functionality of this crate has been moved to the [nethsm crate] as a `cli` module and as such this crate is deprecated.
+> Please use the [nethsm crate] to continue receiving fixes and new features.
+
 ## Documentation
 
 - <https://signstar.archlinux.page/rustdoc/nethsm_cli/> for development version of the crate

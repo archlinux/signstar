@@ -7,6 +7,10 @@ With the help of a REST API it is possible to communicate with the device (as we
 
 This library is meant to be used by end-user applications written against the [nethsm] crate.
 
+> [!WARNING]
+> The functionality of this crate has been moved to the [nethsm] crate as a `config` module and as such this crate is deprecated.
+> Please use the [nethsm] crate to continue receiving fixes and new features.
+
 ## Documentation
 
 - <https://signstar.archlinux.page/rustdoc/nethsm_config/> for development version of the crate
