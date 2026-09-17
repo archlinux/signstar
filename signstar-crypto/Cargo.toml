@@ -14,7 +14,7 @@ base64ct = { workspace = true, optional = true }
 bp256.workspace = true
 bp384.workspace = true
 change-user-run.workspace = true
-digest_0_10_for_rpgp = { version = "<0.11", package = "digest", features = [
+digest_0_10_for_rpgp = { version = "<0.12", package = "digest", features = [
     "alloc",
 ] }
 ed25519-dalek = { workspace = true, features = ["pem", "pkcs8"] }
