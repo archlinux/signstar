@@ -30,7 +30,7 @@ p256_0_13_for_rpgp = { version = "<0.14.0", package = "p256" }
 p384.workspace = true
 p384_0_13_for_rpgp = { version = "<0.14.0", package = "p384" }
 p521.workspace = true
-p521_0_13_for_rpgp = { version = "<0.14.0", package = "p521" }
+p521_0_13_for_rpgp = { version = "<0.15.0", package = "p521" }
 pgp.workspace = true
 rand = { workspace = true, features = ["chacha"] }
 rand_0_8_for_rpgp = { version = "<0.9", package = "rand" }
