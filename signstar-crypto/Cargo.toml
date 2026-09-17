@@ -33,7 +33,7 @@ p521.workspace = true
 p521_0_13_for_rpgp = { version = "<0.14.0", package = "p521" }
 pgp.workspace = true
 rand = { workspace = true, features = ["chacha"] }
-rand_0_8_for_rpgp = { version = "<0.9", package = "rand" }
+rand_0_8_for_rpgp = { version = "<0.11", package = "rand" }
 rsa.workspace = true
 rsa_0_9_for_rpgp = { version = "<0.10", package = "rsa" }
 secrecy = { version = "0.10.3", features = ["serde"] }
