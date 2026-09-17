@@ -26,7 +26,7 @@ nethsm-sdk-rs = { workspace = true, optional = true }
 nix.workspace = true
 p224.workspace = true
 p256.workspace = true
-p256_0_13_for_rpgp = { version = "<0.14.0", package = "p256" }
+p256_0_13_for_rpgp = { version = "<0.15.0", package = "p256" }
 p384.workspace = true
 p384_0_13_for_rpgp = { version = "<0.14.0", package = "p384" }
 p521.workspace = true
