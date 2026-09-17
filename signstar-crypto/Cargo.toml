@@ -14,7 +14,7 @@ base64ct = { workspace = true, optional = true }
 bp256.workspace = true
 bp384.workspace = true
 change-user-run.workspace = true
-digest_0_10_for_rpgp = { version = "0.10.7", package = "digest", features = [
+digest_0_10_for_rpgp = { version = "<0.11", package = "digest", features = [
     "alloc",
 ] }
 ed25519-dalek = { workspace = true, features = ["pem", "pkcs8"] }
@@ -26,16 +26,16 @@ nethsm-sdk-rs = { workspace = true, optional = true }
 nix.workspace = true
 p224.workspace = true
 p256.workspace = true
-p256_0_13_for_rpgp = { version = "0.13.0", package = "p256" }
+p256_0_13_for_rpgp = { version = "<0.14.0", package = "p256" }
 p384.workspace = true
-p384_0_13_for_rpgp = { version = "0.13.0", package = "p384" }
+p384_0_13_for_rpgp = { version = "<0.14.0", package = "p384" }
 p521.workspace = true
-p521_0_13_for_rpgp = { version = "0.13.0", package = "p521" }
+p521_0_13_for_rpgp = { version = "<0.14.0", package = "p521" }
 pgp.workspace = true
 rand = { workspace = true, features = ["chacha"] }
-rand_0_8_for_rpgp = { version = "0.8", package = "rand" }
+rand_0_8_for_rpgp = { version = "<0.9", package = "rand" }
 rsa.workspace = true
-rsa_0_9_for_rpgp = { version = "0.9", package = "rsa" }
+rsa_0_9_for_rpgp = { version = "<0.10", package = "rsa" }
 secrecy = { version = "0.10.3", features = ["serde"] }
 serde.workspace = true
 sha2.workspace = true
