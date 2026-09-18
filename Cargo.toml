@@ -9,6 +9,7 @@ members = [
     "signstar-configure",
     "signstar-configure-build",
     "signstar-crypto",
+    "signstar-get-certificate",
     "signstar-request-signature",
     "signstar-sign",
     "signstar-yubihsm2",

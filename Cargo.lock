@@ -5295,6 +5295,33 @@ dependencies = [
 ]
 
 [[package]]
+name = "signstar-get-certificate"
+version = "0.1.1"
+dependencies = [
+ "actix-web",
+ "base64ct",
+ "change-user-run",
+ "clap",
+ "clap-verbosity-flag",
+ "httpmock",
+ "log",
+ "nethsm",
+ "openssl",
+ "pgp",
+ "rcgen",
+ "rstest",
+ "signstar-common",
+ "signstar-config",
+ "signstar-crypto",
+ "signstar-yubihsm2",
+ "tempfile",
+ "testresult",
+ "thiserror 2.0.18",
+ "tokio",
+ "which",
+]
+
+[[package]]
 name = "signstar-request-signature"
 version = "0.1.3"
 dependencies = [
