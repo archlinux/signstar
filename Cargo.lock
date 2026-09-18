@@ -5210,6 +5210,7 @@ name = "signstar-common"
 version = "0.1.2"
 dependencies = [
  "log",
+ "serde",
  "simplelog",
  "systemd-journal-logger",
  "testresult",
@@ -5319,6 +5320,35 @@ dependencies = [
  "testresult",
  "thiserror 2.0.18",
  "yubihsm2",
+]
+
+[[package]]
+name = "signstar-download-key-certificates"
+version = "0.1.0"
+dependencies = [
+ "actix-web",
+ "base64ct",
+ "change-user-run",
+ "clap",
+ "clap-verbosity-flag",
+ "httpmock",
+ "log",
+ "nethsm",
+ "openssl",
+ "pgp",
+ "rcgen",
+ "rstest",
+ "serde",
+ "serde_json",
+ "signstar-common",
+ "signstar-config",
+ "signstar-crypto",
+ "signstar-yubihsm2",
+ "tempfile",
+ "testresult",
+ "thiserror 2.0.18",
+ "tokio",
+ "which",
 ]
 
 [[package]]

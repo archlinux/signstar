@@ -11,12 +11,14 @@ version = "0.1.2"
 
 [dependencies]
 log.workspace = true
+serde = { optional = true, workspace = true }
 simplelog = { optional = true, workspace = true }
 systemd-journal-logger = { optional = true, version = "2.2.1" }
 thiserror.workspace = true
 
 [features]
 logging = ["dep:simplelog", "dep:systemd-journal-logger"]
+serde = ["dep:serde"]
 
 [lints]
 workspace = true

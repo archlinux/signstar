@@ -12,6 +12,7 @@ const ARCH_YUBIHSM2_GROUPS: &[&str] = &["_yubihsm2"];
 
 /// The type of a supported HSM backend.
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
+#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub enum BackendType {
     /// The NetHSM backend.
     NetHsm,

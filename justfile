@@ -953,6 +953,8 @@ containerized-integration-tests-all:
     just --set clean_coverage_workspace false containerized-integration-tests --locked --no-default-features --package signstar-crypto
     printf 'Run containerized integration tests for signstar-crypto with nethsm features...\n'
     just --set clean_coverage_workspace false containerized-integration-tests --locked --no-default-features --package signstar-crypto --features nethsm
+    printf 'Run containerized integration tests for signstar-download-key-certificates with all backends...\n'
+    just --set clean_coverage_workspace false containerized-integration-tests --locked --no-default-features --package signstar-download-key-certificates --features _yubihsm2-mockhsm,nethsm,yubihsm2
     printf 'Run containerized integration tests for signstar-sign with nethsm feature...\n'
     just --set clean_coverage_workspace false containerized-integration-tests --locked --no-default-features --package signstar-sign --features nethsm
     printf 'Run containerized integration tests for signstar-sign with _yubihsm2-mockhsm feature...\n'

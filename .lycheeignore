@@ -16,9 +16,7 @@ https://docs.rs/signstar_crypto/latest/signstar_crypto/
 https://docs.rs/signstar_yubihsm2/latest/signstar_yubihsm2/
 
 # moved URLs that will be available only when merged
-https://signstar.archlinux.page/rustdoc/signstar_configure/
-https://signstar.archlinux.page/rustdoc/signstar_crypto/
-https://signstar.archlinux.page/rustdoc/signstar_yubihsm2/
+https://docs.rs/signstar_download_key_certificates/latest/signstar_download_key_certificates/
 
 # Nitrokey is behind cloudflare and 403'ing all links
 https://nitrokey.com/

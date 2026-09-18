@@ -1,0 +1,53 @@
+[package]
+authors.workspace = true
+description = "Signstar certificate retrieval"
+edition.workspace = true
+homepage.workspace = true
+keywords = ["cert", "openpgp", "signstar"]
+license.workspace = true
+name = "signstar-download-key-certificates"
+repository.workspace = true
+rust-version.workspace = true
+version = "0.1.0"
+
+[dependencies]
+base64ct.workspace = true
+clap = { workspace = true, features = ["derive"], optional = true }
+clap-verbosity-flag = { workspace = true, optional = true }
+log.workspace = true
+nethsm = { workspace = true, optional = true }
+serde.workspace = true
+serde_json.workspace = true
+signstar-common = { features = ["logging", "serde"], workspace = true }
+signstar-config.workspace = true
+signstar-crypto.workspace = true
+signstar-yubihsm2 = { path = "../signstar-yubihsm2", version = "0.1.0", optional = true }
+thiserror.workspace = true
+
+[features]
+_containerized-integration-test = []
+_yubihsm2-mockhsm = ["signstar-yubihsm2/_yubihsm2-mockhsm", "yubihsm2"]
+cli = ["dep:clap", "dep:clap-verbosity-flag"]
+default = ["cli"]
+nethsm = ["dep:nethsm", "signstar-config/nethsm"]
+yubihsm2 = ["dep:signstar-yubihsm2", "signstar-config/yubihsm2"]
+
+[dev-dependencies]
+actix-web = { version = "4.10.2", features = ["openssl"] }
+base64ct.workspace = true
+change-user-run.workspace = true
+httpmock = "0.8.0-alpha.1"
+log.workspace = true
+openssl = "0.10.71"
+pgp.workspace = true
+rcgen = "0.14.0"
+rstest.workspace = true
+signstar-common.workspace = true
+signstar-config = { workspace = true, features = ["_test-helpers"] }
+tempfile.workspace = true
+testresult.workspace = true
+tokio = { workspace = true, features = ["macros", "rt"] }
+which = "8.0.0"
+
+[lints]
+workspace = true
