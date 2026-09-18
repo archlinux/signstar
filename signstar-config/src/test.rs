@@ -149,6 +149,14 @@ const ONLY_NETHSM_ADMIN_PLAINTEXT_NON_ADMIN_SYSTEMD_CREDS: &[u8] = include_bytes
     "../../fixtures/config/nethsm_backend/admin-plaintext-non-admin-systemd-creds.yaml"
 );
 
+/// Config with NetHSM backend with just one connection.
+///
+/// - plaintext for administrative secrets
+/// - systemd-creds for non-administrative secrets
+const ONLY_NETHSM_ADMIN_PLAINTEXT_NON_ADMIN_SYSTEMD_CREDS_SINGLE_CONNECTION: &[u8] = include_bytes!(
+    "../../fixtures/config/nethsm_backend/admin-plaintext-non-admin-systemd-creds-single-connection.yaml"
+);
+
 /// Config with NetHSM backend.
 ///
 /// - systemd-creds for administrative secrets
@@ -416,6 +424,12 @@ pub enum ConfigFileVariant {
     /// - systemd-creds for non-administrative secrets
     OnlyNetHsmBackendAdminPlaintextNonAdminSystemdCreds,
 
+    /// NetHSM backend with just one connection.
+    ///
+    /// - plaintext for administrative secrets
+    /// - systemd-creds for non-administrative secrets
+    OnlyNetHsmBackendAdminPlaintextNonAdminSystemdCredsSingleConnection,
+
     /// NetHSM backend.
     ///
     /// - systemd-creds for administrative secrets
@@ -578,6 +592,9 @@ impl ConfigFileVariant {
             ConfigFileVariant::OnlyNetHsmBackendAdminPlaintextNonAdminSystemdCreds => {
                 ONLY_NETHSM_ADMIN_PLAINTEXT_NON_ADMIN_SYSTEMD_CREDS
             }
+            ConfigFileVariant::OnlyNetHsmBackendAdminPlaintextNonAdminSystemdCredsSingleConnection => {
+                ONLY_NETHSM_ADMIN_PLAINTEXT_NON_ADMIN_SYSTEMD_CREDS_SINGLE_CONNECTION
+            }
             ConfigFileVariant::OnlyNetHsmBackendAdminSystemdCredsNonAdminPlaintext => {
                 ONLY_NETHSM_ADMIN_SYSTEMD_CREDS_NON_ADMIN_PLAINTEXT
             }
@@ -675,6 +692,7 @@ impl ConfigFileVariant {
                 self,
                 Self::OnlyNetHsmBackendAdminPlaintextNonAdminPlaintext
                     | Self::OnlyNetHsmBackendAdminPlaintextNonAdminSystemdCreds
+                    | Self::OnlyNetHsmBackendAdminPlaintextNonAdminSystemdCredsSingleConnection
                     | Self::OnlyNetHsmBackendAdminSystemdCredsNonAdminPlaintext
                     | Self::OnlyNetHsmBackendAdminSystemdCredsNonAdminSystemdCreds
                     | Self::OnlyNetHsmBackendAdminSssNonAdminPlaintext

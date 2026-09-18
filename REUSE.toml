@@ -32,6 +32,7 @@ path = [
     "lychee.toml",
     "resources/docs/src/api-docs/dependency_graph.png",
     "signstar-crypto/tests/fixtures/*.asc",
+    "signstar-download-key-certificates/tests/download/*.asc",
     "signstar-request-signature/tests/*.json",
     "signstar-request-signature/tests/sshd/*",
     "signstar-yubihsm2/tests/backup/*.yhw",

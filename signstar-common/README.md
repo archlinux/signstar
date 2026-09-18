@@ -10,6 +10,7 @@ Shared components and data types for Signstar tools and libraries
 ## Features
 
 - `logging`: Enables the `signstar_config::logging` module which provides utilities for logging.
+- `serde`: Enables `serde` integration for types which support it
 
 ## Contributing
 
