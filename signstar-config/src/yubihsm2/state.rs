@@ -1496,6 +1496,13 @@ mod tests {
             description => description,
             snapshot_path => SNAPSHOT_PATH,
             prepend_module_to_snapshot => false,
+            // NOTE: This filter prevents that the snapshot contains potentially misaligned data.
+            //
+            // With OpenPGPv4, multi-precision integers (MPIs) may be optimized in such a way, that certificate sizes in the backend may be up to 3 bytes lower, than the ones calculated using the Signstar configuration data.
+            // This in turn would lead to sporadic cargo-insta failures.
+            //
+            // See <https://www.rfc-editor.org/info/rfc4880/#section-3.2> for details on MPIs in OpenPGPv4.
+            filters => vec![(r"length: \d+", "length: [DYNAMIC LENGTH WITH OPENPGPv4]")]
         }, {
             assert_snapshot!(current().name().expect("current thread should have a name").to_string().replace("::", "__"), diff);
         });
@@ -1676,4 +1683,8 @@ mod tests {
 
         Ok(())
     }
+
+    // Ensures, that a [`YubiHsm2BackendState`] can be successfully compared to a
+    // [`YubiHsm2ConfigState`], even if the former contains an OpenPGP certificate with an optimized
+    // MPI, resulting in a slightly smaller certificate size.
 }
