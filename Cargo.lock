@@ -3239,7 +3239,6 @@ dependencies = [
  "base64ct",
  "chrono",
  "ed25519-dalek 3.0.0",
- "hex",
  "log",
  "nethsm-sdk-rs",
  "p256 0.14.0",
