@@ -344,7 +344,11 @@ is-workspace-member package:
     #!/usr/bin/env bash
     set -euo pipefail
 
-    mapfile -t workspace_members < <(just get-workspace-members 2>/dev/null)
+    workspace_members="$(just get-workspace-members)"
+    if (( $? != 0 )); then
+        exit 1
+    fi
+    mapfile -t workspace_members <<< "$workspace_members"
 
     for name in "${workspace_members[@]}"; do
         if [[ "$name" == {{ package }} ]]; then
@@ -382,7 +386,11 @@ build-book: docs
     readonly target_dir="${CARGO_TARGET_DIR:-$PWD/target}"
     readonly output_dir="{{ output_dir }}"
     readonly rustdoc_dir="$output_dir/docs/rustdoc/"
-    mapfile -t workspace_members < <(just get-workspace-members 2>/dev/null)
+    workspace_members="$(just get-workspace-members)"
+    if (( $? != 0 )); then
+        exit 1
+    fi
+    mapfile -t workspace_members <<< "$workspace_members"
 
     # Build the local dependency graph.
     cargo depgraph --all-features --dev-deps --locked --workspace-only | dot -Tpng > resources/docs/src/api-docs/dependency_graph.png
@@ -407,7 +415,11 @@ docs:
     just ensure-command cargo
 
     readonly target_dir="${CARGO_TARGET_DIR:-$PWD/target}"
-    mapfile -t workspace_members < <(just get-workspace-members 2>/dev/null)
+    workspace_members="$(just get-workspace-members)"
+    if (( $? != 0 )); then
+        exit 1
+    fi
+    mapfile -t workspace_members <<< "$workspace_members"
 
     # NOTE: nethsm-cli's executable documentation shadows the nethsm documentation (because of cargo bug: https://github.com/rust-lang/cargo/issues/6313)
     for name in "${workspace_members[@]}"; do
@@ -624,7 +636,13 @@ check-unused-deps:
 
     just ensure-command cargo-machete
 
-    for name in $(just get-workspace-members); do
+    workspace_members="$(just get-workspace-members)"
+    if (( $? != 0 )); then
+        exit 1
+    fi
+    mapfile -t workspace_members <<< "$workspace_members"
+
+    for name in "${workspace_members[@]}"; do
         cargo machete "$name"
     done
 
