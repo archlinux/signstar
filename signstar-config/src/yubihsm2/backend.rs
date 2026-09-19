@@ -1418,22 +1418,14 @@ impl<'admin_creds, 'config> YubiHsm2Backend<'admin_creds, 'config> {
 
         let key_states = infos
             .into_iter()
-            .filter_map(|info| {
-                // NOTE: Ignore object IDs reserved by the vendor (<https://docs.yubico.com/hardware/yubihsm-2/hsm-2-user-guide/hsm2-intro-core-concepts.html#object-id>).
-                // This needs fixing for the mockhsm integration and can then be removed, as these objects should never be listed in the first place: https://gitlab.archlinux.org/dvzrv/yubihsm2/-/work_items/11
-                if info.object_id == 0 || info.object_id == Id::MAX {
-                    None
-                } else {
-                    Some(YubiHsm2BackendUserKeyData {
-                        id: info.object_id,
-                        object_type: info.object_type.into(),
-                        capabilities: info.capabilities.into(),
-                        domains: info.domains.into(),
-                        algorithm: info.algorithm.into(),
-                        label: info.label.into(),
-                        length: info.length,
-                    })
-                }
+            .map(|info| YubiHsm2BackendUserKeyData {
+                id: info.object_id,
+                object_type: info.object_type.into(),
+                capabilities: info.capabilities.into(),
+                domains: info.domains.into(),
+                algorithm: info.algorithm.into(),
+                label: info.label.into(),
+                length: info.length,
             })
             .collect::<Vec<_>>();
 
