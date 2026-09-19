@@ -120,7 +120,11 @@ get-workspace-member-version package:
 
     just ensure-command cargo jq
 
-    readonly version="$(cargo metadata --format-version=1 |jq -r --arg pkg {{ package }} '.workspace_members[] | capture("/(?<name>[a-z-]+)#(?<version>[0-9.]+)") | select(.name == $pkg).version')"
+    version="$(cargo metadata --format-version=1 |jq -r --arg pkg {{ package }} '.workspace_members[] | capture("/(?<name>[a-z-]+)#(?<version>[0-9.]+)") | select(.name == $pkg).version')"
+    if (( $? != 0 )); then
+        exit 1
+    fi
+    readonly version="$version"
 
     if [[ -z "$version" ]]; then
         printf "No version found for package %s\n" {{ package }} >&2
@@ -332,7 +336,12 @@ install-alpm-package-set set:
 
     # Use run0 when not root
     command=()
-    if (( "$(id -u)" > 0 )); then
+    id="$(id -u)"
+    if (( $? != 0 )); then
+        exit 1
+    fi
+
+    if (( "$id" > 0 )); then
         command+=(run0)
     fi
     command+=(
@@ -347,7 +356,11 @@ is-workspace-member package:
     #!/usr/bin/env bash
     set -euo pipefail
 
-    mapfile -t workspace_members < <(just get-workspace-members 2>/dev/null)
+    workspace_members="$(just get-workspace-members)"
+    if (( $? != 0 )); then
+        exit 1
+    fi
+    mapfile -t workspace_members <<< "$workspace_members"
 
     for name in "${workspace_members[@]}"; do
         if [[ "$name" == {{ package }} ]]; then
@@ -385,7 +398,11 @@ build-book: docs
     readonly target_dir="${CARGO_TARGET_DIR:-$PWD/target}"
     readonly output_dir="{{ output_dir }}"
     readonly rustdoc_dir="$output_dir/docs/rustdoc/"
-    mapfile -t workspace_members < <(just get-workspace-members 2>/dev/null)
+    workspace_members="$(just get-workspace-members)"
+    if (( $? != 0 )); then
+        exit 1
+    fi
+    mapfile -t workspace_members <<< "$workspace_members"
 
     # Build the local dependency graph.
     cargo depgraph --all-features --dev-deps --locked --workspace-only | dot -Tpng > resources/docs/src/api-docs/dependency_graph.png
@@ -410,7 +427,11 @@ docs:
     just ensure-command cargo
 
     readonly target_dir="${CARGO_TARGET_DIR:-$PWD/target}"
-    mapfile -t workspace_members < <(just get-workspace-members 2>/dev/null)
+    workspace_members="$(just get-workspace-members)"
+    if (( $? != 0 )); then
+        exit 1
+    fi
+    mapfile -t workspace_members <<< "$workspace_members"
 
     # NOTE: nethsm-cli's executable documentation shadows the nethsm documentation (because of cargo bug: https://github.com/rust-lang/cargo/issues/6313)
     for name in "${workspace_members[@]}"; do
@@ -451,6 +472,9 @@ generate kind pkg:
     esac
 
     script="$(mktemp --suffix=.rs)"
+    if (( $? != 0 )); then
+        exit 1
+    fi
     sed "s/PKG/{{ pkg }}/;s#PATH#$PWD/{{ pkg }}#g;s/KIND/{{ kind }}/g" > "$script" <<< '{{ render-script }}'
     rust-script "$script" "$output_dir/{{ kind }}"
     rm --force "$script"
@@ -480,6 +504,9 @@ check-commits:
     fi
 
     tmpdir="$(mktemp --dry-run --directory)"
+    if (( $? != 0 )); then
+        exit 1
+    fi
     readonly check_tmpdir="$tmpdir"
     mkdir -p "$check_tmpdir"
 
@@ -496,7 +523,13 @@ check-commits:
         printf "Checking commit %s\n" "$commit"
 
         commit_message="$(git show -s --format=%B "$commit")"
+        if (( $? != 0 )); then
+            exit 1
+        fi
         codespell_config="$(mktemp --tmpdir="$check_tmpdir")"
+        if (( $? != 0 )); then
+            exit 1
+        fi
 
         # either use the commit's .codespellrc or create one
         if git show "$commit:.codespellrc" > /dev/null 2>&1; then
@@ -627,7 +660,13 @@ check-unused-deps:
 
     just ensure-command cargo-machete
 
-    for name in $(just get-workspace-members); do
+    workspace_members="$(just get-workspace-members)"
+    if (( $? != 0 )); then
+        exit 1
+    fi
+    mapfile -t workspace_members <<< "$workspace_members"
+
+    for name in "${workspace_members[@]}"; do
         cargo machete "$name"
     done
 
@@ -687,7 +726,13 @@ get-latest-nethsm-release-short-commit:
     just ensure-command curl jq
 
     latest_release="$(curl -s 'https://api.github.com/repos/nitrokey/nethsm/releases/latest' | jq -r '.tag_name')"
+    if (( $? != 0 )); then
+        exit 1
+    fi
     short_commit="$(curl -s 'https://api.github.com/repos/nitrokey/nethsm/tags' | jq -r ".[] | select(.name == \"$latest_release\") | .commit.sha[:8]")"
+    if (( $? != 0 )); then
+        exit 1
+    fi
     printf "%s\n" "$short_commit"
 
 # Installs development packages using pacman
@@ -749,7 +794,12 @@ ci-publish:
         exit 1
     fi
 
-    readonly current_member_version="$(just get-workspace-member-version "$crate" 2>/dev/null)"
+    current_member_version="$(just get-workspace-member-version "$crate" 2>/dev/null)"
+    if (( $? != 0 )); then
+        exit 1
+    fi
+    readonly current_member_version="$current_member_version"
+
     if [[ "$version" != "$current_member_version" ]]; then
         printf "Current version in metadata of crate %s (%s) does not match the version from the tag (%s)!\n" "$crate" "$current_member_version" "$version"
         exit 1
@@ -785,7 +835,11 @@ prepare-release package version="":
     # make sure that the current version would be publishable, but ignore files not added to git
     cargo publish -p "$package_name" --dry-run --allow-dirty
 
-    readonly updated_package_version="$(just get-workspace-member-version "$package_name")"
+    updated_package_version="$(just get-workspace-member-version "$package_name")"
+    if (( $? != 0 )); then
+        exit 1
+    fi
+    readonly updated_package_version="$updated_package_version"
 
     if [[ -n "$package_version" ]]; then
         branch_name="release/$package_name/$package_version"
@@ -804,23 +858,27 @@ release package:
     #!/usr/bin/env bash
     set -euo pipefail
 
-    readonly package_version="$(just get-workspace-member-version {{ package }})"
+    package_version="$(just get-workspace-member-version {{ package }})"
+    if (( $? != 0 )); then
+        exit 1
+    fi
     if [[ -z "$package_version" ]]; then
         exit 1
     fi
-    readonly current_version="{{ package }}/$package_version"
+    readonly package_version="$package_version"
+    readonly tag="{{ package }}/$package_version"
 
     just ensure-command git
 
-    if [[ -n "$(git tag -l "$current_version")" ]]; then
-        printf "The tag %s exists already!\n" "$current_version" >&2
+    if [[ -n "$(git tag -l "$tag")" ]]; then
+        printf "The tag %s exists already!\n" "$tag" >&2
         exit 1
     fi
 
-    printf "Creating tag %s...\n" "$current_version"
-    git tag -s "$current_version" -m "$current_version"
-    printf "Pushing tag %s...\n" "$current_version"
-    git push origin refs/tags/"$current_version"
+    printf "Creating tag %s...\n" "$tag"
+    git tag -s "$tag" -m "$tag"
+    printf "Pushing tag %s...\n" "$tag"
+    git push origin refs/tags/"$tag"
 
 ###############
 # Test recipes.
@@ -834,7 +892,11 @@ containerized-integration-tests *options='--locked --workspace':
 
     readonly coverage="{{ coverage }}"
     readonly clean_coverage_workspace="{{ clean_coverage_workspace }}"
-    readonly cargo_target_dir="$(just get-cargo-target-dir)"
+    cargo_target_dir="$(just get-cargo-target-dir)"
+    if (( $? != 0 )); then
+        exit 1
+    fi
+    readonly cargo_target_dir="$cargo_target_dir"
     read -r -a options <<< "{{ options }}"
 
     if [[ "$coverage" == "true" ]]; then
@@ -887,7 +949,11 @@ create-coverage-report output_type="cobertura" mode="without-docs" metrics_name=
     readonly metrics_name="{{ metrics_name }}"
     readonly mode="{{ mode }}"
     readonly output_type="{{ output_type }}"
-    target_dir="$(just get-cargo-target-dir)"
+    cargo_target_dir="$(just get-cargo-target-dir)"
+    if (( $? != 0 )); then
+        exit 1
+    fi
+    readonly cargo_target_dir="$cargo_target_dir"
 
     just ensure-command cargo-llvm-cov cargo-nextest jq
 
@@ -899,7 +965,7 @@ create-coverage-report output_type="cobertura" mode="without-docs" metrics_name=
     create_report() {
         printf "Creating %s report %s\n" "$output_type" "$reporting_style..."
 
-        mkdir --parents "$target_dir/llvm-cov/"
+        mkdir --parents "$cargo_target_dir/llvm-cov/"
         # shellcheck source=/dev/null
         source <(just cargo-llvm-cov-show-env "${cargo_options[@]}")
         # NOTE: Here, we are not calling `cargo-llvm-cov clean` because we assume that it has been done in the recipe that generated the profraw data already.
@@ -917,11 +983,17 @@ create-coverage-report output_type="cobertura" mode="without-docs" metrics_name=
 
         # Get total coverage percentage from summary
         percentage="$(cargo "${cargo_options[@]}" llvm-cov report "${cargo_llvm_cov_metrics_options[@]}" | jq '.data[0].totals.lines.percent')"
+        if (( $? != 0 )); then
+            exit 1
+        fi
 
         # Trim percentage to 4 decimal places.
         percentage="$(LC_NUMERIC=C printf "%.4f\n" "$percentage")"
+        if (( $? != 0 )); then
+            exit 1
+        fi
 
-        printf "%s %s\n" "$metrics_name" "$percentage" > "$target_dir/llvm-cov/coverage-metrics.txt"
+        printf "%s %s\n" "$metrics_name" "$percentage" > "$cargo_target_dir/llvm-cov/coverage-metrics.txt"
         printf "Test-coverage: %s%%\n" "$percentage"
     }
 
@@ -947,7 +1019,7 @@ create-coverage-report output_type="cobertura" mode="without-docs" metrics_name=
             # Options for creating cobertura coverage report with cargo-llvm-cov
             cargo_llvm_cov_options+=(
                 --cobertura
-                --output-path "$target_dir/llvm-cov/cobertura-coverage.xml"
+                --output-path "$cargo_target_dir/llvm-cov/cobertura-coverage.xml"
             )
             # Options for creating coverage report summary with cargo-llvm-cov
             cargo_llvm_cov_metrics_options+=(
@@ -967,7 +1039,7 @@ create-coverage-report output_type="cobertura" mode="without-docs" metrics_name=
             )
 
             create_report
-            printf '%s\n' "$target_dir/llvm-cov/html/index.html"
+            printf '%s\n' "$cargo_target_dir/llvm-cov/html/index.html"
         ;;
         *)
         printf 'Unknown output type "%s"' "$output_type" >&2
@@ -996,7 +1068,6 @@ nethsm-integration-tests *options='--locked --workspace':
 
     readonly coverage="{{ coverage }}"
     readonly clean_coverage_workspace="{{ clean_coverage_workspace }}"
-    readonly cargo_target_dir="$(just get-cargo-target-dir)"
     readonly nethsm_image_tag="{{ nethsm_image_tag }}"
     read -r -a options <<< "{{ options }}"
 
@@ -1190,6 +1261,9 @@ test-readme project:
 
     create_container() {
         container_id="$(podman container create "${podman_create_options[@]}")"
+        if (( $? != 0 )); then
+            exit 1
+        fi
     }
 
     start_container() {
