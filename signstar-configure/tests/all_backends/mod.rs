@@ -6,7 +6,7 @@
 ))]
 
 use log::LevelFilter;
-use signstar_common::logging::setup_logging;
+use signstar_common::logging::setup_terminal_logging;
 use signstar_config::test::{
     ConfigFileConfig,
     ConfigFileLocation,
@@ -26,7 +26,7 @@ mod all {
     /// available.
     #[test]
     fn host_configuration_sync_aborts_on_unavailable_backend_connections() -> TestResult {
-        setup_logging(LevelFilter::Debug)?;
+        setup_terminal_logging(LevelFilter::Debug)?;
 
         let system_prepare_config = SystemPrepareConfig {
             machine_id: false,
@@ -66,7 +66,7 @@ mod all {
         /// connections.
         #[test]
         fn abort_on_unavailable_backend_connections() -> TestResult {
-            setup_logging(LevelFilter::Debug)?;
+            setup_terminal_logging(LevelFilter::Debug)?;
 
             let system_prepare_config = SystemPrepareConfig {
                 machine_id: false,
@@ -107,7 +107,7 @@ mod all {
         /// any backends.
         #[test]
         fn abort_on_no_config_item_form_backends() -> TestResult {
-            setup_logging(LevelFilter::Debug)?;
+            setup_terminal_logging(LevelFilter::Debug)?;
 
             let system_prepare_config = SystemPrepareConfig {
                 machine_id: false,
@@ -147,7 +147,7 @@ mod all {
         /// Ensures, that calling the `signstar-configure` CLI fails on no configuration file.
         #[test]
         fn fail_on_no_configuration_file() -> TestResult {
-            setup_logging(LevelFilter::Debug)?;
+            setup_terminal_logging(LevelFilter::Debug)?;
 
             let system_prepare_config = SystemPrepareConfig {
                 machine_id: false,
@@ -191,7 +191,7 @@ mod nethsm {
     /// in one of the default system locations but no physical NetHSM backend is available.
     #[test]
     fn host_configuration_sync_aborts_on_unavailable_connections() -> TestResult {
-        setup_logging(LevelFilter::Debug)?;
+        setup_terminal_logging(LevelFilter::Debug)?;
 
         let system_prepare_config = SystemPrepareConfig {
             machine_id: false,
@@ -231,7 +231,7 @@ mod nethsm {
         /// connections.
         #[test]
         fn abort_on_unavailable_backend_connections() -> TestResult {
-            setup_logging(LevelFilter::Debug)?;
+            setup_terminal_logging(LevelFilter::Debug)?;
 
             let system_prepare_config = SystemPrepareConfig {
                 machine_id: false,
@@ -279,7 +279,7 @@ mod yubihsm {
     #[test]
     #[cfg(feature = "_yubihsm2-mockhsm")]
     fn host_configuration_sync_succeeds_on_host_without_admin_creds_and_mockhsm() -> TestResult {
-        setup_logging(LevelFilter::Debug)?;
+        setup_terminal_logging(LevelFilter::Debug)?;
 
         let system_prepare_config = SystemPrepareConfig {
             machine_id: false,
@@ -309,7 +309,7 @@ mod yubihsm {
     /// in one of the default system locations but no physical YubiHSM2 backend is available.
     #[test]
     fn host_configuration_sync_aborts_on_unavailable_yubihsm2_connections() -> TestResult {
-        setup_logging(LevelFilter::Debug)?;
+        setup_terminal_logging(LevelFilter::Debug)?;
 
         let system_prepare_config = SystemPrepareConfig {
             machine_id: false,
@@ -351,7 +351,7 @@ mod yubihsm {
         #[test]
         #[cfg(feature = "_yubihsm2-mockhsm")]
         fn succeeds_on_host_without_admin_creds_and_mockhsm() -> TestResult {
-            setup_logging(LevelFilter::Debug)?;
+            setup_terminal_logging(LevelFilter::Debug)?;
 
             let system_prepare_config = SystemPrepareConfig {
                 machine_id: false,
@@ -390,7 +390,7 @@ mod yubihsm {
         /// connections.
         #[test]
         fn abort_on_unavailable_backend_connections() -> TestResult {
-            setup_logging(LevelFilter::Debug)?;
+            setup_terminal_logging(LevelFilter::Debug)?;
 
             let system_prepare_config = SystemPrepareConfig {
                 machine_id: false,

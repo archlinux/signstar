@@ -10,7 +10,7 @@ use clap::Parser;
 use clap_verbosity_flag::Verbosity;
 use log::LevelFilter;
 use nix::unistd::{User, geteuid};
-use signstar_common::logging::setup_logging;
+use signstar_common::logging::setup_terminal_logging;
 use signstar_crypto::{
     NonAdministrativeSecretHandling,
     passphrase::Passphrase,
@@ -69,7 +69,7 @@ fn load_passphrase(
     backend_user: &str,
     log_level: impl Into<LevelFilter>,
 ) -> Result<Passphrase, Error> {
-    setup_logging(log_level)?;
+    setup_terminal_logging(log_level)?;
 
     let Some(system_user) = User::from_uid(geteuid())? else {
         return Err(Error::InvalidCallingUser);

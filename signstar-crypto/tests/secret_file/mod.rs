@@ -11,7 +11,7 @@ use std::{
 use change_user_run::{CommandOutput, create_users, run_command_as_user};
 use log::{LevelFilter, debug};
 use rstest::rstest;
-use signstar_common::{logging::setup_logging, system_user::get_home_base_dir_path};
+use signstar_common::{logging::setup_terminal_logging, system_user::get_home_base_dir_path};
 use testresult::TestResult;
 
 /// Environment variables that are passed in to a command call as a different user.
@@ -94,7 +94,7 @@ mod non_admin {
     fn load_credentials_for_user_succeeds(
         #[case] secret_handling: NonAdministrativeSecretHandling,
     ) -> TestResult {
-        setup_logging(LevelFilter::Debug)?;
+        setup_terminal_logging(LevelFilter::Debug)?;
 
         let _credentials_socket = start_credentials_socket()?;
         let passphrase = Passphrase::new(DUMMY_PASSPHRASE.to_string());

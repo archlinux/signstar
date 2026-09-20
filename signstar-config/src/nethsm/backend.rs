@@ -2007,7 +2007,7 @@ mod tests {
         UserRole,
     };
     use rstest::rstest;
-    use signstar_common::logging::setup_logging;
+    use signstar_common::logging::setup_terminal_logging;
     use testresult::TestResult;
 
     use super::*;
@@ -2017,7 +2017,7 @@ mod tests {
     /// [`NetHsmAdminCredentials`] and [`Config`].
     #[test]
     fn nethsm_backend_new_fails_on_iteration_mismatch() -> TestResult {
-        setup_logging(LevelFilter::Debug)?;
+        setup_terminal_logging(LevelFilter::Debug)?;
 
         let prepare_config = SystemPrepareConfig {
             machine_id: false,
@@ -2118,7 +2118,7 @@ mod tests {
         "testuser (role: Administrator)",
     )]
     fn user_state_to_string(#[case] user_state: UserState, #[case] expected: &str) -> TestResult {
-        setup_logging(LevelFilter::Debug)?;
+        setup_terminal_logging(LevelFilter::Debug)?;
 
         assert_eq!(user_state.to_string(), expected);
         Ok(())
@@ -2225,7 +2225,7 @@ mod tests {
         "key1 (tag: tag1; type: Curve25519; mechanisms: EdDsaSignature; context: Raw)",
     )]
     fn key_state_to_string(#[case] key_state: KeyState, #[case] expected: &str) -> TestResult {
-        setup_logging(LevelFilter::Debug)?;
+        setup_terminal_logging(LevelFilter::Debug)?;
 
         assert_eq!(key_state.to_string(), expected);
         Ok(())

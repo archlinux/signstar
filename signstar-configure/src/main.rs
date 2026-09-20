@@ -4,7 +4,10 @@ use std::process::{ExitCode, Termination};
 
 use clap::Parser;
 use log::error;
-use signstar_common::logging::setup_logging;
+use signstar_common::logging::{
+    setup_systemd_journal_logging_when_connected,
+    setup_terminal_logging,
+};
 use signstar_configure::{Cli, ConfigurationResult, Error, HostConfiguration, load_config};
 
 /// Runs the command.
@@ -30,9 +33,14 @@ fn run_command() -> Result<ConfigurationResult, Error> {
 fn main() -> ExitCode {
     let args = Cli::parse();
 
-    if let Err(error) = setup_logging(args.verbosity) {
-        eprintln!("{error}");
-        return ExitCode::FAILURE;
+    if let Err(error) = setup_systemd_journal_logging_when_connected(args.verbosity) {
+        eprintln!(
+            "Unable to log output to systemd journal: {error}\nFalling back to logging to terminal..."
+        );
+        if let Err(error) = setup_terminal_logging(args.verbosity) {
+            eprintln!("Unable to log output to terminal: {error}");
+            return ExitCode::FAILURE;
+        };
     }
 
     match run_command() {

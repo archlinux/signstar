@@ -58,7 +58,7 @@ use impl_default::get_connector;
 #[cfg(feature = "_yubihsm2-mockhsm")]
 use impl_mockhsm::get_connector;
 use log::error;
-use signstar_common::logging::setup_logging;
+use signstar_common::logging::setup_terminal_logging;
 use signstar_yubihsm2::{
     Error,
     automation::{FileBackedScenario, Scenario, ScenarioRunner},
@@ -238,7 +238,7 @@ fn get_writer(output: Option<PathBuf>) -> Result<Box<dyn std::io::Write>, Error>
 fn main() -> ExitCode {
     let args = Cli::parse();
 
-    if let Err(error) = setup_logging(args.verbosity) {
+    if let Err(error) = setup_terminal_logging(args.verbosity) {
         eprintln!("{error}");
         return ExitCode::FAILURE;
     }

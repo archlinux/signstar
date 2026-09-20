@@ -11,7 +11,7 @@ use change_user_run::{CommandOutput, create_users, run_command_as_user};
 use log::{LevelFilter, debug};
 use nix::unistd::{User, geteuid};
 use rstest::rstest;
-use signstar_common::{logging::setup_logging, system_user::get_home_base_dir_path};
+use signstar_common::{logging::setup_terminal_logging, system_user::get_home_base_dir_path};
 use signstar_config::config::{Config, SystemUserId};
 #[cfg(any(feature = "nethsm", feature = "yubihsm2"))]
 use signstar_config::{
@@ -93,7 +93,7 @@ mod no_backend {
     /// system user data of the Signstar config in use.
     #[test]
     fn system_user_host_state_new() -> TestResult {
-        setup_logging(LevelFilter::Debug)?;
+        setup_terminal_logging(LevelFilter::Debug)?;
 
         let config = SystemPrepareConfig {
             machine_id: false,
@@ -130,7 +130,7 @@ mod no_backend {
     /// setup host.
     #[test]
     fn system_user_diff_diff_matches() -> TestResult {
-        setup_logging(LevelFilter::Debug)?;
+        setup_terminal_logging(LevelFilter::Debug)?;
 
         let prepare_config = SystemPrepareConfig {
             machine_id: false,
@@ -178,7 +178,7 @@ mod no_backend {
     /// specific users have been setup.
     #[test]
     fn system_user_diff_diff_missing_system_users() -> TestResult {
-        setup_logging(LevelFilter::Debug)?;
+        setup_terminal_logging(LevelFilter::Debug)?;
 
         let prepare_config = SystemPrepareConfig {
             machine_id: false,
@@ -237,7 +237,7 @@ mod nethsm_backend {
         #[mode = str]
         config: &str,
     ) -> TestResult {
-        setup_logging(LevelFilter::Debug)?;
+        setup_terminal_logging(LevelFilter::Debug)?;
         write_machine_id()?;
         let _socket = start_credentials_socket()?;
 
@@ -341,7 +341,7 @@ mod yubihsm2_backend {
         #[mode = str]
         config: &str,
     ) -> TestResult {
-        setup_logging(LevelFilter::Debug)?;
+        setup_terminal_logging(LevelFilter::Debug)?;
         write_machine_id()?;
         let _socket = start_credentials_socket()?;
 
@@ -457,7 +457,7 @@ mod all_backends {
         #[mode = str]
         config: &str,
     ) -> TestResult {
-        setup_logging(LevelFilter::Debug)?;
+        setup_terminal_logging(LevelFilter::Debug)?;
         write_machine_id()?;
         let _socket = start_credentials_socket()?;
 
@@ -548,7 +548,7 @@ mod all_backends {
     /// setup host.
     #[test]
     fn system_user_diff_mismatching_users() -> TestResult {
-        setup_logging(LevelFilter::Debug)?;
+        setup_terminal_logging(LevelFilter::Debug)?;
 
         // setup the system with one backend...
         let prepare_config = SystemPrepareConfig {

@@ -1,9 +1,13 @@
 //! Application for the creation of signatures from signing requests.
 
-use std::collections::BTreeMap;
-use std::process::ExitCode;
+use std::{
+    collections::BTreeMap,
+    io::{Read, Write, stdin, stdout},
+    process::ExitCode,
+};
 
 use clap::Parser;
+use signstar_common::logging::{setup_systemd_journal_logging, setup_terminal_logging};
 use signstar_crypto::signer::{openpgp::sign_hasher_state, traits::RawSigningKey};
 use signstar_request_signature::{Request, Response, Sha512};
 use signstar_sign::cli::Cli;
@@ -255,7 +259,7 @@ use impl_none::load_signer;
 /// - no HSM and key data can be retrieved for the calling user,
 /// - a signature can not be created over the hasher state,
 /// - or the [`Response`] can not be written to the `writer`.
-fn sign_request(reader: impl std::io::Read, writer: impl std::io::Write) -> Result<(), Error> {
+fn sign_request(reader: impl Read, writer: impl Write) -> Result<(), Error> {
     let req = Request::from_reader(reader)?;
 
     if !req.required.output.is_openpgp_v4() {
@@ -281,12 +285,17 @@ fn sign_request(reader: impl std::io::Read, writer: impl std::io::Write) -> Resu
 fn main() -> ExitCode {
     let args = Cli::parse();
 
-    if let Err(error) = signstar_common::logging::setup_logging(args.verbosity) {
-        eprintln!("{error}");
-        return ExitCode::FAILURE;
+    if let Err(error) = setup_systemd_journal_logging(args.verbosity) {
+        eprintln!(
+            "Unable to log output to systemd journal: {error}\nFalling back to logging to terminal..."
+        );
+        if let Err(error) = setup_terminal_logging(args.verbosity) {
+            eprintln!("Unable to log output to terminal: {error}");
+            return ExitCode::FAILURE;
+        };
     }
 
-    let result = sign_request(std::io::stdin(), std::io::stdout());
+    let result = sign_request(stdin(), stdout());
 
     if let Err(error) = result {
         log::error!(error:err; "Processing signing request failed: {error:#?}");

@@ -15,7 +15,7 @@ use nethsm::{
 };
 use pretty_assertions::assert_eq;
 use rstest::rstest;
-use signstar_common::logging::setup_logging;
+use signstar_common::logging::setup_terminal_logging;
 use signstar_config::{
     config::{SystemUserConfigState, SystemUserDiff, SystemUserHostState},
     nethsm::{
@@ -67,7 +67,7 @@ async fn sync_unprovisioned_backend(
     #[case] system_prepare_config: SystemPrepareConfig,
     #[case] creds_data: &[u8],
 ) -> TestResult {
-    setup_logging(LevelFilter::Debug)?;
+    setup_terminal_logging(LevelFilter::Debug)?;
     let signstar_config = system_prepare_config.signstar_config.variant.to_config()?;
     let Some(nethsm_config) = signstar_config.nethsm() else {
         panic!("This test requires a NetHSM configuration object in the Signstar config");
@@ -216,7 +216,7 @@ async fn sync_unprovisioned_backend(
 #[rstest]
 #[tokio::test]
 async fn nethsm_diff_diff_fails_on_discrepancies() -> TestResult {
-    setup_logging(LevelFilter::Debug)?;
+    setup_terminal_logging(LevelFilter::Debug)?;
 
     // Setup the system in accordance with a default config.
     let system_prepare_config = SystemPrepareConfig {

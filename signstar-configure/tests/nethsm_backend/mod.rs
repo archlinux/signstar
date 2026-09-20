@@ -5,7 +5,7 @@
     not(feature = "yubihsm2")
 ))]
 use log::LevelFilter;
-use signstar_common::logging::setup_logging;
+use signstar_common::logging::setup_terminal_logging;
 use signstar_config::test::{
     ConfigFileConfig,
     ConfigFileLocation,
@@ -20,7 +20,7 @@ use testresult::TestResult;
 /// in one of the default system locations but no physical NetHSM backend is available.
 #[test]
 fn host_configuration_sync_aborts_on_unavailable_connections() -> TestResult {
-    setup_logging(LevelFilter::Debug)?;
+    setup_terminal_logging(LevelFilter::Debug)?;
 
     let system_prepare_config = SystemPrepareConfig {
         machine_id: false,
@@ -60,7 +60,7 @@ mod cli {
     /// connections.
     #[test]
     fn abort_on_unavailable_backend_connections() -> TestResult {
-        setup_logging(LevelFilter::Debug)?;
+        setup_terminal_logging(LevelFilter::Debug)?;
 
         let system_prepare_config = SystemPrepareConfig {
             machine_id: false,
@@ -100,7 +100,7 @@ mod cli {
     /// Ensures, that calling the `signstar-configure` CLI fails on no configuration file.
     #[test]
     fn fail_on_no_configuration_file() -> TestResult {
-        setup_logging(LevelFilter::Debug)?;
+        setup_terminal_logging(LevelFilter::Debug)?;
 
         let system_prepare_config = SystemPrepareConfig {
             machine_id: false,

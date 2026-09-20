@@ -104,7 +104,7 @@ impl From<&Connection> for Connector {
 #[cfg(test)]
 mod tests {
     use log::LevelFilter;
-    use signstar_common::logging::setup_logging;
+    use signstar_common::logging::setup_terminal_logging;
     use testresult::TestResult;
 
     use super::*;
@@ -113,7 +113,7 @@ mod tests {
     #[cfg(feature = "_yubihsm2-mockhsm")]
     #[test]
     fn connection_is_available_succeeds_with_mockhsm() -> TestResult {
-        setup_logging(LevelFilter::Debug)?;
+        setup_terminal_logging(LevelFilter::Debug)?;
         let connection = Connection::Mock;
         assert!(connection.is_available());
 
@@ -124,7 +124,7 @@ mod tests {
     /// serial number `0012345678`.
     #[test]
     fn connection_is_available_fails_with_hardware() -> TestResult {
-        setup_logging(LevelFilter::Debug)?;
+        setup_terminal_logging(LevelFilter::Debug)?;
         let connection = Connection::Usb {
             serial_number: "0012345678".parse()?,
         };
@@ -138,7 +138,7 @@ mod tests {
     #[cfg(feature = "_yubihsm2-mockhsm")]
     #[test]
     fn connection_uses_default_credentials_returns_false_with_mockhsm() -> TestResult {
-        setup_logging(LevelFilter::Debug)?;
+        setup_terminal_logging(LevelFilter::Debug)?;
         let connection = Connection::Mock;
         assert!(!connection.is_provisioned());
 
@@ -149,7 +149,7 @@ mod tests {
     /// [`Connection::Usb`] with serial number `0012345678`.
     #[test]
     fn connection_uses_default_credentials_returns_false_with_hardware() -> TestResult {
-        setup_logging(LevelFilter::Debug)?;
+        setup_terminal_logging(LevelFilter::Debug)?;
         let connection = Connection::Usb {
             serial_number: "0012345678".parse()?,
         };

@@ -7,7 +7,7 @@
 ))]
 
 use log::LevelFilter;
-use signstar_common::logging::setup_logging;
+use signstar_common::logging::setup_terminal_logging;
 use signstar_config::test::{
     ConfigFileConfig,
     ConfigFileLocation,
@@ -21,7 +21,7 @@ use testresult::TestResult;
 /// the default system location.
 #[test]
 fn load_config_succeeds() -> TestResult {
-    setup_logging(LevelFilter::Debug)?;
+    setup_terminal_logging(LevelFilter::Debug)?;
 
     let system_prepare_config = SystemPrepareConfig {
         machine_id: false,
@@ -48,7 +48,7 @@ fn load_config_succeeds() -> TestResult {
 /// default system location.
 #[test]
 fn load_config_fails() -> TestResult {
-    setup_logging(LevelFilter::Debug)?;
+    setup_terminal_logging(LevelFilter::Debug)?;
 
     let system_prepare_config = SystemPrepareConfig {
         machine_id: false,

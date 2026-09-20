@@ -23,7 +23,7 @@ use rand::rng;
 use russh::keys::ssh_key::{PrivateKey, PublicKey, private::Ed25519Keypair};
 use russh::server::{self, ChannelOpenHandle, Msg, Server as _, Session as ServerSession};
 use russh::{Channel, ChannelId};
-use signstar_common::logging::setup_logging;
+use signstar_common::logging::setup_terminal_logging;
 use signstar_request_signature::Request;
 use signstar_request_signature::ssh::client::ConnectConfig;
 use ssh_agent_lib::ssh_encoding::Encode as _;
@@ -92,7 +92,7 @@ async fn start(temp_dir: impl AsRef<std::path::Path>) -> TestResult<SshSetup> {
 
 #[tokio::test]
 async fn ssh_roundtrip() -> TestResult {
-    setup_logging(LevelFilter::Info)?;
+    setup_terminal_logging(LevelFilter::Info)?;
 
     let temp_dir = tempfile::tempdir()?;
     let setup = start(&temp_dir).await?;

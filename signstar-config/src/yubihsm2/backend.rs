@@ -1439,7 +1439,7 @@ mod tests {
 
     use log::LevelFilter;
     use rstest::{fixture, rstest};
-    use signstar_common::logging::setup_logging;
+    use signstar_common::logging::setup_terminal_logging;
     use signstar_crypto::{
         AdministrativeSecretHandling,
         NonAdministrativeSecretHandling,
@@ -1559,7 +1559,7 @@ mod tests {
         admin_credentials: &'admin_creds YubiHsm2AdminCredentials,
         signstar_config: &'config Config,
     ) -> TestResult<YubiHsm2Backend<'admin_creds, 'config>> {
-        setup_logging(LevelFilter::Debug)?;
+        setup_terminal_logging(LevelFilter::Debug)?;
         let Some(backend) = YubiHsm2Backend::new(connector, admin_credentials, signstar_config)?
         else {
             panic!("The Config did not contain a YubiHsm2Config.");
@@ -1788,7 +1788,7 @@ mod tests {
         #[case] admin_credentials: YubiHsm2AdminCredentials,
         #[case] yubihsm2_config: YubiHsm2Config,
     ) -> TestResult {
-        setup_logging(LevelFilter::Debug)?;
+        setup_terminal_logging(LevelFilter::Debug)?;
 
         let config = ConfigBuilder::new(SystemConfig::new(
             1,

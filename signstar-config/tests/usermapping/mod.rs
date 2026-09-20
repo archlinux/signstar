@@ -10,7 +10,7 @@ mod nethsm {
     use log::LevelFilter;
     use rstest::rstest;
     use signstar_common::common::get_data_home;
-    use signstar_common::{logging::setup_logging, system_user::get_home_base_dir_path};
+    use signstar_common::{logging::setup_terminal_logging, system_user::get_home_base_dir_path};
     use signstar_config::test::{list_files_in_dir, start_credentials_socket, write_machine_id};
     use signstar_crypto::NonAdministrativeSecretHandling;
     use testresult::TestResult;
@@ -32,7 +32,7 @@ mod nethsm {
         #[case] backend_kind: &str,
         #[case] user: Option<&str>,
     ) -> TestResult {
-        setup_logging(LevelFilter::Debug)?;
+        setup_terminal_logging(LevelFilter::Debug)?;
         // Create unix user and its home
         if let Some(user) = user {
             create_users(&[user], Some(&get_home_base_dir_path()), None)?;
@@ -91,7 +91,7 @@ mod nethsm {
         #[case] backend_kind: &str,
         #[case] user: &str,
     ) -> TestResult {
-        setup_logging(LevelFilter::Debug)?;
+        setup_terminal_logging(LevelFilter::Debug)?;
 
         // Create a mismatching Unix user and its home.
         let unix_user = "wrong-user";
@@ -184,7 +184,7 @@ mod nethsm {
         #[case] user: Option<&str>,
         #[case] secret_handling: NonAdministrativeSecretHandling,
     ) -> TestResult {
-        setup_logging(LevelFilter::Debug)?;
+        setup_terminal_logging(LevelFilter::Debug)?;
 
         // Prepare the test environment.
         write_machine_id()?;
@@ -315,7 +315,7 @@ mod yubihsm2 {
     use log::LevelFilter;
     use rstest::rstest;
     use signstar_common::common::get_data_home;
-    use signstar_common::{logging::setup_logging, system_user::get_home_base_dir_path};
+    use signstar_common::{logging::setup_terminal_logging, system_user::get_home_base_dir_path};
     use signstar_config::test::{list_files_in_dir, start_credentials_socket, write_machine_id};
     use signstar_crypto::NonAdministrativeSecretHandling;
     use testresult::TestResult;
@@ -337,7 +337,7 @@ mod yubihsm2 {
         #[case] backend_kind: &str,
         #[case] user: Option<&str>,
     ) -> TestResult {
-        setup_logging(LevelFilter::Debug)?;
+        setup_terminal_logging(LevelFilter::Debug)?;
         // Create unix user and its home
         if let Some(user) = user {
             create_users(&[user], Some(&get_home_base_dir_path()), None)?;
@@ -396,7 +396,7 @@ mod yubihsm2 {
         #[case] backend_kind: &str,
         #[case] user: &str,
     ) -> TestResult {
-        setup_logging(LevelFilter::Debug)?;
+        setup_terminal_logging(LevelFilter::Debug)?;
 
         // Create a mismatching Unix user and its home.
         let unix_user = "wrong-user";
@@ -489,7 +489,7 @@ mod yubihsm2 {
         #[case] system_user: Option<&str>,
         #[case] secret_handling: NonAdministrativeSecretHandling,
     ) -> TestResult {
-        setup_logging(LevelFilter::Debug)?;
+        setup_terminal_logging(LevelFilter::Debug)?;
 
         // Prepare the test environment.
         write_machine_id()?;

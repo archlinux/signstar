@@ -821,7 +821,7 @@ mod tests {
     use insta::{assert_snapshot, with_settings};
     use log::{LevelFilter, info};
     use rstest::{fixture, rstest};
-    use signstar_common::logging::setup_logging;
+    use signstar_common::logging::setup_terminal_logging;
     use signstar_crypto::{
         AdministrativeSecretHandling,
         NonAdministrativeSecretHandling,
@@ -1368,7 +1368,7 @@ mod tests {
         yubihsm2_config: TestResult<YubiHsm2Config>,
         yubihsm2_mappings: TestResult<[YubiHsm2UserMapping; 5]>,
     ) -> TestResult {
-        setup_logging(LevelFilter::Debug)?;
+        setup_terminal_logging(LevelFilter::Debug)?;
         let yubihsm2_config = yubihsm2_config?;
         let yubihsm2_mappings = yubihsm2_mappings?;
         let state = YubiHsm2ConfigState::from(&yubihsm2_config);
@@ -1420,7 +1420,7 @@ mod tests {
     /// Ensures, that [`YubiHsm2ConfigState::state_name`] returns the correct data.
     #[rstest]
     fn yubihsm_config_state_state_name(yubihsm2_config: TestResult<YubiHsm2Config>) -> TestResult {
-        setup_logging(LevelFilter::Debug)?;
+        setup_terminal_logging(LevelFilter::Debug)?;
         let yubihsm2_config = yubihsm2_config?;
         let state = YubiHsm2ConfigState::from(&yubihsm2_config);
 
@@ -1434,7 +1434,7 @@ mod tests {
     fn yubihsm_config_state_state_origin(
         yubihsm2_config: TestResult<YubiHsm2Config>,
     ) -> TestResult {
-        setup_logging(LevelFilter::Debug)?;
+        setup_terminal_logging(LevelFilter::Debug)?;
         let yubihsm2_config = yubihsm2_config?;
         let state = YubiHsm2ConfigState::from(&yubihsm2_config);
 
@@ -1635,7 +1635,7 @@ mod tests {
         yubihsm2_non_admin_credentials: TestResult<Vec<Credentials>>,
         config: TestResult<Config>,
     ) -> TestResult {
-        setup_logging(LevelFilter::Debug)?;
+        setup_terminal_logging(LevelFilter::Debug)?;
         let yubihsm2_admin_credentials = yubihsm2_admin_credentials?;
         let yubihsm2_non_admin_credentials = yubihsm2_non_admin_credentials?;
         let config = config?;

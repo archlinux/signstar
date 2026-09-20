@@ -69,7 +69,7 @@ mod tests {
     use std::fs::{Permissions, set_permissions};
 
     use log::{LevelFilter, debug};
-    use signstar_common::logging::setup_logging;
+    use signstar_common::logging::setup_terminal_logging;
     use tempfile::{NamedTempFile, TempDir};
     use testresult::TestResult;
 
@@ -79,7 +79,7 @@ mod tests {
     /// [`check_secrets_file`].
     #[test]
     fn check_secrets_file_succeeds() -> TestResult {
-        setup_logging(LevelFilter::Debug)?;
+        setup_terminal_logging(LevelFilter::Debug)?;
 
         let temp_file = NamedTempFile::new()?;
         let path = temp_file.path();
@@ -97,7 +97,7 @@ mod tests {
     /// Ensures that passing a non-existent file to [`check_secrets_file`] fails.
     #[test]
     fn check_secrets_file_fails_on_missing_file() -> TestResult {
-        setup_logging(LevelFilter::Debug)?;
+        setup_terminal_logging(LevelFilter::Debug)?;
 
         let temp_file = NamedTempFile::new()?;
         let path = temp_file.path().to_path_buf();
@@ -113,7 +113,7 @@ mod tests {
     /// Ensures that passing a directory to [`check_secrets_file`] fails.
     #[test]
     fn check_secrets_file_fails_on_dir() -> TestResult {
-        setup_logging(LevelFilter::Debug)?;
+        setup_terminal_logging(LevelFilter::Debug)?;
 
         let temp_file = TempDir::new()?;
         let path = temp_file.path();
@@ -132,7 +132,7 @@ mod tests {
     /// Ensures that a file without the correct permissions fails [`check_secrets_file`].
     #[test]
     fn check_secrets_file_fails_on_invalid_permissions() -> TestResult {
-        setup_logging(LevelFilter::Debug)?;
+        setup_terminal_logging(LevelFilter::Debug)?;
 
         let temp_file = NamedTempFile::new()?;
         let path = temp_file.path();

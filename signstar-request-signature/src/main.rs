@@ -3,7 +3,7 @@
 use std::process::ExitCode;
 
 use clap::Parser;
-use signstar_common::logging::setup_logging;
+use signstar_common::logging::setup_terminal_logging;
 use signstar_request_signature::{
     Error,
     Request,
@@ -62,7 +62,7 @@ async fn run_command(args: Cli) -> Result<(), Error> {
 async fn main() -> ExitCode {
     let args = Cli::parse();
 
-    if let Err(error) = setup_logging(args.verbosity) {
+    if let Err(error) = setup_terminal_logging(args.verbosity) {
         eprintln!("{error}");
         return ExitCode::FAILURE;
     }

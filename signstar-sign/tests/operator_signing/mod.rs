@@ -18,7 +18,7 @@ use pgp::composed::{Deserializable as _, DetachedSignature};
 use pgp::packet::SignatureType;
 use rcgen::{CertifiedKey, generate_simple_self_signed};
 use rstest::rstest;
-use signstar_common::logging::setup_logging;
+use signstar_common::logging::setup_terminal_logging;
 #[cfg(any(feature = "nethsm", feature = "yubihsm2"))]
 use signstar_config::config::MappingSystemUserId;
 #[cfg(feature = "nethsm")]
@@ -151,7 +151,7 @@ async fn sign_data(_req: HttpRequest) -> impl Responder {
 )]
 #[tokio::test]
 async fn run_signstar_sign(#[case] prepare_config: SystemPrepareConfig) -> TestResult {
-    setup_logging(LevelFilter::Info)?;
+    setup_terminal_logging(LevelFilter::Info)?;
     let _credentials_socket = prepare_config.apply()?;
     let config = Config::from_system_path()?;
 

@@ -12,7 +12,7 @@ use nethsm::test::{
 use nethsm::{Connection, ConnectionSecurity, NetHsm, Passphrase, UserId};
 use rstest::rstest;
 use rustainers::Container;
-use signstar_common::{logging::setup_logging, traits::BackendCheck};
+use signstar_common::{logging::setup_terminal_logging, traits::BackendCheck};
 use testdir::testdir;
 use testresult::TestResult;
 
@@ -83,7 +83,7 @@ async fn system_info(
 async fn connection_is_available_succeeds(
     #[future] unprovisioned_nethsm: TestResult<(NetHsm, Container<NetHsmImage>)>,
 ) -> TestResult {
-    setup_logging(LevelFilter::Debug)?;
+    setup_terminal_logging(LevelFilter::Debug)?;
     let (nethsm, _container) = unprovisioned_nethsm.await?;
     let connection = Connection::new(nethsm.get_url(), ConnectionSecurity::Unsafe);
     assert!(connection.is_available());
@@ -95,7 +95,7 @@ async fn connection_is_available_succeeds(
 /// `false`.
 #[rstest]
 fn connection_is_available_fails() -> TestResult {
-    setup_logging(LevelFilter::Debug)?;
+    setup_terminal_logging(LevelFilter::Debug)?;
     let connection = Connection::new(
         "https://127.0.0.1:12345/this/probably/does/not/exist/".parse()?,
         ConnectionSecurity::Unsafe,
@@ -112,7 +112,7 @@ fn connection_is_available_fails() -> TestResult {
 async fn connection_is_provisioned_returns_false(
     #[future] unprovisioned_nethsm: TestResult<(NetHsm, Container<NetHsmImage>)>,
 ) -> TestResult {
-    setup_logging(LevelFilter::Debug)?;
+    setup_terminal_logging(LevelFilter::Debug)?;
     let (nethsm, _container) = unprovisioned_nethsm.await?;
     let connection = Connection::new(nethsm.get_url(), ConnectionSecurity::Unsafe);
     assert!(connection.is_provisioned());
@@ -127,7 +127,7 @@ async fn connection_is_provisioned_returns_false(
 async fn connection_is_provisioned_returns_true(
     #[future] nethsm_with_users: TestResult<(NetHsm, Container<NetHsmImage>)>,
 ) -> TestResult {
-    setup_logging(LevelFilter::Debug)?;
+    setup_terminal_logging(LevelFilter::Debug)?;
     let (nethsm, _container) = nethsm_with_users.await?;
     let connection = Connection::new(nethsm.get_url(), ConnectionSecurity::Unsafe);
     assert!(!connection.is_provisioned());

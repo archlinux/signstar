@@ -6,7 +6,7 @@
 ))]
 
 use log::LevelFilter;
-use signstar_common::logging::setup_logging;
+use signstar_common::logging::setup_terminal_logging;
 use signstar_config::test::{
     ConfigFileConfig,
     ConfigFileLocation,
@@ -22,7 +22,7 @@ use testresult::TestResult;
 #[test]
 #[cfg(feature = "_yubihsm2-mockhsm")]
 fn host_configuration_sync_succeeds_on_host_without_admin_creds_and_mockhsm() -> TestResult {
-    setup_logging(LevelFilter::Debug)?;
+    setup_terminal_logging(LevelFilter::Debug)?;
 
     let system_prepare_config = SystemPrepareConfig {
         machine_id: false,
@@ -51,7 +51,7 @@ fn host_configuration_sync_succeeds_on_host_without_admin_creds_and_mockhsm() ->
 /// in one of the default system locations but no physical YubiHSM2 backend is available.
 #[test]
 fn host_configuration_sync_aborts_on_unavailable_connections() -> TestResult {
-    setup_logging(LevelFilter::Debug)?;
+    setup_terminal_logging(LevelFilter::Debug)?;
 
     let system_prepare_config = SystemPrepareConfig {
         machine_id: false,
@@ -84,6 +84,7 @@ mod cli {
     use std::process::{ExitCode, Termination};
 
     use assert_cmd::cargo::cargo_bin_cmd;
+    use log::debug;
 
     use super::*;
 
@@ -93,7 +94,7 @@ mod cli {
     #[test]
     #[cfg(feature = "_yubihsm2-mockhsm")]
     fn succeeds_on_host_without_admin_creds_and_mockhsm() -> TestResult {
-        setup_logging(LevelFilter::Debug)?;
+        setup_terminal_logging(LevelFilter::Debug)?;
 
         let system_prepare_config = SystemPrepareConfig {
             machine_id: false,
@@ -112,12 +113,21 @@ mod cli {
 
         let exit_code = {
             let mut command = cargo_bin_cmd!();
+            debug!("Running command {command:?}");
             let output = command
                 .arg("--verbose")
                 .arg("--verbose")
                 .arg("--verbose")
                 .output()?;
 
+            debug!(
+                "command stdout: {}",
+                String::from_utf8_lossy(&output.stdout)
+            );
+            debug!(
+                "command stderr: {}",
+                String::from_utf8_lossy(&output.stderr)
+            );
             ExitCode::from(u8::try_from(
                 output.status.code().expect("there to be an exit code"),
             )?)
@@ -132,7 +142,7 @@ mod cli {
     /// connections.
     #[test]
     fn abort_on_unavailable_backend_connections() -> TestResult {
-        setup_logging(LevelFilter::Debug)?;
+        setup_terminal_logging(LevelFilter::Debug)?;
 
         let system_prepare_config = SystemPrepareConfig {
             machine_id: false,
@@ -150,12 +160,21 @@ mod cli {
 
         let exit_code = {
             let mut command = cargo_bin_cmd!();
+            debug!("Running command {command:?}");
             let output = command
                 .arg("--verbose")
                 .arg("--verbose")
                 .arg("--verbose")
                 .output()?;
 
+            debug!(
+                "command stdout: {}",
+                String::from_utf8_lossy(&output.stdout)
+            );
+            debug!(
+                "command stderr: {}",
+                String::from_utf8_lossy(&output.stderr)
+            );
             ExitCode::from(u8::try_from(
                 output.status.code().expect("there to be an exit code"),
             )?)
@@ -172,7 +191,7 @@ mod cli {
     /// Ensures, that calling the `signstar-configure` CLI fails on no configuration file.
     #[test]
     fn fail_on_no_configuration_file() -> TestResult {
-        setup_logging(LevelFilter::Debug)?;
+        setup_terminal_logging(LevelFilter::Debug)?;
 
         let system_prepare_config = SystemPrepareConfig {
             machine_id: false,
@@ -190,12 +209,21 @@ mod cli {
 
         let exit_code = {
             let mut command = cargo_bin_cmd!();
+            debug!("Running command {command:?}");
             let output = command
                 .arg("--verbose")
                 .arg("--verbose")
                 .arg("--verbose")
                 .output()?;
 
+            debug!(
+                "command stdout: {}",
+                String::from_utf8_lossy(&output.stdout)
+            );
+            debug!(
+                "command stderr: {}",
+                String::from_utf8_lossy(&output.stderr)
+            );
             ExitCode::from(u8::try_from(
                 output.status.code().expect("there to be an exit code"),
             )?)

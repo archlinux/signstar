@@ -2754,7 +2754,7 @@ mod tests {
     mod all_backends {
         use log::LevelFilter;
         use pretty_assertions::assert_eq;
-        use signstar_common::logging::setup_logging;
+        use signstar_common::logging::setup_terminal_logging;
 
         use super::*;
         use crate::config::{
@@ -3673,7 +3673,7 @@ mod tests {
             #[case] filters: &[UserBackendConnectionFilter],
             #[case] expected_connections: Vec<UserBackendConnection>,
         ) -> TestResult {
-            setup_logging(LevelFilter::Debug)?;
+            setup_terminal_logging(LevelFilter::Debug)?;
             let config = default_config?;
 
             assert_eq!(
