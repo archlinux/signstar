@@ -34,7 +34,7 @@ pub enum Error {
 
     /// A [`signstar_common::logging::Error`] occurred.
     #[error(transparent)]
-    SignstarCommonLogging(#[from] signstar_common::logging::Error),
+    SignstarCommon(#[from] signstar_common::Error),
 }
 
 #[derive(Debug, Parser)]

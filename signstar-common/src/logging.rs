@@ -24,12 +24,12 @@ pub enum Error {
 /// # Errors
 ///
 /// An error is returned if a logger has already been set.
-pub fn setup_logging(max_level: impl Into<LevelFilter>) -> Result<(), Error> {
+pub fn setup_logging(max_level: impl Into<LevelFilter>) -> Result<(), crate::Error> {
     if let Ok(log) = JournalLog::new().map(|log| {
         Box::new(log.with_extra_fields(vec![("VERSION", env!("CARGO_PKG_VERSION"))]))
             as Box<dyn Log>
     }) {
-        log::set_boxed_logger(log)?;
+        log::set_boxed_logger(log).map_err(Error::Logger)?;
         log::set_max_level(max_level.into());
     } else {
         TermLogger::init(
@@ -38,7 +38,8 @@ pub fn setup_logging(max_level: impl Into<LevelFilter>) -> Result<(), Error> {
             // simplelog needs to be explicitly instructed to always use stderr
             TerminalMode::Stderr,
             ColorChoice::Auto,
-        )?;
+        )
+        .map_err(Error::Logger)?;
     }
     Ok(())
 }

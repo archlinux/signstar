@@ -82,7 +82,7 @@ pub fn get_systemd_creds_credentials_file() -> PathBuf {
 ///
 /// Returns an error if the directory or one of its parents can not be created.
 /// Refer to [`create_dir_all`] for further information on failure scenarios.
-pub fn create_credentials_dir() -> Result<(), Error> {
+pub fn create_credentials_dir() -> Result<(), crate::Error> {
     let credentials_dir = get_credentials_dir();
     create_dir_all(credentials_dir.as_path()).map_err(|source| Error::CreateDirectory {
         dir: CREDENTIALS_DIR,

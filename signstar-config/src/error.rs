@@ -138,9 +138,9 @@ pub enum Error {
     #[error("NetHSM backend error:\n{0}")]
     NetHsmBackend(#[from] crate::nethsm::Error),
 
-    /// Low-level administrative credentials handling in signstar-common failed.
-    #[error("Handling of administrative credentials failed:\n{0}")]
-    SignstarCommonAdminCreds(#[from] signstar_common::admin_credentials::Error),
+    /// A signstar-common error occurred.
+    #[error("Common error: {0}")]
+    SignstarCommon(#[from] signstar_common::Error),
 
     /// A [`signstar_crypto::Error`] occurred.
     #[error(transparent)]

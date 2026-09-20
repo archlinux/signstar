@@ -163,10 +163,13 @@ pub fn get_default_config_dir_path() -> PathBuf {
 ///
 /// Returns an error if the directory or one of its parents can not be created.
 /// Refer to [`create_dir_all`] for further information on failure scenarios.
-pub fn create_default_config_dir() -> Result<(), Error> {
-    create_dir_all(get_default_config_dir_path()).map_err(|source| Error::CreateDirectory {
-        dir: DEFAULT_CONFIG_DIR.to_string(),
-        source,
+pub fn create_default_config_dir() -> Result<(), crate::Error> {
+    create_dir_all(get_default_config_dir_path()).map_err(|source| {
+        Error::CreateDirectory {
+            dir: DEFAULT_CONFIG_DIR.to_string(),
+            source,
+        }
+        .into()
     })
 }
 
@@ -176,10 +179,13 @@ pub fn create_default_config_dir() -> Result<(), Error> {
 ///
 /// Returns an error if the directory or one of its parents can not be created.
 /// Refer to [`create_dir_all`] for further information on failure scenarios.
-pub fn create_etc_override_config_dir() -> Result<(), Error> {
-    create_dir_all(get_etc_override_dir_path()).map_err(|source| Error::CreateDirectory {
-        dir: ETC_OVERRIDE_CONFIG_DIR.to_string(),
-        source,
+pub fn create_etc_override_config_dir() -> Result<(), crate::Error> {
+    create_dir_all(get_etc_override_dir_path()).map_err(|source| {
+        Error::CreateDirectory {
+            dir: ETC_OVERRIDE_CONFIG_DIR.to_string(),
+            source,
+        }
+        .into()
     })
 }
 
@@ -189,10 +195,13 @@ pub fn create_etc_override_config_dir() -> Result<(), Error> {
 ///
 /// Returns an error if the directory or one of its parents can not be created.
 /// Refer to [`create_dir_all`] for further information on failure scenarios.
-pub fn create_run_override_config_dir() -> Result<(), Error> {
-    create_dir_all(get_run_override_dir_path()).map_err(|source| Error::CreateDirectory {
-        dir: RUN_OVERRIDE_CONFIG_DIR.to_string(),
-        source,
+pub fn create_run_override_config_dir() -> Result<(), crate::Error> {
+    create_dir_all(get_run_override_dir_path()).map_err(|source| {
+        Error::CreateDirectory {
+            dir: RUN_OVERRIDE_CONFIG_DIR.to_string(),
+            source,
+        }
+        .into()
     })
 }
 
@@ -202,9 +211,12 @@ pub fn create_run_override_config_dir() -> Result<(), Error> {
 ///
 /// Returns an error if the directory or one of its parents can not be created.
 /// Refer to [`create_dir_all`] for further information on failure scenarios.
-pub fn create_usr_local_override_config_dir() -> Result<(), Error> {
-    create_dir_all(get_usr_local_override_dir_path()).map_err(|source| Error::CreateDirectory {
-        dir: USR_LOCAL_OVERRIDE_CONFIG_DIR.to_string(),
-        source,
+pub fn create_usr_local_override_config_dir() -> Result<(), crate::Error> {
+    create_dir_all(get_usr_local_override_dir_path()).map_err(|source| {
+        Error::CreateDirectory {
+            dir: USR_LOCAL_OVERRIDE_CONFIG_DIR.to_string(),
+            source,
+        }
+        .into()
     })
 }
