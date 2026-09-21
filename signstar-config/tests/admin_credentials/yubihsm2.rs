@@ -5,15 +5,15 @@ use std::{
     io::Write,
 };
 
+use log::{LevelFilter, debug};
 use rstest::{fixture, rstest};
-use signstar_common::admin_credentials::{
-    create_credentials_dir,
-    get_plaintext_credentials_file,
-    get_systemd_creds_credentials_file,
+use signstar_common::{
+    admin_credentials::{get_plaintext_credentials_file, get_systemd_creds_credentials_file},
+    logging::setup_terminal_logging,
 };
 use signstar_config::{
     admin_credentials::AdminCredentials,
-    test::write_machine_id,
+    test::{ConfigFileConfig, ConfigFileVariant, SystemPrepareConfig},
     yubihsm2::admin_credentials::YubiHsm2AdminCredentials,
 };
 use signstar_crypto::AdministrativeSecretHandling;
@@ -83,14 +83,27 @@ fn store_to_and_load_from_default_location(
     #[case] handling: AdministrativeSecretHandling,
     default_creds: TestResult<YubiHsm2AdminCredentials>,
 ) -> TestResult {
+    setup_terminal_logging(LevelFilter::Debug)?;
     // Prepare the environment.
-    write_machine_id()?;
-    create_credentials_dir()?;
+    let config = SystemPrepareConfig {
+        machine_id: true,
+        credentials_socket: true,
+        signstar_config: ConfigFileConfig {
+            location: None,
+            variant: ConfigFileVariant::NoBackendAdminPlaintextNonAdminPlaintext,
+            system_user_config: None,
+        },
+    };
+    let _socket = config.apply()?;
 
     let default_creds = default_creds?;
     let config_path = match handling {
         AdministrativeSecretHandling::Plaintext => {
             let config_path = get_plaintext_credentials_file();
+            debug!("config path: {config_path:?}");
+            if let Some(path) = config_path.parent() {
+                create_dir_all(path)?;
+            }
 
             // Check if the plaintext representation matches the fixture
             let mut file = File::create(&config_path)?;
