@@ -354,10 +354,11 @@ impl YubiHsm2UserMapping {
     ///
     /// Each item relates to a [capability] of the YubiHSM2 device:
     ///
-    /// - `sign-eddsa`
+    /// - `get-opaque` - for retrieving the OpenPGP certificate,
+    /// - `sign-eddsa` - for using the hardware key for signing.
     ///
     /// [capability]: https://docs.yubico.com/hardware/yubihsm-2/hsm-2-user-guide/hsm2-core-concepts.html#capability-protocol-details
-    pub const CAP_SIGNING: &[Capability] = &[Capability::SignEddsa];
+    pub const CAP_SIGNING: &[Capability] = &[Capability::GetOpaque, Capability::SignEddsa];
 
     /// Returns the [`Domains`] of the [`YubiHsm2UserMapping`].
     pub fn domains(&self) -> Domains {
