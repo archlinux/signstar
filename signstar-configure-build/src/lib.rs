@@ -678,6 +678,9 @@ impl TryFrom<&YubiHsm2UserMapping> for SshForceCommand {
             }),
             YubiHsm2UserMapping::AuditLog { .. } => Ok(SshForceCommand::DownloadMetrics),
             YubiHsm2UserMapping::Backup { .. } => Ok(SshForceCommand::DownloadBackup),
+            YubiHsm2UserMapping::CertificateRetrieval { .. } => {
+                Ok(SshForceCommand::DownloadKeyCertificate)
+            }
             YubiHsm2UserMapping::HermeticAuditLog {
                 authentication_key_id,
                 system_user,

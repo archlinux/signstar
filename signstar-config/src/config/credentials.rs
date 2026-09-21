@@ -243,6 +243,14 @@ pub enum SystemUserData<'a> {
         ssh_authorized_key: &'a AuthorizedKeyEntry,
     },
 
+    /// The system user is used to retrieve certificates from a Signstar backend.
+    BackendCertificateRetrieval {
+        /// The system user.
+        system_user: &'a SystemUserId,
+        /// The SSH authorized key for `system_user`.
+        ssh_authorized_key: &'a AuthorizedKeyEntry,
+    },
+
     /// The system user is used to deal with the metrics of a Signstar backend.
     ///
     /// # Note
@@ -314,6 +322,7 @@ impl<'a> SystemUserData<'a> {
         match self {
             Self::BackendAdmin { system_user } | Self::Unknown { system_user, .. } => system_user,
             Self::BackendBackup { system_user, .. }
+            | Self::BackendCertificateRetrieval { system_user, .. }
             | Self::BackendHermeticMetrics { system_user }
             | Self::BackendMetrics { system_user, .. }
             | Self::BackendSign { system_user, .. }
@@ -328,6 +337,9 @@ impl<'a> SystemUserData<'a> {
         match self {
             Self::BackendAdmin { .. } | Self::BackendHermeticMetrics { .. } => Vec::new(),
             Self::BackendBackup {
+                ssh_authorized_key, ..
+            }
+            | Self::BackendCertificateRetrieval {
                 ssh_authorized_key, ..
             }
             | Self::BackendMetrics {
@@ -378,6 +390,7 @@ impl<'a> Display for SystemUserData<'a> {
             match self {
                 Self::BackendAdmin { .. } => "for backend administration",
                 Self::BackendBackup { .. } => "for backend backups",
+                Self::BackendCertificateRetrieval { .. } => "for backend certificate retrieval",
                 Self::BackendHermeticMetrics { .. } => "for hermetic backend metrics",
                 Self::BackendMetrics { .. } => "for backend metrics",
                 Self::BackendSign { .. } => "for signing using a backend",

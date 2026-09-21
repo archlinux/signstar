@@ -173,6 +173,39 @@ pub enum YubiHsm2UserMapping {
         system_user: SystemUserId,
     },
 
+    /// A mapping used for the retrieval of certificates stored in the YubiHSM2.
+    ///
+    /// This variant tracks
+    ///
+    /// - an [authentication key object] with a specific `authentication_key_id`
+    /// - an SSH authorized key with a specific `ssh_authorized_key`
+    /// - a system user ID using `system_user`
+    ///
+    /// Its data is used to create relevant system and backend users for the retrieval of
+    /// certificates of all keys of a YubiHSM2 backend.
+    ///
+    /// # Note
+    ///
+    /// This variant implies, that the created [authentication key object] has all relevant
+    /// [capabilities] for backup related actions (see
+    /// [`YubiHsm2UserMapping::CAP_CERTIFICATE_RETRIEVAL`] for details).
+    ///
+    /// Further, it is assumed that the [authentication key object] is added to all [domains].
+    ///
+    /// [authentication key object]: https://docs.yubico.com/hardware/yubihsm-2/hsm-2-user-guide/hsm2-core-concepts.html#authentication-key-object
+    /// [capabilities]: https://docs.yubico.com/hardware/yubihsm-2/hsm-2-user-guide/hsm2-core-concepts.html#capability-protocol-details
+    /// [domains]: https://docs.yubico.com/hardware/yubihsm-2/hsm-2-user-guide/hsm2-core-concepts.html#domains
+    CertificateRetrieval {
+        /// The identifier of the authentication key used to create a session with the YubiHSM2.
+        authentication_key_id: Id,
+
+        /// The SSH public key used for connecting to the `system_user`.
+        ssh_authorized_key: AuthorizedKeyEntry,
+
+        /// The name of the system user.
+        system_user: SystemUserId,
+    },
+
     /// A system user, without SSH access, mapped to a YubiHSM2 authentication key for collecting
     /// audit logs.
     ///
@@ -341,6 +374,15 @@ impl YubiHsm2UserMapping {
     /// [capability]: https://docs.yubico.com/hardware/yubihsm-2/hsm-2-user-guide/hsm2-core-concepts.html#capability-protocol-details
     pub const CAP_BACKUP: &[Capability] = &[Capability::ExportWrapped];
 
+    /// The list of [`Capability`] items required for [`YubiHsm2UserMapping::CertificateRetrieval`].
+    ///
+    /// Each item relates to a [capability] of the YubiHSM2 device:
+    ///
+    /// - `get-opaque` - for retrieving the certificate,
+    ///
+    /// [capability]: https://docs.yubico.com/hardware/yubihsm-2/hsm-2-user-guide/hsm2-core-concepts.html#capability-protocol-details
+    pub const CAP_CERTIFICATE_RETRIEVAL: &[Capability] = &[Capability::GetOpaque];
+
     /// The list of [`Capability`] items required for [`YubiHsm2UserMapping::HermeticAuditLog`].
     ///
     /// Each item relates to a [capability] of the YubiHSM2 device:
@@ -365,6 +407,7 @@ impl YubiHsm2UserMapping {
         match self {
             Self::Admin { .. }
             | Self::Backup { .. }
+            | Self::CertificateRetrieval { .. }
             | Self::AuditLog { .. }
             | Self::HermeticAuditLog { .. } => Domains::all(),
             Self::Signing {
@@ -384,6 +427,10 @@ impl YubiHsm2UserMapping {
                 ..
             }
             | Self::Backup {
+                authentication_key_id,
+                ..
+            }
+            | Self::CertificateRetrieval {
                 authentication_key_id,
                 ..
             }
@@ -409,6 +456,7 @@ impl YubiHsm2UserMapping {
             Self::Admin { .. } => Self::CAP_ADMIN,
             Self::AuditLog { .. } => Self::CAP_AUDIT_LOG,
             Self::Backup { .. } => Self::CAP_BACKUP,
+            Self::CertificateRetrieval { .. } => Self::CAP_CERTIFICATE_RETRIEVAL,
             Self::HermeticAuditLog { .. } => Self::CAP_HERMETIC_AUDIT_LOG,
             Self::Signing { .. } => Self::CAP_SIGNING,
         })
@@ -420,6 +468,7 @@ impl YubiHsm2UserMapping {
             Self::Admin { .. } => "admin",
             Self::AuditLog { .. } => "audit log",
             Self::Backup { .. } => "backup",
+            Self::CertificateRetrieval { .. } => "certificate retrieval",
             Self::HermeticAuditLog { .. } => "hermetic audit log",
             Self::Signing { .. } => "signing",
         })
@@ -427,31 +476,11 @@ impl YubiHsm2UserMapping {
 
     /// Returns the [`KeyInfo`] for the authentication key of the [`YubiHsm2UserMapping`].
     pub fn authentication_key_info(&self) -> KeyInfo {
-        match self {
-            Self::Admin {
-                authentication_key_id,
-            }
-            | Self::AuditLog {
-                authentication_key_id,
-                ..
-            }
-            | Self::Backup {
-                authentication_key_id,
-                ..
-            }
-            | Self::HermeticAuditLog {
-                authentication_key_id,
-                ..
-            }
-            | Self::Signing {
-                authentication_key_id,
-                ..
-            } => KeyInfo {
-                key_id: *authentication_key_id,
-                domains: self.domains(),
-                caps: self.capabilities(),
-                label: self.label(),
-            },
+        KeyInfo {
+            key_id: self.backend_user_id(),
+            domains: self.domains(),
+            caps: self.capabilities(),
+            label: self.label(),
         }
     }
 }
@@ -462,6 +491,7 @@ impl MappingSystemUserId for YubiHsm2UserMapping {
             Self::Admin { .. } => None,
             Self::AuditLog { system_user, .. }
             | Self::Backup { system_user, .. }
+            | Self::CertificateRetrieval { system_user, .. }
             | Self::HermeticAuditLog { system_user, .. }
             | Self::Signing { system_user, .. } => Some(system_user),
         }
@@ -506,6 +536,22 @@ impl MappingBackendUserIds for YubiHsm2UserMapping {
                     BackendUserIdKind::Any,
                     BackendUserIdKind::Backup,
                     BackendUserIdKind::NonAdmin,
+                ]
+                .contains(&filter.backend_user_id_kind)
+                {
+                    Some(vec![authentication_key_id.to_string()])
+                } else {
+                    None
+                }
+            }
+            Self::CertificateRetrieval {
+                authentication_key_id,
+                ..
+            } => {
+                if [
+                    BackendUserIdKind::Any,
+                    BackendUserIdKind::NonAdmin,
+                    BackendUserIdKind::Observer,
                 ]
                 .contains(&filter.backend_user_id_kind)
                 {
@@ -615,6 +661,22 @@ impl MappingBackendUserIds for YubiHsm2UserMapping {
                     None
                 }
             }
+            Self::CertificateRetrieval {
+                authentication_key_id,
+                ..
+            } => {
+                if [
+                    BackendUserIdKind::Any,
+                    BackendUserIdKind::NonAdmin,
+                    BackendUserIdKind::Observer,
+                ]
+                .contains(&filter.backend_user_id_kind)
+                {
+                    Some(authentication_key_id)
+                } else {
+                    None
+                }
+            }
             Self::HermeticAuditLog {
                 authentication_key_id,
                 ..
@@ -668,6 +730,9 @@ impl MappingAuthorizedKeyEntry for YubiHsm2UserMapping {
             | Self::Backup {
                 ssh_authorized_key, ..
             }
+            | Self::CertificateRetrieval {
+                ssh_authorized_key, ..
+            }
             | Self::Signing {
                 ssh_authorized_key, ..
             } => Some(ssh_authorized_key),
@@ -694,6 +759,14 @@ impl<'a> From<&'a YubiHsm2UserMapping> for SystemUserData<'a> {
                 system_user,
                 ..
             } => Self::BackendBackup {
+                system_user,
+                ssh_authorized_key,
+            },
+            YubiHsm2UserMapping::CertificateRetrieval {
+                ssh_authorized_key,
+                system_user,
+                ..
+            } => Self::BackendCertificateRetrieval {
                 system_user,
                 ssh_authorized_key,
             },
@@ -763,7 +836,10 @@ impl BackendKeyIdFilter for YubiHsm2BackendKeyIdFilter {}
 impl MappingBackendKeyId<YubiHsm2BackendKeyIdFilter> for YubiHsm2UserMapping {
     fn backend_key_id(&self, filter: &YubiHsm2BackendKeyIdFilter) -> Option<String> {
         match self {
-            Self::Admin { .. } | Self::AuditLog { .. } | Self::HermeticAuditLog { .. } => None,
+            Self::Admin { .. }
+            | Self::AuditLog { .. }
+            | Self::CertificateRetrieval { .. }
+            | Self::HermeticAuditLog { .. } => None,
             Self::Backup {
                 wrapping_key_id, ..
             } => {
@@ -1099,6 +1175,9 @@ pub enum AuthType {
     /// An authentication key used for retrieving the backup.
     Backup,
 
+    /// An authentication key used for retrieving certificates.
+    CertificateRetrieval,
+
     /// An authentication key used for retrieving the audit log locally.
     HermeticAuditLog,
 
@@ -1112,6 +1191,7 @@ impl From<&YubiHsm2UserMapping> for AuthType {
             YubiHsm2UserMapping::Admin { .. } => Self::Admin,
             YubiHsm2UserMapping::AuditLog { .. } => Self::AuditLog,
             YubiHsm2UserMapping::Backup { .. } => Self::Backup,
+            YubiHsm2UserMapping::CertificateRetrieval { .. } => Self::CertificateRetrieval,
             YubiHsm2UserMapping::HermeticAuditLog { .. } => Self::HermeticAuditLog,
             YubiHsm2UserMapping::Signing { .. } => Self::Signing,
         }

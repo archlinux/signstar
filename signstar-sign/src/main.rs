@@ -218,6 +218,7 @@ mod impl_any {
                 }
                 YubiHsm2UserMapping::Admin { .. }
                 | YubiHsm2UserMapping::Backup { .. }
+                | YubiHsm2UserMapping::CertificateRetrieval { .. }
                 | YubiHsm2UserMapping::AuditLog { .. }
                 | YubiHsm2UserMapping::HermeticAuditLog { .. } => Err(Error::NoCredentials),
             },

@@ -24,11 +24,15 @@ yubihsm2:
         wrapping_key_id: 2
         ssh_authorized_key: ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINrIYA+bfMBThUP5lKbMFEHiytmcCPhpkGrB/85n0mAN user@host
         system_user: backup-user
-    - hermetic_audit_log:
+    - certificate_retrieval:
         authentication_key_id: 4
+        ssh_authorized_key: ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDfCJD+futTp8vlKxx2Rd1hqY+vnMp9iXSRTeCLhcGmr user@host
+        system_user: yubihsm2-certificate-retrieval-user
+    - hermetic_audit_log:
+        authentication_key_id: 5
         system_user: yubihsm2-hermetic-metrics-user
     - signing:
-        authentication_key_id: 5
+        authentication_key_id: 6
         key_setup:
           key_type: Curve25519
           key_mechanisms:

@@ -244,6 +244,7 @@ async fn run_signstar_sign(#[case] prepare_config: SystemPrepareConfig) -> TestR
                     YubiHsm2UserMapping::Admin { .. }
                     | YubiHsm2UserMapping::AuditLog { .. }
                     | YubiHsm2UserMapping::Backup { .. }
+                    | YubiHsm2UserMapping::CertificateRetrieval { .. }
                     | YubiHsm2UserMapping::HermeticAuditLog { .. } => {
                         // If there is no signing user, there is nothing for us to do.
                         debug!("Not a signing user, skipping...");
