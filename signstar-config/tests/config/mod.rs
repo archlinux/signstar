@@ -1,31 +1,15 @@
 //! Integration tests for [`signstar_config::config`].
-#[cfg(any(feature = "nethsm", feature = "yubihsm2"))]
-use std::{collections::HashMap, io::Write, str::FromStr};
 use std::{
     fs::{File, create_dir_all},
     path::PathBuf,
 };
 
-#[cfg(any(feature = "nethsm", feature = "yubihsm2"))]
-use change_user_run::{CommandOutput, create_users, run_command_as_user};
 use log::{LevelFilter, debug};
 use nix::unistd::{User, geteuid};
 use rstest::rstest;
-use signstar_common::{logging::setup_terminal_logging, system_user::get_home_base_dir_path};
+use signstar_common::logging::setup_terminal_logging;
 use signstar_config::config::{Config, SystemUserId};
-#[cfg(any(feature = "nethsm", feature = "yubihsm2"))]
-use signstar_config::{
-    config::ConfigSystemUserIds,
-    test::{start_credentials_socket, write_machine_id},
-};
 use testresult::TestResult;
-
-#[cfg(any(feature = "nethsm", feature = "yubihsm2"))]
-use crate::{ENV_LIST, LLVM_PROFILE_FILE, collect_coverage_files};
-
-/// The example executable to call during tests.
-#[cfg(any(feature = "nethsm", feature = "yubihsm2"))]
-const PAYLOAD: &str = "/usr/local/bin/examples/config-non-admin-backend-user-secrets";
 
 /// Ensure that [`SystemUserId`] can be created from the current Unix user ("root").
 #[cfg(target_os = "linux")]
@@ -75,6 +59,7 @@ fn config_first_existing_system_path_fails_on_missing_config() -> TestResult {
 /// Tests for when using no backend.
 #[cfg(all(not(feature = "nethsm"), not(feature = "yubihsm2")))]
 mod no_backend {
+    use signstar_common::system_user::get_home_base_dir_path;
     use signstar_config::{
         config::{SystemUserConfigState, SystemUserData, SystemUserDiff, SystemUserHostState},
         state::{StateDiff, StateDiffReport},
@@ -224,38 +209,92 @@ mod no_backend {
 /// Tests for when using only the NetHSM backend.
 #[cfg(all(feature = "nethsm", not(feature = "yubihsm2")))]
 mod nethsm_backend {
+    use std::collections::HashMap;
+
+    use change_user_run::{CommandOutput, run_command_as_user};
+    use signstar_config::{
+        config::ConfigSystemUserIds,
+        test::{
+            ConfigFileConfig,
+            ConfigFileLocation,
+            ConfigFileVariant,
+            SystemPrepareConfig,
+            SystemUserConfig,
+        },
+    };
+
     use super::*;
+    use crate::{ENV_LIST, LLVM_PROFILE_FILE, collect_coverage_files};
+
+    /// The example executable to call during tests.
+    const PAYLOAD: &str = "/usr/local/bin/examples/config-non-admin-backend-user-secrets";
 
     /// Creates secrets for all configured non-administrative backend users.
     ///
     /// Afterwards, loads the secrets of each configured backend user by calling as the specific
     /// configured system user associated.
     #[rstest]
+    #[case::admin_plaintext_non_admin_plaintext(SystemPrepareConfig {
+        machine_id: false,
+        credentials_socket: false,
+        signstar_config: ConfigFileConfig {
+            location: Some(ConfigFileLocation::UsrShare),
+            variant: ConfigFileVariant::OnlyNetHsmBackendAdminPlaintextNonAdminPlaintext,
+            system_user_config: Some(SystemUserConfig {
+                create_secrets: true,
+                create_ssh_authorized_keys: true,
+            }),
+        },
+    })]
+    #[case::admin_plaintext_non_admin_systemd_creds(SystemPrepareConfig {
+        machine_id: true,
+        credentials_socket: true,
+        signstar_config: ConfigFileConfig {
+            location: Some(ConfigFileLocation::UsrShare),
+            variant: ConfigFileVariant::OnlyNetHsmBackendAdminPlaintextNonAdminSystemdCreds,
+            system_user_config: Some(SystemUserConfig {
+                create_secrets: true,
+                create_ssh_authorized_keys: true,
+            }),
+        },
+    })]
+    #[case::admin_systemd_creds_non_admin_plaintext(SystemPrepareConfig {
+        machine_id: false,
+        credentials_socket: false,
+        signstar_config: ConfigFileConfig {
+            location: Some(ConfigFileLocation::UsrShare),
+            variant: ConfigFileVariant::OnlyNetHsmBackendAdminSystemdCredsNonAdminPlaintext,
+            system_user_config: Some(SystemUserConfig {
+                create_secrets: true,
+                create_ssh_authorized_keys: true,
+            }),
+        },
+    })]
+    #[case::admin_systemd_creds_non_admin_systemd_creds(SystemPrepareConfig {
+        machine_id: true,
+        credentials_socket: true,
+        signstar_config: ConfigFileConfig {
+            location: Some(ConfigFileLocation::UsrShare),
+            variant: ConfigFileVariant::OnlyNetHsmBackendAdminSystemdCredsNonAdminSystemdCreds,
+            system_user_config: Some(SystemUserConfig {
+                create_secrets: true,
+                create_ssh_authorized_keys: true,
+            }),
+        },
+    })]
     fn create_and_load_non_admin_secrets(
-        #[files("../fixtures/config/nethsm_backend/*.yaml")]
-        #[exclude("sss")]
-        #[mode = str]
-        config: &str,
+        #[case] system_prepare_config: SystemPrepareConfig,
     ) -> TestResult {
         setup_terminal_logging(LevelFilter::Debug)?;
-        write_machine_id()?;
-        let _socket = start_credentials_socket()?;
+        let _socket = system_prepare_config.apply()?;
+        let config = system_prepare_config.signstar_config.variant.to_config()?;
 
-        // Write config to default location
-        create_dir_all(Config::DEFAULT_CONFIG_DIR)?;
-        let mut file = File::create(Config::default_system_path())?;
-        file.write_all(config.as_bytes())?;
-
-        let config = Config::from_str(config)?;
-
-        // Create all Unix users and their homes.
         let users = config
             .system_user_ids()
             .iter()
             .cloned()
             .map(|id| id.as_ref())
             .collect::<Vec<_>>();
-        create_users(&users, Some(&get_home_base_dir_path()), None)?;
 
         let CommandOutput {
             status,
@@ -328,38 +367,92 @@ mod nethsm_backend {
 /// Tests for when using only the YubiHSM2 backend.
 #[cfg(all(feature = "yubihsm2", not(feature = "nethsm")))]
 mod yubihsm2_backend {
+    use std::collections::HashMap;
+
+    use change_user_run::{CommandOutput, run_command_as_user};
+    use signstar_config::{
+        config::ConfigSystemUserIds,
+        test::{
+            ConfigFileConfig,
+            ConfigFileLocation,
+            ConfigFileVariant,
+            SystemPrepareConfig,
+            SystemUserConfig,
+        },
+    };
+
     use super::*;
+    use crate::{ENV_LIST, LLVM_PROFILE_FILE, collect_coverage_files};
+
+    /// The example executable to call during tests.
+    const PAYLOAD: &str = "/usr/local/bin/examples/config-non-admin-backend-user-secrets";
 
     /// Creates secrets for all configured non-administrative backend users.
     ///
     /// Afterwards, loads the secrets of each configured backend user by calling as the specific
     /// configured system user associated.
     #[rstest]
+    #[case::admin_plaintext_non_admin_plaintext(SystemPrepareConfig {
+        machine_id: false,
+        credentials_socket: false,
+        signstar_config: ConfigFileConfig {
+            location: Some(ConfigFileLocation::UsrShare),
+            variant: ConfigFileVariant::OnlyYubiHsm2BackendAdminPlaintextNonAdminPlaintext,
+            system_user_config: Some(SystemUserConfig {
+                create_secrets: true,
+                create_ssh_authorized_keys: true,
+            }),
+        },
+    })]
+    #[case::admin_plaintext_non_admin_systemd_creds(SystemPrepareConfig {
+        machine_id: true,
+        credentials_socket: true,
+        signstar_config: ConfigFileConfig {
+            location: Some(ConfigFileLocation::UsrShare),
+            variant: ConfigFileVariant::OnlyYubiHsm2BackendAdminPlaintextNonAdminSystemdCreds,
+            system_user_config: Some(SystemUserConfig {
+                create_secrets: true,
+                create_ssh_authorized_keys: true,
+            }),
+        },
+    })]
+    #[case::admin_systemd_creds_non_admin_plaintext(SystemPrepareConfig {
+        machine_id: false,
+        credentials_socket: false,
+        signstar_config: ConfigFileConfig {
+            location: Some(ConfigFileLocation::UsrShare),
+            variant: ConfigFileVariant::OnlyYubiHsm2BackendAdminSystemdCredsNonAdminPlaintext,
+            system_user_config: Some(SystemUserConfig {
+                create_secrets: true,
+                create_ssh_authorized_keys: true,
+            }),
+        },
+    })]
+    #[case::admin_systemd_creds_non_admin_systemd_creds(SystemPrepareConfig {
+        machine_id: true,
+        credentials_socket: true,
+        signstar_config: ConfigFileConfig {
+            location: Some(ConfigFileLocation::UsrShare),
+            variant: ConfigFileVariant::OnlyYubiHsm2BackendAdminSystemdCredsNonAdminSystemdCreds,
+            system_user_config: Some(SystemUserConfig {
+                create_secrets: true,
+                create_ssh_authorized_keys: true,
+            }),
+        },
+    })]
     fn create_and_load_non_admin_secrets(
-        #[files("../fixtures/config/yubihsm2_backend/*.yaml")]
-        #[exclude("sss")]
-        #[mode = str]
-        config: &str,
+        #[case] system_prepare_config: SystemPrepareConfig,
     ) -> TestResult {
         setup_terminal_logging(LevelFilter::Debug)?;
-        write_machine_id()?;
-        let _socket = start_credentials_socket()?;
+        let _socket = system_prepare_config.apply()?;
+        let config = system_prepare_config.signstar_config.variant.to_config()?;
 
-        // Write config to default location
-        create_dir_all(Config::DEFAULT_CONFIG_DIR)?;
-        let mut file = File::create(Config::default_system_path())?;
-        file.write_all(config.as_bytes())?;
-
-        let config = Config::from_str(config)?;
-
-        // Create all Unix users and their homes.
         let users = config
             .system_user_ids()
             .iter()
             .cloned()
             .map(|id| id.as_ref())
             .collect::<Vec<_>>();
-        create_users(&users, Some(&get_home_base_dir_path()), None)?;
 
         let CommandOutput {
             status,
@@ -432,8 +525,11 @@ mod yubihsm2_backend {
 /// Tests for when using all backends at the same time.
 #[cfg(all(feature = "nethsm", feature = "yubihsm2"))]
 mod all_backends {
+    use std::collections::HashMap;
+
+    use change_user_run::{CommandOutput, run_command_as_user};
     use signstar_config::{
-        config::{SystemUserConfigState, SystemUserDiff, SystemUserHostState},
+        config::{ConfigSystemUserIds, SystemUserConfigState, SystemUserDiff, SystemUserHostState},
         state::{StateDiff, StateDiffReport},
         test::{
             ConfigFileConfig,
@@ -445,28 +541,70 @@ mod all_backends {
     };
 
     use super::*;
+    use crate::{ENV_LIST, LLVM_PROFILE_FILE, collect_coverage_files};
+
+    /// The example executable to call during tests.
+    const PAYLOAD: &str = "/usr/local/bin/examples/config-non-admin-backend-user-secrets";
 
     /// Creates secrets for all configured non-administrative backend users.
     ///
     /// Afterwards, loads the secrets of each configured backend user by calling as the specific
     /// configured system user associated.
     #[rstest]
+    #[case::admin_plaintext_non_admin_plaintext(SystemPrepareConfig {
+        machine_id: false,
+        credentials_socket: false,
+        signstar_config: ConfigFileConfig {
+            location: Some(ConfigFileLocation::UsrShare),
+            variant: ConfigFileVariant::AllBackendsAdminPlaintextNonAdminPlaintext,
+            system_user_config: Some(SystemUserConfig {
+                create_secrets: true,
+                create_ssh_authorized_keys: true,
+            }),
+        },
+    })]
+    #[case::admin_plaintext_non_admin_systemd_creds(SystemPrepareConfig {
+        machine_id: true,
+        credentials_socket: true,
+        signstar_config: ConfigFileConfig {
+            location: Some(ConfigFileLocation::UsrShare),
+            variant: ConfigFileVariant::AllBackendsAdminPlaintextNonAdminSystemdCreds,
+            system_user_config: Some(SystemUserConfig {
+                create_secrets: true,
+                create_ssh_authorized_keys: true,
+            }),
+        },
+    })]
+    #[case::admin_systemd_creds_non_admin_plaintext(SystemPrepareConfig {
+        machine_id: false,
+        credentials_socket: false,
+        signstar_config: ConfigFileConfig {
+            location: Some(ConfigFileLocation::UsrShare),
+            variant: ConfigFileVariant::AllBackendsAdminSystemdCredsNonAdminPlaintext,
+            system_user_config: Some(SystemUserConfig {
+                create_secrets: true,
+                create_ssh_authorized_keys: true,
+            }),
+        },
+    })]
+    #[case::admin_systemd_creds_non_admin_systemd_creds(SystemPrepareConfig {
+        machine_id: true,
+        credentials_socket: true,
+        signstar_config: ConfigFileConfig {
+            location: Some(ConfigFileLocation::UsrShare),
+            variant: ConfigFileVariant::AllBackendsAdminSystemdCredsNonAdminSystemdCreds,
+            system_user_config: Some(SystemUserConfig {
+                create_secrets: true,
+                create_ssh_authorized_keys: true,
+            }),
+        },
+    })]
     fn create_and_load_non_admin_secrets(
-        #[files("../fixtures/config/all_backends/*.yaml")]
-        #[exclude("sss")]
-        #[mode = str]
-        config: &str,
+        #[case] system_prepare_config: SystemPrepareConfig,
     ) -> TestResult {
         setup_terminal_logging(LevelFilter::Debug)?;
-        write_machine_id()?;
-        let _socket = start_credentials_socket()?;
-
-        // Write config to default location
-        create_dir_all(Config::DEFAULT_CONFIG_DIR)?;
-        let mut file = File::create(Config::default_system_path())?;
-        file.write_all(config.as_bytes())?;
-
-        let config = Config::from_str(config)?;
+        let _socket = system_prepare_config.apply()?;
+        let config = system_prepare_config.signstar_config.variant.to_config()?;
 
         // Create all Unix users and their homes.
         let users = config
@@ -475,7 +613,6 @@ mod all_backends {
             .cloned()
             .map(|id| id.as_ref())
             .collect::<Vec<_>>();
-        create_users(&users, Some(&get_home_base_dir_path()), None)?;
 
         let CommandOutput {
             status,
