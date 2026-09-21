@@ -647,6 +647,7 @@ impl TryFrom<&NetHsmUserMapping> for SshForceCommand {
                 system_user: None,
             }),
             NetHsmUserMapping::Backup { .. } => Ok(Self::DownloadBackup),
+            NetHsmUserMapping::CertificateRetrieval { .. } => Ok(Self::DownloadKeyCertificate),
             NetHsmUserMapping::HermeticMetrics {
                 backend_users,
                 system_user,

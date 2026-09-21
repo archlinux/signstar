@@ -228,6 +228,7 @@ async fn run_signstar_sign(#[case] prepare_config: SystemPrepareConfig) -> TestR
                     NetHsmUserMapping::Signing { backend_user, .. } => backend_user.to_string(),
                     NetHsmUserMapping::Admin(..)
                     | NetHsmUserMapping::Backup { .. }
+                    | NetHsmUserMapping::CertificateRetrieval { .. }
                     | NetHsmUserMapping::HermeticMetrics { .. }
                     | NetHsmUserMapping::Metrics { .. } => {
                         // If there is no signing user, there is nothing for us to do.

@@ -11,6 +11,7 @@ use nethsm::{
     FullCredentials,
     KeyId,
     NamespaceId,
+    NamespacedUserId,
     Passphrase,
     SystemWideUserId,
     UserId,
@@ -353,6 +354,31 @@ pub enum NetHsmUserMapping {
         system_user: SystemUserId,
     },
 
+    /// A mapping used for the retrieval of certificates stored in the NetHSM.
+    ///
+    /// This variant tracks
+    ///
+    /// - a system-wide NetHSM user
+    /// - a list of namespaced NetHSM users
+    /// - an SSH authorized key with a specific `ssh_authorized_key`
+    /// - a system user ID using `system_user`
+    ///
+    /// Its data is used to create relevant system and backend users for the retrieval of
+    /// certificates of all keys of a NetHSM backend.
+    CertificateRetrieval {
+        /// The system-wide NetHSM user.
+        system_wide: SystemWideUserId,
+
+        /// The list of namespaced NetHSM users.
+        namespaced: Vec<NamespacedUserId>,
+
+        /// The SSH public key used for connecting to the `system_user`.
+        ssh_authorized_key: AuthorizedKeyEntry,
+
+        /// The name of the system user.
+        system_user: SystemUserId,
+    },
+
     /// A system user, without SSH access, mapped to a system-wide NetHSM
     /// user in the Metrics role and one or more NetHSM users in the Operator role with
     /// read-only access to zero or more keys.
@@ -409,6 +435,13 @@ impl NetHsmUserMapping {
                 }
             }
             Self::Backup { .. } => Vec::new(),
+            Self::CertificateRetrieval {
+                namespaced: namespaced_backend_users,
+                ..
+            } => namespaced_backend_users
+                .iter()
+                .filter_map(|user| user.as_ref().namespace())
+                .collect::<Vec<_>>(),
             Self::HermeticMetrics { backend_users, .. } | Self::Metrics { backend_users, .. } => {
                 backend_users
                     .operator_users
@@ -437,6 +470,7 @@ impl NetHsmUserMapping {
             }
             Self::Admin(_)
             | Self::Backup { .. }
+            | Self::CertificateRetrieval { .. }
             | Self::HermeticMetrics { .. }
             | Self::Metrics { .. } => None,
         }
@@ -447,6 +481,20 @@ impl NetHsmUserMapping {
         match self {
             Self::Admin(user_id) => vec![user_id.clone()],
             Self::Backup { backend_user, .. } => vec![backend_user.as_ref().clone()],
+            Self::CertificateRetrieval {
+                system_wide: system_wide_backend_user,
+                namespaced: namespaced_backend_users,
+                ..
+            } => {
+                let mut output = vec![system_wide_backend_user.as_ref().clone()];
+                output.extend(
+                    namespaced_backend_users
+                        .iter()
+                        .map(|user| user.as_ref().clone())
+                        .collect::<Vec<_>>(),
+                );
+                output
+            }
             Self::Metrics { backend_users, .. } | Self::HermeticMetrics { backend_users, .. } => {
                 backend_users.get_users()
             }
@@ -468,6 +516,27 @@ impl NetHsmUserMapping {
                 role: UserRole::Backup,
                 tag: None,
             }]),
+            Self::CertificateRetrieval {
+                system_wide: system_wide_backend_user,
+                namespaced: namespaced_backend_users,
+                ..
+            } => {
+                let mut users = namespaced_backend_users
+                    .iter()
+                    .map(|user| NetHsmConfigUserData {
+                        user: user.as_ref(),
+                        role: UserRole::Operator,
+                        tag: None,
+                    })
+                    .collect::<HashSet<_>>();
+                users.insert(NetHsmConfigUserData {
+                    user: system_wide_backend_user.as_ref(),
+                    role: UserRole::Operator,
+                    tag: None,
+                });
+
+                users
+            }
             Self::Metrics { backend_users, .. } | Self::HermeticMetrics { backend_users, .. } => {
                 let mut users = backend_users
                     .operator_users
@@ -507,6 +576,7 @@ impl NetHsmUserMapping {
         match self {
             Self::Admin(_)
             | Self::Backup { .. }
+            | Self::CertificateRetrieval { .. }
             | Self::Metrics { .. }
             | Self::HermeticMetrics { .. } => None,
             Self::Signing {
@@ -541,6 +611,7 @@ impl MappingSystemUserId for NetHsmUserMapping {
         match self {
             Self::Admin(_) => None,
             Self::Backup { system_user, .. }
+            | Self::CertificateRetrieval { system_user, .. }
             | Self::Metrics { system_user, .. }
             | Self::HermeticMetrics { system_user, .. }
             | Self::Signing { system_user, .. } => Some(system_user),
@@ -553,6 +624,9 @@ impl MappingAuthorizedKeyEntry for NetHsmUserMapping {
         match self {
             Self::Admin(_) | Self::HermeticMetrics { .. } => None,
             Self::Backup {
+                ssh_authorized_key, ..
+            }
+            | Self::CertificateRetrieval {
                 ssh_authorized_key, ..
             }
             | Self::Metrics {
@@ -586,6 +660,29 @@ impl MappingBackendUserIds for NetHsmUserMapping {
                 .contains(&filter.backend_user_id_kind)
                 {
                     Some(vec![backend_user.to_string()])
+                } else {
+                    None
+                }
+            }
+            Self::CertificateRetrieval {
+                system_wide: system_wide_backend_user,
+                namespaced: namespaced_backend_users,
+                ..
+            } => {
+                if [
+                    BackendUserIdKind::Any,
+                    BackendUserIdKind::Observer,
+                    BackendUserIdKind::NonAdmin,
+                ]
+                .contains(&filter.backend_user_id_kind)
+                {
+                    let mut users = namespaced_backend_users
+                        .iter()
+                        .map(ToString::to_string)
+                        .collect::<Vec<_>>();
+                    users.push(system_wide_backend_user.to_string());
+
+                    Some(users)
                 } else {
                     None
                 }
@@ -675,6 +772,29 @@ impl MappingBackendUserIds for NetHsmUserMapping {
                     None
                 }
             }
+            Self::CertificateRetrieval {
+                system_wide: system_wide_backend_user,
+                namespaced: namespaced_backend_users,
+                ..
+            } => {
+                if [
+                    BackendUserIdKind::Any,
+                    BackendUserIdKind::Observer,
+                    BackendUserIdKind::NonAdmin,
+                ]
+                .contains(&filter.backend_user_id_kind)
+                {
+                    let mut users = namespaced_backend_users
+                        .iter()
+                        .map(|user| user.as_ref().clone())
+                        .collect::<Vec<_>>();
+                    users.push(system_wide_backend_user.as_ref().clone());
+
+                    Some(users)
+                } else {
+                    None
+                }
+            }
             Self::Metrics { backend_users, .. } | Self::HermeticMetrics { backend_users, .. } => {
                 match filter.backend_user_id_kind {
                     BackendUserIdKind::Admin
@@ -732,6 +852,14 @@ impl<'a> From<&'a NetHsmUserMapping> for SystemUserData<'a> {
                 system_user,
                 ssh_authorized_key,
             },
+            NetHsmUserMapping::CertificateRetrieval {
+                ssh_authorized_key,
+                system_user,
+                ..
+            } => Self::BackendCertificateRetrieval {
+                system_user,
+                ssh_authorized_key,
+            },
             NetHsmUserMapping::HermeticMetrics { system_user, .. } => {
                 Self::BackendHermeticMetrics { system_user }
             }
@@ -768,6 +896,7 @@ impl<'a> MappingBackendKeyId<NetHsmBackendKeyIdFilter<'a>> for NetHsmUserMapping
         match self {
             Self::Admin(_)
             | Self::Backup { .. }
+            | Self::CertificateRetrieval { .. }
             | Self::HermeticMetrics { .. }
             | Self::Metrics { .. } => None,
             Self::Signing {

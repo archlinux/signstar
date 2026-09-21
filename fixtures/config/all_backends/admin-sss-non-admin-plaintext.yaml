@@ -31,6 +31,12 @@ nethsm:
         backend_user: backup
         ssh_authorized_key: ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINrIYA+bfMBThUP5lKbMFEHiytmcCPhpkGrB/85n0mAN user@host
         system_user: nethsm-backup-user
+    - certificate_retrieval:
+        system_wide: certificateretrieval
+        namespaced:
+          - ns1~certificateretrieval
+        ssh_authorized_key: ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDvhXirK3o+KPoMqhLlpfPe1UQOqznnAaTOeNtmZraUv user@host
+        system_user: nethsm-certificate-retrieval-user
     - hermetic_metrics:
         backend_users:
           metrics_user: hermeticmetrics

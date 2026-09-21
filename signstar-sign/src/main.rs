@@ -166,6 +166,7 @@ mod impl_any {
                 }
                 NetHsmUserMapping::Admin(_)
                 | NetHsmUserMapping::Backup { .. }
+                | NetHsmUserMapping::CertificateRetrieval { .. }
                 | NetHsmUserMapping::HermeticMetrics { .. }
                 | NetHsmUserMapping::Metrics { .. } => Err(Error::NoCredentials),
             },
