@@ -61,6 +61,7 @@ pub use user::{
     Error as UserError,
     FullCredentials,
     NamespaceId,
+    NamespacedUserId,
     SystemWideUserId,
     UserId,
 };

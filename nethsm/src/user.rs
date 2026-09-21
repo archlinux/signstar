@@ -73,6 +73,10 @@ pub enum Error {
         role: UserRole,
     },
 
+    /// A namespaced [`UserId`] has no namespace.
+    #[error("The namespaced User ID has no namespace: {0}")]
+    NamespacedUserIdWithoutNamespace(UserId),
+
     /// A system-wide [`UserId`] has a namespace
     #[error("The system-wide User ID has a namespace: {0}")]
     SystemWideUserIdWithNamespace(UserId),
@@ -508,6 +512,82 @@ impl TryFrom<String> for SystemWideUserId {
     }
 }
 
+/// A guaranteed to be namespaced [`NetHsm`][`crate::NetHsm`] user.
+#[derive(Clone, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
+#[serde(into = "String", try_from = "String")]
+pub struct NamespacedUserId(UserId);
+
+impl NamespacedUserId {
+    /// Creates a new [`NamespacedUserId`] from an owned string.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error, if the provided `user_id` is not a valid [`UserId`] or does not contain a
+    /// namespace.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use nethsm::NamespacedUserId;
+    ///
+    /// # fn main() -> testresult::TestResult {
+    /// NamespacedUserId::new("ns1~user1".to_string())?;
+    ///
+    /// // this fails because the User ID does not contain a namespace
+    /// assert!(NamespacedUserId::new("user1".to_string()).is_err());
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn new(user_id: String) -> Result<Self, Error> {
+        let user_id = UserId::new(user_id)?;
+
+        if !user_id.is_namespaced() {
+            return Err(Error::NamespacedUserIdWithoutNamespace(user_id));
+        }
+
+        Ok(Self(user_id))
+    }
+}
+
+impl AsRef<UserId> for NamespacedUserId {
+    fn as_ref(&self) -> &UserId {
+        &self.0
+    }
+}
+
+impl Display for NamespacedUserId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.0.fmt(f)
+    }
+}
+
+impl FromStr for NamespacedUserId {
+    type Err = Error;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Self::new(s.to_string())
+    }
+}
+
+impl From<NamespacedUserId> for String {
+    fn from(value: NamespacedUserId) -> Self {
+        value.to_string()
+    }
+}
+
+impl From<NamespacedUserId> for UserId {
+    fn from(value: NamespacedUserId) -> Self {
+        value.0
+    }
+}
+
+impl TryFrom<String> for NamespacedUserId {
+    type Error = Error;
+
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        Self::new(value)
+    }
+}
+
 /// Credentials for a [`NetHsm`][`crate::NetHsm`].
 ///
 /// Tracks a [`UserId`] and an accompanying [`Passphrase`].
@@ -818,6 +898,44 @@ mod tests {
     #[test]
     fn system_wide_user_id_from_str_succeeds() -> TestResult {
         assert_eq!(SystemWideUserId::from_str("test")?.to_string(), "test");
+        Ok(())
+    }
+
+    /// Ensures that [`NamespacedUserId::new`] fails on User IDs without a namespace.
+    #[test]
+    fn namespaced_user_id_new_fails_on_user_id_without_namespace() -> TestResult {
+        match NamespacedUserId::new("test".to_string()) {
+            Err(Error::NamespacedUserIdWithoutNamespace(_)) => Ok(()),
+            Err(error) => panic!(
+                "Expected to fail with a Error::NamespacedUserIdWithoutNamespace but got a different error instead:\n{error}"
+            ),
+            Ok(user_id) => panic!(
+                "Expected to fail with a Error::NamespacedUserIdWithoutNamespace but succeeded instead:\n{user_id}"
+            ),
+        }
+    }
+
+    /// Ensures that [`NamespacedUserId::new`] fails on invalid User IDs.
+    #[test]
+    fn namespaced_user_id_new_fails_on_invalid_user_id() -> TestResult {
+        match NamespacedUserId::new("test[]".to_string()) {
+            Err(Error::InvalidUserIds { .. }) => Ok(()),
+            Err(error) => panic!(
+                "Expected to fail with a Error::InvalidUserIds but got a different error instead:\n{error}"
+            ),
+            Ok(user_id) => panic!(
+                "Expected to fail with a Error::InvalidUserIds but succeeded instead:\n{user_id}"
+            ),
+        }
+    }
+
+    /// Ensures that [`NamespacedUserId::from_str`] succeeds on valid User IDs.
+    #[test]
+    fn namespaced_user_id_from_str_succeeds() -> TestResult {
+        assert_eq!(
+            NamespacedUserId::from_str("ns1~test")?.to_string(),
+            "ns1~test"
+        );
         Ok(())
     }
 }
