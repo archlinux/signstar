@@ -456,28 +456,48 @@ generate kind pkg:
 
     set -Eeuo pipefail
 
-    readonly output_dir="${CARGO_TARGET_DIR:-$PWD/output}"
+    readonly output_dir="{{ output_dir }}"
+    readonly pkg="{{ pkg }}"
+    readonly kind="{{ kind }}"
     mkdir --parents "$output_dir"
 
-    readonly kind="{{ kind }}"
-
-    just ensure-command rust-script sed
-
     case "$kind" in
-      manpages|shell_completions)
-          ;;
-      *)
-          printf 'Only "manpages" and "shell_completions" are supported.\n'
-          exit 1
-    esac
+        manpages|shell_completions)
+            just ensure-command rust-script sed
 
-    script="$(mktemp --suffix=.rs)"
-    if (( $? != 0 )); then
-        exit 1
-    fi
-    sed "s/PKG/{{ pkg }}/;s#PATH#$PWD/{{ pkg }}#g;s/KIND/{{ kind }}/g" > "$script" <<< '{{ render-script }}'
-    rust-script "$script" "$output_dir/{{ kind }}"
-    rm --force "$script"
+            script="$(mktemp --suffix=.rs)"
+            if (( $? != 0 )); then
+                exit 1
+            fi
+            readonly script="$script"
+
+            # remove temporary script file on exit
+            cleanup() (
+              if [[ -n "${script:-}" ]]; then
+                rm -f "$script"
+              fi
+            )
+
+            trap cleanup EXIT
+
+            sed "s/PKG/$pkg/;s#PATH#$PWD/$pkg#g;s/KIND/$kind/g" > "$script" <<< '{{ render-script }}'
+            rust-script "$script" "$output_dir/$kind"
+        ;;
+        specifications)
+            just ensure-command lowdown
+
+            mkdir -p "$output_dir/man/"
+            for file in "$PWD/$pkg/resources/man/"*.md; do
+                file_name="$(basename "$file")"
+                output_file="${file_name/.md}"
+                section="${output_file/*.}"
+                lowdown -s -t man -M section="$section" -o "$output_dir/man/$output_file" "$file"
+            done
+            ;;
+      *)
+            printf 'Only "manpages", "shell_completions" or "specifications" are supported targets.\n'
+            exit 1
+    esac
 
 ################
 # Check recipes.

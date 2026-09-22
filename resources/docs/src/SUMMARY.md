@@ -16,6 +16,7 @@
     - [CHANGELOG](./signstar-common/CHANGELOG.md)
 - [signstar-config](./signstar-config/README.md)
     - [CHANGELOG](./signstar-config/CHANGELOG.md)
+    - [signstar.config.yaml(5)](./signstar-config/signstar.config.yaml.5.md)
 - [signstar-configure](./signstar-configure/README.md)
     - [CHANGELOG](./signstar-configure/CHANGELOG.md)
     - [Architecture](./signstar-configure/ARCHITECTURE.md)
