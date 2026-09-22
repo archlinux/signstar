@@ -48,11 +48,11 @@ nethsm:
           signature_type: EdDsa
           key_context:
             openpgp:
+              notations:
+                test: value
               user_ids:
                 - Foobar McFooface <foobar@mcfooface.org>
               version: "4"
-              notations:
-                test: value
         ssh_authorized_key: ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOh96uFTnvX6P1ebbLxXFvy6sK7qFqlMHDOuJ0TmuXQQ user@host
         system_user: nethsm-signing
         tag: signing1
@@ -66,11 +66,11 @@ nethsm:
           signature_type: EdDsa
           key_context:
             openpgp:
+              notations:
+                test: value
               user_ids:
                 - Barfoo McBarface <barfoo@mcbarface.org>
               version: "4"
-              notations:
-                test: value
         ssh_authorized_key: ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJr4wdlEv3ZKkDufEQTZSLOjDLO3DeNN2pqKmp00ufIu user@host
         system_user: nethsm-ns1-signing
         tag: signing1
@@ -108,11 +108,11 @@ yubihsm2:
           signature_type: EdDsa
           key_context:
             openpgp:
+              notations:
+                test: value
               user_ids:
                 - Foobar McFooface <foobar@mcfooface.org>
               version: "4"
-              notations:
-                test: value
         domain: 1
         signing_key_id: 1
         ssh_authorized_key: ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIClIXZdx0aDOPcIQA+6Qx68cwSUgGTL3TWzDSX3qUEOQ user@host

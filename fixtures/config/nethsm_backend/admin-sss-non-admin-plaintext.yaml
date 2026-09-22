@@ -60,6 +60,8 @@ nethsm:
           signature_type: EdDsa
           key_context:
             openpgp:
+              notations:
+                test: value
               user_ids:
                 - Foobar McFooface <foobar@mcfooface.org>
               version: "4"
@@ -76,6 +78,8 @@ nethsm:
           signature_type: EdDsa
           key_context:
             openpgp:
+              notations:
+                test: value
               user_ids:
                 - Barfoo McBarface <barfoo@mcbarface.org>
               version: "4"

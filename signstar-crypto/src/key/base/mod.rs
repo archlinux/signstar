@@ -6,7 +6,7 @@ pub mod nethsm;
 #[cfg(feature = "yubihsm2")]
 pub mod yubihsm2;
 
-use std::{collections::BTreeMap, fmt::Display};
+use std::{cmp::Ordering, collections::BTreeMap, fmt::Display};
 
 use pgp::{
     composed::SignedPublicKey,
@@ -361,20 +361,20 @@ pub enum SignatureType {
 }
 
 /// The cryptographic context in which a key is used.
-#[derive(Clone, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 pub enum CryptographicKeyContext {
     /// A key is used in an OpenPGP context
     #[serde(rename = "openpgp")]
     OpenPgp {
+        /// OpenPGP notations to attach to created signatures.
+        #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+        notations: BTreeMap<String, String>,
+
         /// List of OpenPGP User IDs for the certificate.
         user_ids: OpenPgpUserIdList,
 
         /// OpenPGP version for the certificate.
         version: OpenPgpVersion,
-
-        /// OpenPGP notations to attach to created signatures.
-        #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
-        notations: BTreeMap<String, String>,
     },
 
     /// A key is used in a raw cryptographic context
@@ -573,6 +573,42 @@ impl Display for CryptographicKeyContext {
                 write!(f, "Raw")
             }
         }
+    }
+}
+
+impl Ord for CryptographicKeyContext {
+    fn cmp(&self, other: &Self) -> Ordering {
+        match (self, other) {
+            (
+                CryptographicKeyContext::OpenPgp {
+                    notations: self_notations,
+                    user_ids: self_user_ids,
+                    version: self_version,
+                },
+                CryptographicKeyContext::OpenPgp {
+                    notations: other_notations,
+                    user_ids: other_user_ids,
+                    version: other_version,
+                },
+            ) => (self_version, self_user_ids, self_notations).cmp(&(
+                other_version,
+                other_user_ids,
+                other_notations,
+            )),
+            (CryptographicKeyContext::OpenPgp { .. }, CryptographicKeyContext::Raw) => {
+                Ordering::Less
+            }
+            (CryptographicKeyContext::Raw, CryptographicKeyContext::OpenPgp { .. }) => {
+                Ordering::Greater
+            }
+            (CryptographicKeyContext::Raw, CryptographicKeyContext::Raw) => Ordering::Equal,
+        }
+    }
+}
+
+impl PartialOrd for CryptographicKeyContext {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
     }
 }
 
