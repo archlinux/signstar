@@ -1,0 +1,1 @@
+../../../../signstar-config/resources/man/signstar.config.yaml.5.md
