@@ -12,17 +12,17 @@ system:
   non_admin_secret_handling: systemd-creds
   mappings:
     - share_holder:
-        system_user: signstar-share-holder1
         ssh_authorized_key: ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAN54Gd1jMz+yNDjBRwX1SnOtWuUsVF64RJIeYJ8DI7b user@host
+        system_user: signstar-share-holder1
     - share_holder:
-        system_user: signstar-share-holder2
         ssh_authorized_key: ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPDgwGfIRBAsOUuDEZw/uJQZSwOYr4sg2DAZpcc7MfOj user@host
+        system_user: signstar-share-holder2
     - share_holder:
-        system_user: signstar-share-holder3
         ssh_authorized_key: ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILWqWyMCk5BdSl1c3KYoLEokKr7qNVPbI1IbBhgEBQj5 user@host
+        system_user: signstar-share-holder3
     - wire_guard_download:
-        system_user: signstar-wireguard-download
         ssh_authorized_key: ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOh9BTe81DC6A0YZALsq9dWcyl6xjjqlxWPwlExTFgBt user@host
+        system_user: signstar-wireguard-download
 nethsm:
   connections:
     - url: https://nethsm1.example.org/

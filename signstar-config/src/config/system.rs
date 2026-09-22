@@ -29,27 +29,68 @@ use crate::{
 /// # Note
 ///
 /// None of the variants are mapped to backend users.
-#[derive(Clone, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum SystemUserMapping {
     /// A user for up and downloading shares of a shared secret.
     ShareHolder {
-        /// The name of the system user.
-        system_user: SystemUserId,
-
         /// The list of SSH public keys used for connecting to the `system_user`.
         ssh_authorized_key: AuthorizedKeyEntry,
+
+        /// The name of the system user.
+        system_user: SystemUserId,
     },
 
     /// A system user, with SSH access, not mapped to any backend user, that is used for downloading
     /// the WireGuard configuration of the host.
     WireGuardDownload {
-        /// The name of the system user.
-        system_user: SystemUserId,
-
         /// The list of SSH public keys used for connecting to the `system_user`.
         ssh_authorized_key: AuthorizedKeyEntry,
+
+        /// The name of the system user.
+        system_user: SystemUserId,
     },
+}
+
+impl Ord for SystemUserMapping {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        match (self, other) {
+            (
+                SystemUserMapping::ShareHolder {
+                    system_user: self_system_user,
+                    ..
+                },
+                SystemUserMapping::ShareHolder {
+                    system_user: other_system_user,
+                    ..
+                },
+            ) => self_system_user.cmp(other_system_user),
+            (
+                SystemUserMapping::WireGuardDownload {
+                    system_user: self_system_user,
+                    ..
+                },
+                SystemUserMapping::WireGuardDownload {
+                    system_user: other_system_user,
+                    ..
+                },
+            ) => self_system_user.cmp(other_system_user),
+            (
+                SystemUserMapping::ShareHolder { .. },
+                SystemUserMapping::WireGuardDownload { .. },
+            ) => std::cmp::Ordering::Less,
+            (
+                SystemUserMapping::WireGuardDownload { .. },
+                SystemUserMapping::ShareHolder { .. },
+            ) => std::cmp::Ordering::Greater,
+        }
+    }
+}
+
+impl PartialOrd for SystemUserMapping {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
 }
 
 impl MappingAuthorizedKeyEntry for SystemUserMapping {
