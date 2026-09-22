@@ -43,20 +43,20 @@ signstar-configure-build
 <!--
 ```bash
 remote_user_list=(
-  nethsm-backup-user
-  nethsm-metrics-user
-  nethsm-signing-user1
-  yubihsm2-metrics-user
-  yubihsm2-backup-user
-  yubihsm2-signing1
-  share-holder1
-  share-holder2
-  share-holder3
-  wireguard-downloader
+  nethsm-backup
+  nethsm-metrics
+  nethsm-signing
+  yubihsm2-audit-log
+  yubihsm2-backup
+  yubihsm2-signing
+  signstar-share-holder1
+  signstar-share-holder2
+  signstar-share-holder3
+  signstar-wireguard-download
 )
 local_user_list=(
-  nethsm-hermetic-metrics-user
-  yubihsm2-hermetic-metrics-user
+  nethsm-hermetic-metrics
+  yubihsm2-hermetic-audit-log
 )
 
 cat /etc/passwd

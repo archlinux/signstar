@@ -12,16 +12,16 @@ system:
   non_admin_secret_handling: systemd-creds
   mappings:
     - share_holder:
-        system_user: share-holder1
+        system_user: signstar-share-holder1
         ssh_authorized_key: ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAN54Gd1jMz+yNDjBRwX1SnOtWuUsVF64RJIeYJ8DI7b user@host
     - share_holder:
-        system_user: share-holder2
+        system_user: signstar-share-holder2
         ssh_authorized_key: ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPDgwGfIRBAsOUuDEZw/uJQZSwOYr4sg2DAZpcc7MfOj user@host
     - share_holder:
-        system_user: share-holder3
+        system_user: signstar-share-holder3
         ssh_authorized_key: ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILWqWyMCk5BdSl1c3KYoLEokKr7qNVPbI1IbBhgEBQj5 user@host
     - wire_guard_download:
-        system_user: wireguard-downloader
+        system_user: signstar-wireguard-download
         ssh_authorized_key: ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOh9BTe81DC6A0YZALsq9dWcyl6xjjqlxWPwlExTFgBt user@host
 nethsm:
   connections:
@@ -34,20 +34,20 @@ nethsm:
     - backup:
         backend_user: backup
         ssh_authorized_key: ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHxR0Oc+SWXkEvvZPitc6NvjvykgiKc9iauRI7tLYvcp user@host
-        system_user: nethsm-backup-user
+        system_user: nethsm-backup
     - hermetic_metrics:
         backend_users:
           metrics_user: hermeticmetrics
           operator_users:
             - hermetickeymetrics
-        system_user: nethsm-hermetic-metrics-user
+        system_user: nethsm-hermetic-metrics
     - metrics:
         backend_users:
           metrics_user: metrics
           operator_users:
             - keymetrics
         ssh_authorized_key: ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIETxhCqeZhfzFLfH0KFyw3u/w/dkRBUrft8tQm7DEVzY user@host
-        system_user: nethsm-metrics-user
+        system_user: nethsm-metrics
     - signing:
         backend_user: signing
         signing_key_id: signing1
@@ -62,5 +62,5 @@ nethsm:
                 - Foobar McFooface <foobar@mcfooface.org>
               version: "4"
         ssh_authorized_key: ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIClIXZdx0aDOPcIQA+6Qx68cwSUgGTL3TWzDSX3qUEOQ user@host
-        system_user: nethsm-signing-user
+        system_user: nethsm-signing
         tag: signing1

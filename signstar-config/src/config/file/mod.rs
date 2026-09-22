@@ -625,19 +625,19 @@ mod tests {
             NonAdministrativeSecretHandling::SystemdCreds,
             BTreeSet::from_iter([
                 SystemUserMapping::ShareHolder {
-                    system_user: "share-holder1".parse()?,
+                    system_user: "signstar-share-holder1".parse()?,
                     ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAN54Gd1jMz+yNDjBRwX1SnOtWuUsVF64RJIeYJ8DI7b user@host".parse()?,
                 },
                 SystemUserMapping::ShareHolder {
-                    system_user: "share-holder2".parse()?,
+                    system_user: "signstar-share-holder2".parse()?,
                     ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPDgwGfIRBAsOUuDEZw/uJQZSwOYr4sg2DAZpcc7MfOj user@host".parse()?,
                 },
                 SystemUserMapping::ShareHolder {
-                    system_user: "share-holder3".parse()?,
+                    system_user: "signstar-share-holder3".parse()?,
                     ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILWqWyMCk5BdSl1c3KYoLEokKr7qNVPbI1IbBhgEBQj5 user@host".parse()?
                 },
                 SystemUserMapping::WireGuardDownload {
-                    system_user: "wireguard-downloader".parse()?,
+                    system_user: "signstar-wireguard-download".parse()?,
                     ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOh9BTe81DC6A0YZALsq9dWcyl6xjjqlxWPwlExTFgBt user@host".parse()?,
                 },
             ]),
@@ -650,19 +650,19 @@ mod tests {
     fn raw_user_data_system() -> TestResult<Vec<(SystemUserId, Option<AuthorizedKeyEntry>)>> {
         Ok(vec![
                 (
-                    "share-holder1".parse()?,
+                    "signstar-share-holder1".parse()?,
                     Some("ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAN54Gd1jMz+yNDjBRwX1SnOtWuUsVF64RJIeYJ8DI7b user@host".parse()?),
                 ),
                 (
-                    "share-holder2".parse()?,
+                    "signstar-share-holder2".parse()?,
                     Some("ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPDgwGfIRBAsOUuDEZw/uJQZSwOYr4sg2DAZpcc7MfOj user@host".parse()?),
                 ),
                 (
-                    "share-holder3".parse()?,
+                    "signstar-share-holder3".parse()?,
                     Some("ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILWqWyMCk5BdSl1c3KYoLEokKr7qNVPbI1IbBhgEBQj5 user@host".parse()?),
                 ),
                 (
-                    "wireguard-downloader".parse()?,
+                    "signstar-wireguard-download".parse()?,
                     Some("ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOh9BTe81DC6A0YZALsq9dWcyl6xjjqlxWPwlExTFgBt user@host".parse()?),
                 ),
             ])
@@ -682,16 +682,16 @@ mod tests {
                 NetHsmUserMapping::Backup{
                     backend_user: "backup".parse()?,
                     ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHxR0Oc+SWXkEvvZPitc6NvjvykgiKc9iauRI7tLYvcp user@host".parse()?,
-                    system_user: "nethsm-backup-user".parse()?,
+                    system_user: "nethsm-backup".parse()?,
                 },
                 NetHsmUserMapping::HermeticMetrics {
                     backend_users: NetHsmMetricsUsers::new("hermeticmetrics".parse()?, vec!["hermetickeymetrics".parse()?])?,
-                    system_user: "nethsm-hermetic-metrics-user".parse()?,
+                    system_user: "nethsm-hermetic-metrics".parse()?,
                 },
                 NetHsmUserMapping::Metrics {
                     backend_users: NetHsmMetricsUsers::new("metrics".parse()?, vec!["keymetrics".parse()?])?,
                     ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIETxhCqeZhfzFLfH0KFyw3u/w/dkRBUrft8tQm7DEVzY user@host".parse()?,
-                    system_user: "nethsm-metrics-user".parse()?,
+                    system_user: "nethsm-metrics".parse()?,
                 },
                 NetHsmUserMapping::Signing {
                     backend_user: "signing".parse()?,
@@ -710,7 +710,7 @@ mod tests {
                         },
                     )?,
                     ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIClIXZdx0aDOPcIQA+6Qx68cwSUgGTL3TWzDSX3qUEOQ user@host".parse()?,
-                    system_user: "nethsm-signing-user".parse()?,
+                    system_user: "nethsm-signing".parse()?,
                     tag: "signing1".to_string(),
                 }
             ]),
@@ -728,19 +728,19 @@ mod tests {
                     None,
                 ),
                 (
-                    "nethsm-backup-user".parse()?,
+                    "nethsm-backup".parse()?,
                     Some("ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHxR0Oc+SWXkEvvZPitc6NvjvykgiKc9iauRI7tLYvcp user@host".parse()?),
                 ),
                 (
-                    "nethsm-hermetic-metrics-user".parse()?,
+                    "nethsm-hermetic-metrics".parse()?,
                     None,
                 ),
                 (
-                    "nethsm-metrics-user".parse()?,
+                    "nethsm-metrics".parse()?,
                     Some("ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIETxhCqeZhfzFLfH0KFyw3u/w/dkRBUrft8tQm7DEVzY user@host".parse()?),
                 ),
                 (
-                    "nethsm-signing-user".parse()?,
+                    "nethsm-signing".parse()?,
                     Some("ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIClIXZdx0aDOPcIQA+6Qx68cwSUgGTL3TWzDSX3qUEOQ user@host".parse()?),
                 ),
             ])
@@ -760,17 +760,17 @@ mod tests {
                 YubiHsm2UserMapping::AuditLog {
                     authentication_key_id: "3".parse()?,
                     ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPkpXKiNhy39A3bZ1u19a5d4sFwYMBkWQyCbzgUfdKBm user@host".parse()?,
-                    system_user: "yubihsm2-metrics-user".parse()?,
+                    system_user: "yubihsm2-audit-log".parse()?,
                 },
                 YubiHsm2UserMapping::Backup{
                     authentication_key_id: "2".parse()?,
                     ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOOCMo+ODRchqIiXm89TxF7avi+LXRtqWZdBAvJ1SG5g user@host".parse()?,
-                    system_user: "yubihsm2-backup-user".parse()?,
+                    system_user: "yubihsm2-backup".parse()?,
                     wrapping_key_id: "1".parse()?,
                 },
                 YubiHsm2UserMapping::HermeticAuditLog {
                     authentication_key_id: "4".parse()?,
-                    system_user: "yubihsm2-hermetic-metrics-user".parse()?,
+                    system_user: "yubihsm2-hermetic-audit-log".parse()?,
                 },
                 YubiHsm2UserMapping::Signing {
                     authentication_key_id: "5".parse()?,
@@ -789,7 +789,7 @@ mod tests {
                         },
                     )?,
                     ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOh96uFTnvX6P1ebbLxXFvy6sK7qFqlMHDOuJ0TmuXQQ user@host".parse()?,
-                    system_user: "yubihsm2-signing-user".parse()?,
+                    system_user: "yubihsm2-signing".parse()?,
                     domain: Domain::One,
                 }
             ]),
@@ -807,19 +807,19 @@ mod tests {
                     None,
                 ),
                 (
-                    "yubihsm2-metrics-user".parse()?,
+                    "yubihsm2-audit-log".parse()?,
                     Some("ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPkpXKiNhy39A3bZ1u19a5d4sFwYMBkWQyCbzgUfdKBm user@host".parse()?),
                 ),
                 (
-                    "yubihsm2-backup-user".parse()?,
+                    "yubihsm2-backup".parse()?,
                     Some("ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOOCMo+ODRchqIiXm89TxF7avi+LXRtqWZdBAvJ1SG5g user@host".parse()?),
                 ),
                 (
-                    "yubihsm2-hermetic-metrics-user".parse()?,
+                    "yubihsm2-hermetic-audit-log".parse()?,
                     None,
                 ),
                 (
-                    "yubihsm2-signing-user".parse()?,
+                    "yubihsm2-signing".parse()?,
                     Some("ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOh96uFTnvX6P1ebbLxXFvy6sK7qFqlMHDOuJ0TmuXQQ user@host".parse()?),
                 ),
             ])
@@ -1024,10 +1024,10 @@ mod tests {
         fn config_system_user_ids(default_config: TestResult<Config>) -> TestResult {
             let config = default_config?;
             let expected: HashSet<SystemUserId> = HashSet::from_iter([
-                "share-holder1".parse()?,
-                "share-holder2".parse()?,
-                "share-holder3".parse()?,
-                "wireguard-downloader".parse()?,
+                "signstar-share-holder1".parse()?,
+                "signstar-share-holder2".parse()?,
+                "signstar-share-holder3".parse()?,
+                "signstar-wireguard-download".parse()?,
             ]);
 
             assert_eq!(
@@ -1163,16 +1163,16 @@ mod tests {
                     NetHsmUserMapping::Backup{
                         backend_user: "backup".parse()?,
                         ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHxR0Oc+SWXkEvvZPitc6NvjvykgiKc9iauRI7tLYvcp user@host".parse()?,
-                        system_user: "share-holder1".parse()?,
+                        system_user: "signstar-share-holder1".parse()?,
                     },
                     NetHsmUserMapping::HermeticMetrics {
                         backend_users: NetHsmMetricsUsers::new("hermeticmetrics".parse()?, vec!["hermetickeymetrics".parse()?])?,
-                        system_user: "nethsm-hermetic-metrics-user".parse()?,
+                        system_user: "nethsm-hermetic-metrics".parse()?,
                     },
                     NetHsmUserMapping::Metrics {
                         backend_users: NetHsmMetricsUsers::new("metrics".parse()?, vec!["keymetrics".parse()?])?,
                         ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPDgwGfIRBAsOUuDEZw/uJQZSwOYr4sg2DAZpcc7MfOj user@host".parse()?,
-                        system_user: "share-holder2".parse()?,
+                        system_user: "signstar-share-holder2".parse()?,
                     },
                     NetHsmUserMapping::Signing {
                         backend_user: "signing".parse()?,
@@ -1191,7 +1191,7 @@ mod tests {
                             },
                         )?,
                         ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILWqWyMCk5BdSl1c3KYoLEokKr7qNVPbI1IbBhgEBQj5 user@host".parse()?,
-                        system_user: "nethsm-signing-user".parse()?,
+                        system_user: "nethsm-signing".parse()?,
                         tag: "signing1".to_string(),
                     }
                 ]),
@@ -1209,16 +1209,16 @@ mod tests {
                     NetHsmUserMapping::Backup{
                         backend_user: "backup".parse()?,
                         ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHxR0Oc+SWXkEvvZPitc6NvjvykgiKc9iauRI7tLYvcp user@host".parse()?,
-                        system_user: "share-holder1".parse()?,
+                        system_user: "signstar-share-holder1".parse()?,
                     },
                     NetHsmUserMapping::HermeticMetrics {
                         backend_users: NetHsmMetricsUsers::new("hermeticmetrics".parse()?, vec!["hermetickeymetrics".parse()?])?,
-                        system_user: "nethsm-hermetic-metrics-user".parse()?,
+                        system_user: "nethsm-hermetic-metrics".parse()?,
                     },
                     NetHsmUserMapping::Metrics {
                         backend_users: NetHsmMetricsUsers::new("metrics".parse()?, vec!["keymetrics".parse()?])?,
                         ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPDgwGfIRBAsOUuDEZw/uJQZSwOYr4sg2DAZpcc7MfOj user@host".parse()?,
-                        system_user: "nethsm-metrics-user".parse()?,
+                        system_user: "nethsm-metrics".parse()?,
                     },
                     NetHsmUserMapping::Signing {
                         backend_user: "signing".parse()?,
@@ -1237,7 +1237,7 @@ mod tests {
                             },
                         )?,
                         ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILWqWyMCk5BdSl1c3KYoLEokKr7qNVPbI1IbBhgEBQj5 user@host".parse()?,
-                        system_user: "nethsm-signing-user".parse()?,
+                        system_user: "nethsm-signing".parse()?,
                         tag: "signing1".to_string(),
                     }
                 ]),
@@ -1255,16 +1255,16 @@ mod tests {
                     NetHsmUserMapping::Backup{
                         backend_user: "backup".parse()?,
                         ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHxR0Oc+SWXkEvvZPitc6NvjvykgiKc9iauRI7tLYvcp user@host".parse()?,
-                        system_user: "share-holder1".parse()?,
+                        system_user: "signstar-share-holder1".parse()?,
                     },
                     NetHsmUserMapping::HermeticMetrics {
                         backend_users: NetHsmMetricsUsers::new("hermeticmetrics".parse()?, vec!["hermetickeymetrics".parse()?])?,
-                        system_user: "nethsm-hermetic-metrics-user".parse()?,
+                        system_user: "nethsm-hermetic-metrics".parse()?,
                     },
                     NetHsmUserMapping::Metrics {
                         backend_users: NetHsmMetricsUsers::new("metrics".parse()?, vec!["keymetrics".parse()?])?,
                         ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIETxhCqeZhfzFLfH0KFyw3u/w/dkRBUrft8tQm7DEVzY user@host".parse()?,
-                        system_user: "nethsm-metrics-user".parse()?,
+                        system_user: "nethsm-metrics".parse()?,
                     },
                     NetHsmUserMapping::Signing {
                         backend_user: "signing".parse()?,
@@ -1283,7 +1283,7 @@ mod tests {
                             },
                         )?,
                         ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILWqWyMCk5BdSl1c3KYoLEokKr7qNVPbI1IbBhgEBQj5 user@host".parse()?,
-                        system_user: "nethsm-signing-user".parse()?,
+                        system_user: "nethsm-signing".parse()?,
                         tag: "signing1".to_string(),
                     }
                 ]),
@@ -1301,16 +1301,16 @@ mod tests {
                     NetHsmUserMapping::Backup{
                         backend_user: "backup".parse()?,
                         ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHxR0Oc+SWXkEvvZPitc6NvjvykgiKc9iauRI7tLYvcp user@host".parse()?,
-                        system_user: "nethsm-backup-user".parse()?,
+                        system_user: "nethsm-backup".parse()?,
                     },
                     NetHsmUserMapping::HermeticMetrics {
                         backend_users: NetHsmMetricsUsers::new("hermeticmetrics".parse()?, vec!["hermetickeymetrics".parse()?])?,
-                        system_user: "nethsm-hermetic-metrics-user".parse()?,
+                        system_user: "nethsm-hermetic-metrics".parse()?,
                     },
                     NetHsmUserMapping::Metrics {
                         backend_users: NetHsmMetricsUsers::new("metrics".parse()?, vec!["keymetrics".parse()?])?,
                         ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIETxhCqeZhfzFLfH0KFyw3u/w/dkRBUrft8tQm7DEVzY user@host".parse()?,
-                        system_user: "nethsm-metrics-user".parse()?,
+                        system_user: "nethsm-metrics".parse()?,
                     },
                     NetHsmUserMapping::Signing {
                         backend_user: "signing".parse()?,
@@ -1329,7 +1329,7 @@ mod tests {
                             },
                         )?,
                         ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILWqWyMCk5BdSl1c3KYoLEokKr7qNVPbI1IbBhgEBQj5 user@host".parse()?,
-                        system_user: "nethsm-signing-user".parse()?,
+                        system_user: "nethsm-signing".parse()?,
                         tag: "signing1".to_string(),
                     }
                 ]),
@@ -1347,16 +1347,16 @@ mod tests {
                     NetHsmUserMapping::Backup{
                         backend_user: "backup".parse()?,
                         ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHxR0Oc+SWXkEvvZPitc6NvjvykgiKc9iauRI7tLYvcp user@host".parse()?,
-                        system_user: "share-holder1".parse()?,
+                        system_user: "signstar-share-holder1".parse()?,
                     },
                     NetHsmUserMapping::HermeticMetrics {
                         backend_users: NetHsmMetricsUsers::new("hermeticmetrics".parse()?, vec!["hermetickeymetrics".parse()?])?,
-                        system_user: "nethsm-hermetic-metrics-user".parse()?,
+                        system_user: "nethsm-hermetic-metrics".parse()?,
                     },
                     NetHsmUserMapping::Metrics {
                         backend_users: NetHsmMetricsUsers::new("metrics".parse()?, vec!["keymetrics".parse()?])?,
                         ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIETxhCqeZhfzFLfH0KFyw3u/w/dkRBUrft8tQm7DEVzY user@host".parse()?,
-                        system_user: "nethsm-metrics-user".parse()?,
+                        system_user: "nethsm-metrics".parse()?,
                     },
                     NetHsmUserMapping::Signing {
                         backend_user: "signing".parse()?,
@@ -1375,7 +1375,7 @@ mod tests {
                             },
                         )?,
                         ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIClIXZdx0aDOPcIQA+6Qx68cwSUgGTL3TWzDSX3qUEOQ user@host".parse()?,
-                        system_user: "nethsm-signing-user".parse()?,
+                        system_user: "nethsm-signing".parse()?,
                         tag: "signing1".to_string(),
                     }
                 ]),
@@ -1431,7 +1431,7 @@ mod tests {
         /// Ensures, that an optional [`UserBackendConnection`] can be retrieved from a [`Config`].
         #[rstest]
         #[case::nethsm_signing(
-            "nethsm-signing-user",
+            "nethsm-signing",
             Some(UserBackendConnection::NetHsm {
                 admin_secret_handling: AdministrativeSecretHandling::ShamirsSecretSharing {
                     number_of_shares: NonZeroUsize::new(3).expect("3 is larger than 0"),
@@ -1459,7 +1459,7 @@ mod tests {
                         },
                     )?,
                     ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIClIXZdx0aDOPcIQA+6Qx68cwSUgGTL3TWzDSX3qUEOQ user@host".parse()?,
-                    system_user: "nethsm-signing-user".parse()?,
+                    system_user: "nethsm-signing".parse()?,
                     tag: "signing1".to_string(),
                 }
             })
@@ -1510,7 +1510,7 @@ mod tests {
                     mapping: NetHsmUserMapping::Backup{
                         backend_user: "backup".parse()?,
                         ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHxR0Oc+SWXkEvvZPitc6NvjvykgiKc9iauRI7tLYvcp user@host".parse()?,
-                        system_user: "nethsm-backup-user".parse()?,
+                        system_user: "nethsm-backup".parse()?,
                     }
                 },
                 UserBackendConnection::NetHsm {
@@ -1525,7 +1525,7 @@ mod tests {
                     ]),
                     mapping: NetHsmUserMapping::HermeticMetrics {
                         backend_users: NetHsmMetricsUsers::new("hermeticmetrics".parse()?, vec!["hermetickeymetrics".parse()?])?,
-                        system_user: "nethsm-hermetic-metrics-user".parse()?,
+                        system_user: "nethsm-hermetic-metrics".parse()?,
                     }
                 },
                 UserBackendConnection::NetHsm {
@@ -1541,7 +1541,7 @@ mod tests {
                     mapping: NetHsmUserMapping::Metrics {
                         backend_users: NetHsmMetricsUsers::new("metrics".parse()?, vec!["keymetrics".parse()?])?,
                         ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIETxhCqeZhfzFLfH0KFyw3u/w/dkRBUrft8tQm7DEVzY user@host".parse()?,
-                        system_user: "nethsm-metrics-user".parse()?,
+                        system_user: "nethsm-metrics".parse()?,
                     }
                 },
                 UserBackendConnection::NetHsm {
@@ -1571,7 +1571,7 @@ mod tests {
                             },
                         )?,
                         ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIClIXZdx0aDOPcIQA+6Qx68cwSUgGTL3TWzDSX3qUEOQ user@host".parse()?,
-                        system_user: "nethsm-signing-user".parse()?,
+                        system_user: "nethsm-signing".parse()?,
                         tag: "signing1".to_string(),
                     }
                 },
@@ -1610,7 +1610,7 @@ mod tests {
                     mapping: NetHsmUserMapping::Backup{
                         backend_user: "backup".parse()?,
                         ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHxR0Oc+SWXkEvvZPitc6NvjvykgiKc9iauRI7tLYvcp user@host".parse()?,
-                        system_user: "nethsm-backup-user".parse()?,
+                        system_user: "nethsm-backup".parse()?,
                     }
                 },
                 UserBackendConnection::NetHsm {
@@ -1625,7 +1625,7 @@ mod tests {
                     ]),
                     mapping: NetHsmUserMapping::HermeticMetrics {
                         backend_users: NetHsmMetricsUsers::new("hermeticmetrics".parse()?, vec!["hermetickeymetrics".parse()?])?,
-                        system_user: "nethsm-hermetic-metrics-user".parse()?,
+                        system_user: "nethsm-hermetic-metrics".parse()?,
                     }
                 },
                 UserBackendConnection::NetHsm {
@@ -1641,7 +1641,7 @@ mod tests {
                     mapping: NetHsmUserMapping::Metrics {
                         backend_users: NetHsmMetricsUsers::new("metrics".parse()?, vec!["keymetrics".parse()?])?,
                         ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIETxhCqeZhfzFLfH0KFyw3u/w/dkRBUrft8tQm7DEVzY user@host".parse()?,
-                        system_user: "nethsm-metrics-user".parse()?,
+                        system_user: "nethsm-metrics".parse()?,
                     }
                 },
                 UserBackendConnection::NetHsm {
@@ -1671,7 +1671,7 @@ mod tests {
                             },
                         )?,
                         ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIClIXZdx0aDOPcIQA+6Qx68cwSUgGTL3TWzDSX3qUEOQ user@host".parse()?,
-                        system_user: "nethsm-signing-user".parse()?,
+                        system_user: "nethsm-signing".parse()?,
                         tag: "signing1".to_string(),
                     }
                 },
@@ -1789,14 +1789,14 @@ mod tests {
         fn config_system_user_ids(default_config: TestResult<Config>) -> TestResult {
             let config = default_config?;
             let expected: HashSet<SystemUserId> = HashSet::from_iter([
-                "share-holder1".parse()?,
-                "share-holder2".parse()?,
-                "share-holder3".parse()?,
-                "wireguard-downloader".parse()?,
-                "nethsm-backup-user".parse()?,
-                "nethsm-hermetic-metrics-user".parse()?,
-                "nethsm-metrics-user".parse()?,
-                "nethsm-signing-user".parse()?,
+                "signstar-share-holder1".parse()?,
+                "signstar-share-holder2".parse()?,
+                "signstar-share-holder3".parse()?,
+                "signstar-wireguard-download".parse()?,
+                "nethsm-backup".parse()?,
+                "nethsm-hermetic-metrics".parse()?,
+                "nethsm-metrics".parse()?,
+                "nethsm-signing".parse()?,
             ]);
 
             assert_eq!(
@@ -1861,7 +1861,7 @@ mod tests {
             let non_admin_secret_handling = NonAdministrativeSecretHandling::SystemdCreds;
 
             let user_backend_connection = config
-                .user_backend_connection(&"nethsm-signing-user".parse()?)
+                .user_backend_connection(&"nethsm-signing".parse()?)
                 .expect("there to be a mapping of the requested name");
 
             assert_eq!(
@@ -2000,17 +2000,17 @@ mod tests {
                     YubiHsm2UserMapping::AuditLog {
                         authentication_key_id: "3".parse()?,
                         ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILWqWyMCk5BdSl1c3KYoLEokKr7qNVPbI1IbBhgEBQj5 user@host".parse()?,
-                        system_user: "share-holder2".parse()?,
+                        system_user: "signstar-share-holder2".parse()?,
                     },
                     YubiHsm2UserMapping::Backup{
                         authentication_key_id: "2".parse()?,
                         ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOOCMo+ODRchqIiXm89TxF7avi+LXRtqWZdBAvJ1SG5g user@host".parse()?,
-                        system_user: "share-holder1".parse()?,
+                        system_user: "signstar-share-holder1".parse()?,
                         wrapping_key_id: "1".parse()?,
                     },
                     YubiHsm2UserMapping::HermeticAuditLog {
                         authentication_key_id: "4".parse()?,
-                        system_user: "yubihsm2-hermetic-metrics".parse()?,
+                        system_user: "yubihsm2-hermetic-audit-log".parse()?,
                     },
                     YubiHsm2UserMapping::Signing {
                         authentication_key_id: "5".parse()?,
@@ -2029,7 +2029,7 @@ mod tests {
                             },
                         )?,
                         ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOh9BTe81DC6A0YZALsq9dWcyl6xjjqlxWPwlExTFgBt user@host".parse()?,
-                        system_user: "yubihsm2-signing-user".parse()?,
+                        system_user: "yubihsm2-signing".parse()?,
                         domain: Domain::One,
                     }
                 ]),
@@ -2047,17 +2047,17 @@ mod tests {
                     YubiHsm2UserMapping::AuditLog {
                         authentication_key_id: "3".parse()?,
                         ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILWqWyMCk5BdSl1c3KYoLEokKr7qNVPbI1IbBhgEBQj5 user@host".parse()?,
-                        system_user: "yubihsm2-metrics-user".parse()?,
+                        system_user: "yubihsm2-audit-log".parse()?,
                     },
                     YubiHsm2UserMapping::Backup{
                         authentication_key_id: "2".parse()?,
                         ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOOCMo+ODRchqIiXm89TxF7avi+LXRtqWZdBAvJ1SG5g user@host".parse()?,
-                        system_user: "share-holder1".parse()?,
+                        system_user: "signstar-share-holder1".parse()?,
                         wrapping_key_id: "1".parse()?,
                     },
                     YubiHsm2UserMapping::HermeticAuditLog {
                         authentication_key_id: "4".parse()?,
-                        system_user: "yubihsm2-hermetic-metrics-user".parse()?,
+                        system_user: "yubihsm2-hermetic-audit-log".parse()?,
                     },
                     YubiHsm2UserMapping::Signing {
                         authentication_key_id: "5".parse()?,
@@ -2076,7 +2076,7 @@ mod tests {
                             },
                         )?,
                         ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOh9BTe81DC6A0YZALsq9dWcyl6xjjqlxWPwlExTFgBt user@host".parse()?,
-                        system_user: "yubihsm2-signing-user".parse()?,
+                        system_user: "yubihsm2-signing".parse()?,
                         domain: Domain::One,
                     }
                 ]),
@@ -2094,17 +2094,17 @@ mod tests {
                     YubiHsm2UserMapping::AuditLog {
                         authentication_key_id: "3".parse()?,
                         ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILWqWyMCk5BdSl1c3KYoLEokKr7qNVPbI1IbBhgEBQj5 user@host".parse()?,
-                        system_user: "yubihsm2-metrics-user".parse()?,
+                        system_user: "yubihsm2-audit-log".parse()?,
                     },
                     YubiHsm2UserMapping::Backup{
                         authentication_key_id: "2".parse()?,
                         ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOOCMo+ODRchqIiXm89TxF7avi+LXRtqWZdBAvJ1SG5g user@host".parse()?,
-                        system_user: "share-holder1".parse()?,
+                        system_user: "signstar-share-holder1".parse()?,
                         wrapping_key_id: "1".parse()?,
                     },
                     YubiHsm2UserMapping::HermeticAuditLog {
                         authentication_key_id: "4".parse()?,
-                        system_user: "yubihsm2-hermetic-metrics-user".parse()?,
+                        system_user: "yubihsm2-hermetic-audit-log".parse()?,
                     },
                     YubiHsm2UserMapping::Signing {
                         authentication_key_id: "5".parse()?,
@@ -2123,7 +2123,7 @@ mod tests {
                             },
                         )?,
                         ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOh96uFTnvX6P1ebbLxXFvy6sK7qFqlMHDOuJ0TmuXQQ user@host".parse()?,
-                        system_user: "yubihsm2-signing-user".parse()?,
+                        system_user: "yubihsm2-signing".parse()?,
                         domain: Domain::One,
                     }
                 ]),
@@ -2141,17 +2141,17 @@ mod tests {
                     YubiHsm2UserMapping::AuditLog {
                         authentication_key_id: "3".parse()?,
                         ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILWqWyMCk5BdSl1c3KYoLEokKr7qNVPbI1IbBhgEBQj5 user@host".parse()?,
-                        system_user: "yubihsm2-metrics-user".parse()?,
+                        system_user: "yubihsm2-audit-log".parse()?,
                     },
                     YubiHsm2UserMapping::Backup{
                         authentication_key_id: "2".parse()?,
                         ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOOCMo+ODRchqIiXm89TxF7avi+LXRtqWZdBAvJ1SG5g user@host".parse()?,
-                        system_user: "yubihsm2-backup-user".parse()?,
+                        system_user: "yubihsm2-backup".parse()?,
                         wrapping_key_id: "1".parse()?,
                     },
                     YubiHsm2UserMapping::HermeticAuditLog {
                         authentication_key_id: "4".parse()?,
-                        system_user: "yubihsm2-hermetic-metrics-user".parse()?,
+                        system_user: "yubihsm2-hermetic-audit-log".parse()?,
                     },
                     YubiHsm2UserMapping::Signing {
                         authentication_key_id: "5".parse()?,
@@ -2170,7 +2170,7 @@ mod tests {
                             },
                         )?,
                         ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOh96uFTnvX6P1ebbLxXFvy6sK7qFqlMHDOuJ0TmuXQQ user@host".parse()?,
-                        system_user: "yubihsm2-signing-user".parse()?,
+                        system_user: "yubihsm2-signing".parse()?,
                         domain: Domain::One,
                     }
                 ]),
@@ -2188,17 +2188,17 @@ mod tests {
                     YubiHsm2UserMapping::AuditLog {
                         authentication_key_id: "3".parse()?,
                         ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPkpXKiNhy39A3bZ1u19a5d4sFwYMBkWQyCbzgUfdKBm user@host".parse()?,
-                        system_user: "yubihsm2-metrics-user".parse()?,
+                        system_user: "yubihsm2-audit-log".parse()?,
                     },
                     YubiHsm2UserMapping::Backup{
                         authentication_key_id: "2".parse()?,
                         ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOOCMo+ODRchqIiXm89TxF7avi+LXRtqWZdBAvJ1SG5g user@host".parse()?,
-                        system_user: "share-holder1".parse()?,
+                        system_user: "signstar-share-holder1".parse()?,
                         wrapping_key_id: "1".parse()?,
                     },
                     YubiHsm2UserMapping::HermeticAuditLog {
                         authentication_key_id: "4".parse()?,
-                        system_user: "yubihsm2-hermetic-metrics-user".parse()?,
+                        system_user: "yubihsm2-hermetic-audit-log".parse()?,
                     },
                     YubiHsm2UserMapping::Signing {
                         authentication_key_id: "5".parse()?,
@@ -2217,7 +2217,7 @@ mod tests {
                             },
                         )?,
                         ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOh96uFTnvX6P1ebbLxXFvy6sK7qFqlMHDOuJ0TmuXQQ user@host".parse()?,
-                        system_user: "yubihsm2-signing-user".parse()?,
+                        system_user: "yubihsm2-signing".parse()?,
                         domain: Domain::One,
                     }
                 ]),
@@ -2273,7 +2273,7 @@ mod tests {
         /// Ensures, that an optional [`UserBackendConnection`] can be retrieved from a [`Config`].
         #[rstest]
         #[case::yubihsm2_signing(
-            "yubihsm2-signing-user",
+            "yubihsm2-signing",
             Some(UserBackendConnection::YubiHsm2 {
                 admin_secret_handling: AdministrativeSecretHandling::ShamirsSecretSharing {
                     number_of_shares: NonZeroUsize::new(3).expect("3 is larger than 0"),
@@ -2301,7 +2301,7 @@ mod tests {
                         },
                     )?,
                     ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOh96uFTnvX6P1ebbLxXFvy6sK7qFqlMHDOuJ0TmuXQQ user@host".parse()?,
-                    system_user: "yubihsm2-signing-user".parse()?,
+                    system_user: "yubihsm2-signing".parse()?,
                     domain: Domain::One,
                 }
             })
@@ -2352,7 +2352,7 @@ mod tests {
                     mapping: YubiHsm2UserMapping::AuditLog {
                         authentication_key_id: "3".parse()?,
                         ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPkpXKiNhy39A3bZ1u19a5d4sFwYMBkWQyCbzgUfdKBm user@host".parse()?,
-                        system_user: "yubihsm2-metrics-user".parse()?,
+                        system_user: "yubihsm2-audit-log".parse()?,
                     },
                 },
                 UserBackendConnection::YubiHsm2 {
@@ -2368,7 +2368,7 @@ mod tests {
                     mapping: YubiHsm2UserMapping::Backup{
                         authentication_key_id: "2".parse()?,
                         ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOOCMo+ODRchqIiXm89TxF7avi+LXRtqWZdBAvJ1SG5g user@host".parse()?,
-                        system_user: "yubihsm2-backup-user".parse()?,
+                        system_user: "yubihsm2-backup".parse()?,
                         wrapping_key_id: "1".parse()?,
                     },
                 },
@@ -2384,7 +2384,7 @@ mod tests {
                     ]),
                     mapping: YubiHsm2UserMapping::HermeticAuditLog {
                         authentication_key_id: "4".parse()?,
-                        system_user: "yubihsm2-hermetic-metrics-user".parse()?,
+                        system_user: "yubihsm2-hermetic-audit-log".parse()?,
                     },
                 },
                 UserBackendConnection::YubiHsm2 {
@@ -2414,7 +2414,7 @@ mod tests {
                             },
                         )?,
                         ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOh96uFTnvX6P1ebbLxXFvy6sK7qFqlMHDOuJ0TmuXQQ user@host".parse()?,
-                        system_user: "yubihsm2-signing-user".parse()?,
+                        system_user: "yubihsm2-signing".parse()?,
                         domain: Domain::One,
                     }
                 },
@@ -2453,7 +2453,7 @@ mod tests {
                     mapping: YubiHsm2UserMapping::AuditLog {
                         authentication_key_id: "3".parse()?,
                         ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPkpXKiNhy39A3bZ1u19a5d4sFwYMBkWQyCbzgUfdKBm user@host".parse()?,
-                        system_user: "yubihsm2-metrics-user".parse()?,
+                        system_user: "yubihsm2-audit-log".parse()?,
                     },
                 },
                 UserBackendConnection::YubiHsm2 {
@@ -2469,7 +2469,7 @@ mod tests {
                     mapping: YubiHsm2UserMapping::Backup{
                         authentication_key_id: "2".parse()?,
                         ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOOCMo+ODRchqIiXm89TxF7avi+LXRtqWZdBAvJ1SG5g user@host".parse()?,
-                        system_user: "yubihsm2-backup-user".parse()?,
+                        system_user: "yubihsm2-backup".parse()?,
                         wrapping_key_id: "1".parse()?,
                     },
                 },
@@ -2485,7 +2485,7 @@ mod tests {
                     ]),
                     mapping: YubiHsm2UserMapping::HermeticAuditLog {
                         authentication_key_id: "4".parse()?,
-                        system_user: "yubihsm2-hermetic-metrics-user".parse()?,
+                        system_user: "yubihsm2-hermetic-audit-log".parse()?,
                     },
                 },
                 UserBackendConnection::YubiHsm2 {
@@ -2515,7 +2515,7 @@ mod tests {
                             },
                         )?,
                         ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOh96uFTnvX6P1ebbLxXFvy6sK7qFqlMHDOuJ0TmuXQQ user@host".parse()?,
-                        system_user: "yubihsm2-signing-user".parse()?,
+                        system_user: "yubihsm2-signing".parse()?,
                         domain: Domain::One,
                     }
                 },
@@ -2657,14 +2657,14 @@ mod tests {
         fn config_system_user_ids(default_config: TestResult<Config>) -> TestResult {
             let config = default_config?;
             let expected: HashSet<SystemUserId> = HashSet::from_iter([
-                "share-holder1".parse()?,
-                "share-holder2".parse()?,
-                "share-holder3".parse()?,
-                "wireguard-downloader".parse()?,
-                "yubihsm2-metrics-user".parse()?,
-                "yubihsm2-backup-user".parse()?,
-                "yubihsm2-hermetic-metrics-user".parse()?,
-                "yubihsm2-signing-user".parse()?,
+                "signstar-share-holder1".parse()?,
+                "signstar-share-holder2".parse()?,
+                "signstar-share-holder3".parse()?,
+                "signstar-wireguard-download".parse()?,
+                "yubihsm2-audit-log".parse()?,
+                "yubihsm2-backup".parse()?,
+                "yubihsm2-hermetic-audit-log".parse()?,
+                "yubihsm2-signing".parse()?,
             ]);
 
             assert_eq!(
@@ -2723,7 +2723,7 @@ mod tests {
             let non_admin_secret_handling = NonAdministrativeSecretHandling::SystemdCreds;
 
             let user_backend_connection = config
-                .user_backend_connection(&"yubihsm2-signing-user".parse()?)
+                .user_backend_connection(&"yubihsm2-signing".parse()?)
                 .expect("there to be a mapping of the requested name");
 
             assert_eq!(
@@ -2919,16 +2919,16 @@ mod tests {
                     NetHsmUserMapping::Backup{
                         backend_user: "backup".parse()?,
                         ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHxR0Oc+SWXkEvvZPitc6NvjvykgiKc9iauRI7tLYvcp user@host".parse()?,
-                        system_user: "backup-user".parse()?,
+                        system_user: "duplicate-backup".parse()?,
                     },
                     NetHsmUserMapping::HermeticMetrics {
                         backend_users: NetHsmMetricsUsers::new("hermeticmetrics".parse()?, vec!["hermetickeymetrics".parse()?])?,
-                        system_user: "nethsm-hermetic-metrics-user".parse()?,
+                        system_user: "nethsm-hermetic-metrics".parse()?,
                     },
                     NetHsmUserMapping::Metrics {
                         backend_users: NetHsmMetricsUsers::new("metrics".parse()?, vec!["keymetrics".parse()?])?,
                         ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIETxhCqeZhfzFLfH0KFyw3u/w/dkRBUrft8tQm7DEVzY user@host".parse()?,
-                        system_user: "metrics-user".parse()?,
+                        system_user: "duplicate-metrics".parse()?,
                     },
                     NetHsmUserMapping::Signing {
                         backend_user: "signing".parse()?,
@@ -2947,7 +2947,7 @@ mod tests {
                             },
                         )?,
                         ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIClIXZdx0aDOPcIQA+6Qx68cwSUgGTL3TWzDSX3qUEOQ user@host".parse()?,
-                        system_user: "nethsm-signing-user".parse()?,
+                        system_user: "nethsm-signing".parse()?,
                         tag: "nethsm-signing1".to_string(),
                     }
                 ]),
@@ -2962,17 +2962,17 @@ mod tests {
                     YubiHsm2UserMapping::AuditLog {
                         authentication_key_id: "3".parse()?,
                         ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIETxhCqeZhfzFLfH0KFyw3u/w/dkRBUrft8tQm7DEVzY user@host".parse()?,
-                        system_user: "metrics-user".parse()?,
+                        system_user: "duplicate-metrics".parse()?,
                     },
                     YubiHsm2UserMapping::Backup {
                         authentication_key_id: "2".parse()?,
                         wrapping_key_id: "2".parse()?,
                         ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHxR0Oc+SWXkEvvZPitc6NvjvykgiKc9iauRI7tLYvcp user@host".parse()?,
-                        system_user: "backup-user".parse()?,
+                        system_user: "duplicate-backup".parse()?,
                     },
                     YubiHsm2UserMapping::HermeticAuditLog {
                         authentication_key_id: "4".parse()?,
-                        system_user: "yubihsm2-hermetic-metrics-user".parse()?,
+                        system_user: "yubihsm2-hermetic-audit-log".parse()?,
                     },
                     YubiHsm2UserMapping::Signing {
                         authentication_key_id: "5".parse()?,
@@ -2992,7 +2992,7 @@ mod tests {
                         signing_key_id: "1".parse()?,
                         domain: Domain::One,
                         ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOh96uFTnvX6P1ebbLxXFvy6sK7qFqlMHDOuJ0TmuXQQ user@host".parse()?,
-                        system_user: "yubihsm2-signing-user".parse()? }
+                        system_user: "yubihsm2-signing".parse()? }
                 ]),
             )?,
         )]
@@ -3008,16 +3008,16 @@ mod tests {
                     NetHsmUserMapping::Backup{
                         backend_user: "backup".parse()?,
                         ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHxR0Oc+SWXkEvvZPitc6NvjvykgiKc9iauRI7tLYvcp user@host".parse()?,
-                        system_user: "backup-user".parse()?,
+                        system_user: "duplicate-backup".parse()?,
                     },
                     NetHsmUserMapping::HermeticMetrics {
                         backend_users: NetHsmMetricsUsers::new("hermeticmetrics".parse()?, vec!["hermetickeymetrics".parse()?])?,
-                        system_user: "nethsm-hermetic-metrics-user".parse()?,
+                        system_user: "nethsm-hermetic-metrics".parse()?,
                     },
                     NetHsmUserMapping::Metrics {
                         backend_users: NetHsmMetricsUsers::new("metrics".parse()?, vec!["keymetrics".parse()?])?,
                         ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIETxhCqeZhfzFLfH0KFyw3u/w/dkRBUrft8tQm7DEVzY user@host".parse()?,
-                        system_user: "nethsm-metrics-user".parse()?,
+                        system_user: "nethsm-metrics".parse()?,
                     },
                     NetHsmUserMapping::Signing {
                         backend_user: "signing".parse()?,
@@ -3036,7 +3036,7 @@ mod tests {
                             },
                         )?,
                         ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIClIXZdx0aDOPcIQA+6Qx68cwSUgGTL3TWzDSX3qUEOQ user@host".parse()?,
-                        system_user: "nethsm-signing-user".parse()?,
+                        system_user: "nethsm-signing".parse()?,
                         tag: "nethsm-signing1".to_string(),
                     }
                 ]),
@@ -3051,17 +3051,17 @@ mod tests {
                     YubiHsm2UserMapping::AuditLog {
                         authentication_key_id: "3".parse()?,
                         ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPkpXKiNhy39A3bZ1u19a5d4sFwYMBkWQyCbzgUfdKBm user@host".parse()?,
-                        system_user: "yubihsm2-metrics-user".parse()?,
+                        system_user: "yubihsm2-audit-log".parse()?,
                     },
                     YubiHsm2UserMapping::Backup {
                         authentication_key_id: "2".parse()?,
                         wrapping_key_id: "2".parse()?,
                         ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOOCMo+ODRchqIiXm89TxF7avi+LXRtqWZdBAvJ1SG5g user@host".parse()?,
-                        system_user: "backup-user".parse()?,
+                        system_user: "duplicate-backup".parse()?,
                     },
                     YubiHsm2UserMapping::HermeticAuditLog {
                         authentication_key_id: "4".parse()?,
-                        system_user: "yubihsm2-hermetic-metrics-user".parse()?,
+                        system_user: "yubihsm2-hermetic-audit-log".parse()?,
                     },
                     YubiHsm2UserMapping::Signing {
                         authentication_key_id: "5".parse()?,
@@ -3081,7 +3081,7 @@ mod tests {
                         signing_key_id: "1".parse()?,
                         domain: Domain::One,
                         ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOh96uFTnvX6P1ebbLxXFvy6sK7qFqlMHDOuJ0TmuXQQ user@host".parse()?,
-                        system_user: "yubihsm2-signing-user".parse()? }
+                        system_user: "yubihsm2-signing".parse()? }
                 ]),
             )?,
         )]
@@ -3097,16 +3097,16 @@ mod tests {
                     NetHsmUserMapping::Backup{
                         backend_user: "backup".parse()?,
                         ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAN54Gd1jMz+yNDjBRwX1SnOtWuUsVF64RJIeYJ8DI7b user@host".parse()?,
-                        system_user: "share-holder1".parse()?,
+                        system_user: "duplicate-backup".parse()?,
                     },
                     NetHsmUserMapping::Metrics {
                         backend_users: NetHsmMetricsUsers::new("metrics".parse()?, vec!["keymetrics".parse()?])?,
                         ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPDgwGfIRBAsOUuDEZw/uJQZSwOYr4sg2DAZpcc7MfOj user@host".parse()?,
-                        system_user: "share-holder2".parse()?,
+                        system_user: "duplicate-metrics".parse()?,
                     },
                     NetHsmUserMapping::HermeticMetrics {
                         backend_users: NetHsmMetricsUsers::new("hermeticmetrics".parse()?, vec!["hermetickeymetrics".parse()?])?,
-                        system_user: "nethsm-hermetic-metrics-user".parse()?,
+                        system_user: "nethsm-hermetic-metrics".parse()?,
                     },
                     NetHsmUserMapping::Signing {
                         backend_user: "signing".parse()?,
@@ -3125,7 +3125,7 @@ mod tests {
                             },
                         )?,
                         ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIClIXZdx0aDOPcIQA+6Qx68cwSUgGTL3TWzDSX3qUEOQ user@host".parse()?,
-                        system_user: "nethsm-signing-user".parse()?,
+                        system_user: "nethsm-signing".parse()?,
                         tag: "nethsm-signing1".to_string(),
                     }
                 ]),
@@ -3141,16 +3141,16 @@ mod tests {
                         authentication_key_id: "2".parse()?,
                         wrapping_key_id: "2".parse()?,
                         ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAN54Gd1jMz+yNDjBRwX1SnOtWuUsVF64RJIeYJ8DI7b user@host".parse()?,
-                        system_user: "share-holder1".parse()?,
+                        system_user: "duplicate-backup".parse()?,
                     },
                     YubiHsm2UserMapping::AuditLog {
                         authentication_key_id: "3".parse()?,
                         ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPDgwGfIRBAsOUuDEZw/uJQZSwOYr4sg2DAZpcc7MfOj user@host".parse()?,
-                        system_user: "share-holder2".parse()?,
+                        system_user: "duplicate-metrics".parse()?,
                     },
                     YubiHsm2UserMapping::HermeticAuditLog {
                         authentication_key_id: "4".parse()?,
-                        system_user: "yubihsm2-hermetic-metrics-user".parse()?,
+                        system_user: "yubihsm2-hermetic-audit-log".parse()?,
                     },
                     YubiHsm2UserMapping::Signing {
                         authentication_key_id: "5".parse()?,
@@ -3170,7 +3170,7 @@ mod tests {
                         signing_key_id: "1".parse()?,
                         domain: Domain::One,
                         ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOh96uFTnvX6P1ebbLxXFvy6sK7qFqlMHDOuJ0TmuXQQ user@host".parse()?,
-                        system_user: "yubihsm2-signing-user".parse()? }
+                        system_user: "yubihsm2-signing".parse()? }
                 ]),
             )?,
         )]
@@ -3206,7 +3206,7 @@ mod tests {
         /// Ensures, that an optional [`UserBackendConnection`] can be retrieved from a [`Config`].
         #[rstest]
         #[case::nethsm_signing(
-            "nethsm-signing-user",
+            "nethsm-signing",
             Some(UserBackendConnection::NetHsm {
                 admin_secret_handling: AdministrativeSecretHandling::ShamirsSecretSharing {
                     number_of_shares: NonZeroUsize::new(3).expect("3 is larger than 0"),
@@ -3234,13 +3234,13 @@ mod tests {
                         },
                     )?,
                     ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIClIXZdx0aDOPcIQA+6Qx68cwSUgGTL3TWzDSX3qUEOQ user@host".parse()?,
-                    system_user: "nethsm-signing-user".parse()?,
+                    system_user: "nethsm-signing".parse()?,
                     tag: "signing1".to_string(),
                 }
             })
         )]
         #[case::yubihsm2_signing(
-            "yubihsm2-signing-user",
+            "yubihsm2-signing",
             Some(UserBackendConnection::YubiHsm2 {
                 admin_secret_handling: AdministrativeSecretHandling::ShamirsSecretSharing {
                     number_of_shares: NonZeroUsize::new(3).expect("3 is larger than 0"),
@@ -3268,7 +3268,7 @@ mod tests {
                         },
                     )?,
                     ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOh96uFTnvX6P1ebbLxXFvy6sK7qFqlMHDOuJ0TmuXQQ user@host".parse()?,
-                    system_user: "yubihsm2-signing-user".parse()?,
+                    system_user: "yubihsm2-signing".parse()?,
                     domain: Domain::One,
                 }
             })
@@ -3319,7 +3319,7 @@ mod tests {
                     mapping: NetHsmUserMapping::Backup{
                         backend_user: "backup".parse()?,
                         ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHxR0Oc+SWXkEvvZPitc6NvjvykgiKc9iauRI7tLYvcp user@host".parse()?,
-                        system_user: "nethsm-backup-user".parse()?,
+                        system_user: "nethsm-backup".parse()?,
                     }
                 },
                 UserBackendConnection::NetHsm {
@@ -3334,7 +3334,7 @@ mod tests {
                     ]),
                     mapping: NetHsmUserMapping::HermeticMetrics {
                         backend_users: NetHsmMetricsUsers::new("hermeticmetrics".parse()?, vec!["hermetickeymetrics".parse()?])?,
-                        system_user: "nethsm-hermetic-metrics-user".parse()?,
+                        system_user: "nethsm-hermetic-metrics".parse()?,
                     }
                 },
                 UserBackendConnection::NetHsm {
@@ -3350,7 +3350,7 @@ mod tests {
                     mapping: NetHsmUserMapping::Metrics {
                         backend_users: NetHsmMetricsUsers::new("metrics".parse()?, vec!["keymetrics".parse()?])?,
                         ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIETxhCqeZhfzFLfH0KFyw3u/w/dkRBUrft8tQm7DEVzY user@host".parse()?,
-                        system_user: "nethsm-metrics-user".parse()?,
+                        system_user: "nethsm-metrics".parse()?,
                     }
                 },
                 UserBackendConnection::NetHsm {
@@ -3380,7 +3380,7 @@ mod tests {
                             },
                         )?,
                         ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIClIXZdx0aDOPcIQA+6Qx68cwSUgGTL3TWzDSX3qUEOQ user@host".parse()?,
-                        system_user: "nethsm-signing-user".parse()?,
+                        system_user: "nethsm-signing".parse()?,
                         tag: "signing1".to_string(),
                     }
                 },
@@ -3409,7 +3409,7 @@ mod tests {
                     mapping: YubiHsm2UserMapping::AuditLog {
                         authentication_key_id: "3".parse()?,
                         ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPkpXKiNhy39A3bZ1u19a5d4sFwYMBkWQyCbzgUfdKBm user@host".parse()?,
-                        system_user: "yubihsm2-metrics-user".parse()?,
+                        system_user: "yubihsm2-audit-log".parse()?,
                     },
                 },
                 UserBackendConnection::YubiHsm2 {
@@ -3425,7 +3425,7 @@ mod tests {
                     mapping: YubiHsm2UserMapping::Backup{
                         authentication_key_id: "2".parse()?,
                         ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOOCMo+ODRchqIiXm89TxF7avi+LXRtqWZdBAvJ1SG5g user@host".parse()?,
-                        system_user: "yubihsm2-backup-user".parse()?,
+                        system_user: "yubihsm2-backup".parse()?,
                         wrapping_key_id: "1".parse()?,
                     },
                 },
@@ -3441,7 +3441,7 @@ mod tests {
                     ]),
                     mapping: YubiHsm2UserMapping::HermeticAuditLog {
                         authentication_key_id: "4".parse()?,
-                        system_user: "yubihsm2-hermetic-metrics-user".parse()?,
+                        system_user: "yubihsm2-hermetic-audit-log".parse()?,
                     },
                 },
                 UserBackendConnection::YubiHsm2 {
@@ -3471,7 +3471,7 @@ mod tests {
                             },
                         )?,
                         ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOh96uFTnvX6P1ebbLxXFvy6sK7qFqlMHDOuJ0TmuXQQ user@host".parse()?,
-                        system_user: "yubihsm2-signing-user".parse()?,
+                        system_user: "yubihsm2-signing".parse()?,
                         domain: Domain::One,
                     }
                 },
@@ -3522,7 +3522,7 @@ mod tests {
                     mapping: NetHsmUserMapping::Backup{
                         backend_user: "backup".parse()?,
                         ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHxR0Oc+SWXkEvvZPitc6NvjvykgiKc9iauRI7tLYvcp user@host".parse()?,
-                        system_user: "nethsm-backup-user".parse()?,
+                        system_user: "nethsm-backup".parse()?,
                     }
                 },
                 UserBackendConnection::NetHsm {
@@ -3537,7 +3537,7 @@ mod tests {
                     ]),
                     mapping: NetHsmUserMapping::HermeticMetrics {
                         backend_users: NetHsmMetricsUsers::new("hermeticmetrics".parse()?, vec!["hermetickeymetrics".parse()?])?,
-                        system_user: "nethsm-hermetic-metrics-user".parse()?,
+                        system_user: "nethsm-hermetic-metrics".parse()?,
                     }
                 },
                 UserBackendConnection::NetHsm {
@@ -3553,7 +3553,7 @@ mod tests {
                     mapping: NetHsmUserMapping::Metrics {
                         backend_users: NetHsmMetricsUsers::new("metrics".parse()?, vec!["keymetrics".parse()?])?,
                         ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIETxhCqeZhfzFLfH0KFyw3u/w/dkRBUrft8tQm7DEVzY user@host".parse()?,
-                        system_user: "nethsm-metrics-user".parse()?,
+                        system_user: "nethsm-metrics".parse()?,
                     }
                 },
                 UserBackendConnection::NetHsm {
@@ -3583,7 +3583,7 @@ mod tests {
                             },
                         )?,
                         ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIClIXZdx0aDOPcIQA+6Qx68cwSUgGTL3TWzDSX3qUEOQ user@host".parse()?,
-                        system_user: "nethsm-signing-user".parse()?,
+                        system_user: "nethsm-signing".parse()?,
                         tag: "signing1".to_string(),
                     }
                 },
@@ -3600,7 +3600,7 @@ mod tests {
                     mapping: YubiHsm2UserMapping::AuditLog {
                         authentication_key_id: "3".parse()?,
                         ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPkpXKiNhy39A3bZ1u19a5d4sFwYMBkWQyCbzgUfdKBm user@host".parse()?,
-                        system_user: "yubihsm2-metrics-user".parse()?,
+                        system_user: "yubihsm2-audit-log".parse()?,
                     },
                 },
                 UserBackendConnection::YubiHsm2 {
@@ -3616,7 +3616,7 @@ mod tests {
                     mapping: YubiHsm2UserMapping::Backup{
                         authentication_key_id: "2".parse()?,
                         ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOOCMo+ODRchqIiXm89TxF7avi+LXRtqWZdBAvJ1SG5g user@host".parse()?,
-                        system_user: "yubihsm2-backup-user".parse()?,
+                        system_user: "yubihsm2-backup".parse()?,
                         wrapping_key_id: "1".parse()?,
                     },
                 },
@@ -3632,7 +3632,7 @@ mod tests {
                     ]),
                     mapping: YubiHsm2UserMapping::HermeticAuditLog {
                         authentication_key_id: "4".parse()?,
-                        system_user: "yubihsm2-hermetic-metrics-user".parse()?,
+                        system_user: "yubihsm2-hermetic-audit-log".parse()?,
                     },
                 },
                 UserBackendConnection::YubiHsm2 {
@@ -3662,7 +3662,7 @@ mod tests {
                             },
                         )?,
                         ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOh96uFTnvX6P1ebbLxXFvy6sK7qFqlMHDOuJ0TmuXQQ user@host".parse()?,
-                        system_user: "yubihsm2-signing-user".parse()?,
+                        system_user: "yubihsm2-signing".parse()?,
                         domain: Domain::One,
                     }
                 },
@@ -3835,18 +3835,18 @@ mod tests {
         fn config_system_user_ids(default_config: TestResult<Config>) -> TestResult {
             let config = default_config?;
             let expected: HashSet<SystemUserId> = HashSet::from_iter([
-                "share-holder1".parse()?,
-                "share-holder2".parse()?,
-                "share-holder3".parse()?,
-                "wireguard-downloader".parse()?,
-                "nethsm-backup-user".parse()?,
-                "nethsm-hermetic-metrics-user".parse()?,
-                "nethsm-metrics-user".parse()?,
-                "nethsm-signing-user".parse()?,
-                "yubihsm2-metrics-user".parse()?,
-                "yubihsm2-backup-user".parse()?,
-                "yubihsm2-hermetic-metrics-user".parse()?,
-                "yubihsm2-signing-user".parse()?,
+                "signstar-share-holder1".parse()?,
+                "signstar-share-holder2".parse()?,
+                "signstar-share-holder3".parse()?,
+                "signstar-wireguard-download".parse()?,
+                "nethsm-backup".parse()?,
+                "nethsm-hermetic-metrics".parse()?,
+                "nethsm-metrics".parse()?,
+                "nethsm-signing".parse()?,
+                "yubihsm2-audit-log".parse()?,
+                "yubihsm2-backup".parse()?,
+                "yubihsm2-hermetic-audit-log".parse()?,
+                "yubihsm2-signing".parse()?,
             ]);
 
             assert_eq!(
@@ -3902,7 +3902,7 @@ mod tests {
             };
             let non_admin_secret_handling = NonAdministrativeSecretHandling::SystemdCreds;
 
-            for user in ["nethsm-signing-user", "yubihsm2-signing-user"] {
+            for user in ["nethsm-signing", "yubihsm2-signing"] {
                 let user_backend_connection = config
                     .user_backend_connection(&user.parse()?)
                     .expect("there to be a mapping of the requested name");

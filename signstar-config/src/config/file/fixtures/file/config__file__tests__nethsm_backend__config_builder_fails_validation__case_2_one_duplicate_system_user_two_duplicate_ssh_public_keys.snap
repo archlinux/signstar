@@ -4,5 +4,5 @@ description: Configuration with system-wide and NetHSM configuration has one dup
 expression: error_message
 ---
 Validation error while validating a configuration object: system: contains multiple issues:
-⤷ the duplicate system user ID share-holder1
+⤷ the duplicate system user ID signstar-share-holder1
 ⤷ the duplicate SSH public keys "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILWqWyMCk5BdSl1c3KYoLEokKr7qNVPbI1IbBhgEBQj5", "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPDgwGfIRBAsOUuDEZw/uJQZSwOYr4sg2DAZpcc7MfOj"

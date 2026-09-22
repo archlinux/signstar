@@ -4,5 +4,5 @@ system:
   non_admin_secret_handling: systemd-creds
   mappings:
     - wire_guard_download:
-        system_user: wireguard-downloader
+        system_user: signstar-wireguard-download
         ssh_authorized_key: ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOh9BTe81DC6A0YZALsq9dWcyl6xjjqlxWPwlExTFgBt user@host

@@ -96,9 +96,9 @@ mod no_backend {
         let system_user_host_state = SystemUserHostState::new()?;
         let expected_system_user_data = [
             SystemUserData::Unknown {
-                system_user: "wireguard-downloader".parse()?,
+                system_user: "signstar-wireguard-download".parse()?,
                 ssh_authorized_keys: vec!["ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOh9BTe81DC6A0YZALsq9dWcyl6xjjqlxWPwlExTFgBt user@host".parse()?],
-                home_dir: get_home_base_dir_path().join("wireguard-downloader"),
+                home_dir: get_home_base_dir_path().join("signstar-wireguard-download"),
             },
         ];
 

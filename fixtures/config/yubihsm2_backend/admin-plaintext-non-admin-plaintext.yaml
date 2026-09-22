@@ -4,7 +4,7 @@ system:
   non_admin_secret_handling: plaintext
   mappings:
     - wire_guard_download:
-        system_user: wireguard-downloader
+        system_user: signstar-wireguard-download
         ssh_authorized_key: ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOh9BTe81DC6A0YZALsq9dWcyl6xjjqlxWPwlExTFgBt user@host
 yubihsm2:
   connections:
@@ -18,19 +18,19 @@ yubihsm2:
     - audit_log:
         authentication_key_id: 2
         ssh_authorized_key: ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPkpXKiNhy39A3bZ1u19a5d4sFwYMBkWQyCbzgUfdKBm user@host
-        system_user: metrics-user
+        system_user: yubihsm2-audit-log
     - backup:
         authentication_key_id: 3
         wrapping_key_id: 2
         ssh_authorized_key: ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINrIYA+bfMBThUP5lKbMFEHiytmcCPhpkGrB/85n0mAN user@host
-        system_user: backup-user
+        system_user: yubihsm2-backup
     - certificate_retrieval:
         authentication_key_id: 4
         ssh_authorized_key: ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDfCJD+futTp8vlKxx2Rd1hqY+vnMp9iXSRTeCLhcGmr user@host
-        system_user: yubihsm2-certificate-retrieval-user
+        system_user: yubihsm2-certificate-retrieval
     - hermetic_audit_log:
         authentication_key_id: 5
-        system_user: yubihsm2-hermetic-metrics-user
+        system_user: yubihsm2-hermetic-audit-log
     - signing:
         authentication_key_id: 6
         key_setup:
@@ -46,4 +46,4 @@ yubihsm2:
         domain: 1
         signing_key_id: 1
         ssh_authorized_key: ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOh96uFTnvX6P1ebbLxXFvy6sK7qFqlMHDOuJ0TmuXQQ user@host
-        system_user: signing2
+        system_user: yubihsm2-signing

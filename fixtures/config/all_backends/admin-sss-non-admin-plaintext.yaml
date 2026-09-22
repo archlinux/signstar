@@ -7,16 +7,16 @@ system:
   non_admin_secret_handling: plaintext
   mappings:
     - share_holder:
-        system_user: share-holder1
+        system_user: signstar-share-holder1
         ssh_authorized_key: ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAN54Gd1jMz+yNDjBRwX1SnOtWuUsVF64RJIeYJ8DI7b user@host
     - share_holder:
-        system_user: share-holder2
+        system_user: signstar-share-holder2
         ssh_authorized_key: ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPDgwGfIRBAsOUuDEZw/uJQZSwOYr4sg2DAZpcc7MfOj user@host
     - share_holder:
-        system_user: share-holder3
+        system_user: signstar-share-holder3
         ssh_authorized_key: ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILWqWyMCk5BdSl1c3KYoLEokKr7qNVPbI1IbBhgEBQj5 user@host
     - wire_guard_download:
-        system_user: wireguard-downloader
+        system_user: signstar-wireguard-download
         ssh_authorized_key: ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOh9BTe81DC6A0YZALsq9dWcyl6xjjqlxWPwlExTFgBt user@host
 nethsm:
   connections:
@@ -30,26 +30,26 @@ nethsm:
     - backup:
         backend_user: backup
         ssh_authorized_key: ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINrIYA+bfMBThUP5lKbMFEHiytmcCPhpkGrB/85n0mAN user@host
-        system_user: nethsm-backup-user
+        system_user: nethsm-backup
     - certificate_retrieval:
         system_wide: certificateretrieval
         namespaced:
           - ns1~certificateretrieval
         ssh_authorized_key: ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDvhXirK3o+KPoMqhLlpfPe1UQOqznnAaTOeNtmZraUv user@host
-        system_user: nethsm-certificate-retrieval-user
+        system_user: nethsm-certificate-retrieval
     - hermetic_metrics:
         backend_users:
           metrics_user: hermeticmetrics
           operator_users:
             - hermetickeymetrics
-        system_user: nethsm-hermetic-metrics-user
+        system_user: nethsm-hermetic-metrics
     - metrics:
         backend_users:
           metrics_user: metrics
           operator_users:
             - keymetrics
         ssh_authorized_key: ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPkpXKiNhy39A3bZ1u19a5d4sFwYMBkWQyCbzgUfdKBm user@host
-        system_user: nethsm-metrics-user
+        system_user: nethsm-metrics
     - signing:
         backend_user: signing
         signing_key_id: signing1
@@ -64,7 +64,7 @@ nethsm:
                 - Foobar McFooface <foobar@mcfooface.org>
               version: "4"
         ssh_authorized_key: ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOh96uFTnvX6P1ebbLxXFvy6sK7qFqlMHDOuJ0TmuXQQ user@host
-        system_user: nethsm-signing-user1
+        system_user: nethsm-signing
         tag: signing1
     - signing:
         backend_user: ns1~signing
@@ -80,7 +80,7 @@ nethsm:
                 - Barfoo McBarface <barfoo@mcbarface.org>
               version: "4"
         ssh_authorized_key: ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJr4wdlEv3ZKkDufEQTZSLOjDLO3DeNN2pqKmp00ufIu user@host
-        system_user: ns1-signing-user
+        system_user: nethsm-ns1-signing
         tag: signing1
 yubihsm2:
   connections:
@@ -94,19 +94,19 @@ yubihsm2:
     - audit_log:
         authentication_key_id: 2
         ssh_authorized_key: ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHxR0Oc+SWXkEvvZPitc6NvjvykgiKc9iauRI7tLYvcp user@host
-        system_user: yubihsm2-metrics-user
+        system_user: yubihsm2-audit-log
     - backup:
         authentication_key_id: 3
         wrapping_key_id: 2
         ssh_authorized_key: ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIETxhCqeZhfzFLfH0KFyw3u/w/dkRBUrft8tQm7DEVzY user@host
-        system_user: yubihsm2-backup-user
+        system_user: yubihsm2-backup
     - certificate_retrieval:
         authentication_key_id: 4
         ssh_authorized_key: ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDfCJD+futTp8vlKxx2Rd1hqY+vnMp9iXSRTeCLhcGmr user@host
-        system_user: yubihsm2-certificate-retrieval-user
+        system_user: yubihsm2-certificate-retrieval
     - hermetic_audit_log:
         authentication_key_id: 5
-        system_user: yubihsm2-hermetic-metrics-user
+        system_user: yubihsm2-hermetic-audit-log
     - signing:
         authentication_key_id: 6
         key_setup:
@@ -122,4 +122,4 @@ yubihsm2:
         domain: 1
         signing_key_id: 1
         ssh_authorized_key: ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIClIXZdx0aDOPcIQA+6Qx68cwSUgGTL3TWzDSX3qUEOQ user@host
-        system_user: yubihsm2-signing1
+        system_user: yubihsm2-signing

@@ -1315,16 +1315,16 @@ impl<'a, 'b> NetHsmBackend<'a, 'b> {
     ///             NetHsmUserMapping::Backup{
     ///                 backend_user: "backup".parse()?,
     ///                 ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHxR0Oc+SWXkEvvZPitc6NvjvykgiKc9iauRI7tLYvcp user@host".parse()?,
-    ///                 system_user: "nethsm-backup-user".parse()?,
+    ///                 system_user: "nethsm-backup".parse()?,
     ///             },
     ///             NetHsmUserMapping::HermeticMetrics {
     ///                 backend_users: NetHsmMetricsUsers::new("hermeticmetrics".parse()?, vec!["hermetickeymetrics".parse()?])?,
-    ///                 system_user: "nethsm-hermetic-metrics-user".parse()?,
+    ///                 system_user: "nethsm-hermetic-metrics".parse()?,
     ///             },
     ///             NetHsmUserMapping::Metrics {
     ///                 backend_users: NetHsmMetricsUsers::new("metrics".parse()?, vec!["keymetrics".parse()?])?,
     ///                 ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIETxhCqeZhfzFLfH0KFyw3u/w/dkRBUrft8tQm7DEVzY user@host".parse()?,
-    ///                 system_user: "nethsm-metrics-user".parse()?,
+    ///                 system_user: "nethsm-metrics".parse()?,
     ///             },
     ///             NetHsmUserMapping::Signing {
     ///                 backend_user: "signing".parse()?,
@@ -1343,7 +1343,7 @@ impl<'a, 'b> NetHsmBackend<'a, 'b> {
     ///                     },
     ///                 )?,
     ///                 ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIClIXZdx0aDOPcIQA+6Qx68cwSUgGTL3TWzDSX3qUEOQ user@host".parse()?,
-    ///                 system_user: "nethsm-signing-user".parse()?,
+    ///                 system_user: "nethsm-signing".parse()?,
     ///                 tag: "signing1".to_string(),
     ///             }
     ///         ]),
