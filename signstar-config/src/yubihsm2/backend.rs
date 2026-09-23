@@ -1486,7 +1486,6 @@ mod tests {
                     authentication_key_id: 2,
                     ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOOCMo+ODRchqIiXm89TxF7avi+LXRtqWZdBAvJ1SG5g user@host".parse()?,
                     system_user: "yubihsm2-backup".parse()?,
-                    wrapping_key_id: 1,
                 },
                 YubiHsm2UserMapping::HermeticAuditLog {
                     authentication_key_id: 4,
@@ -1594,7 +1593,6 @@ mod tests {
                     authentication_key_id: 2,
                     ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOOCMo+ODRchqIiXm89TxF7avi+LXRtqWZdBAvJ1SG5g user@host".parse()?,
                     system_user: "yubihsm2-backup".parse()?,
-                    wrapping_key_id: 1,
                 },
                 YubiHsm2UserMapping::HermeticAuditLog {
                     authentication_key_id: 4,
@@ -1646,7 +1644,6 @@ mod tests {
                     authentication_key_id: 2,
                     ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOOCMo+ODRchqIiXm89TxF7avi+LXRtqWZdBAvJ1SG5g user@host".parse()?,
                     system_user: "yubihsm2-backup".parse()?,
-                    wrapping_key_id: 1,
                 },
                 YubiHsm2UserMapping::HermeticAuditLog {
                     authentication_key_id: 4,
@@ -1700,7 +1697,6 @@ mod tests {
                     authentication_key_id: 2,
                     ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOOCMo+ODRchqIiXm89TxF7avi+LXRtqWZdBAvJ1SG5g user@host".parse()?,
                     system_user: "yubihsm2-backup".parse()?,
-                    wrapping_key_id: 1,
                 },
                 YubiHsm2UserMapping::HermeticAuditLog {
                     authentication_key_id: 4,
@@ -1754,7 +1750,6 @@ mod tests {
                     authentication_key_id: 2,
                     ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOOCMo+ODRchqIiXm89TxF7avi+LXRtqWZdBAvJ1SG5g user@host".parse()?,
                     system_user: "yubihsm2-backup".parse()?,
-                    wrapping_key_id: 1,
                 },
                 YubiHsm2UserMapping::HermeticAuditLog {
                     authentication_key_id: 4,

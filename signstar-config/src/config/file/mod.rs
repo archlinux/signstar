@@ -766,7 +766,6 @@ mod tests {
                     authentication_key_id: "2".parse()?,
                     ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOOCMo+ODRchqIiXm89TxF7avi+LXRtqWZdBAvJ1SG5g user@host".parse()?,
                     system_user: "yubihsm2-backup".parse()?,
-                    wrapping_key_id: "1".parse()?,
                 },
                 YubiHsm2UserMapping::HermeticAuditLog {
                     authentication_key_id: "4".parse()?,
@@ -2006,7 +2005,6 @@ mod tests {
                         authentication_key_id: "2".parse()?,
                         ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOOCMo+ODRchqIiXm89TxF7avi+LXRtqWZdBAvJ1SG5g user@host".parse()?,
                         system_user: "signstar-share-holder1".parse()?,
-                        wrapping_key_id: "1".parse()?,
                     },
                     YubiHsm2UserMapping::HermeticAuditLog {
                         authentication_key_id: "4".parse()?,
@@ -2053,7 +2051,6 @@ mod tests {
                         authentication_key_id: "2".parse()?,
                         ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOOCMo+ODRchqIiXm89TxF7avi+LXRtqWZdBAvJ1SG5g user@host".parse()?,
                         system_user: "signstar-share-holder1".parse()?,
-                        wrapping_key_id: "1".parse()?,
                     },
                     YubiHsm2UserMapping::HermeticAuditLog {
                         authentication_key_id: "4".parse()?,
@@ -2100,7 +2097,6 @@ mod tests {
                         authentication_key_id: "2".parse()?,
                         ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOOCMo+ODRchqIiXm89TxF7avi+LXRtqWZdBAvJ1SG5g user@host".parse()?,
                         system_user: "signstar-share-holder1".parse()?,
-                        wrapping_key_id: "1".parse()?,
                     },
                     YubiHsm2UserMapping::HermeticAuditLog {
                         authentication_key_id: "4".parse()?,
@@ -2147,7 +2143,6 @@ mod tests {
                         authentication_key_id: "2".parse()?,
                         ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOOCMo+ODRchqIiXm89TxF7avi+LXRtqWZdBAvJ1SG5g user@host".parse()?,
                         system_user: "yubihsm2-backup".parse()?,
-                        wrapping_key_id: "1".parse()?,
                     },
                     YubiHsm2UserMapping::HermeticAuditLog {
                         authentication_key_id: "4".parse()?,
@@ -2194,7 +2189,6 @@ mod tests {
                         authentication_key_id: "2".parse()?,
                         ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOOCMo+ODRchqIiXm89TxF7avi+LXRtqWZdBAvJ1SG5g user@host".parse()?,
                         system_user: "signstar-share-holder1".parse()?,
-                        wrapping_key_id: "1".parse()?,
                     },
                     YubiHsm2UserMapping::HermeticAuditLog {
                         authentication_key_id: "4".parse()?,
@@ -2369,7 +2363,6 @@ mod tests {
                         authentication_key_id: "2".parse()?,
                         ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOOCMo+ODRchqIiXm89TxF7avi+LXRtqWZdBAvJ1SG5g user@host".parse()?,
                         system_user: "yubihsm2-backup".parse()?,
-                        wrapping_key_id: "1".parse()?,
                     },
                 },
                 UserBackendConnection::YubiHsm2 {
@@ -2470,7 +2463,6 @@ mod tests {
                         authentication_key_id: "2".parse()?,
                         ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOOCMo+ODRchqIiXm89TxF7avi+LXRtqWZdBAvJ1SG5g user@host".parse()?,
                         system_user: "yubihsm2-backup".parse()?,
-                        wrapping_key_id: "1".parse()?,
                     },
                 },
                 UserBackendConnection::YubiHsm2 {
@@ -2966,7 +2958,6 @@ mod tests {
                     },
                     YubiHsm2UserMapping::Backup {
                         authentication_key_id: "2".parse()?,
-                        wrapping_key_id: "2".parse()?,
                         ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHxR0Oc+SWXkEvvZPitc6NvjvykgiKc9iauRI7tLYvcp user@host".parse()?,
                         system_user: "duplicate-backup".parse()?,
                     },
@@ -3055,7 +3046,6 @@ mod tests {
                     },
                     YubiHsm2UserMapping::Backup {
                         authentication_key_id: "2".parse()?,
-                        wrapping_key_id: "2".parse()?,
                         ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOOCMo+ODRchqIiXm89TxF7avi+LXRtqWZdBAvJ1SG5g user@host".parse()?,
                         system_user: "duplicate-backup".parse()?,
                     },
@@ -3139,7 +3129,6 @@ mod tests {
                     YubiHsm2UserMapping::Admin { authentication_key_id: "1".parse()? },
                     YubiHsm2UserMapping::Backup {
                         authentication_key_id: "2".parse()?,
-                        wrapping_key_id: "2".parse()?,
                         ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAN54Gd1jMz+yNDjBRwX1SnOtWuUsVF64RJIeYJ8DI7b user@host".parse()?,
                         system_user: "duplicate-backup".parse()?,
                     },
@@ -3426,7 +3415,6 @@ mod tests {
                         authentication_key_id: "2".parse()?,
                         ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOOCMo+ODRchqIiXm89TxF7avi+LXRtqWZdBAvJ1SG5g user@host".parse()?,
                         system_user: "yubihsm2-backup".parse()?,
-                        wrapping_key_id: "1".parse()?,
                     },
                 },
                 UserBackendConnection::YubiHsm2 {
@@ -3617,7 +3605,6 @@ mod tests {
                         authentication_key_id: "2".parse()?,
                         ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOOCMo+ODRchqIiXm89TxF7avi+LXRtqWZdBAvJ1SG5g user@host".parse()?,
                         system_user: "yubihsm2-backup".parse()?,
-                        wrapping_key_id: "1".parse()?,
                     },
                 },
                 UserBackendConnection::YubiHsm2 {

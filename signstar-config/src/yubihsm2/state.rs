@@ -892,7 +892,6 @@ mod tests {
                     authentication_key_id: 2,
                     ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOOCMo+ODRchqIiXm89TxF7avi+LXRtqWZdBAvJ1SG5g user@host".parse()?,
                     system_user: "yubihsm2-backup".parse()?,
-                    wrapping_key_id: 1,
                 },
                 YubiHsm2UserMapping::HermeticAuditLog {
                     authentication_key_id: 4,
@@ -964,7 +963,6 @@ mod tests {
                     authentication_key_id: 8,
                     ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOOCMo+ODRchqIiXm89TxF7avi+LXRtqWZdBAvJ1SG5g user@host".parse()?,
                     system_user: "yubihsm2-backup".parse()?,
-                    wrapping_key_id: 1,
                 },
                 YubiHsm2UserMapping::HermeticAuditLog {
                     authentication_key_id: 10,
@@ -1012,7 +1010,6 @@ mod tests {
                     authentication_key_id: 3,
                     ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOOCMo+ODRchqIiXm89TxF7avi+LXRtqWZdBAvJ1SG5g user@host".parse()?,
                     system_user: "yubihsm2-backup".parse()?,
-                    wrapping_key_id: 1,
                 },
                 YubiHsm2UserMapping::HermeticAuditLog {
                     authentication_key_id: 4,
@@ -1060,7 +1057,6 @@ mod tests {
                     authentication_key_id: 2,
                     ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOOCMo+ODRchqIiXm89TxF7avi+LXRtqWZdBAvJ1SG5g user@host".parse()?,
                     system_user: "yubihsm2-backup".parse()?,
-                    wrapping_key_id: 1,
                 },
                 YubiHsm2UserMapping::HermeticAuditLog {
                     authentication_key_id: 4,
@@ -1108,7 +1104,6 @@ mod tests {
                     authentication_key_id: 2,
                     ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOOCMo+ODRchqIiXm89TxF7avi+LXRtqWZdBAvJ1SG5g user@host".parse()?,
                     system_user: "yubihsm2-backup".parse()?,
-                    wrapping_key_id: 1,
                 },
                 YubiHsm2UserMapping::HermeticAuditLog {
                     authentication_key_id: 4,
@@ -1176,7 +1171,6 @@ mod tests {
                     authentication_key_id: 2,
                     ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOOCMo+ODRchqIiXm89TxF7avi+LXRtqWZdBAvJ1SG5g user@host".parse()?,
                     system_user: "yubihsm2-backup".parse()?,
-                    wrapping_key_id: 1,
                 },
                 YubiHsm2UserMapping::HermeticAuditLog {
                     authentication_key_id: 4,
@@ -1214,7 +1208,6 @@ mod tests {
                         authentication_key_id: "2".parse()?,
                         ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOh9BTe81DC6A0YZALsq9dWcyl6xjjqlxWPwlExTFgBt user@host".parse()?,
                         system_user: "yubihsm2-backup".parse()?,
-                        wrapping_key_id: "1".parse()?,
                     },
                     YubiHsm2UserMapping::AuditLog {
                         authentication_key_id: "3".parse()?,

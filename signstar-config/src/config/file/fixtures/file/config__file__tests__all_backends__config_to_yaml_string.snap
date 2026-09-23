@@ -79,7 +79,6 @@ yubihsm2:
         system_user: yubihsm2-audit-log
     - backup:
         authentication_key_id: 2
-        wrapping_key_id: 1
         ssh_authorized_key: ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOOCMo+ODRchqIiXm89TxF7avi+LXRtqWZdBAvJ1SG5g user@host
         system_user: yubihsm2-backup
     - hermetic_audit_log:

@@ -324,7 +324,6 @@ fn create_mapping(
             };
             Ok(Box::new(YubiHsm2UserMapping::Backup {
                 authentication_key_id: 1,
-                wrapping_key_id: 1,
                 ssh_authorized_key: dummy_ssh_authorized_key()?,
                 system_user,
             }))
