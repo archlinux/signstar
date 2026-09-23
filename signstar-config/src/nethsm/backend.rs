@@ -1299,7 +1299,7 @@ impl<'a, 'b> NetHsmBackend<'a, 'b> {
     ///                 system_user: "share-holder3".parse()?,
     ///                 ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILWqWyMCk5BdSl1c3KYoLEokKr7qNVPbI1IbBhgEBQj5 user@host".parse()?
     ///             },
-    ///             SystemUserMapping::WireGuardDownload {
+    ///             SystemUserMapping::WireguardDownload {
     ///                 system_user: "wireguard-downloader".parse()?,
     ///                 ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOh9BTe81DC6A0YZALsq9dWcyl6xjjqlxWPwlExTFgBt user@host".parse()?,
     ///             },

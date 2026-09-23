@@ -632,7 +632,7 @@ impl From<&SystemUserMapping> for SshForceCommand {
     fn from(value: &SystemUserMapping) -> Self {
         match value {
             SystemUserMapping::ShareHolder { .. } => SshForceCommand::Shareholder,
-            SystemUserMapping::WireGuardDownload { .. } => SshForceCommand::DownloadWireGuard,
+            SystemUserMapping::WireguardDownload { .. } => SshForceCommand::DownloadWireGuard,
         }
     }
 }

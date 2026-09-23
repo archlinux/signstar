@@ -43,7 +43,7 @@ pub enum SystemUserMapping {
 
     /// A system user, with SSH access, not mapped to any backend user, that is used for downloading
     /// the WireGuard configuration of the host.
-    WireGuardDownload {
+    WireguardDownload {
         /// The list of SSH public keys used for connecting to the `system_user`.
         ssh_authorized_key: AuthorizedKeyEntry,
 
@@ -66,21 +66,21 @@ impl Ord for SystemUserMapping {
                 },
             ) => self_system_user.cmp(other_system_user),
             (
-                SystemUserMapping::WireGuardDownload {
+                SystemUserMapping::WireguardDownload {
                     system_user: self_system_user,
                     ..
                 },
-                SystemUserMapping::WireGuardDownload {
+                SystemUserMapping::WireguardDownload {
                     system_user: other_system_user,
                     ..
                 },
             ) => self_system_user.cmp(other_system_user),
             (
                 SystemUserMapping::ShareHolder { .. },
-                SystemUserMapping::WireGuardDownload { .. },
+                SystemUserMapping::WireguardDownload { .. },
             ) => std::cmp::Ordering::Less,
             (
-                SystemUserMapping::WireGuardDownload { .. },
+                SystemUserMapping::WireguardDownload { .. },
                 SystemUserMapping::ShareHolder { .. },
             ) => std::cmp::Ordering::Greater,
         }
@@ -99,7 +99,7 @@ impl MappingAuthorizedKeyEntry for SystemUserMapping {
             Self::ShareHolder {
                 ssh_authorized_key, ..
             }
-            | Self::WireGuardDownload {
+            | Self::WireguardDownload {
                 ssh_authorized_key, ..
             } => Some(ssh_authorized_key),
         }
@@ -109,7 +109,7 @@ impl MappingAuthorizedKeyEntry for SystemUserMapping {
 impl MappingSystemUserId for SystemUserMapping {
     fn system_user_id(&self) -> Option<&SystemUserId> {
         match self {
-            Self::ShareHolder { system_user, .. } | Self::WireGuardDownload { system_user, .. } => {
+            Self::ShareHolder { system_user, .. } | Self::WireguardDownload { system_user, .. } => {
                 Some(system_user)
             }
         }
@@ -126,7 +126,7 @@ impl<'a> From<&'a SystemUserMapping> for SystemUserData<'a> {
                 system_user,
                 ssh_authorized_key,
             },
-            SystemUserMapping::WireGuardDownload {
+            SystemUserMapping::WireguardDownload {
                 system_user,
                 ssh_authorized_key,
             } => Self::HostDownloadNetworkConfig {
@@ -448,7 +448,7 @@ mod tests {
                 system_user: "share-holder3".parse()?,
                 ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILWqWyMCk5BdSl1c3KYoLEokKr7qNVPbI1IbBhgEBQj5 user@host".parse()?
             },
-            SystemUserMapping::WireGuardDownload {
+            SystemUserMapping::WireguardDownload {
                 system_user: "wireguard-downloader".parse()?,
                 ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOh9BTe81DC6A0YZALsq9dWcyl6xjjqlxWPwlExTFgBt user@host".parse()?,
             },
@@ -473,7 +473,7 @@ mod tests {
                 system_user: "share-holder3".parse()?,
                 ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILWqWyMCk5BdSl1c3KYoLEokKr7qNVPbI1IbBhgEBQj5 user@host".parse()?
             },
-            SystemUserMapping::WireGuardDownload {
+            SystemUserMapping::WireguardDownload {
                 system_user: "wireguard-downloader".parse()?,
                 ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOh9BTe81DC6A0YZALsq9dWcyl6xjjqlxWPwlExTFgBt user@host".parse()?,
             },
@@ -483,7 +483,7 @@ mod tests {
         AdministrativeSecretHandling::SystemdCreds,
         NonAdministrativeSecretHandling::Plaintext,
         BTreeSet::from_iter([
-            SystemUserMapping::WireGuardDownload {
+            SystemUserMapping::WireguardDownload {
                 system_user: "wireguard-downloader".parse()?,
                 ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOh9BTe81DC6A0YZALsq9dWcyl6xjjqlxWPwlExTFgBt user@host".parse()?,
             },
@@ -493,7 +493,7 @@ mod tests {
         AdministrativeSecretHandling::SystemdCreds,
         NonAdministrativeSecretHandling::SystemdCreds,
         BTreeSet::from_iter([
-            SystemUserMapping::WireGuardDownload {
+            SystemUserMapping::WireguardDownload {
                 system_user: "wireguard-downloader".parse()?,
                 ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOh9BTe81DC6A0YZALsq9dWcyl6xjjqlxWPwlExTFgBt user@host".parse()?,
             },
@@ -503,7 +503,7 @@ mod tests {
         AdministrativeSecretHandling::Plaintext,
         NonAdministrativeSecretHandling::Plaintext,
         BTreeSet::from_iter([
-            SystemUserMapping::WireGuardDownload {
+            SystemUserMapping::WireguardDownload {
                 system_user: "wireguard-downloader".parse()?,
                 ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOh9BTe81DC6A0YZALsq9dWcyl6xjjqlxWPwlExTFgBt user@host".parse()?,
             },
@@ -513,7 +513,7 @@ mod tests {
         AdministrativeSecretHandling::Plaintext,
         NonAdministrativeSecretHandling::SystemdCreds,
         BTreeSet::from_iter([
-            SystemUserMapping::WireGuardDownload {
+            SystemUserMapping::WireguardDownload {
                 system_user: "wireguard-downloader".parse()?,
                 ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOh9BTe81DC6A0YZALsq9dWcyl6xjjqlxWPwlExTFgBt user@host".parse()?,
             },
@@ -557,7 +557,7 @@ mod tests {
                 system_user: "share-holder3".parse()?,
                 ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILWqWyMCk5BdSl1c3KYoLEokKr7qNVPbI1IbBhgEBQj5 user@host".parse()?
             },
-            SystemUserMapping::WireGuardDownload {
+            SystemUserMapping::WireguardDownload {
                 system_user: "wireguard-downloader".parse()?,
                 ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOh9BTe81DC6A0YZALsq9dWcyl6xjjqlxWPwlExTFgBt user@host".parse()?,
             },
@@ -582,7 +582,7 @@ mod tests {
                 system_user: "share-holder3".parse()?,
                 ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILWqWyMCk5BdSl1c3KYoLEokKr7qNVPbI1IbBhgEBQj5 user@host".parse()?
             },
-            SystemUserMapping::WireGuardDownload {
+            SystemUserMapping::WireguardDownload {
                 system_user: "wireguard-downloader".parse()?,
                 ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOh9BTe81DC6A0YZALsq9dWcyl6xjjqlxWPwlExTFgBt user@host".parse()?,
             },
@@ -603,7 +603,7 @@ mod tests {
                 system_user: "share-holder2".parse()?,
                 ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPDgwGfIRBAsOUuDEZw/uJQZSwOYr4sg2DAZpcc7MfOj user@host".parse()?,
             },
-            SystemUserMapping::WireGuardDownload {
+            SystemUserMapping::WireguardDownload {
                 system_user: "wireguard-downloader".parse()?,
                 ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOh9BTe81DC6A0YZALsq9dWcyl6xjjqlxWPwlExTFgBt user@host".parse()?,
             },
@@ -625,7 +625,7 @@ mod tests {
                 system_user: "share-holder3".parse()?,
                 ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILWqWyMCk5BdSl1c3KYoLEokKr7qNVPbI1IbBhgEBQj5 user@host".parse()?
             },
-            SystemUserMapping::WireGuardDownload {
+            SystemUserMapping::WireguardDownload {
                 system_user: "wireguard-downloader".parse()?,
                 ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOh9BTe81DC6A0YZALsq9dWcyl6xjjqlxWPwlExTFgBt user@host".parse()?,
             },
@@ -647,7 +647,7 @@ mod tests {
                 system_user: "share-holder3".parse()?,
                 ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILWqWyMCk5BdSl1c3KYoLEokKr7qNVPbI1IbBhgEBQj5 user@host".parse()?
             },
-            SystemUserMapping::WireGuardDownload {
+            SystemUserMapping::WireguardDownload {
                 system_user: "wireguard-downloader".parse()?,
                 ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOh9BTe81DC6A0YZALsq9dWcyl6xjjqlxWPwlExTFgBt user@host".parse()?,
             },
@@ -669,7 +669,7 @@ mod tests {
                 system_user: "wireguard-downloader".parse()?,
                 ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOh9BTe81DC6A0YZALsq9dWcyl6xjjqlxWPwlExTFgBt user2@host3".parse()?
             },
-            SystemUserMapping::WireGuardDownload {
+            SystemUserMapping::WireguardDownload {
                 system_user: "wireguard-downloader".parse()?,
                 ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOh9BTe81DC6A0YZALsq9dWcyl6xjjqlxWPwlExTFgBt user@host".parse()?,
             },
@@ -746,7 +746,7 @@ mod tests {
                         system_user: "share-holder6".parse()?,
                         ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJAW0YOVnJHm5qqiZBvIwPc0GH1D7ALDGwDRsBZHWbGU user@host".parse()?
                     },
-                    SystemUserMapping::WireGuardDownload {
+                    SystemUserMapping::WireguardDownload {
                         system_user: "wireguard-downloader".parse()?,
                         ssh_authorized_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOh9BTe81DC6A0YZALsq9dWcyl6xjjqlxWPwlExTFgBt user@host".parse()?,
                     },
