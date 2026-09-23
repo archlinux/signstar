@@ -532,7 +532,7 @@ fn add_ssh_integration(
                     r#"Match user {user}
     AuthorizedKeysFile /etc/ssh/signstar-user-{user}.authorized_keys
     ForceCommand /usr/bin/{force_command}
-    DisableForwarding
+    DisableForwarding yes
 "#
                 )
                 .as_bytes(),
