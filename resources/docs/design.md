@@ -44,7 +44,7 @@ Dedicated software components provide access for authenticated users to these di
 
 - `signstar-download-signature`: for signing messages using HSM *Operator* credentials
 - `signstar-download-backup`: for receiving backups of the HSM using HSM *Backup* credentials
-- `signstar-download-key-certificate`: for downloading the certificates (e.g. OpenPGP certificates) of all keys
+- `signstar-download-key-certificates`: for downloading the certificates (e.g. OpenPGP certificates) of all keys
 - `signstar-download-metrics`: for retrieving metrics of the device using HSM *Metrics* credentials
 - `signstar-download-secret-share`: for downloading (new) individual shares of a secret (containing administrative credentials) divided using [SSS]
 - `signstar-download-wireguard`: for downloading the public key of the [WireGuard] setup used for diverting logs and metrics to a dedicated host

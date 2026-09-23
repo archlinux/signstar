@@ -599,9 +599,9 @@ pub enum SshForceCommand {
     #[strum(serialize = "signstar-download-backup")]
     DownloadBackup,
 
-    /// Enforce calling signstar-download-key-certificate
-    #[strum(serialize = "signstar-download-key-certificate")]
-    DownloadKeyCertificate,
+    /// Enforce calling signstar-download-key-certificates
+    #[strum(serialize = "signstar-download-key-certificates")]
+    DownloadKeyCertificates,
 
     /// Enforce calling signstar-download-metrics
     #[strum(serialize = "signstar-download-metrics")]
@@ -648,7 +648,7 @@ impl TryFrom<&NetHsmUserMapping> for SshForceCommand {
                 system_user: None,
             }),
             NetHsmUserMapping::Backup { .. } => Ok(Self::DownloadBackup),
-            NetHsmUserMapping::CertificateRetrieval { .. } => Ok(Self::DownloadKeyCertificate),
+            NetHsmUserMapping::CertificateRetrieval { .. } => Ok(Self::DownloadKeyCertificates),
             NetHsmUserMapping::HermeticMetrics {
                 backend_users,
                 system_user,
@@ -681,7 +681,7 @@ impl TryFrom<&YubiHsm2UserMapping> for SshForceCommand {
             YubiHsm2UserMapping::AuditLog { .. } => Ok(SshForceCommand::DownloadMetrics),
             YubiHsm2UserMapping::Backup { .. } => Ok(SshForceCommand::DownloadBackup),
             YubiHsm2UserMapping::CertificateRetrieval { .. } => {
-                Ok(SshForceCommand::DownloadKeyCertificate)
+                Ok(SshForceCommand::DownloadKeyCertificates)
             }
             YubiHsm2UserMapping::HermeticAuditLog {
                 authentication_key_id,
