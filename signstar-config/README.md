@@ -182,7 +182,6 @@ let credentials = user_backend_connection.load_non_admin_backend_user_secrets(No
   **NOTE**: Unless you are developing this crate, you will very likely not want to use this feature.
 - `_yubihsm2-mockhsm`: Test environment and integration using a virtual [YubiHSM2].
   **NOTE**: Unless you are developing this crate, you will very likely not want to use this feature.
-  **WARNING**: This feature requires building in `debug` mode (see [signstar#288])!
 - `nethsm`: Enables support for the NetHSM backend.
 - `yubihsm2`: Enables support for the [YubiHSM2] backend.
 
@@ -201,5 +200,4 @@ Changes to this project - unless stated otherwise - automatically fall under the
 [YubiHSM2]: https://www.yubico.com/de/product/yubihsm-2/
 [`systemd-creds`]: https://man.archlinux.org/man/systemd-creds.1
 [contributing guidelines]: ../CONTRIBUTING.md
-[signstar#288]: https://gitlab.archlinux.org/archlinux/signstar/-/work_items/288
 [signstar-configure-build]: https://signstar.archlinux.page/signstar-configure-build/index.html
