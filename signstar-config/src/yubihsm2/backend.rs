@@ -584,6 +584,76 @@ impl<'admin_creds, 'config> YubiHsm2Backend<'admin_creds, 'config> {
         *self.default_credentials.borrow()
     }
 
+    /// Resets the backend device to its defaults and reconnects to it.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error, if
+    ///
+    /// - resetting the device and reconnecting to it fails
+    /// - the number of scenario return values does not match the number of requested actions
+    /// - the scenario return value matches the expected one for resetting and reconnecting
+    pub fn reset(&self) -> Result<(), crate::Error> {
+        info!("Reset the backend {:?} to its defaults...", self.connector);
+
+        let credentials = self.usable_admin_creds()?;
+
+        let scenario = Scenario::new(vec![AuthenticatedCommandChain::new(
+            credentials,
+            vec![Command::ResetDeviceAndReconnect],
+        )]);
+        let scenario_result = self.runner.run(&scenario)?;
+
+        // Ensure that the correct return value is received.
+        if scenario_result.chains().len() > 1 {
+            return Err(Error::ScenarioLogic {
+                context: format!("there are more return values ({}) than requested actions (1), when resetting the backend device {:?}",
+                        scenario_result.chains().len(),
+                        self.connector
+                ),
+            }
+            .into());
+        }
+        let Some(command_return_values) = scenario_result.chains().first() else {
+            return Err(Error::ScenarioLogic {
+                context: format!(
+                    "there are no command return values when resetting the backend device {:?}",
+                    self.connector
+                ),
+            }
+            .into());
+        };
+        if command_return_values.len() != 1 {
+            return Err(Error::ScenarioLogic {
+            context: format!("the number of command return values ({}) does not match the number of requested actions (1) when resetting the backend device {:?}",
+                command_return_values.len(),
+                self.connector
+            ),
+        }
+        .into());
+        };
+        match command_return_values.first() {
+            Some(CommandReturnValue::ResetDeviceAndReconnect) => {}
+            Some(_) => {
+                return Err(Error::ScenarioLogic {
+                            context: format!("a different return value from the one expected when resetting the backend device {:?} was returned", self.connector)
+                        }
+                        .into());
+            }
+            _ => {
+                return Err(Error::ScenarioLogic {
+                    context: format!(
+                        "no return value returned when resetting the backend device {:?}",
+                        self.connector
+                    ),
+                }
+                .into());
+            }
+        }
+
+        Ok(())
+    }
+
     /// Syncs the state of a Signstar configuration with the backend using credentials for users in
     /// non-administrative roles.
     pub fn sync(&self, user_credentials: &[Credentials]) -> Result<(), crate::Error> {
@@ -600,6 +670,15 @@ impl<'admin_creds, 'config> YubiHsm2Backend<'admin_creds, 'config> {
                 .collect::<Vec<_>>()
                 .join(", ")
         );
+
+        // NOTE: Here, we reset the backend, if it can still be accessed with the default
+        // credentials.
+        //
+        // This ensures, that no rogue keys are left on the device, before we start synchronizing
+        // its state with that of the configuration.
+        if self.check_set_default_credentials() {
+            self.reset()?;
+        }
 
         self.add_admin_users()?;
         self.add_wrap_key()?;
