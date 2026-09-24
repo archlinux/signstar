@@ -80,7 +80,6 @@ done
 
 - `_yubihsm2-mockhsm`: Test environment using a virtual [YubiHSM2] (currently this feature merely implies the `yubihsm2` feature).
   **NOTE**: Unless you are developing this crate, you will very likely not want to use this feature.
-  **WARNING**: This feature requires building in `debug` mode (see [signstar#288])!
 - `yubihsm2`: For [YubiHSM2] support.
 
 ## Contributing
@@ -99,6 +98,5 @@ Changes to this project - unless stated otherwise - automatically fall under the
 [YubiHSM2]: https://www.yubico.com/de/product/yubihsm-2/
 [authorized_keys]: https://man.archlinux.org/man/sshd.8#AUTHORIZED_KEYS_FILE_FORMAT
 [contributing guidelines]: ../CONTRIBUTING.md
-[signstar#288]: https://gitlab.archlinux.org/archlinux/signstar/-/work_items/288
 [sshd_config]: https://man.archlinux.org/man/sshd_config.5
 [tmpfiles.d]: https://man.archlinux.org/man/tmpfiles.d.5

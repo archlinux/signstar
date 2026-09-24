@@ -124,7 +124,6 @@ signstar-yubihsm backup dump "$wrapped_key" "$wrap_key"
 
 - `_yubihsm2-mockhsm`: Test environment and integration using a virtual [YubiHSM2].
   **NOTE**: Unless you are developing this crate, you will very likely not want to use this feature.
-  **WARNING**: This feature requires building in `debug` mode (see [signstar#288])!
 - `cli`: Enables command line interface for executing scenario files
 - `serde`: Serialization and deserialization of objects using `serde`.
 
@@ -142,4 +141,3 @@ Changes to this project - unless stated otherwise - automatically fall under the
 [MIT]: https://opensource.org/licenses/MIT
 [YubiHSM2]: https://www.yubico.com/de/product/yubihsm-2/
 [contributing guidelines]: ../CONTRIBUTING.md
-[signstar#288]: https://gitlab.archlinux.org/archlinux/signstar/-/work_items/288

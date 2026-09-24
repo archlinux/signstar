@@ -28,7 +28,6 @@ signstar-sign < ../signstar-request-signature/tests/sample-request.json | jq --r
   **NOTE**: Unless you are developing this crate, you will very likely not want to use this feature.
 - `_yubihsm2-mockhsm`: Test environment and integration using a virtual [YubiHSM2] (implies the `yubihsm2` feature).
   **NOTE**: Unless you are developing this crate, you will very likely not want to use this feature.
-  **WARNING**: This feature requires building in `debug` mode (see [signstar#288])!
 - `yubihsm2`: For [YubiHSM2] support.
 
 ## Contributing
@@ -49,4 +48,3 @@ Changes to this project - unless stated otherwise - automatically fall under the
 [YubiHSM2]: https://www.yubico.com/de/product/yubihsm-2/
 [`signstar-request-signature`]: https://signstar.archlinux.page/signstar-request-signature/index.html
 [contributing guidelines]: ../CONTRIBUTING.md
-[signstar#288]: https://gitlab.archlinux.org/archlinux/signstar/-/work_items/288
