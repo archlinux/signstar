@@ -163,10 +163,19 @@ impl Config {
                 .iter()
                 .filter(|mapping| {
                     filters.is_empty()
+                        || matches!(filters, &[UserBackendConnectionFilter::Backend(_)])
                         || (matches!(mapping, NetHsmUserMapping::Admin(_))
                             && filters.contains(&UserBackendConnectionFilter::Admin))
-                        || (!matches!(mapping, NetHsmUserMapping::Admin(_))
-                            && filters.contains(&UserBackendConnectionFilter::NonAdmin))
+                        || match mapping {
+                            NetHsmUserMapping::Backup { .. }
+                            | NetHsmUserMapping::CertificateRetrieval { .. }
+                            | NetHsmUserMapping::HermeticMetrics { .. }
+                            | NetHsmUserMapping::Metrics { .. }
+                            | NetHsmUserMapping::Signing { .. } => {
+                                filters.contains(&UserBackendConnectionFilter::NonAdmin)
+                            }
+                            NetHsmUserMapping::Admin(_) => false,
+                        }
                 })
                 .collect::<Vec<_>>();
             for mapping in mappings {

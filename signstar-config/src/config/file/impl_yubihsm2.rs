@@ -163,10 +163,19 @@ impl Config {
                 .iter()
                 .filter(|mapping| {
                     filters.is_empty()
+                        || matches!(filters, &[UserBackendConnectionFilter::Backend(_)])
                         || (matches!(mapping, YubiHsm2UserMapping::Admin { .. })
                             && filters.contains(&UserBackendConnectionFilter::Admin))
-                        || (!matches!(mapping, YubiHsm2UserMapping::Admin { .. })
-                            && filters.contains(&UserBackendConnectionFilter::NonAdmin))
+                        || match mapping {
+                            YubiHsm2UserMapping::AuditLog { .. }
+                            | YubiHsm2UserMapping::Backup { .. }
+                            | YubiHsm2UserMapping::CertificateRetrieval { .. }
+                            | YubiHsm2UserMapping::HermeticAuditLog { .. }
+                            | YubiHsm2UserMapping::Signing { .. } => {
+                                filters.contains(&UserBackendConnectionFilter::NonAdmin)
+                            }
+                            YubiHsm2UserMapping::Admin { .. } => false,
+                        }
                 })
                 .collect::<Vec<_>>();
             for mapping in mappings {
