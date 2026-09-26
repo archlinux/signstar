@@ -15,11 +15,12 @@ use change_user_run::{create_users, get_command};
 use log::debug;
 #[cfg(feature = "nethsm")]
 use nethsm::{FullCredentials, UserId};
-use signstar_common::system_user::get_home_base_dir_path;
+use signstar_common::{backend::BackendType, system_user::get_home_base_dir_path};
 #[cfg(feature = "nethsm")]
 use signstar_crypto::AdministrativeSecretHandling;
 #[cfg(feature = "nethsm")]
 use signstar_crypto::passphrase::Passphrase;
+use ssh_key::sec1::pkcs8::spki::DynAssociatedAlgorithmIdentifier;
 use tempfile::NamedTempFile;
 
 use crate::config::{Config, ConfigSystemUserIds, MappingAuthorizedKeyEntry};
@@ -666,6 +667,48 @@ impl ConfigFileVariant {
                 }
             })?,
         )
+    }
+
+    /// Returns `true`, if a [`BackendType`] is contained in this variant.
+    pub fn contains_backend(&self, backend_type: BackendType) -> bool {
+        match backend_type {
+            BackendType::NetHsm => matches!(
+                self,
+                Self::OnlyNetHsmBackendAdminPlaintextNonAdminPlaintext
+                    | Self::OnlyNetHsmBackendAdminPlaintextNonAdminSystemdCreds
+                    | Self::OnlyNetHsmBackendAdminSystemdCredsNonAdminPlaintext
+                    | Self::OnlyNetHsmBackendAdminSystemdCredsNonAdminSystemdCreds
+                    | Self::OnlyNetHsmBackendAdminSssNonAdminPlaintext
+                    | Self::OnlyNetHsmBackendAdminSssNonAdminSystemdCreds
+                    | Self::AllBackendsAdminPlaintextNonAdminPlaintext
+                    | Self::AllBackendsAdminPlaintextNonAdminSystemdCreds
+                    | Self::AllBackendsAdminSystemdCredsNonAdminPlaintext
+                    | Self::AllBackendsAdminSystemdCredsNonAdminSystemdCreds
+                    | Self::AllBackendsAdminSssNonAdminPlaintext
+                    | Self::AllBackendsAdminSssNonAdminSystemdCreds
+            ),
+            BackendType::YubiHsm2 => matches!(
+                self,
+                Self::OnlyYubiHsm2BackendAdminPlaintextNonAdminPlaintext
+                    | Self::OnlyYubiHsm2BackendAdminPlaintextNonAdminSystemdCreds
+                    | Self::OnlyYubiHsm2BackendAdminSystemdCredsNonAdminPlaintext
+                    | Self::OnlyYubiHsm2BackendAdminSystemdCredsNonAdminSystemdCreds
+                    | Self::OnlyYubiHsm2BackendAdminSssNonAdminPlaintext
+                    | Self::OnlyYubiHsm2BackendAdminSssNonAdminSystemdCreds
+                    | Self::OnlyYubiHsm2MockHsmBackendAdminPlaintextNonAdminPlaintext
+                    | Self::OnlyYubiHsm2MockHsmBackendAdminPlaintextNonAdminSystemdCreds
+                    | Self::OnlyYubiHsm2MockHsmBackendAdminSystemdCredsNonAdminPlaintext
+                    | Self::OnlyYubiHsm2MockHsmBackendAdminSystemdCredsNonAdminSystemdCreds
+                    | Self::OnlyYubiHsm2MockHsmBackendAdminSssNonAdminPlaintext
+                    | Self::OnlyYubiHsm2MockHsmBackendAdminSssNonAdminSystemdCreds
+                    | Self::AllBackendsAdminPlaintextNonAdminPlaintext
+                    | Self::AllBackendsAdminPlaintextNonAdminSystemdCreds
+                    | Self::AllBackendsAdminSystemdCredsNonAdminPlaintext
+                    | Self::AllBackendsAdminSystemdCredsNonAdminSystemdCreds
+                    | Self::AllBackendsAdminSssNonAdminPlaintext
+                    | Self::AllBackendsAdminSssNonAdminSystemdCreds
+            ),
+        }
     }
 }
 
