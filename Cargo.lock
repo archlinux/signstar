@@ -5209,6 +5209,7 @@ dependencies = [
 name = "signstar-common"
 version = "0.1.2"
 dependencies = [
+ "base64ct",
  "log",
  "simplelog",
  "systemd-journal-logger",

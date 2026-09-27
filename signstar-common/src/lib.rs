@@ -8,6 +8,7 @@ mod error;
 #[cfg(feature = "logging")]
 pub mod logging;
 pub mod nethsm;
+pub mod request_api;
 pub mod ssh;
 pub mod system_user;
 pub mod traits;
