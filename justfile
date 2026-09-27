@@ -945,26 +945,26 @@ containerized-integration-tests *options='--locked --workspace':
 [group('test')]
 containerized-integration-tests-all:
     printf 'Run containerized integration tests for signstar-config without default features...\n'
-    just --set clean_coverage_workspace false containerized-integration-tests --locked --no-default-features --package signstar-config
+    just clean_coverage_workspace=false containerized-integration-tests --locked --no-default-features --package signstar-config
     printf 'Run containerized integration tests for signstar-config with nethsm feature...\n'
-    just --set clean_coverage_workspace false containerized-integration-tests --locked --no-default-features --package signstar-config --features nethsm
+    just clean_coverage_workspace=false build_bins_and_examples=false containerized-integration-tests --locked --no-default-features --package signstar-config --features nethsm
     printf 'Run containerized integration tests for signstar-config with yubihsm2 feature...\n'
-    just --set clean_coverage_workspace false containerized-integration-tests --locked --no-default-features --package signstar-config --features yubihsm2
+    just clean_coverage_workspace=false build_bins_and_examples=false containerized-integration-tests --locked --no-default-features --package signstar-config --features yubihsm2
     printf 'Run containerized integration tests for signstar-config with nethsm,yubihsm2 feature...\n'
-    just --set clean_coverage_workspace false containerized-integration-tests --locked --no-default-features --package signstar-config --features nethsm,yubihsm2
+    just clean_coverage_workspace=false build_bins_and_examples=false containerized-integration-tests --locked --no-default-features --package signstar-config --features nethsm,yubihsm2
     printf 'Run containerized integration tests for signstar-configure with _yubihsm2-mockhsm feature...\n'
-    just --set clean_coverage_workspace false containerized-integration-tests --locked --no-default-features --package signstar-configure
-    just --set clean_coverage_workspace false containerized-integration-tests --locked --no-default-features --package signstar-configure --features _yubihsm2-mockhsm,cli,yubihsm2
-    just --set clean_coverage_workspace false containerized-integration-tests --locked --no-default-features --package signstar-configure --features cli,nethsm
-    just --set clean_coverage_workspace false containerized-integration-tests --locked --no-default-features --package signstar-configure --features _yubihsm2-mockhsm,cli,nethsm,yubihsm2
+    just clean_coverage_workspace=false build_bins_and_examples=false containerized-integration-tests --locked --no-default-features --package signstar-configure
+    just clean_coverage_workspace=false build_bins_and_examples=false containerized-integration-tests --locked --no-default-features --package signstar-configure --features _yubihsm2-mockhsm,cli,yubihsm2
+    just clean_coverage_workspace=false build_bins_and_examples=false containerized-integration-tests --locked --no-default-features --package signstar-configure --features cli,nethsm
+    just clean_coverage_workspace=false build_bins_and_examples=false containerized-integration-tests --locked --no-default-features --package signstar-configure --features _yubihsm2-mockhsm,cli,nethsm,yubihsm2
     printf 'Run containerized integration tests for signstar-crypto without default features...\n'
-    just --set clean_coverage_workspace false containerized-integration-tests --locked --no-default-features --package signstar-crypto
+    just clean_coverage_workspace=false build_bins_and_examples=false containerized-integration-tests --locked --no-default-features --package signstar-crypto
     printf 'Run containerized integration tests for signstar-crypto with nethsm features...\n'
-    just --set clean_coverage_workspace false containerized-integration-tests --locked --no-default-features --package signstar-crypto --features nethsm
+    just clean_coverage_workspace=false build_bins_and_examples=false containerized-integration-tests --locked --no-default-features --package signstar-crypto --features nethsm
     printf 'Run containerized integration tests for signstar-sign with nethsm feature...\n'
-    just --set clean_coverage_workspace false containerized-integration-tests --locked --no-default-features --package signstar-sign --features nethsm
+    just clean_coverage_workspace=false build_bins_and_examples=false containerized-integration-tests --locked --no-default-features --package signstar-sign --features nethsm
     printf 'Run containerized integration tests for signstar-sign with _yubihsm2-mockhsm feature...\n'
-    just --set clean_coverage_workspace false containerized-integration-tests --locked --no-default-features --package signstar-sign --features _yubihsm2-mockhsm
+    just clean_coverage_workspace=false build_bins_and_examples=false containerized-integration-tests --locked --no-default-features --package signstar-sign --features _yubihsm2-mockhsm
 
 [doc('Creates code coverage report for all projects from all available sources.
 When providing `with-docs` to the `mode` parameter, this also includes doc test coverage in the report (requires nightly).
