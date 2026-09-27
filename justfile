@@ -13,6 +13,11 @@ coverage := env("COVERAGE_REPORT", "false")
 # Set this to `false` to accumulate and combine coverage reports of several targets.
 clean_coverage_workspace := env("CLEAN_COVERAGE_WORKSPACE", "true")
 
+# Whether to build the binaries and examples (with all features enabled) before test scenarios.
+#
+# Set this to `false` to not build binaries and examples (with all features), before running tests that use them.
+build_bins_and_examples := env("BUILD_BINS_AND_EXAMPLES", "true")
+
 # The output directory for documentation artifacts
 
 output_dir := "output"
@@ -912,6 +917,7 @@ containerized-integration-tests *options='--locked --workspace':
 
     readonly coverage="{{ coverage }}"
     readonly clean_coverage_workspace="{{ clean_coverage_workspace }}"
+    readonly build_bins_and_examples="{{ build_bins_and_examples }}"
     cargo_target_dir="$(just get-cargo-target-dir)"
     if (( $? != 0 )); then
         exit 1
@@ -930,7 +936,9 @@ containerized-integration-tests *options='--locked --workspace':
         just ensure-command bash cargo cargo-nextest jq podman
     fi
 
-    cargo +stable build --examples --bins --all-features
+    if [[ "$build_bins_and_examples" == "true" ]]; then
+        cargo +stable build --examples --bins --all-features
+    fi
     cargo +stable nextest run --features _containerized-integration-test --filterset 'kind(test) and binary_id(/::containerized$/)' "${options[@]}"
 
 # Runs the `containerized-integration-tests` recipe in all relevant feature permutations.
