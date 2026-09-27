@@ -184,10 +184,11 @@ impl<'config> HostConfiguration<'config> {
         };
         let provisioned_backends = Self::provisioned_nethsm_connections(nethsm_config);
 
-        let admin_credentials = match self.load_nethsm_admin_credentials() {
+        let (admin_credentials, new_admin_credentials) = match self.load_nethsm_admin_credentials()
+        {
             Ok(admin_credentials) => {
                 info!("Found administrative credentials for NetHSM.");
-                admin_credentials
+                (admin_credentials, false)
             }
             Err(Error::SignstarConfig(signstar_config::Error::AdminSecretHandling(
                 signstar_config::admin_credentials::Error::CredsFileMissing { .. },
@@ -209,10 +210,15 @@ impl<'config> HostConfiguration<'config> {
 
                 // All backends are available and unprovisioned.
                 // There are no administrative credentials (yet), so they are created.
-                NetHsmAdminCredentials::try_from(self.config())?
+                (NetHsmAdminCredentials::try_from(self.config())?, true)
             }
             Err(error) => return Err(error),
         };
+
+        // Store the admin credentials, if they have been newly created.
+        if new_admin_credentials {
+            admin_credentials.store(*self.config().system().admin_secret_handling())?;
+        }
 
         // Non-administrative credentials are always created from scratch, unconditionally.
         let user_credentials = self.create_nethsm_non_admin_credentials()?;

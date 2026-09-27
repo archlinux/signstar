@@ -177,10 +177,12 @@ impl<'config> HostConfiguration<'config> {
         };
         let provisioned_backends = Self::provisioned_yubihsm2_connections(yubihsm2_config);
 
-        let admin_credentials = match self.load_yubihsm2_admin_credentials() {
+        let (admin_credentials, new_admin_credentials) = match self
+            .load_yubihsm2_admin_credentials()
+        {
             Ok(admin_credentials) => {
                 info!("Found administrative credentials for YubiHSM2.");
-                admin_credentials
+                (admin_credentials, false)
             }
             Err(Error::SignstarConfig(signstar_config::Error::AdminSecretHandling(
                 signstar_config::admin_credentials::Error::CredsFileMissing { .. },
@@ -202,10 +204,15 @@ impl<'config> HostConfiguration<'config> {
 
                 // All backends are available and unprovisioned.
                 // There are no administrative credentials (yet), so they are created.
-                YubiHsm2AdminCredentials::try_from(self.config())?
+                (YubiHsm2AdminCredentials::try_from(self.config())?, true)
             }
             Err(error) => return Err(error),
         };
+
+        // Store the admin credentials, if they have been newly created.
+        if new_admin_credentials {
+            admin_credentials.store(*self.config().system().admin_secret_handling())?;
+        }
 
         // Non-administrative credentials are always created from scratch, unconditionally.
         let user_credentials = self.create_yubihsm2_non_admin_credentials()?;
