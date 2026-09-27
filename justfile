@@ -918,11 +918,6 @@ containerized-integration-tests *options='--locked --workspace':
     readonly coverage="{{ coverage }}"
     readonly clean_coverage_workspace="{{ clean_coverage_workspace }}"
     readonly build_bins_and_examples="{{ build_bins_and_examples }}"
-    cargo_target_dir="$(just get-cargo-target-dir)"
-    if (( $? != 0 )); then
-        exit 1
-    fi
-    readonly cargo_target_dir="$cargo_target_dir"
     read -r -a options <<< "{{ options }}"
 
     if [[ "$coverage" == "true" ]]; then
