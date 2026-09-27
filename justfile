@@ -1152,7 +1152,21 @@ test-all:
         just ensure-command "${commands[@]}"
     fi
 
-    cargo +stable hack --feature-powerset --exclude-features _containerized-integration-test,_nethsm-integration-test nextest run --locked --no-fail-fast --status-level fail --final-status-level fail --all-targets --no-tests warn
+    readonly cargo_hack_options=(
+        --exclude-features _containerized-integration-test,_nethsm-integration-test
+        --feature-powerset
+    )
+    readonly nextest_run_options=(
+        --final-status-level fail
+        --locked
+        --no-fail-fast
+        --no-tests warn
+        --status-level fail
+        --lib
+        --tests
+    )
+
+    cargo +stable hack "${cargo_hack_options[@]}" nextest run "${nextest_run_options[@]}"
 
 # Runs all doc tests. Always implies the `--doc` option to `cargo test`.
 [group('test')]
