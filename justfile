@@ -125,7 +125,7 @@ get-workspace-member-version package:
 
     just ensure-command cargo jq
 
-    version="$(cargo metadata --format-version=1 |jq -r --arg pkg {{ package }} '.workspace_members[] | capture("/(?<name>[a-z-]+)#(?<version>[0-9.]+)") | select(.name == $pkg).version')"
+    version="$(cargo metadata --format-version=1 |jq -r --arg pkg {{ package }} '.workspace_members[] | capture("/(?<name>[a-z-0-9]+)#(?<version>[0-9.]+)") | select(.name == $pkg).version')"
     if (( $? != 0 )); then
         exit 1
     fi
