@@ -965,9 +965,9 @@ dependencies = [
 
 [[package]]
 name = "change-user-run"
-version = "0.1.2"
+version = "0.1.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9b04a3caee5aef315ec6de169d257a1cbd246a042ca0b082026a604a76ae6af5"
+checksum = "13060df69326ae575bf560e5c7b92348a686000bd149aca7157f3f9c7f1feee4"
 dependencies = [
  "log",
  "rand 0.10.2",
@@ -5884,7 +5884,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "32497e9a4c7b38532efcdebeef879707aa9f794296a4f0244f6f69e9bc8574bd"
 dependencies = [
  "fastrand",
- "getrandom 0.4.3",
+ "getrandom 0.3.4",
  "once_cell",
  "rustix",
  "windows-sys 0.61.2",
