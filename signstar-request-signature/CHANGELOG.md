@@ -7,6 +7,48 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-09-28
+
+### Added
+
+- *(deps)* Update rustcrypto crates
+- Always require the `user` argument when running `signstar-request-signature send`
+- Always require `expect` attributes instead of `allow`s
+- Use configuration file when sending signing requests
+- Make executable and related dependencies optional in `signstar-request-signature`
+
+### Fixed
+
+- [**breaking**] Diversify the logger setup for journald and terminal
+- *(deps)* More strictly lock the version ranges for custom dependencies
+- *(deps)* Update Rust crate russh to v0.63.3
+- Use `NonZeroU32` for exit status code failures
+- *(deps)* Update Rust crate russh to v0.62.1
+- *(deps)* Update Rust crate russh to 0.61.0
+- *(deps)* Update Rust crate hmac to 0.13.0 and sha1 to 0.11.0
+- *(deps)* Update Rust crate russh to 0.59.0
+- Remove unnecessary call to `into`
+- *(deps)* Update Rust crate russh to 0.58.0
+- *(deps)* Update Rust crate russh to 0.57.0
+- Update test vectors for sha2 hasher state
+- *(deps)* Update Rust crate russh to v0.55.0
+
+### Other
+
+- Enforce binary ID for `_containerized-integration-test` tests
+- Convert `allow`s into `expect`s
+- Remove redundant denies that are defined using workspace lints
+- Format all JSON files using `biome`
+- *(deps)* Update Rust crate ssh-agent-lib to v0.6.0
+- Use `digest-io` dependency instead of our own struct
+- *(deps)* Move `sha1` crate to workspace dependencies
+- *(deps)* Move `serde_json` crate to workspace dependencies
+- Use base64ct instead of base64 in `signstar-request-signature`
+- *(deps)* Update dependencies
+- *(cargo)* Move crate `clap-verbosity-flag` to workspace dependencies
+- *(cargo)* Use crate `tokio` from workspace dependencies
+- *(cargo)* Move crate `tempfile` to workspace dependencies
+
 ## [0.1.3] - 2025-08-19
 
 ### Added
