@@ -7,7 +7,7 @@ keywords = ["encryption", "hsm", "nethsm", "signing"]
 license.workspace = true
 name = "nethsm"
 repository.workspace = true
-version = "0.10.0"
+version = "0.11.0"
 
 [dependencies]
 base64ct.workspace = true

@@ -7,6 +7,66 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.11.0] - 2026-09-28
+
+### Added
+
+- Add `NamespacedUserId` for describing namespaced `UserId`
+- *(deps)* [**breaking**] Update crate nethsm-sdk-rs to 4.0.0
+- *(deps)* Update rustcrypto crates
+- Implement `BackendCheck` for NetHSM `Connection`
+- [**breaking**] Extend `CryptographicKeyContext::OpenPgp` with `notations`
+- Add support for ECC K-256 (Koblitz)
+- Add back NIST P-224 support
+- [**breaking**] Drop MD5 from supported algorithms and dependencies
+- *(cargo)* Rename `test-helpers` feature to `_test-helpers`
+- Expose `key::Error` as `KeyError`
+- Derive `Ord` and `PartialOrd` for `Connection`
+- Derive `Ord` and `PartialOrd` for `Url`
+- Derive `Ord` and `PartialOrd` for `SystemWideUserId`
+- Derive `Ord` and `PartialOrd` for `UserId`
+- Derive `Ord` and `PartialOrd` for `NamespaceId`
+- Derive `Ord` and `PartialOrd` for `ConnectionSecurity`
+- Derive `Ord` and `PartialOrd` for `HostCertificateFingerprints`
+- Derive `Ord` and `PartialOrd` for `CertFingerprint`
+- Derive `Ord` and `PartialOrd` for `KeyId`
+- Move OpenPGP related logic out of `nethsm` into `signstar-crypto`
+- Add `SystemWideUserId` from signstar-config
+- Implement `UserWithPassphrase` for `FullCredentials`
+- Add `TryFrom` `Box<dyn UserWithPassphrase>` for `Credentials`
+- [**breaking**] Rely on `signstar_crypto` for common cryptographic key types
+- Implement `From<Level>` for `LogLevel`
+
+### Fixed
+
+- [**breaking**] Diversify the logger setup for journald and terminal
+- *(deps)* Remove unused crate `hex`
+- [**breaking**] Correctly generate certificates with multiple User IDs
+- Remove useless borrows in formatting
+- Rewrite panicking branches to avoid clippy warnings
+- *(deps)* Update Rust crate picky-asn1-x509 to v0.15.0
+
+### Other
+
+- [**breaking**] Expose all signstar_crypto errors over top-level Error type
+- *(README)* Refer to correct crate in `_test-helpers` description
+- Remove the use of `rust_dotenv` and rely on environment
+- Add missing documentation for `key::Error` variants
+- *(README)* Improve information about available features
+- *(deps)* Move `sha1` crate to workspace dependencies
+- *(deps)* Move `serde_json` crate to workspace dependencies
+- *(deps)* Update Rust crate pgp to 0.19
+- Expose `SignedSecretKey` through `nethsm`
+- [**breaking**] Remove `SigningKeySetup`
+- *(deps)* Update Rust crate pgp to 0.17
+- [**breaking**] Use `nethsm_backup::validate_backup`
+- [**breaking**] Use `signstar_crypto::passphrase::Passphrase`
+- Move `base64ct` to workspace dependency
+- Move `p256`, `p384` and `p521` crates to workspace dependencies
+- Move `nethsm-sdk-rs` to workspace dependencies
+- Move all top-level API documentation to README and include it
+- Move `NetHsm` implementation to separate modules
+
 ## [0.10.0] - 2025-08-19
 
 ### Added
