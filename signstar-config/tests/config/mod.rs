@@ -211,7 +211,12 @@ mod no_backend {
 mod nethsm_backend {
     use std::collections::HashMap;
 
-    use change_user_run::{CommandOutput, run_command_as_user};
+    use change_user_run::{
+        COVERAGE_ENV_LIST,
+        CommandOutput,
+        collect_coverage_data,
+        run_command_as_user,
+    };
     use signstar_config::{
         config::ConfigSystemUserIds,
         test::{
@@ -224,7 +229,7 @@ mod nethsm_backend {
     };
 
     use super::*;
-    use crate::{ENV_LIST, LLVM_PROFILE_FILE, collect_coverage_files};
+    use crate::LLVM_PROFILE_FILE;
 
     /// The example executable to call during tests.
     const PAYLOAD: &str = "/usr/local/bin/examples/config-non-admin-backend-user-secrets";
@@ -305,7 +310,7 @@ mod nethsm_backend {
             PAYLOAD,
             &["create"],
             None,
-            ENV_LIST,
+            COVERAGE_ENV_LIST,
             Some(HashMap::from([(
                 "LLVM_PROFILE_FILE".to_string(),
                 LLVM_PROFILE_FILE.to_string(),
@@ -325,7 +330,7 @@ mod nethsm_backend {
             );
         }
 
-        collect_coverage_files("/tmp")?;
+        collect_coverage_data("/tmp")?;
 
         for user in users {
             let CommandOutput {
@@ -337,7 +342,7 @@ mod nethsm_backend {
                 PAYLOAD,
                 &["load", user],
                 None,
-                ENV_LIST,
+                COVERAGE_ENV_LIST,
                 Some(HashMap::from([(
                     "LLVM_PROFILE_FILE".to_string(),
                     LLVM_PROFILE_FILE.to_string(),
@@ -357,7 +362,7 @@ mod nethsm_backend {
                 );
             }
 
-            collect_coverage_files("/tmp")?;
+            collect_coverage_data("/tmp")?;
         }
 
         Ok(())
@@ -369,7 +374,12 @@ mod nethsm_backend {
 mod yubihsm2_backend {
     use std::collections::HashMap;
 
-    use change_user_run::{CommandOutput, run_command_as_user};
+    use change_user_run::{
+        COVERAGE_ENV_LIST,
+        CommandOutput,
+        collect_coverage_data,
+        run_command_as_user,
+    };
     use signstar_config::{
         config::ConfigSystemUserIds,
         test::{
@@ -382,7 +392,7 @@ mod yubihsm2_backend {
     };
 
     use super::*;
-    use crate::{ENV_LIST, LLVM_PROFILE_FILE, collect_coverage_files};
+    use crate::LLVM_PROFILE_FILE;
 
     /// The example executable to call during tests.
     const PAYLOAD: &str = "/usr/local/bin/examples/config-non-admin-backend-user-secrets";
@@ -463,7 +473,7 @@ mod yubihsm2_backend {
             PAYLOAD,
             &["create"],
             None,
-            ENV_LIST,
+            COVERAGE_ENV_LIST,
             Some(HashMap::from([(
                 "LLVM_PROFILE_FILE".to_string(),
                 LLVM_PROFILE_FILE.to_string(),
@@ -483,7 +493,7 @@ mod yubihsm2_backend {
             );
         }
 
-        collect_coverage_files("/tmp")?;
+        collect_coverage_data("/tmp")?;
 
         for user in users {
             let CommandOutput {
@@ -495,7 +505,7 @@ mod yubihsm2_backend {
                 PAYLOAD,
                 &["load", user],
                 None,
-                ENV_LIST,
+                COVERAGE_ENV_LIST,
                 Some(HashMap::from([(
                     "LLVM_PROFILE_FILE".to_string(),
                     LLVM_PROFILE_FILE.to_string(),
@@ -515,7 +525,7 @@ mod yubihsm2_backend {
                 );
             }
 
-            collect_coverage_files("/tmp")?;
+            collect_coverage_data("/tmp")?;
         }
 
         Ok(())
@@ -527,7 +537,12 @@ mod yubihsm2_backend {
 mod all_backends {
     use std::collections::HashMap;
 
-    use change_user_run::{CommandOutput, run_command_as_user};
+    use change_user_run::{
+        COVERAGE_ENV_LIST,
+        CommandOutput,
+        collect_coverage_data,
+        run_command_as_user,
+    };
     use signstar_config::{
         config::{ConfigSystemUserIds, SystemUserConfigState, SystemUserDiff, SystemUserHostState},
         state::{StateDiff, StateDiffReport},
@@ -541,7 +556,7 @@ mod all_backends {
     };
 
     use super::*;
-    use crate::{ENV_LIST, LLVM_PROFILE_FILE, collect_coverage_files};
+    use crate::LLVM_PROFILE_FILE;
 
     /// The example executable to call during tests.
     const PAYLOAD: &str = "/usr/local/bin/examples/config-non-admin-backend-user-secrets";
@@ -623,7 +638,7 @@ mod all_backends {
             PAYLOAD,
             &["create"],
             None,
-            ENV_LIST,
+            COVERAGE_ENV_LIST,
             Some(HashMap::from([(
                 "LLVM_PROFILE_FILE".to_string(),
                 LLVM_PROFILE_FILE.to_string(),
@@ -643,7 +658,7 @@ mod all_backends {
             );
         }
 
-        collect_coverage_files("/tmp")?;
+        collect_coverage_data("/tmp")?;
 
         for user in users {
             let CommandOutput {
@@ -655,7 +670,7 @@ mod all_backends {
                 PAYLOAD,
                 &["load", user],
                 None,
-                ENV_LIST,
+                COVERAGE_ENV_LIST,
                 Some(HashMap::from([(
                     "LLVM_PROFILE_FILE".to_string(),
                     LLVM_PROFILE_FILE.to_string(),
@@ -675,7 +690,7 @@ mod all_backends {
                 );
             }
 
-            collect_coverage_files("/tmp")?;
+            collect_coverage_data("/tmp")?;
         }
 
         Ok(())

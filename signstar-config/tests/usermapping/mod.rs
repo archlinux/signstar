@@ -5,7 +5,13 @@
 mod nethsm {
     use std::{collections::HashMap, thread::current};
 
-    use change_user_run::{CommandOutput, create_users, run_command_as_user};
+    use change_user_run::{
+        COVERAGE_ENV_LIST,
+        CommandOutput,
+        collect_coverage_data,
+        create_users,
+        run_command_as_user,
+    };
     use insta::{assert_snapshot, with_settings};
     use log::LevelFilter;
     use rstest::rstest;
@@ -15,7 +21,7 @@ mod nethsm {
     use signstar_crypto::NonAdministrativeSecretHandling;
     use testresult::TestResult;
 
-    use crate::{ENV_LIST, LLVM_PROFILE_FILE, collect_coverage_files};
+    use crate::LLVM_PROFILE_FILE;
 
     const NON_ADMIN_SECRETS_PAYLOAD: &str = "/usr/local/bin/examples/usermapping-non-admin-secrets";
     const PAYLOAD: &str = "/usr/local/bin/examples/usermapping-system-user-info";
@@ -57,7 +63,7 @@ mod nethsm {
             PAYLOAD,
             &options,
             None,
-            ENV_LIST,
+            COVERAGE_ENV_LIST,
             Some(HashMap::from([(
                 "LLVM_PROFILE_FILE".to_string(),
                 LLVM_PROFILE_FILE.to_string(),
@@ -76,7 +82,7 @@ mod nethsm {
             );
         }
 
-        collect_coverage_files("/tmp")?;
+        collect_coverage_data("/tmp")?;
 
         Ok(())
     }
@@ -107,7 +113,7 @@ mod nethsm {
             PAYLOAD,
             &[backend_kind, user, "--current-user"],
             None,
-            ENV_LIST,
+            COVERAGE_ENV_LIST,
             Some(HashMap::from([(
                 "LLVM_PROFILE_FILE".to_string(),
                 LLVM_PROFILE_FILE.to_string(),
@@ -126,7 +132,7 @@ mod nethsm {
             assert_snapshot!(current().name().expect("current thread should have a name").to_string().replace("::", "__"), stderr);
         });
 
-        collect_coverage_files("/tmp")?;
+        collect_coverage_data("/tmp")?;
 
         Ok(())
     }
@@ -216,7 +222,7 @@ mod nethsm {
             NON_ADMIN_SECRETS_PAYLOAD,
             &create_options,
             None,
-            ENV_LIST,
+            COVERAGE_ENV_LIST,
             Some(HashMap::from([(
                 "LLVM_PROFILE_FILE".to_string(),
                 LLVM_PROFILE_FILE.to_string(),
@@ -238,7 +244,7 @@ mod nethsm {
         }
 
         // Collect coverage files for the creation of secrets.
-        collect_coverage_files("/tmp")?;
+        collect_coverage_data("/tmp")?;
 
         if user.is_some() {
             // List all files and directories in the data home.
@@ -268,7 +274,7 @@ mod nethsm {
             NON_ADMIN_SECRETS_PAYLOAD,
             &load_options,
             None,
-            ENV_LIST,
+            COVERAGE_ENV_LIST,
             Some(HashMap::from([(
                 "LLVM_PROFILE_FILE".to_string(),
                 LLVM_PROFILE_FILE.to_string(),
@@ -300,7 +306,7 @@ mod nethsm {
         });
 
         // Collect coverage files for the loading of secrets.
-        collect_coverage_files("/tmp")?;
+        collect_coverage_data("/tmp")?;
 
         Ok(())
     }
@@ -310,7 +316,13 @@ mod nethsm {
 mod yubihsm2 {
     use std::{collections::HashMap, thread::current};
 
-    use change_user_run::{CommandOutput, create_users, run_command_as_user};
+    use change_user_run::{
+        COVERAGE_ENV_LIST,
+        CommandOutput,
+        collect_coverage_data,
+        create_users,
+        run_command_as_user,
+    };
     use insta::{assert_snapshot, with_settings};
     use log::LevelFilter;
     use rstest::rstest;
@@ -320,7 +332,7 @@ mod yubihsm2 {
     use signstar_crypto::NonAdministrativeSecretHandling;
     use testresult::TestResult;
 
-    use crate::{ENV_LIST, LLVM_PROFILE_FILE, collect_coverage_files};
+    use crate::LLVM_PROFILE_FILE;
 
     const NON_ADMIN_SECRETS_PAYLOAD: &str = "/usr/local/bin/examples/usermapping-non-admin-secrets";
     const PAYLOAD: &str = "/usr/local/bin/examples/usermapping-system-user-info";
@@ -362,7 +374,7 @@ mod yubihsm2 {
             PAYLOAD,
             &options,
             None,
-            ENV_LIST,
+            COVERAGE_ENV_LIST,
             Some(HashMap::from([(
                 "LLVM_PROFILE_FILE".to_string(),
                 LLVM_PROFILE_FILE.to_string(),
@@ -381,7 +393,7 @@ mod yubihsm2 {
             );
         }
 
-        collect_coverage_files("/tmp")?;
+        collect_coverage_data("/tmp")?;
 
         Ok(())
     }
@@ -412,7 +424,7 @@ mod yubihsm2 {
             PAYLOAD,
             &[backend_kind, user, "--current-user"],
             None,
-            ENV_LIST,
+            COVERAGE_ENV_LIST,
             Some(HashMap::from([(
                 "LLVM_PROFILE_FILE".to_string(),
                 LLVM_PROFILE_FILE.to_string(),
@@ -431,7 +443,7 @@ mod yubihsm2 {
             assert_snapshot!(current().name().expect("current thread should have a name").to_string().replace("::", "__"), stderr);
         });
 
-        collect_coverage_files("/tmp")?;
+        collect_coverage_data("/tmp")?;
 
         Ok(())
     }
@@ -521,7 +533,7 @@ mod yubihsm2 {
             NON_ADMIN_SECRETS_PAYLOAD,
             &create_options,
             None,
-            ENV_LIST,
+            COVERAGE_ENV_LIST,
             Some(HashMap::from([(
                 "LLVM_PROFILE_FILE".to_string(),
                 LLVM_PROFILE_FILE.to_string(),
@@ -543,7 +555,7 @@ mod yubihsm2 {
         }
 
         // Collect coverage files for the creation of secrets.
-        collect_coverage_files("/tmp")?;
+        collect_coverage_data("/tmp")?;
 
         if system_user.is_some() {
             // List all files and directories in the data home.
@@ -572,7 +584,7 @@ mod yubihsm2 {
             NON_ADMIN_SECRETS_PAYLOAD,
             &load_options,
             None,
-            ENV_LIST,
+            COVERAGE_ENV_LIST,
             Some(HashMap::from([(
                 "LLVM_PROFILE_FILE".to_string(),
                 LLVM_PROFILE_FILE.to_string(),
@@ -604,7 +616,7 @@ mod yubihsm2 {
         });
 
         // Collect coverage files for the loading of secrets.
-        collect_coverage_files("/tmp")?;
+        collect_coverage_data("/tmp")?;
 
         Ok(())
     }
