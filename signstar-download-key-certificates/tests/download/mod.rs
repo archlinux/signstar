@@ -44,11 +44,13 @@ const SIGNSTAR_DOWNLOAD_KEY_CERTIFICATES_PAYLOAD: &str = "signstar-download-key-
 /// The location of cargo-llvm-cov `.profraw` files when running a command as a different user.
 const LLVM_PROFILE_FILE: &str = "/tmp/signstar-%p-%16m.profraw";
 
+/// Responder for the NetHSM key `signing1`.
 #[get("//keys/signing1")]
 async fn get_key(_req: HttpRequest) -> impl Responder {
     r#"{"type":"Curve25519","mechanisms":[],"restrictions":{},"operations":1}"#
 }
 
+/// Responder for the NetHSM key certificate for key `signing1`.
 #[get("//keys/signing1/cert")]
 async fn get_cert(_req: HttpRequest) -> impl Responder {
     Base64::decode_vec(include_str!("cert.asc")).expect("static base64 data to be valid")
