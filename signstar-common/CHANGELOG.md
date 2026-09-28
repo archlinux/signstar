@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-09-28
+
+### Added
+
+- Implement `signstar-download-key-certificates`
+- Add types for certificate request and response
+- [**breaking**] Introduce a crate-level error type for signstar-common
+- Add `BackendType` to track information about supported HSM types
+- Add trait `BackendCheck` to check backend functionality
+- *(cargo)* Use workspace lints
+- Rely on `log::Level` instead of `nethsm::LogLevel` for defaults
+
+### Fixed
+
+- [**breaking**] Diversify the logger setup for journald and terminal
+- Try to connect to journald socket instead of relying on `connected_to_journal`
+
+### Other
+
+- *(deps)* Move `simplelog` crate to workspace dependencies
+- *(README)* Improve information about available features
+- Document all publicly visible items
+
 ## [0.1.2] - 2025-08-19
 
 ### Added

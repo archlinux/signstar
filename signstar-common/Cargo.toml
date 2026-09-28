@@ -7,7 +7,7 @@ keywords = ["nethsm", "signstar", "user"]
 license.workspace = true
 name = "signstar-common"
 repository.workspace = true
-version = "0.1.2"
+version = "0.2.0"
 
 [dependencies]
 base64ct.workspace = true
