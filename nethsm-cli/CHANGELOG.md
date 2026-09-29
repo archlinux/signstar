@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-09-29
+
+### Added
+
+- *(deps)* [**breaking**] Update crate nethsm-sdk-rs to 4.0.0
+- *(deps)* Update rustcrypto crates
+- [**breaking**] Extend `CryptographicKeyContext::OpenPgp` with `notations`
+- Move OpenPGP related logic out of `nethsm` into `signstar-crypto`
+- *(cargo)* Use workspace lints
+- [**breaking**] Rely on `signstar_crypto` for common cryptographic key types
+
+### Fixed
+
+- [**breaking**] Correctly generate certificates with multiple User IDs
+
+### Other
+
+- Add deprecation warning, as the functionality is added to nethsm
+- [**breaking**] Expose all signstar_crypto errors over top-level Error type
+- *(deps)* Update Rust crate pgp to 0.19
+- Expose `SignedSecretKey` through `nethsm`
+- Make `BIN_NAME` a private const
+- Document all publicly visible items
+- [**breaking**] Use `nethsm_backup::validate_backup`
+
 ## [0.9.0] - 2025-08-19
 
 ### Added
