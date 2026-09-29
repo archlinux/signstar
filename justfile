@@ -504,6 +504,30 @@ generate kind pkg:
             exit 1
     esac
 
+# Generates all CLI man pages and shell completions.
+[group('build')]
+generate-cli-man-pages-and-completions:
+    #!/usr/bin/env bash
+
+    set -euo pipefail
+
+    readonly executables=(
+        nethsm-cli
+        signstar-configure
+        signstar-configure-build
+        signstar-download-key-certificates
+        signstar-request-signature
+    )
+
+    for executable in "${executables[@]}"; do
+        printf 'Generate man pages and shell completions for %s...\n' "$executable"
+        just generate manpages "$executable"
+        just generate shell_completions "$executable"
+    done
+
+    printf 'Generate custom man pages for signstar-config...\n'
+    just generate specifications signstar-config
+
 ################
 # Check recipes.
 ################
