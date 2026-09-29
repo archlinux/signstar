@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.1] - 2026-09-29
+
+### Added
+
+- *(cargo)* Use workspace lints
+- Derive `Debug` for `PassphrasePrompt` and `UserPrompt`
+
+### Fixed
+
+- Remove unnecessary lint suppression
+- Fix clippy lints reported by Rust stable
+- Suppress `unused_assignments` lint for `ConfigCredentials` fields
+
+### Other
+
+- Add deprecation warning, as the functionality is added to nethsm
+- *(deps)* Update Rust crate dirs to v7
+- Document all publicly visible items
+
 ## [0.5.0] - 2025-08-19
 
 ### Other
