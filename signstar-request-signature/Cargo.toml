@@ -48,6 +48,7 @@ testresult.workspace = true
 [features]
 _containerized-integration-test = []
 cli = ["dep:clap", "dep:clap-verbosity-flag", "dep:signstar-common"]
+default = ["cli"]
 
 [lints]
 workspace = true
