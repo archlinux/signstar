@@ -146,6 +146,17 @@ dependencies:
     - just --justfile .gitlab/justfile section-end "check-dependencies"
   stage: check
 
+man-pages-and-shell-completions:
+  extends: .default-with-rust
+  script:
+    - just --justfile .gitlab/justfile section-start "install-alpm-packages" "Install ALPM package set 'manpages'"
+    - just install-alpm-package-set manpages
+    - just --justfile .gitlab/justfile section-end "install-alpm-packages"
+    - just --justfile .gitlab/justfile section-start "generate-cli-man-pages-and-completions" "Generate all man pages and shell completions"
+    - just generate-cli-man-pages-and-completions
+    - just --justfile .gitlab/justfile section-end "generate-cli-man-pages-and-completions"
+  stage: check
+
 licenses:
   extends: .default
   script:
