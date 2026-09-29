@@ -7,6 +7,53 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-09-29
+
+### Added
+
+- [**breaking**] Rename `SystemUserMapping` variant for WireGuard config downloads
+- Add `NetHsmUserMapping::CertificateRetrieval`
+- Add `YubiHsm2UserMapping::CertificateRetrieval`
+- *(deps)* Update rustcrypto crates
+- [**breaking**] Support sets of filters with `Config::user_backend_connections`
+- Add created users to the `_yubihsm2` group
+- Add logging to `signstar-configure-build`
+- Port to new `Config` format
+- *(cargo)* Rename `mockhsm` feature to `_yubihsm2-mockhsm`
+- *(cargo)* Add a `mockhsm` feature, switching on the `yubihsm2` feature
+- Add metrics related variants for `UserMapping`
+- Add `UserMapping::SystemYubiHsm2Backup`
+- Add `UserMapping::YubiHsmOnlyAdmin`
+- *(cargo)* Use workspace lints
+- Add `UserMapping::SystemYubiHsmOperatorSigning` for YubiHSM2
+- [**breaking**] Use `signstar_crypto::key::SigningKeySetup` in `UserMapping`
+- [**breaking**] Support using different HSM backends in `SignstarConfig`
+
+### Fixed
+
+- Align the naming of `signstar-download-key-certificates`
+- Fix `DisableForwarding` instruction
+- Disable all SSH forwarding features for Signstar host system users
+- [**breaking**] Diversify the logger setup for journald and terminal
+- Set a random passphrase for created users
+- *(deps)* Update Rust crate sysinfo to v0.39.0
+- *(deps)* Update Rust crate nix to 0.31.0
+- *(deps)* Update Rust crate sysinfo to v0.38.0
+
+### Other
+
+- Remove warning for `_yubihsm2-mockhsm` feature debug requirement
+- *(fixtures)* Consolidate the naming of system users in configs
+- [**breaking**] Use `AuthorizedKeyEntry`/`SystemUserId` via `config` module
+- *(README)* Improve information about available features
+- Make `AuthorizedKeyEntry` a newtype for `Entry` not `String`
+- *(cargo)* Move `nix` crate to workspace dependencies
+- [**breaking**] Change name to `UserMapping::YubiHsm2OnlyAdmin`
+- [**breaking**] Change name to `UserMapping::SystemYubiHsm2OperatorSigning`
+- Make `Error::NoForceCommandForMapping` more generic
+- Use clap's '-V'/`--version` integration instead of a custom one
+- Document all publicly visible items
+
 ## [0.3.0] - 2025-08-19
 
 ### Added
