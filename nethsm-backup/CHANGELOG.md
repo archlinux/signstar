@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-09-29
+
+### Added
+
+- *(cargo)* Rename `test-helpers` feature to `_test-helpers`
+- Add `validate_backup` to validate NetHSM backup files
+
+### Fixed
+
+- Remove useless borrows in formatting
+- *(deps)* Update Rust crate aes-gcm to 0.11.0
+- Fix clippy lints reported by Rust stable
+- *(deps)* Update Rust crate scrypt to 0.12.0
+
+### Other
+
+- Add deprecation warning, as the functionality is added to nethsm
+- *(README)* Improve information about available features
+
 ## [0.2.0] - 2025-07-10
 
 ### Added
