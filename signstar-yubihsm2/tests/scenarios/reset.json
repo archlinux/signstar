@@ -6,7 +6,9 @@
     },
     "commands": [
       {
-        "reset_device_and_reconnect": null
+        "reset_device_and_reconnect": {
+          "timeout_ms": 2000
+        }
       }
     ]
   }

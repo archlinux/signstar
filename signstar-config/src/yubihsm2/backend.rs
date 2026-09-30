@@ -9,7 +9,7 @@
 //! Most notably, the wrap key, used for backups is always stored using the ID `1`.
 //! Further, certificates created using a specific asymmetric key are always stored as opaque
 //! objects using the same ID as the asymmetric key.
-use std::{cell::RefCell, collections::HashSet, fmt::Debug};
+use std::{cell::RefCell, collections::HashSet, fmt::Debug, time::Duration};
 
 use log::{debug, error, info, warn};
 use pgp::types::Timestamp;
@@ -600,7 +600,10 @@ impl<'admin_creds, 'config> YubiHsm2Backend<'admin_creds, 'config> {
 
         let scenario = Scenario::new(vec![AuthenticatedCommandChain::new(
             credentials,
-            vec![Command::ResetDeviceAndReconnect],
+            vec![Command::ResetDeviceAndReconnect {
+                // NOTE: Some USB controllers are sloooooooooooooow.
+                timeout: Duration::from_secs(5),
+            }],
         )]);
         let scenario_result = self.runner.run(&scenario)?;
 

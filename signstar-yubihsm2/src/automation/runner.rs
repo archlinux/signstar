@@ -1,10 +1,10 @@
 //! Scenario runner
 
+use std::fmt::Debug;
 #[cfg(feature = "cli")]
 use std::fs::write;
 #[cfg(feature = "serde")]
 use std::io::Write;
-use std::{fmt::Debug, time::Duration};
 
 #[cfg(feature = "cli")]
 use log::debug;
@@ -158,7 +158,10 @@ impl PartialEq<Command> for &CommandReturnValue {
     fn eq(&self, other: &Command) -> bool {
         match (self, other) {
             (CommandReturnValue::DeviceInfo(_), Command::DeviceInfo)
-            | (CommandReturnValue::ResetDeviceAndReconnect, Command::ResetDeviceAndReconnect)
+            | (
+                CommandReturnValue::ResetDeviceAndReconnect,
+                Command::ResetDeviceAndReconnect { .. },
+            )
             | (CommandReturnValue::PutAuthenticationKey(_), Command::PutAuthenticationKey { .. })
             | (
                 CommandReturnValue::ChangeAuthenticationKey(_),
@@ -214,7 +217,7 @@ impl PartialEq<FileBackedCommand> for &CommandReturnValue {
             (CommandReturnValue::DeviceInfo(_), FileBackedCommand::DeviceInfo)
             | (
                 CommandReturnValue::ResetDeviceAndReconnect,
-                FileBackedCommand::ResetDeviceAndReconnect,
+                FileBackedCommand::ResetDeviceAndReconnect { .. },
             )
             | (
                 CommandReturnValue::PutAuthenticationKey(_),
@@ -538,9 +541,9 @@ impl ScenarioRunner {
                     }
                 })?)
             }
-            Command::ResetDeviceAndReconnect => {
+            Command::ResetDeviceAndReconnect { timeout } => {
                 client
-                    .reset_device_and_reconnect(Duration::from_secs(2))
+                    .reset_device_and_reconnect(*timeout)
                     .map_err(|source| Error::Client {
                         context: "executing device info command",
                         source,

@@ -1,5 +1,6 @@
 //! Scenario commands.
 
+use std::time::Duration;
 #[cfg(feature = "cli")]
 use std::{
     fs::{File, read},
@@ -118,7 +119,7 @@ impl From<&Command> for CommandName {
     fn from(value: &Command) -> Self {
         match value {
             Command::DeviceInfo => Self::DeviceInfo,
-            Command::ResetDeviceAndReconnect => Self::ResetDeviceAndReconnect,
+            Command::ResetDeviceAndReconnect { .. } => Self::ResetDeviceAndReconnect,
             Command::GetLogEntries => Self::GetLogEntries,
             Command::SetForceAuditOption(_) => Self::SetForceAuditOption,
             Command::SetCommandAuditOption { .. } => Self::SetCommandAuditOption,
@@ -167,7 +168,7 @@ impl From<&FileBackedCommand> for CommandName {
     fn from(value: &FileBackedCommand) -> Self {
         match value {
             FileBackedCommand::DeviceInfo => Self::DeviceInfo,
-            FileBackedCommand::ResetDeviceAndReconnect => Self::ResetDeviceAndReconnect,
+            FileBackedCommand::ResetDeviceAndReconnect { .. } => Self::ResetDeviceAndReconnect,
             FileBackedCommand::GetLogEntries => Self::GetLogEntries,
             FileBackedCommand::SetForceAuditOption(_) => Self::SetForceAuditOption,
             FileBackedCommand::SetCommandAuditOption { .. } => Self::SetCommandAuditOption,
@@ -517,7 +518,10 @@ pub enum Command {
     ///
     /// Note that this is a destructive operation and the authenticating user will need to have
     /// appropriate capabilities.
-    ResetDeviceAndReconnect,
+    ResetDeviceAndReconnect {
+        /// The time frame in which the reconnect has to happen.
+        timeout: Duration,
+    },
 
     /// Query the command log of the device and print it to standard output.
     GetLogEntries,
@@ -673,7 +677,11 @@ impl TryFrom<&FileBackedCommand> for Command {
     fn try_from(value: &FileBackedCommand) -> Result<Self, Self::Error> {
         Ok(match value {
             FileBackedCommand::DeviceInfo => Command::DeviceInfo,
-            FileBackedCommand::ResetDeviceAndReconnect => Command::ResetDeviceAndReconnect,
+            FileBackedCommand::ResetDeviceAndReconnect { timeout_ms } => {
+                Command::ResetDeviceAndReconnect {
+                    timeout: Duration::from_millis(*timeout_ms),
+                }
+            }
             FileBackedCommand::GetLogEntries => Command::GetLogEntries,
             FileBackedCommand::SetForceAuditOption(audit_option) => {
                 Command::SetForceAuditOption(*audit_option)
@@ -786,9 +794,15 @@ pub enum FileBackedCommand {
 
     /// Reset the device to factory settings and reconnect afterwards.
     ///
-    /// Note that this is a destructive operation and the authenticating user will need to have
-    /// appropriate capabilities.
-    ResetDeviceAndReconnect,
+    ///
+    /// # Note
+    ///
+    /// This is a destructive operation and the authenticating user will need to have appropriate
+    /// capabilities.
+    ResetDeviceAndReconnect {
+        /// The timeframe (in ms) in which the reconnect has to happen.
+        timeout_ms: u64,
+    },
 
     /// Query the command log of the device and print it to standard output.
     GetLogEntries,
