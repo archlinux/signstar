@@ -25,6 +25,7 @@ Signstar consists of several loosely coupled components, some of which are used 
 - [signstar-configure-build]: A commandline interface for the configuration of Signstar system during build-time
 - [signstar-configure]: An executable, that non-interactively configures a Signstar host, its user's credentials and HSM backends
 - [signstar-crypto]: Common types and functionality for cryptography in Signstar
+- [signstar-download-key-certificates]: Library and executable for returning key certificates stored in backends of a Signstar host
 - [signstar-request-signature]: An executable, run on a client host, that prepares data to be signed and retrieves a signature for it from a Signstar setup
 - [signstar-sign]: An executable, that allows signing of messages with the help of an HSM, based on a configuration
 - [signstar-yubihsm2]: Integration for YubiHSM2 devices as Signstar backend
@@ -118,6 +119,7 @@ Changes to this project - unless stated otherwise - automatically fall under the
 [signstar-configure]: signstar-configure/
 [signstar-configure-build]: signstar-configure-build/
 [signstar-crypto]: signstar-crypto/
+[signstar-download-key-certificates]: signstar-download-key-certificates/
 [signstar-request-signature]: signstar-request-signature/
 [signstar-sign]: signstar-sign/
 [signstar-yubihsm2]: signstar-yubihsm2/

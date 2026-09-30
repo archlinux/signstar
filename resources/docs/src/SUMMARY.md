@@ -24,6 +24,8 @@
     - [CHANGELOG](./signstar-configure-build/CHANGELOG.md)
 - [signstar-crypto](./signstar-crypto/README.md)
     - [CHANGELOG](./signstar-crypto/CHANGELOG.md)
+- [signstar-download-key-certificates](./signstar-download-key-certificates/README.md)
+    - [CHANGELOG](./signstar-download-key-certificates/CHANGELOG.md)
 - [signstar-request-signature](./signstar-request-signature/README.md)
     - [CHANGELOG](./signstar-request-signature/CHANGELOG.md)
     - [Design](./signstar-request-signature/design.md)
