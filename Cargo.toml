@@ -39,7 +39,7 @@ p224 = "0.14.0-rc.15"
 p256 = "0.14.0"
 p384 = "0.14.0"
 p521 = "0.14.0"
-pgp = { version = "0.20", default-features = false }
+pgp = { version = "0.21", default-features = false }
 pretty_assertions = "1.4.1"
 rand = "0.10.2"
 rsa = "0.10.0-rc.18"
