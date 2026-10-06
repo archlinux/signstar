@@ -3,15 +3,15 @@ use std::path::PathBuf;
 use chrono::{DateTime, Utc};
 use clap::{Parser, Subcommand};
 use expression_format::ex_format;
-use nethsm::{
+use strum::IntoEnumIterator;
+
+use super::BIN_NAME;
+use crate::{
     KeyId,
     OpenPgpUserId,
     OpenPgpVersion,
     UserRole::{Administrator, Operator},
 };
-use strum::IntoEnumIterator;
-
-use super::BIN_NAME;
 
 /// The "nethsm openpgp" command.
 #[derive(Debug, Subcommand)]

@@ -1,26 +1,5 @@
 //! Command line handling for the "nethsm" executable.
 
-use std::path::PathBuf;
-
-use clap::Parser;
-pub use config::{ConfigCommand, ConfigGetCommand, ConfigSetCommand};
-pub use env::{EnvAddCommand, EnvCommand, EnvDeleteCommand};
-pub use health::HealthCommand;
-pub use info::InfoCommand;
-pub use key::{KeyCertCommand, KeyCommand};
-pub use lock::LockCommand;
-pub use metrics::MetricsCommand;
-pub use namespace::NamespaceCommand;
-use nethsm::UserId;
-pub use openpgp::OpenPgpCommand;
-pub use provision::ProvisionCommand;
-pub use random::RandomCommand;
-pub use system::SystemCommand;
-pub use unlock::UnlockCommand;
-pub use user::UserCommand;
-
-use crate::passphrase_file::PassphraseFile;
-
 mod config;
 mod env;
 mod health;
@@ -36,18 +15,28 @@ mod system;
 mod unlock;
 mod user;
 
-/// The name of the executable.
-const BIN_NAME: &str = "nethsm";
+use std::path::PathBuf;
 
-/// Errors related to the CLI
-#[derive(Debug, thiserror::Error)]
-pub enum Error {
-    /// An option is missing
-    #[error(
-        "The \"{0}\" option must be provided for this command if more than one environment is defined."
-    )]
-    OptionMissing(String),
-}
+use clap::Parser;
+pub use config::{ConfigCommand, ConfigGetCommand, ConfigSetCommand};
+pub use env::{EnvAddCommand, EnvCommand, EnvDeleteCommand};
+pub use health::HealthCommand;
+pub use info::InfoCommand;
+pub use key::{KeyCertCommand, KeyCommand};
+pub use lock::LockCommand;
+pub use metrics::MetricsCommand;
+pub use namespace::NamespaceCommand;
+pub use openpgp::OpenPgpCommand;
+pub use provision::ProvisionCommand;
+pub use random::RandomCommand;
+pub use system::SystemCommand;
+pub use unlock::UnlockCommand;
+pub use user::UserCommand;
+
+use crate::{UserId, cli::PassphraseFile};
+
+/// The name of the executable.
+const BIN_NAME: &str = env!("CARGO_PKG_NAME");
 
 /// The "nethsm" CLI.
 #[derive(Debug, Parser)]

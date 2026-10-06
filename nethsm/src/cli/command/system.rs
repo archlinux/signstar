@@ -3,13 +3,13 @@ use std::path::PathBuf;
 use chrono::{DateTime, Utc};
 use clap::{Parser, Subcommand};
 use expression_format::ex_format;
-use nethsm::{
-    SystemState::{Locked, Operational, Unprovisioned},
-    UserRole::{Administrator, Backup},
-};
 
 use super::BIN_NAME;
-use crate::passphrase_file::PassphraseFile;
+use crate::{
+    SystemState::{Locked, Operational, Unprovisioned},
+    UserRole::{Administrator, Backup},
+    cli::PassphraseFile,
+};
 
 /// The "nethsm system" command.
 #[derive(Debug, Subcommand)]

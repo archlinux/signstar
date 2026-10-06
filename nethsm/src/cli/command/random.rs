@@ -2,7 +2,8 @@ use std::path::PathBuf;
 
 use clap::Parser;
 use expression_format::ex_format;
-use nethsm::UserRole::Operator;
+
+use crate::UserRole::Operator;
 
 /// The "nethsm random" command.
 #[derive(Debug, Parser)]

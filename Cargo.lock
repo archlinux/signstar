@@ -3250,7 +3250,11 @@ dependencies = [
  "aes-gcm 0.11.1",
  "base64ct",
  "chrono",
+ "clap",
+ "confy",
+ "dirs",
  "ed25519-dalek 3.0.0",
+ "expression_format",
  "log",
  "nethsm-sdk-rs",
  "p256 0.14.0",
@@ -3259,6 +3263,8 @@ dependencies = [
  "picky-asn1-der",
  "picky-asn1-x509",
  "rand 0.10.3",
+ "rpassword",
+ "rprompt",
  "rsa 0.10.0-rc.18",
  "rstest",
  "rustainers",
@@ -3269,6 +3275,7 @@ dependencies = [
  "sha2 0.11.0",
  "signstar-common",
  "signstar-crypto",
+ "signstar-request-signature",
  "strum",
  "testdir",
  "testresult",
@@ -3276,40 +3283,6 @@ dependencies = [
  "tokio",
  "url",
  "uuid",
-]
-
-[[package]]
-name = "nethsm-cli"
-version = "0.10.0"
-dependencies = [
- "chrono",
- "clap",
- "expression_format",
- "nethsm",
- "nethsm-config",
- "rand 0.10.3",
- "rstest",
- "signstar-request-signature",
- "strum",
- "testdir",
- "testresult",
- "thiserror",
-]
-
-[[package]]
-name = "nethsm-config"
-version = "0.5.1"
-dependencies = [
- "confy",
- "dirs",
- "nethsm",
- "rpassword",
- "rprompt",
- "rstest",
- "serde",
- "testdir",
- "testresult",
- "thiserror",
  "zeroize",
 ]
 

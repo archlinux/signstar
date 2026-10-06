@@ -1,9 +1,8 @@
 use chrono::{DateTime, Utc};
 use clap::Parser;
 use expression_format::ex_format;
-use nethsm::SystemState::Unprovisioned;
 
-use crate::passphrase_file::PassphraseFile;
+use crate::{SystemState::Unprovisioned, cli::PassphraseFile};
 
 /// The "nethsm provision" command.
 #[derive(Debug, Parser)]

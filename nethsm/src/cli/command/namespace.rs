@@ -1,8 +1,8 @@
 use clap::{Parser, Subcommand};
 use expression_format::ex_format;
-use nethsm::{NamespaceId, SystemState::Operational, UserRole::Administrator};
 
 use super::BIN_NAME;
+use crate::{NamespaceId, SystemState::Operational, UserRole::Administrator};
 
 /// The "nethsm namespace" command.
 #[derive(Debug, Subcommand)]

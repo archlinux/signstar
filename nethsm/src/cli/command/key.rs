@@ -2,19 +2,19 @@ use std::path::PathBuf;
 
 use clap::{Parser, Subcommand};
 use expression_format::ex_format;
-use nethsm::KeyId;
-use nethsm::{
+use strum::IntoEnumIterator;
+
+use super::BIN_NAME;
+use crate::{
     DecryptMode,
     EncryptMode,
     KeyFormat,
+    KeyId,
     KeyMechanism,
     KeyType,
     SignatureType,
     UserRole::{Administrator, Operator},
 };
-use strum::IntoEnumIterator;
-
-use super::BIN_NAME;
 
 /// The "nethsm key" command.
 #[derive(Debug, Subcommand)]

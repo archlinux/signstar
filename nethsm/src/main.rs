@@ -6,24 +6,12 @@ use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 use std::time::SystemTime;
 
-use chrono::{DateTime, Utc};
+use chrono::Utc;
 use clap::Parser;
-use cli::{
-    Cli,
-    Command,
-    ConfigCommand,
-    ConfigGetCommand,
-    ConfigSetCommand,
-    EnvAddCommand,
-    EnvDeleteCommand,
-    HealthCommand,
-    UserCommand,
-};
-use cli::{KeyCertCommand, KeyCommand, NamespaceCommand, SystemCommand};
 use nethsm::{
     Deserializable as _,
     DistinguishedName,
-    Error as NetHsmError,
+    Error,
     KeyFormat,
     KeyMechanism,
     NetworkConfigInput,
@@ -38,98 +26,46 @@ use nethsm::{
     UserId,
     UserRole,
     backup::validate_backup,
-};
-use nethsm_config::{
-    Config,
-    ConfigCredentials,
-    ConfigInteractivity,
-    ConfigSettings,
-    PassphrasePrompt,
+    cli::{
+        Cli,
+        Command,
+        Config,
+        ConfigCommand,
+        ConfigCredentials,
+        ConfigGetCommand,
+        ConfigInteractivity,
+        ConfigSetCommand,
+        ConfigSettings,
+        EnvAddCommand,
+        EnvCommand,
+        EnvDeleteCommand,
+        Error as CliError,
+        HealthCommand,
+        KeyCertCommand,
+        KeyCommand,
+        NamespaceCommand,
+        OpenPgpCommand,
+        PassphrasePrompt,
+        SystemCommand,
+        UserCommand,
+    },
 };
 use signstar_request_signature::{Request, Sha512};
-
-use crate::cli::EnvCommand;
-
-mod cli;
-mod passphrase_file;
-
-/// The error that may occur when using the "nethsm" command line interface.
-#[derive(Debug, thiserror::Error)]
-pub enum Error {
-    /// A config error
-    #[error("Configuration issue: {0}")]
-    Config(#[from] nethsm_config::Error),
-
-    /// The NetHSM is locked
-    #[error("The NetHsm is locked")]
-    Locked,
-
-    /// The NetHSM is failed
-    #[error("The NetHSM is failed")]
-    Failed,
-
-    /// The NetHSM is failed
-    #[error("The NetHSM system state is unknown: {system_state:?}")]
-    UnknownSystemState {
-        /// The unknown system state.
-        system_state: SystemState,
-    },
-
-    /// A NetHsm error
-    #[error("NetHsm error: {0}")]
-    NetHsm(#[from] nethsm::Error),
-
-    /// An I/O error
-    #[error("I/O error: {0}")]
-    Io(#[from] std::io::Error),
-
-    /// A CLI error
-    #[error("CLI error: {0}")]
-    Cli(#[from] cli::Error),
-
-    /// A passphrase file error
-    #[error("Passphrase file error: {0}")]
-    PassphraseFile(#[from] passphrase_file::Error),
-
-    /// Unable to open output file
-    #[error("Failed to open output file: {0}")]
-    OutputFileOpen(PathBuf),
-
-    /// Unable to open output file
-    #[error("The output file exists already: {0}")]
-    OutputFileExists(PathBuf),
-
-    /// Error processing backup file
-    #[error("Backup file is corrupted: {0}")]
-    Backup(#[from] nethsm::backup::Error),
-
-    /// Request deserialization error
-    #[error("Request deserialization failed: {0}")]
-    Request(#[from] signstar_request_signature::Error),
-
-    /// Processing a signing request failed.
-    #[error("Signing request processing error: {0}")]
-    SigningRequest(String),
-
-    /// Given time cannot be represented in OpenPGP.
-    #[error("Given time cannot be represented in OpenPGP: {0}")]
-    InvalidTime(DateTime<Utc>),
-}
 
 struct FileOrStdout {
     output: Box<dyn Write + Send + Sync>,
 }
 
 impl FileOrStdout {
-    pub fn new(file: Option<&Path>, force: bool) -> Result<Self, Error> {
+    pub fn new(file: Option<&Path>, force: bool) -> Result<Self, crate::Error> {
         if let Some(file) = file {
             if file.exists() && !force {
-                return Err(Error::OutputFileExists(file.to_path_buf()));
+                return Err(CliError::OutputFileExists(file.to_path_buf()).into());
             }
 
             Ok(Self {
                 output: Box::new(
-                    File::create(file).map_err(|_| Error::OutputFileOpen(file.to_path_buf()))?,
+                    File::create(file).map_err(|_| CliError::OutputFileOpen(file.to_path_buf()))?,
                 ),
             })
         } else {
@@ -214,7 +150,8 @@ fn run_command(cli: Cli) -> Result<(), Error> {
 
                     output
                         .output()
-                        .write_all(nethsm.get_tls_cert()?.as_bytes())?;
+                        .write_all(nethsm.get_tls_cert()?.as_bytes())
+                        .map_err(CliError::Io)?;
                 }
                 ConfigGetCommand::TlsCsr(command) => {
                     let nethsm = config
@@ -244,7 +181,8 @@ fn run_command(cli: Cli) -> Result<(), Error> {
 
                     output
                         .output()
-                        .write_all(nethsm.get_tls_csr(distinguished_name)?.as_bytes())?;
+                        .write_all(nethsm.get_tls_csr(distinguished_name)?.as_bytes())
+                        .map_err(CliError::Io)?;
                 }
                 ConfigGetCommand::TlsPublicKey(command) => {
                     let nethsm = config
@@ -258,7 +196,8 @@ fn run_command(cli: Cli) -> Result<(), Error> {
 
                     output
                         .output()
-                        .write_all(nethsm.get_tls_public_key()?.as_bytes())?;
+                        .write_all(nethsm.get_tls_public_key()?.as_bytes())
+                        .map_err(CliError::Io)?;
                 }
             },
             ConfigCommand::Set(command) => match command {
@@ -276,7 +215,7 @@ fn run_command(cli: Cli) -> Result<(), Error> {
                         } else {
                             PassphrasePrompt::CurrentBackup
                                 .prompt()
-                                .map_err(nethsm_config::Error::Prompt)?
+                                .map_err(|source| CliError::Config(source.into()))?
                         };
                     let new_passphrase = if let Some(passphrase_file) = command.new_passphrase_file
                     {
@@ -284,7 +223,7 @@ fn run_command(cli: Cli) -> Result<(), Error> {
                     } else {
                         PassphrasePrompt::NewBackup
                             .prompt()
-                            .map_err(nethsm_config::Error::Prompt)?
+                            .map_err(|source| CliError::Config(source.into()))?
                     };
 
                     nethsm.set_backup_passphrase(current_passphrase, new_passphrase)?;
@@ -359,7 +298,8 @@ fn run_command(cli: Cli) -> Result<(), Error> {
                             &auth_passphrases,
                         )?;
 
-                    nethsm.set_tls_cert(&read_to_string(command.tls_cert)?)?;
+                    nethsm
+                        .set_tls_cert(&read_to_string(command.tls_cert).map_err(CliError::Io)?)?;
                 }
                 ConfigSetCommand::TlsGenerate(command) => {
                     let nethsm = config
@@ -389,7 +329,7 @@ fn run_command(cli: Cli) -> Result<(), Error> {
                         } else {
                             PassphrasePrompt::CurrentUnlock
                                 .prompt()
-                                .map_err(nethsm_config::Error::Prompt)?
+                                .map_err(|source| CliError::Config(source.into()))?
                         };
                     let new_passphrase = if let Some(passphrase_file) = command.new_passphrase_file
                     {
@@ -397,7 +337,7 @@ fn run_command(cli: Cli) -> Result<(), Error> {
                     } else {
                         PassphrasePrompt::NewUnlock
                             .prompt()
-                            .map_err(nethsm_config::Error::Prompt)?
+                            .map_err(|source| CliError::Config(source.into()))?
                     };
 
                     nethsm.set_unlock_passphrase(current_passphrase, new_passphrase)?;
@@ -412,7 +352,7 @@ fn run_command(cli: Cli) -> Result<(), Error> {
                     } else if let Ok(label) = config.get_single_device_label() {
                         label
                     } else {
-                        return Err(cli::Error::OptionMissing("label".to_string()).into());
+                        return Err(CliError::OptionMissing("label".to_string()).into());
                     };
                     let passphrase = if command.with_passphrase {
                         if let Some(passphrase_file) = command.passphrase_file {
@@ -424,7 +364,7 @@ fn run_command(cli: Cli) -> Result<(), Error> {
                                     real_name: None,
                                 }
                                 .prompt()
-                                .map_err(nethsm_config::Error::Prompt)?,
+                                .map_err(|source| CliError::Config(source.into()))?,
                             )
                         }
                     } else if let Some(passphrase_file) = command.passphrase_file {
@@ -447,7 +387,7 @@ fn run_command(cli: Cli) -> Result<(), Error> {
                     let label = if let Some(label) = cli.label {
                         label
                     } else {
-                        return Err(cli::Error::OptionMissing("label".to_string()).into());
+                        return Err(CliError::OptionMissing("label".to_string()).into());
                     };
 
                     config.add_device(label, command.url, command.tls_security)?;
@@ -461,7 +401,7 @@ fn run_command(cli: Cli) -> Result<(), Error> {
                     } else if let Ok(label) = config.get_single_device_label() {
                         label
                     } else {
-                        return Err(cli::Error::OptionMissing("label".to_string()).into());
+                        return Err(CliError::OptionMissing("label".to_string()).into());
                     };
 
                     config.delete_credentials(&label, &command.name)?;
@@ -471,7 +411,7 @@ fn run_command(cli: Cli) -> Result<(), Error> {
                     let label = if let Some(label) = cli.label {
                         label
                     } else {
-                        return Err(cli::Error::OptionMissing("label".to_string()).into());
+                        return Err(CliError::OptionMissing("label".to_string()).into());
                     };
 
                     config.delete_device(&label)?;
@@ -535,12 +475,15 @@ fn run_command(cli: Cli) -> Result<(), Error> {
                         )?;
                     let output = FileOrStdout::new(command.output.as_deref(), command.force)?;
 
-                    output.output().write_all(
-                        nethsm
-                            .get_key_certificate(&command.key_id)?
-                            .unwrap_or_default()
-                            .as_slice(),
-                    )?;
+                    output
+                        .output()
+                        .write_all(
+                            nethsm
+                                .get_key_certificate(&command.key_id)?
+                                .unwrap_or_default()
+                                .as_slice(),
+                        )
+                        .map_err(CliError::Io)?;
                 }
                 KeyCertCommand::Import(command) => {
                     let nethsm = config
@@ -551,7 +494,10 @@ fn run_command(cli: Cli) -> Result<(), Error> {
                             &auth_passphrases,
                         )?;
 
-                    nethsm.import_key_certificate(&command.key_id, read(command.cert_file)?)?;
+                    nethsm.import_key_certificate(
+                        &command.key_id,
+                        read(command.cert_file).map_err(CliError::Io)?,
+                    )?;
                 }
             },
             KeyCommand::Csr(command) => {
@@ -580,11 +526,14 @@ fn run_command(cli: Cli) -> Result<(), Error> {
                     distinguished_name
                 };
 
-                output.output().write_all(
-                    nethsm
-                        .get_key_csr(&command.key_id, distinguished_name)?
-                        .as_bytes(),
-                )?;
+                output
+                    .output()
+                    .write_all(
+                        nethsm
+                            .get_key_csr(&command.key_id, distinguished_name)?
+                            .as_bytes(),
+                    )
+                    .map_err(CliError::Io)?;
             }
             KeyCommand::Decrypt(command) => {
                 let nethsm = config
@@ -596,18 +545,21 @@ fn run_command(cli: Cli) -> Result<(), Error> {
                     )?;
                 // NOTE: IV can not be zero length or None when decrypting
                 let iv = if let Some(iv) = command.initialization_vector {
-                    Some(read(iv)?)
+                    Some(read(iv).map_err(CliError::Io)?)
                 } else {
                     Some(vec![])
                 };
                 let output = FileOrStdout::new(command.output.as_deref(), command.force)?;
 
-                output.output().write_all(&nethsm.decrypt(
-                    &command.key_id,
-                    command.decrypt_mode.unwrap_or_default(),
-                    &read(command.message)?,
-                    iv.as_deref(),
-                )?)?;
+                output
+                    .output()
+                    .write_all(&nethsm.decrypt(
+                        &command.key_id,
+                        command.decrypt_mode.unwrap_or_default(),
+                        &read(command.message).map_err(CliError::Io)?,
+                        iv.as_deref(),
+                    )?)
+                    .map_err(CliError::Io)?;
             }
             KeyCommand::Encrypt(command) => {
                 let nethsm = config
@@ -619,22 +571,25 @@ fn run_command(cli: Cli) -> Result<(), Error> {
                     )?;
                 // NOTE: IV can not be zero length or None when decrypting
                 let iv = if let Some(iv) = command.initialization_vector {
-                    Some(read(iv)?)
+                    Some(read(iv).map_err(CliError::Io)?)
                 } else {
                     None
                 };
                 let output = FileOrStdout::new(command.output.as_deref(), command.force)?;
 
-                output.output().write_all(
-                    nethsm
-                        .encrypt(
-                            &command.key_id,
-                            command.encrypt_mode.unwrap_or_default(),
-                            &read(command.message)?,
-                            iv.as_deref(),
-                        )?
-                        .as_slice(),
-                )?;
+                output
+                    .output()
+                    .write_all(
+                        nethsm
+                            .encrypt(
+                                &command.key_id,
+                                command.encrypt_mode.unwrap_or_default(),
+                                &read(command.message).map_err(CliError::Io)?,
+                                iv.as_deref(),
+                            )?
+                            .as_slice(),
+                    )
+                    .map_err(CliError::Io)?;
             }
             KeyCommand::Generate(command) => {
                 let nethsm = config
@@ -681,12 +636,13 @@ fn run_command(cli: Cli) -> Result<(), Error> {
                         &auth_passphrases,
                     )?;
                 let key_data = match command.format {
-                    KeyFormat::Der => {
-                        PrivateKeyImport::new(command.key_type, &read(command.key_data)?)
-                    }
+                    KeyFormat::Der => PrivateKeyImport::new(
+                        command.key_type,
+                        &read(command.key_data).map_err(CliError::Io)?,
+                    ),
                     KeyFormat::Pem => PrivateKeyImport::from_pkcs8_pem(
                         command.key_type,
-                        &read_to_string(command.key_data)?,
+                        &read_to_string(command.key_data).map_err(CliError::Io)?,
                     ),
                 }
                 .map_err(nethsm::Error::SignstarCrypto)?;
@@ -728,7 +684,8 @@ fn run_command(cli: Cli) -> Result<(), Error> {
 
                 output
                     .output()
-                    .write_all(nethsm.get_public_key(&command.key_id)?.as_bytes())?;
+                    .write_all(nethsm.get_public_key(&command.key_id)?.as_bytes())
+                    .map_err(CliError::Io)?;
             }
             KeyCommand::Remove(command) => {
                 let nethsm = config
@@ -751,15 +708,18 @@ fn run_command(cli: Cli) -> Result<(), Error> {
                     )?;
                 let output = FileOrStdout::new(command.output.as_deref(), command.force)?;
 
-                output.output().write_all(
-                    nethsm
-                        .sign(
-                            &command.key_id,
-                            command.signature_type,
-                            &read(command.message)?,
-                        )?
-                        .as_slice(),
-                )?;
+                output
+                    .output()
+                    .write_all(
+                        nethsm
+                            .sign(
+                                &command.key_id,
+                                command.signature_type,
+                                &read(command.message).map_err(CliError::Io)?,
+                            )?
+                            .as_slice(),
+                    )
+                    .map_err(CliError::Io)?;
             }
             KeyCommand::Tag(command) => {
                 let nethsm = config
@@ -838,7 +798,7 @@ fn run_command(cli: Cli) -> Result<(), Error> {
             }
         },
         Command::OpenPgp(command) => match command {
-            cli::OpenPgpCommand::Add(command) => {
+            OpenPgpCommand::Add(command) => {
                 let flags = {
                     let mut flags = OpenPgpKeyUsageFlags::default();
                     if command.can_sign {
@@ -861,7 +821,7 @@ fn run_command(cli: Cli) -> Result<(), Error> {
                 let created_at = command.time.unwrap_or_else(Utc::now);
                 let created_at: SystemTime = created_at.into();
                 let created_at = Timestamp::try_from(created_at)
-                    .map_err(|_| Error::InvalidTime(command.time.unwrap_or_else(Utc::now)))?;
+                    .map_err(|_| CliError::InvalidTime(command.time.unwrap_or_else(Utc::now)))?;
                 let cert = nethsm.create_openpgp_cert(
                     &command.key_id,
                     flags,
@@ -881,7 +841,7 @@ fn run_command(cli: Cli) -> Result<(), Error> {
 
                 nethsm.import_key_certificate(&command.key_id, cert.clone())?;
             }
-            cli::OpenPgpCommand::Import(command) => {
+            OpenPgpCommand::Import(command) => {
                 let nethsm = config
                     .get_device(cli.label.as_deref())?
                     .nethsm_with_matching_creds(
@@ -891,7 +851,7 @@ fn run_command(cli: Cli) -> Result<(), Error> {
                     )?;
                 let private_key =
                     SignedSecretKey::from_file(command.tsk_file).map_err(|source| {
-                        NetHsmError::SignstarCrypto(SignstarCryptoError::Signer(
+                        Error::SignstarCrypto(SignstarCryptoError::Signer(
                             SignstarCryptoSignerError::Pgp(source),
                         ))
                     })?;
@@ -909,7 +869,7 @@ fn run_command(cli: Cli) -> Result<(), Error> {
 
                 nethsm.import_key_certificate(&key_id, cert)?;
             }
-            cli::OpenPgpCommand::Sign(command) => {
+            OpenPgpCommand::Sign(command) => {
                 let nethsm = config
                     .get_device(cli.label.as_deref())?
                     .nethsm_with_matching_creds(
@@ -920,13 +880,19 @@ fn run_command(cli: Cli) -> Result<(), Error> {
 
                 let output = FileOrStdout::new(command.output.as_deref(), command.force)?;
 
-                output.output().write_all(
-                    nethsm
-                        .openpgp_sign(&command.key_id, &read(command.message)?)?
-                        .as_slice(),
-                )?;
+                output
+                    .output()
+                    .write_all(
+                        nethsm
+                            .openpgp_sign(
+                                &command.key_id,
+                                &read(command.message).map_err(CliError::Io)?,
+                            )?
+                            .as_slice(),
+                    )
+                    .map_err(CliError::Io)?;
             }
-            cli::OpenPgpCommand::SignState(command) => {
+            OpenPgpCommand::SignState(command) => {
                 let nethsm = config
                     .get_device(cli.label.as_deref())?
                     .nethsm_with_matching_creds(
@@ -937,27 +903,37 @@ fn run_command(cli: Cli) -> Result<(), Error> {
 
                 let output = FileOrStdout::new(command.output.as_deref(), command.force)?;
 
-                let req = Request::from_reader(std::fs::File::open(command.input)?)?;
+                let req = Request::from_reader(File::open(command.input).map_err(CliError::Io)?)
+                    .map_err(|source| CliError::Request(Box::new(source)))?;
 
                 if !req.required.output.is_openpgp_v4() {
-                    return Err(Error::SigningRequest(
+                    return Err(CliError::SigningRequest(
                         "The only supported signature format is OpenPGP v4.".into(),
-                    ));
+                    )
+                    .into());
                 }
 
                 if req.version.major != 1 {
-                    return Err(Error::SigningRequest(
+                    return Err(CliError::SigningRequest(
                         "This command supports version 1 signing requests only.".into(),
-                    ));
+                    )
+                    .into());
                 }
 
-                let hasher: Sha512 = req.required.input.try_into()?;
+                let hasher = Sha512::try_from(req.required.input).map_err(|_| {
+                    Error::Cli(CliError::SigningRequest(
+                        "Creating a hasher state from the input failed".into(),
+                    ))
+                })?;
 
-                output.output().write_all(
-                    nethsm
-                        .openpgp_sign_state(&command.key_id, hasher)?
-                        .as_bytes(),
-                )?;
+                output
+                    .output()
+                    .write_all(
+                        nethsm
+                            .openpgp_sign_state(&command.key_id, hasher)?
+                            .as_bytes(),
+                    )
+                    .map_err(CliError::Io)?;
             }
         },
         Command::Provision(command) => {
@@ -969,7 +945,7 @@ fn run_command(cli: Cli) -> Result<(), Error> {
             } else {
                 PassphrasePrompt::Unlock
                     .prompt()
-                    .map_err(nethsm_config::Error::Prompt)?
+                    .map_err(|source| CliError::Config(source.into()))?
             };
             let admin_passphrase = if let Some(passphrase_file) = command.admin_passphrase_file {
                 passphrase_file.passphrase
@@ -979,7 +955,7 @@ fn run_command(cli: Cli) -> Result<(), Error> {
                     real_name: None,
                 }
                 .prompt()
-                .map_err(nethsm_config::Error::Prompt)?
+                .map_err(|source| CliError::Config(source.into()))?
             };
 
             nethsm.provision(
@@ -994,7 +970,10 @@ fn run_command(cli: Cli) -> Result<(), Error> {
                 .nethsm_with_matching_creds(&[UserRole::Operator], &cli.user, &auth_passphrases)?;
             let output = FileOrStdout::new(command.output.as_deref(), command.force)?;
 
-            output.output().write_all(&nethsm.random(command.length)?)?;
+            output
+                .output()
+                .write_all(&nethsm.random(command.length)?)
+                .map_err(CliError::Io)?;
         }
         Command::System(command) => match command {
             SystemCommand::Backup(command) => {
@@ -1004,7 +983,7 @@ fn run_command(cli: Cli) -> Result<(), Error> {
                 } else if let Ok(label) = config.get_single_device_label() {
                     label
                 } else {
-                    return Err(cli::Error::OptionMissing("label".to_string()).into());
+                    return Err(CliError::OptionMissing("label".to_string()).into());
                 };
                 let nethsm = device_config.nethsm_with_matching_creds(
                     &[UserRole::Backup],
@@ -1023,7 +1002,10 @@ fn run_command(cli: Cli) -> Result<(), Error> {
                     command.force,
                 )?;
 
-                output.output().write_all(nethsm.backup()?.as_slice())?;
+                output
+                    .output()
+                    .write_all(nethsm.backup()?.as_slice())
+                    .map_err(CliError::Io)?;
             }
             SystemCommand::CancelUpdate(_command) => {
                 let nethsm = config
@@ -1101,9 +1083,11 @@ fn run_command(cli: Cli) -> Result<(), Error> {
                                 &cli.user,
                                 &auth_passphrases,
                             )?,
-                        SystemState::Locked => return Err(Error::Locked),
-                        SystemState::Failed => return Err(Error::Failed),
-                        system_state => return Err(Error::UnknownSystemState { system_state }),
+                        SystemState::Locked => return Err(CliError::Locked.into()),
+                        SystemState::Failed => return Err(CliError::Failed.into()),
+                        system_state => {
+                            return Err(CliError::UnknownSystemState { system_state }.into());
+                        }
                     }
                 };
                 let backup_passphrase =
@@ -1112,13 +1096,13 @@ fn run_command(cli: Cli) -> Result<(), Error> {
                     } else {
                         PassphrasePrompt::Backup
                             .prompt()
-                            .map_err(nethsm_config::Error::Prompt)?
+                            .map_err(|source| CliError::Config(source.into()))?
                     };
 
                 nethsm.restore(
                     backup_passphrase,
                     command.system_time.unwrap_or_else(Utc::now),
-                    read(command.input)?,
+                    read(command.input).map_err(CliError::Io)?,
                 )?;
             }
             SystemCommand::Shutdown(_command) => {
@@ -1141,11 +1125,14 @@ fn run_command(cli: Cli) -> Result<(), Error> {
                         &auth_passphrases,
                     )?;
 
-                println!("{:?}", nethsm.upload_update(read(command.input)?)?);
+                println!(
+                    "{:?}",
+                    nethsm.upload_update(read(command.input).map_err(CliError::Io)?)?
+                );
             }
             SystemCommand::ValidateBackup(command) => {
                 validate_backup(
-                    &mut std::fs::File::open(command.input)?,
+                    &mut File::open(command.input).map_err(CliError::Io)?,
                     command
                         .backup_passphrase_file
                         .map(|passphrase_file| passphrase_file.passphrase),
@@ -1161,7 +1148,7 @@ fn run_command(cli: Cli) -> Result<(), Error> {
             } else {
                 PassphrasePrompt::Unlock
                     .prompt()
-                    .map_err(nethsm_config::Error::Prompt)?
+                    .map_err(|source| CliError::Config(source.into()))?
             };
 
             nethsm.unlock(unlock_passphrase)?;
@@ -1183,7 +1170,7 @@ fn run_command(cli: Cli) -> Result<(), Error> {
                         real_name: Some(command.real_name.clone()),
                     }
                     .prompt()
-                    .map_err(nethsm_config::Error::Prompt)?
+                    .map_err(|source| CliError::Config(source.into()))?
                 };
 
                 println!(
@@ -1239,7 +1226,7 @@ fn run_command(cli: Cli) -> Result<(), Error> {
                 } else {
                     PassphrasePrompt::NewUser(command.name.clone())
                         .prompt()
-                        .map_err(nethsm_config::Error::Prompt)?
+                        .map_err(|source| CliError::Config(source.into()))?
                 };
 
                 nethsm.set_user_passphrase(command.name, passphrase)?;

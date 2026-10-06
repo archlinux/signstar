@@ -32,7 +32,7 @@ nethsm_image_tag := "3e45f2f3"
 render-script := '''
     //! ```cargo
     //! [dependencies]
-    //! pkg = { path = "PATH", package = "PKG" }
+    //! pkg = { path = "PATH", package = "PKG"FEATURES }
     //! clap_allgen = "0.2.1"
     //! ```
 
@@ -426,33 +426,8 @@ build-book: docs
 # Build local documentation
 [group('build')]
 docs:
-    #!/usr/bin/env bash
-    set -euo pipefail
-
     just ensure-command cargo
-
-    readonly target_dir="${CARGO_TARGET_DIR:-$PWD/target}"
-    workspace_members="$(just get-workspace-members)"
-    if (( $? != 0 )); then
-        exit 1
-    fi
-    mapfile -t workspace_members <<< "$workspace_members"
-
-    # NOTE: nethsm-cli's executable documentation shadows the nethsm documentation (because of cargo bug: https://github.com/rust-lang/cargo/issues/6313)
-    for name in "${workspace_members[@]}"; do
-        RUSTDOCFLAGS='-D warnings' cargo doc --document-private-items --no-deps --all-features --package "$name"
-        case "$name" in
-            nethsm)
-                mv "$target_dir/doc/nethsm" "$target_dir/doc/nethsm.tmp"
-            ;;
-            nethsm-cli)
-                rm -rf "$target_dir/doc/nethsm"
-            ;;
-            *)
-            ;;
-        esac
-    done
-    mv "$target_dir/doc/nethsm.tmp" "$target_dir/doc/nethsm"
+    RUSTDOCFLAGS='-D warnings' cargo doc --document-private-items --no-deps --all-features
 
 # Render `manpages` or `shell_completions` (`kind`) of a given package (`pkg`).
 [group('build')]
@@ -485,7 +460,15 @@ generate kind pkg:
 
             trap cleanup EXIT
 
-            sed "s/PKG/$pkg/;s#PATH#$PWD/$pkg#g;s/KIND/$kind/g" > "$script" <<< '{{ render-script }}'
+            case "$pkg" in
+                nethsm)
+                    readonly features=', features = ["cli"]'
+                ;;
+                *)
+                    readonly features=''
+                ;;
+            esac
+            sed "s/PKG/$pkg/;s#PATH#$PWD/$pkg#g;s/KIND/$kind/g;s/FEATURES/$features/g" > "$script" <<< '{{ render-script }}'
             rust-script "$script" "$output_dir/$kind"
         ;;
         specifications)
@@ -512,7 +495,7 @@ generate-cli-man-pages-and-completions:
     set -euo pipefail
 
     readonly executables=(
-        nethsm-cli
+        nethsm
         signstar-configure
         signstar-configure-build
         signstar-download-key-certificates
@@ -657,19 +640,18 @@ check-rust-derives:
 # Checks shell code using shellcheck.
 [group('check')]
 check-shell-code:
-    just check-shell-readme nethsm-cli
+    just check-shell-readme nethsm
     just check-shell-readme signstar-configure-build
     just check-shell-readme signstar-request-signature
 
-    just check-shell-recipe 'test-readme nethsm-cli'
+    just check-shell-recipe 'test-readme nethsm'
     just check-shell-recipe check-commits
     just check-shell-recipe check-unused-deps
     just check-shell-recipe ci-publish
-    just check-shell-recipe 'generate shell_completions nethsm-cli'
+    just check-shell-recipe 'generate shell_completions nethsm'
     just check-shell-recipe 'install-alpm-package-set all'
     just check-shell-recipe 'is-workspace-member nethsm'
     just check-shell-recipe 'release nethsm'
-    just check-shell-recipe docs
     just check-shell-recipe flaky
     just check-shell-recipe test
     just check-shell-recipe 'ensure-command test'
@@ -1104,7 +1086,7 @@ create-coverage-report output_type="cobertura" mode="without-docs" metrics_name=
 
 # Continuously run integration tests for a given number of rounds
 [group('test')]
-flaky test='just test-readme nethsm-cli' rounds='999999999999':
+flaky test='just test-readme nethsm' rounds='999999999999':
     #!/usr/bin/bash
     set -euo pipefail
 
@@ -1309,7 +1291,7 @@ test-readme project:
 
     install_executables() {
         case "$project" in
-            nethsm-cli)
+            nethsm)
                 printf "Installing executables of signstar-request-signature\n"
                 cargo install --locked --path signstar-request-signature --features cli
                 printf "Installing executables of %s...\n" "{{ project }}"
@@ -1371,7 +1353,7 @@ test-readme project:
 # Runs end-to-end tests found in project README.md files for all projects supporting it
 [group('test')]
 test-readmes:
-    just test-readme nethsm-cli
+    just test-readme nethsm
     just test-readme signstar-configure-build
     just test-readme signstar-request-signature
     just test-readme signstar-yubihsm2

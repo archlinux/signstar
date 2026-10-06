@@ -1,9 +1,8 @@
 use clap::{Parser, Subcommand};
 use expression_format::ex_format;
-use nethsm::{ConnectionSecurity, Url, UserId, UserRole};
 use strum::IntoEnumIterator;
 
-use crate::passphrase_file::PassphraseFile;
+use crate::{ConnectionSecurity, Url, UserId, UserRole, cli::PassphraseFile};
 
 /// The "netshm env" command.
 #[derive(Debug, Subcommand)]

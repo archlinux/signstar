@@ -1,8 +1,9 @@
-use nethsm::{Credentials, Passphrase, UserId, UserRole};
 use serde::{Deserialize, Serialize};
 use zeroize::Zeroize;
 
-/// A set of credentials for a [`NetHsm`][`nethsm::NetHsm`]
+use crate::{Credentials, Passphrase, UserId, UserRole};
+
+/// A set of credentials for a [`NetHsm`][`crate::NetHsm`]
 ///
 /// Tracks the [`UserRole`], [`UserId`] and optionally the passphrase of the user.
 #[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize, Zeroize)]
@@ -20,8 +21,10 @@ impl ConfigCredentials {
     /// # Examples
     ///
     /// ```
-    /// use nethsm::UserRole;
-    /// use nethsm_config::{ConfigCredentials, ConfigInteractivity};
+    /// use nethsm::{
+    ///     UserRole,
+    ///     cli::{ConfigCredentials, ConfigInteractivity},
+    /// };
     ///
     /// # fn main() -> testresult::TestResult {
     /// // credentials for an Operator user with passphrase

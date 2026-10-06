@@ -1,8 +1,6 @@
 # API documentation
 
 - [nethsm](/rustdoc/nethsm)
-- [nethsm-cli](/rustdoc/nethsm_cli)
-- [nethsm-config](/rustdoc/nethsm_config)
 - [signstar-common](/rustdoc/signstar_common)
 - [signstar-config](/rustdoc/signstar_config)
 - [signstar-configure](/rustdoc/signstar_configure)

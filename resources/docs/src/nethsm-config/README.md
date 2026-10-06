@@ -1,1 +1,0 @@
-../../../../nethsm-config/README.md

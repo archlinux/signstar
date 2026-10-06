@@ -15,6 +15,11 @@ pub enum Error {
     #[error(transparent)]
     Backup(#[from] crate::backup::Error),
 
+    /// A CLI error.
+    #[cfg(feature = "cli")]
+    #[error(transparent)]
+    Cli(#[from] crate::cli::Error),
+
     /// A generic error with a custom message
     #[error("NetHSM error: {0}")]
     Default(String),

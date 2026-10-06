@@ -3,6 +3,8 @@
 #[cfg(feature = "backup")]
 pub mod backup;
 mod base;
+#[cfg(feature = "cli")]
+pub mod cli;
 pub mod connection;
 mod error;
 mod key;

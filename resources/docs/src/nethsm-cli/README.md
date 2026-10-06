@@ -1,1 +1,0 @@
-../../../../nethsm-cli/README.md

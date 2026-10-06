@@ -18,7 +18,7 @@ reorder_keys = false
 # using confy do not have keys sorted. Disable checks for them now
 # Alternatively they could be compared in a TOML-semantic aware fashion.
 include = [
-    "nethsm-config/tests/fixtures/roundtrip-config/basic-config.toml",
+    "nethsm/tests/fixtures/roundtrip-config/basic-config.toml",
     "signstar-config/tests/fixtures/admin-creds-simple.toml",
 ]
 

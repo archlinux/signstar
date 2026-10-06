@@ -7,7 +7,10 @@ use std::{
     str::FromStr,
 };
 
-use nethsm::{
+use confy::ConfyError;
+use serde::{Deserialize, Serialize};
+
+use crate::{
     Connection,
     ConnectionSecurity,
     Credentials,
@@ -16,17 +19,15 @@ use nethsm::{
     Url,
     UserId,
     UserRole,
+    cli::{ConfigCredentials, Error as CliError, PassphrasePrompt, UserPrompt},
 };
-use serde::{Deserialize, Serialize};
-
-use crate::{ConfigCredentials, PassphrasePrompt, UserPrompt};
 
 /// Errors related to configuration
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
     /// Issue getting the config file location
     #[error("Config file issue: {0}")]
-    ConfigFileLocation(#[source] confy::ConfyError),
+    ConfigFileLocation(#[source] Box<ConfyError>),
 
     /// A config loading error
     ///
@@ -37,7 +38,7 @@ pub enum Error {
     #[error("Config loading issue: {source}\n{description}")]
     Load {
         /// The source error.
-        source: confy::ConfyError,
+        source: Box<ConfyError>,
         /// A description on what went wrong.
         ///
         /// This is usually the error's string representation.
@@ -46,7 +47,7 @@ pub enum Error {
 
     /// A config storing error
     #[error("Config storing issue: {0}")]
-    Store(#[source] confy::ConfyError),
+    Store(#[source] Box<ConfyError>),
 
     /// Credentials exist already
     #[error("Credentials exist already: {0}")]
@@ -89,13 +90,9 @@ pub enum Error {
     #[error("The configuration can not be used interactively")]
     NonInteractive,
 
-    /// NetHsm connection initialization error
-    #[error("NetHsm connection can not be created: {0}")]
-    NetHsm(#[from] nethsm::Error),
-
     /// A prompt requesting user data failed
     #[error("A prompt issue")]
-    Prompt(#[from] crate::prompt::Error),
+    Prompt(#[from] crate::cli::config::prompt::Error),
 }
 
 /// The interactivity of a configuration
@@ -163,7 +160,7 @@ impl ConfigSettings {
     /// # Examples
     ///
     /// ```
-    /// use nethsm_config::{ConfigInteractivity, ConfigSettings};
+    /// use nethsm::cli::{ConfigInteractivity, ConfigSettings};
     ///
     /// # fn main() -> testresult::TestResult {
     /// // settings for an application called "my_app", that uses a custom configuration file named "my_app-config" interactively
@@ -234,8 +231,12 @@ impl DeviceConfig {
     /// # Examples
     ///
     /// ```
-    /// use nethsm::{Connection, ConnectionSecurity, UserRole};
-    /// use nethsm_config::{ConfigCredentials, ConfigInteractivity, DeviceConfig};
+    /// use nethsm::{
+    ///     Connection,
+    ///     ConnectionSecurity,
+    ///     UserRole,
+    ///     cli::{ConfigCredentials, ConfigInteractivity, DeviceConfig},
+    /// };
     ///
     /// # fn main() -> testresult::TestResult {
     /// let connection = Connection::new(
@@ -286,7 +287,7 @@ impl DeviceConfig {
         connection: Connection,
         credentials: Vec<ConfigCredentials>,
         interactivity: ConfigInteractivity,
-    ) -> Result<DeviceConfig, Error> {
+    ) -> Result<DeviceConfig, crate::Error> {
         let device_config = DeviceConfig {
             connection: RefCell::new(connection),
             credentials: RefCell::new(HashSet::new()),
@@ -321,8 +322,12 @@ impl DeviceConfig {
     /// # Examples
     ///
     /// ```
-    /// use nethsm::{Connection, ConnectionSecurity, UserRole};
-    /// use nethsm_config::{ConfigCredentials, ConfigInteractivity, DeviceConfig};
+    /// use nethsm::{
+    ///     Connection,
+    ///     ConnectionSecurity,
+    ///     UserRole,
+    ///     cli::{ConfigCredentials, ConfigInteractivity, DeviceConfig},
+    /// };
     ///
     /// # fn main() -> testresult::TestResult {
     /// let connection = Connection::new(
@@ -355,7 +360,7 @@ impl DeviceConfig {
     /// # Ok(())
     /// # }
     /// ```
-    pub fn add_credentials(&self, credentials: ConfigCredentials) -> Result<(), Error> {
+    pub fn add_credentials(&self, credentials: ConfigCredentials) -> Result<(), crate::Error> {
         if !self
             .credentials
             .borrow()
@@ -365,7 +370,7 @@ impl DeviceConfig {
             self.credentials.borrow_mut().insert(credentials);
             Ok(())
         } else {
-            Err(Error::CredentialsExist(credentials.get_name()))
+            Err(CliError::Config(Error::CredentialsExist(credentials.get_name())).into())
         }
     }
 
@@ -381,8 +386,13 @@ impl DeviceConfig {
     /// # Examples
     ///
     /// ```
-    /// use nethsm::{Connection, ConnectionSecurity, UserRole};
-    /// use nethsm_config::{ConfigCredentials, ConfigInteractivity, DeviceConfig};
+    /// use nethsm::{
+    ///     Connection,
+    ///     ConnectionSecurity,
+    ///     UserRole,
+    ///     cli::{ConfigCredentials, ConfigInteractivity, DeviceConfig},
+    /// };
+    ///
     /// # fn main() -> testresult::TestResult {
     /// let connection = Connection::new(
     ///     "https://example.org/api/v1".parse()?,
@@ -433,8 +443,12 @@ impl DeviceConfig {
     /// # Examples
     ///
     /// ```
-    /// use nethsm::{Connection, ConnectionSecurity, UserRole};
-    /// use nethsm_config::{ConfigCredentials, ConfigInteractivity, DeviceConfig};
+    /// use nethsm::{
+    ///     Connection,
+    ///     ConnectionSecurity,
+    ///     UserRole,
+    ///     cli::{ConfigCredentials, ConfigInteractivity, DeviceConfig},
+    /// };
     ///
     /// # fn main() -> testresult::TestResult {
     /// let device_config = DeviceConfig::new(
@@ -458,14 +472,14 @@ impl DeviceConfig {
     /// # Ok(())
     /// # }
     /// ```
-    pub fn delete_credentials(&self, name: &UserId) -> Result<(), Error> {
+    pub fn delete_credentials(&self, name: &UserId) -> Result<(), crate::Error> {
         let before = self.credentials.borrow().len();
         self.credentials
             .borrow_mut()
             .retain(|creds| &creds.get_name() != name);
         let after = self.credentials.borrow().len();
         if before == after {
-            Err(Error::CredentialsMissing(name.to_owned()))
+            Err(CliError::Config(Error::CredentialsMissing(name.to_owned())).into())
         } else {
             Ok(())
         }
@@ -492,8 +506,12 @@ impl DeviceConfig {
     /// # Examples
     ///
     /// ```
-    /// use nethsm::{Connection, ConnectionSecurity, UserRole};
-    /// use nethsm_config::{ConfigCredentials, ConfigInteractivity, DeviceConfig};
+    /// use nethsm::{
+    ///     Connection,
+    ///     ConnectionSecurity,
+    ///     UserRole,
+    ///     cli::{ConfigCredentials, ConfigInteractivity, DeviceConfig},
+    /// };
     ///
     /// # fn main() -> testresult::TestResult {
     /// let device_config = DeviceConfig::new(
@@ -649,8 +667,17 @@ impl DeviceConfig {
     /// # Examples
     ///
     /// ```
-    /// use nethsm::{Connection, ConnectionSecurity, Passphrase, UserRole};
-    /// use nethsm_config::{ConfigCredentials, ConfigInteractivity, DeviceConfig};
+    /// use nethsm::{
+    ///     Connection,
+    ///     ConnectionSecurity,
+    ///     Passphrase,
+    ///     UserRole,
+    ///     cli::{
+    ///         ConfigCredentials,
+    ///         ConfigInteractivity,
+    ///         DeviceConfig,
+    ///     },
+    /// };
     ///
     /// # fn main() -> testresult::TestResult {
     /// let device_config = DeviceConfig::new(
@@ -723,7 +750,7 @@ impl DeviceConfig {
         roles: &[UserRole],
         names: &[UserId],
         passphrases: &[Passphrase],
-    ) -> Result<NetHsm, Error> {
+    ) -> Result<NetHsm, crate::Error> {
         let nethsm: NetHsm = self.try_into()?;
 
         // do not add any users if no user roles are requested
@@ -735,13 +762,15 @@ impl DeviceConfig {
             } else {
                 // if running non-interactively, return Error
                 if self.interactivity == ConfigInteractivity::NonInteractive {
-                    return Err(Error::NonInteractive);
+                    return Err(CliError::Config(Error::NonInteractive).into());
                 }
 
                 let role = roles.first().expect("We have at least one user role");
                 ConfigCredentials::new(
                     role.to_owned(),
-                    UserPrompt::new(role.to_owned()).prompt()?,
+                    UserPrompt::new(role.to_owned())
+                        .prompt()
+                        .map_err(|source| CliError::Config(Error::Prompt(source)))?,
                     None,
                 )
             };
@@ -758,7 +787,7 @@ impl DeviceConfig {
                     } else {
                         // if running non-interactively, return Error
                         if self.interactivity == ConfigInteractivity::NonInteractive {
-                            return Err(Error::NonInteractive);
+                            return Err(CliError::Config(Error::NonInteractive).into());
                         }
                         Credentials::new(
                             creds.get_name(),
@@ -767,7 +796,8 @@ impl DeviceConfig {
                                     user_id: Some(creds.get_name()),
                                     real_name: None,
                                 }
-                                .prompt()?,
+                                .prompt()
+                                .map_err(|source| CliError::Config(Error::Prompt(source)))?,
                             ),
                         )
                     }
@@ -775,7 +805,7 @@ impl DeviceConfig {
                 } else {
                     // if running non-interactively, return Error
                     if self.interactivity == ConfigInteractivity::NonInteractive {
-                        return Err(Error::NonInteractive);
+                        return Err(CliError::Config(Error::NonInteractive).into());
                     }
                     Credentials::new(
                         creds.get_name(),
@@ -784,7 +814,8 @@ impl DeviceConfig {
                                 user_id: Some(creds.get_name()),
                                 real_name: None,
                             }
-                            .prompt()?,
+                            .prompt()
+                            .map_err(|source| CliError::Config(Error::Prompt(source)))?,
                         ),
                     )
                 }
@@ -804,8 +835,8 @@ impl DeviceConfig {
 }
 
 impl TryFrom<DeviceConfig> for NetHsm {
-    type Error = Error;
-    fn try_from(value: DeviceConfig) -> Result<Self, Error> {
+    type Error = crate::Error;
+    fn try_from(value: DeviceConfig) -> Result<Self, Self::Error> {
         let nethsm = NetHsm::new(value.connection.borrow().clone(), None, None, None)?;
         for creds in value.credentials.borrow().clone().into_iter() {
             nethsm.add_credentials(creds.into())
@@ -815,8 +846,8 @@ impl TryFrom<DeviceConfig> for NetHsm {
 }
 
 impl TryFrom<&DeviceConfig> for NetHsm {
-    type Error = Error;
-    fn try_from(value: &DeviceConfig) -> Result<Self, Error> {
+    type Error = crate::Error;
+    fn try_from(value: &DeviceConfig) -> Result<Self, Self::Error> {
         let nethsm = NetHsm::new(value.connection.borrow().clone(), None, None, None)?;
         for creds in value.credentials.borrow().clone().into_iter() {
             nethsm.add_credentials(creds.into())
@@ -854,7 +885,7 @@ impl Config {
     /// # Examples
     ///
     /// ```
-    /// use nethsm_config::{Config, ConfigInteractivity, ConfigSettings};
+    /// use nethsm::cli::{Config, ConfigInteractivity, ConfigSettings};
     ///
     /// # fn main() -> testresult::TestResult {
     /// let config_settings = ConfigSettings::new(
@@ -869,28 +900,38 @@ impl Config {
     /// # Ok(())
     /// # }
     /// ```
-    pub fn new(config_settings: ConfigSettings, path: Option<&Path>) -> Result<Self, Error> {
+    pub fn new(config_settings: ConfigSettings, path: Option<&Path>) -> Result<Self, crate::Error> {
         let mut config: Config = if let Some(path) = path {
-            confy::load_path(path).map_err(|error| Error::Load {
-                description: if let Some(error) = error.source() {
-                    error.to_string()
-                } else {
-                    "".to_string()
-                },
-                source: error,
+            confy::load_path(path).map_err(|error| {
+                crate::Error::Cli(
+                    Error::Load {
+                        description: if let Some(error) = error.source() {
+                            error.to_string()
+                        } else {
+                            "".to_string()
+                        },
+                        source: Box::new(error),
+                    }
+                    .into(),
+                )
             })?
         } else {
             confy::load(
                 &config_settings.app_name,
                 Some(config_settings.config_name.0.as_str()),
             )
-            .map_err(|error| Error::Load {
-                description: if let Some(error) = error.source() {
-                    error.to_string()
-                } else {
-                    "".to_string()
-                },
-                source: error,
+            .map_err(|error| {
+                crate::Error::Cli(
+                    Error::Load {
+                        description: if let Some(error) = error.source() {
+                            error.to_string()
+                        } else {
+                            "".to_string()
+                        },
+                        source: Box::new(error),
+                    }
+                    .into(),
+                )
             })?
         };
         for device in config.devices.borrow_mut().values_mut() {
@@ -918,8 +959,10 @@ impl Config {
     /// # Examples
     ///
     /// ```
-    /// use nethsm::ConnectionSecurity;
-    /// use nethsm_config::{Config, ConfigInteractivity, ConfigSettings};
+    /// use nethsm::{
+    ///     ConnectionSecurity,
+    ///     cli::{Config, ConfigInteractivity, ConfigSettings},
+    /// };
     /// # fn main() -> testresult::TestResult {
     /// # let config = Config::new(
     /// #    ConfigSettings::new(
@@ -954,7 +997,7 @@ impl Config {
         label: String,
         url: Url,
         tls_security: ConnectionSecurity,
-    ) -> Result<(), Error> {
+    ) -> Result<(), crate::Error> {
         if let Entry::Vacant(entry) = self.devices.borrow_mut().entry(label.clone()) {
             entry.insert(DeviceConfig::new(
                 Connection::new(url, tls_security),
@@ -963,7 +1006,7 @@ impl Config {
             )?);
             Ok(())
         } else {
-            Err(Error::DeviceExists(label))
+            Err(CliError::Config(Error::DeviceExists(label)).into())
         }
     }
 
@@ -976,8 +1019,10 @@ impl Config {
     /// # Examples
     ///
     /// ```
-    /// use nethsm::ConnectionSecurity;
-    /// use nethsm_config::{Config, ConfigInteractivity, ConfigSettings};
+    /// use nethsm::{
+    ///     ConnectionSecurity,
+    ///     cli::{Config, ConfigInteractivity, ConfigSettings},
+    /// };
     /// # fn main() -> testresult::TestResult {
     /// # let config = Config::new(
     /// #    ConfigSettings::new(
@@ -1001,11 +1046,11 @@ impl Config {
     /// # Ok(())
     /// # }
     /// ```
-    pub fn delete_device(&self, label: &str) -> Result<(), Error> {
+    pub fn delete_device(&self, label: &str) -> Result<(), crate::Error> {
         if self.devices.borrow_mut().remove(label).is_some() {
             Ok(())
         } else {
-            Err(Error::DeviceMissing(label.to_string()))
+            Err(CliError::Config(Error::DeviceMissing(label.to_string())).into())
         }
     }
 
@@ -1027,8 +1072,10 @@ impl Config {
     /// # Examples
     ///
     /// ```
-    /// use nethsm::ConnectionSecurity;
-    /// use nethsm_config::{Config, ConfigInteractivity, ConfigSettings};
+    /// use nethsm::{
+    ///     ConnectionSecurity,
+    ///     cli::{Config, ConfigInteractivity, ConfigSettings},
+    /// };
     /// # fn main() -> testresult::TestResult {
     /// # let config = Config::new(
     /// #    ConfigSettings::new(
@@ -1065,16 +1112,18 @@ impl Config {
     /// # Ok(())
     /// # }
     /// ```
-    pub fn get_device(&self, label: Option<&str>) -> Result<DeviceConfig, Error> {
+    pub fn get_device(&self, label: Option<&str>) -> Result<DeviceConfig, crate::Error> {
         if let Some(label) = label {
             if let Some(device_config) = self.devices.borrow().get(label) {
                 Ok(device_config.clone())
             } else {
-                Err(Error::DeviceMissing(label.to_string()))
+                Err(crate::Error::Cli(
+                    Error::DeviceMissing(label.to_string()).into(),
+                ))
             }
         } else {
             match self.devices.borrow().len() {
-                0 => Err(Error::NoDevice),
+                0 => Err(crate::Error::Cli(Error::NoDevice.into())),
                 1 => Ok(self
                     .devices
                     .borrow()
@@ -1082,7 +1131,7 @@ impl Config {
                     .next()
                     .expect("there should be one")
                     .to_owned()),
-                _ => Err(Error::MoreThanOneDevice),
+                _ => Err(crate::Error::Cli(Error::MoreThanOneDevice.into())),
             }
         }
     }
@@ -1096,8 +1145,10 @@ impl Config {
     /// # Examples
     ///
     /// ```
-    /// use nethsm::ConnectionSecurity;
-    /// use nethsm_config::{Config, ConfigInteractivity, ConfigSettings};
+    /// use nethsm::{
+    ///     ConnectionSecurity,
+    ///     cli::{Config, ConfigInteractivity, ConfigSettings},
+    /// };
     /// # fn main() -> testresult::TestResult {
     /// # let config = Config::new(
     /// #    ConfigSettings::new(
@@ -1158,8 +1209,11 @@ impl Config {
     /// # Examples
     ///
     /// ```
-    /// use nethsm::{ConnectionSecurity, UserRole};
-    /// use nethsm_config::{Config, ConfigCredentials, ConfigInteractivity, ConfigSettings};
+    /// use nethsm::{
+    ///     ConnectionSecurity,
+    ///     UserRole,
+    ///     cli::{Config, ConfigCredentials, ConfigInteractivity, ConfigSettings},
+    /// };
     /// # fn main() -> testresult::TestResult {
     /// # let config = Config::new(
     /// #    ConfigSettings::new(
@@ -1219,11 +1273,11 @@ impl Config {
         &self,
         label: String,
         credentials: ConfigCredentials,
-    ) -> Result<(), Error> {
+    ) -> Result<(), crate::Error> {
         if let Some(device) = self.devices.borrow_mut().get_mut(&label) {
             device.add_credentials(credentials)?
         } else {
-            return Err(Error::DeviceMissing(label));
+            return Err(CliError::Config(Error::DeviceMissing(label)).into());
         }
 
         Ok(())
@@ -1241,8 +1295,11 @@ impl Config {
     /// # Examples
     ///
     /// ```
-    /// use nethsm::{ConnectionSecurity, UserRole};
-    /// use nethsm_config::{Config, ConfigCredentials, ConfigInteractivity, ConfigSettings};
+    /// use nethsm::{
+    ///     ConnectionSecurity,
+    ///     UserRole,
+    ///     cli::{Config, ConfigCredentials, ConfigInteractivity, ConfigSettings},
+    /// };
     /// # fn main() -> testresult::TestResult {
     /// # let config = Config::new(
     /// #    ConfigSettings::new(
@@ -1286,11 +1343,11 @@ impl Config {
     /// # Ok(())
     /// # }
     /// ```
-    pub fn delete_credentials(&self, label: &str, name: &UserId) -> Result<(), Error> {
+    pub fn delete_credentials(&self, label: &str, name: &UserId) -> Result<(), crate::Error> {
         if let Some(device) = self.devices.borrow_mut().get_mut(label) {
             device.delete_credentials(name)?
         } else {
-            return Err(Error::DeviceMissing(label.to_string()));
+            return Err(CliError::Config(Error::DeviceMissing(label.to_string())).into());
         }
 
         Ok(())
@@ -1301,7 +1358,7 @@ impl Config {
     /// # Examples
     ///
     /// ```
-    /// use nethsm_config::{Config, ConfigInteractivity, ConfigSettings};
+    /// use nethsm::cli::{Config, ConfigInteractivity, ConfigSettings};
     /// # fn main() -> testresult::TestResult {
     /// let config_settings = ConfigSettings::new(
     ///     "my_app".to_string(),
@@ -1331,7 +1388,7 @@ impl Config {
     /// # Examples
     ///
     /// ```
-    /// use nethsm_config::{Config, ConfigInteractivity, ConfigSettings};
+    /// use nethsm::cli::{Config, ConfigInteractivity, ConfigSettings};
     /// # fn main() -> testresult::TestResult {
     /// let config = Config::new(
     ///     ConfigSettings::new(
@@ -1361,7 +1418,7 @@ impl Config {
             &self.config_settings.app_name,
             Some(self.config_settings.config_name().0.as_str()),
         )
-        .map_err(Error::ConfigFileLocation)
+        .map_err(|source| Error::ConfigFileLocation(Box::new(source)))
     }
 
     /// Writes the configuration to file
@@ -1373,8 +1430,10 @@ impl Config {
     /// # Examples
     ///
     /// ```
-    /// use nethsm::ConnectionSecurity;
-    /// use nethsm_config::{Config, ConfigInteractivity, ConfigSettings};
+    /// use nethsm::{
+    ///     ConnectionSecurity,
+    ///     cli::{Config, ConfigInteractivity, ConfigSettings},
+    /// };
     ///
     /// # fn main() -> testresult::TestResult {
     /// let config_file = testdir::testdir!().join("my_app_store.conf");
@@ -1400,11 +1459,13 @@ impl Config {
     /// # Ok(())
     /// # }
     /// ```
-    pub fn store(&self, path: Option<&Path>) -> Result<(), Error> {
+    pub fn store(&self, path: Option<&Path>) -> Result<(), crate::Error> {
         if let Some(path) = path {
-            confy::store_path(path, self).map_err(Error::Store)
+            confy::store_path(path, self)
+                .map_err(|source| CliError::Config(Error::Store(Box::new(source))).into())
         } else {
-            confy::store(&self.config_settings.app_name, "config", self).map_err(Error::Store)
+            confy::store(&self.config_settings.app_name, "config", self)
+                .map_err(|source| CliError::Config(Error::Store(Box::new(source))).into())
         }
     }
 }

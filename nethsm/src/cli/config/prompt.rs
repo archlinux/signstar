@@ -1,6 +1,7 @@
-use nethsm::{Passphrase, UserId, UserRole};
 use rpassword::prompt_password;
 use rprompt::prompt_reply;
+
+use crate::{Passphrase, UserId, UserRole};
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
@@ -45,7 +46,7 @@ pub enum Error {
 
     /// The user data is not correct
     #[error("User data is invalid: {0}")]
-    NetHsmUser(#[from] nethsm::UserError),
+    NetHsmUser(#[from] crate::UserError),
 }
 
 /// Passphrase prompt

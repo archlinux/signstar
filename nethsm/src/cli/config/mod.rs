@@ -1,4 +1,4 @@
-//! A library for working with application configuration files for [Nitrokey NetHSM] devices
+//! A module for working with application configuration files for [Nitrokey NetHSM] devices
 //!
 //! Provides configuration file management for custom applications designed around working with
 //! [Nitrokey NetHSM] devices or containers.
@@ -11,8 +11,11 @@
 //! # Examples
 //!
 //! ```
-//! use nethsm::{ConnectionSecurity, UserRole};
-//! use nethsm_config::{Config, ConfigCredentials, ConfigInteractivity, ConfigSettings};
+//! use nethsm::{
+//!     ConnectionSecurity,
+//!     UserRole,
+//!     cli::{Config, ConfigCredentials, ConfigInteractivity, ConfigSettings},
+//! };
 //!
 //! # fn main() -> testresult::TestResult {
 //! // a configuration for a non-interactive application called "my_app"
@@ -49,10 +52,10 @@
 //! # }
 //! ```
 //! [Nitrokey NetHSM]: https://docs.nitrokey.com/nethsm/
-mod config;
 mod credentials;
+mod file;
 mod prompt;
 
-pub use config::{Config, ConfigInteractivity, ConfigName, ConfigSettings, DeviceConfig, Error};
 pub use credentials::ConfigCredentials;
+pub use file::{Config, ConfigInteractivity, ConfigName, ConfigSettings, DeviceConfig, Error};
 pub use prompt::{PassphrasePrompt, UserPrompt};

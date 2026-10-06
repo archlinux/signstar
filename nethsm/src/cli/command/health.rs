@@ -1,6 +1,7 @@
 use clap::{Parser, Subcommand};
 use expression_format::ex_format;
-use nethsm::SystemState::{Locked, Operational, Unprovisioned};
+
+use crate::SystemState::{Locked, Operational, Unprovisioned};
 
 /// The "netshm health" command.
 #[derive(Debug, Subcommand)]

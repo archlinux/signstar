@@ -6,18 +6,7 @@ use std::{
     str::FromStr,
 };
 
-use nethsm::Passphrase;
-
-/// A passphrase file error
-#[derive(Debug, thiserror::Error)]
-pub enum Error {
-    /// An I/O error
-    #[error("I/O error: {0}")]
-    Io(#[from] std::io::Error),
-    /// Path creation error
-    #[error("Path error: {0}")]
-    Path(#[from] core::convert::Infallible),
-}
+use crate::Passphrase;
 
 /// A representation of a file containing a passphrase
 #[derive(Clone, Debug)]
@@ -32,18 +21,18 @@ impl PassphraseFile {
     /// # Errors
     ///
     /// Returns an error if reading the file to string fails.
-    pub fn new(path: &Path) -> Result<Self, Error> {
+    pub fn new(path: &Path) -> Result<Self, crate::Error> {
         Ok(Self {
-            passphrase: Passphrase::new(read_to_string(path)?),
+            passphrase: Passphrase::new(read_to_string(path).map_err(crate::cli::Error::Io)?),
         })
     }
 }
 
 impl FromStr for PassphraseFile {
-    type Err = Error;
+    type Err = crate::Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        PassphraseFile::new(&PathBuf::from_str(s)?)
+        PassphraseFile::new(&PathBuf::from(s))
     }
 }
 

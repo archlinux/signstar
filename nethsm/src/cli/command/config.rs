@@ -3,10 +3,16 @@ use std::{net::Ipv4Addr, path::PathBuf};
 use chrono::{DateTime, Utc};
 use clap::{Parser, Subcommand};
 use expression_format::ex_format;
-use nethsm::{BootMode, LogLevel, SystemState, TlsKeyType, UserRole::Administrator};
 use strum::IntoEnumIterator;
 
-use crate::passphrase_file::PassphraseFile;
+use crate::{
+    BootMode,
+    LogLevel,
+    SystemState,
+    TlsKeyType,
+    UserRole::Administrator,
+    cli::PassphraseFile,
+};
 
 /// The "nethsm config" command.
 #[derive(Debug, Subcommand)]

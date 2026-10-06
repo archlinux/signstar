@@ -1,8 +1,7 @@
 use clap::Parser;
 use expression_format::ex_format;
-use nethsm::{SystemState::Locked, UserRole::Administrator};
 
-use crate::passphrase_file::PassphraseFile;
+use crate::{SystemState::Locked, UserRole::Administrator, cli::PassphraseFile};
 
 /// The "nethsm unlock" command.
 #[derive(Debug, Parser)]

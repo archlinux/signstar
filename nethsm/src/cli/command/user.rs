@@ -1,14 +1,14 @@
 use clap::{Parser, Subcommand};
 use expression_format::ex_format;
-use nethsm::{
-    SystemState::Operational,
-    UserId,
-    UserRole::{self, Administrator, Operator},
-};
 use strum::IntoEnumIterator;
 
 use super::BIN_NAME;
-use crate::passphrase_file::PassphraseFile;
+use crate::{
+    SystemState::Operational,
+    UserId,
+    UserRole::{self, Administrator, Operator},
+    cli::PassphraseFile,
+};
 
 /// The "nethsm user" command.
 #[derive(Debug, Subcommand)]

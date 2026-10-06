@@ -1,1 +1,0 @@
-../../../../nethsm-config/CHANGELOG.md

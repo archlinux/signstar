@@ -1,6 +1,7 @@
 use clap::Parser;
 use expression_format::ex_format;
-use nethsm::{SystemState, UserRole};
+
+use crate::{SystemState, UserRole};
 
 /// The "nethsm lock" command.
 #[derive(Debug, Parser)]

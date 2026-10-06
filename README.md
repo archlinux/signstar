@@ -16,9 +16,7 @@ The project documentation for the Signstar project can be found at <https://sign
 
 Signstar consists of several loosely coupled components, some of which are used in conjunction with one another.
 
-- [nethsm]: A library to provide interaction with the [Nitrokey NetHSM] to applications
-- [nethsm-cli]: A dedicated commandline interface to the [Nitrokey NetHSM], akin to Nitrokey's [pynitrokey], useful for general purpose, interactive use of the HSM
-- [nethsm-config]: A library for working with application configuration files for [Nitrokey NetHSM] devices
+- [nethsm]: A library and command-line interface to provide interaction with the [Nitrokey NetHSM] to applications
 - [signstar-common]: Shared components and data types for Signstar tools and libraries
 - [signstar-config]: Configuration file handling for Signstar hosts
 - [signstar-configure-build]: A commandline interface for the configuration of Signstar system during build-time
@@ -90,8 +88,6 @@ Changes to this project - unless stated otherwise - automatically fall under the
 [contributing guidelines]: CONTRIBUTING.md
 [design documentation]: resources/docs/design.md
 [main signing keys]: https://archlinux.org/master-keys/
-[nethsm-cli]: nethsm-cli/
-[nethsm-config]: nethsm-config/
 [nethsm]: nethsm/
 [pynitrokey]: https://github.com/Nitrokey/pynitrokey
 [signstar-common]: signstar-common/
