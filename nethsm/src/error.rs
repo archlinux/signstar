@@ -10,6 +10,11 @@ pub enum Error {
     #[error("Decoding Base64 string failed: {0}")]
     Base64Decode(#[from] base64ct::Error),
 
+    /// A backup error.
+    #[cfg(feature = "backup")]
+    #[error(transparent)]
+    Backup(#[from] crate::backup::Error),
+
     /// A generic error with a custom message
     #[error("NetHSM error: {0}")]
     Default(String),
