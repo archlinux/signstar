@@ -798,6 +798,12 @@ install-rust-dev-tools:
     rustup component add --toolchain nightly rustfmt llvm-tools-preview
     rustup component add llvm-tools-preview
 
+# Runs the NetHSM container. Use the global `nethsm_image_tag` variable to override the tag of the image to use.
+[group('dev')]
+run-nethsm-container:
+    just ensure-command podman pasta
+    podman run --rm -ti --network=pasta:-t,auto,-u,auto,-T,auto,-U,auto docker.io/nitrokey/nethsm:{{ nethsm_image_tag }}
+
 # Serves the documentation book using miniserve
 [group('dev')]
 serve-book: build-book
