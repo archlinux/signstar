@@ -630,6 +630,7 @@ check-rust-code *options='--all-features --all-targets --locked --workspace':
 [group('check')]
 check-rust-code-all:
     just ensure-command cargo cargo-clippy cargo-hack
+    just check-rust-code
     cargo +stable hack --feature-powerset clippy --all-targets --locked -- -D warnings
 
 # Checks for consistent sorting of rust derives
