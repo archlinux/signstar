@@ -4,6 +4,8 @@ Runtime configuration for Signstar hosts.
 
 A _Signstar host_ is a Linux host, that has several regular users configured, which allow access to specific credentials on an HSM backend.
 
+![Graph: Configuring Signstar users and HSM backends during runtime](../img/signstar-configuring-signstar-users-and-hsm-backends-during-runtime.svg)
+
 This package provides a library and the binary `signstar-configure` that rely on the system's Signstar configuration file to handle and optionally configure the administrative credentials which are then used to configure
 
 - the available HSM backends (e.g. [NetHSM] and/or [YubiHSM2])
