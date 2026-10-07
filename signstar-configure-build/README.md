@@ -24,6 +24,8 @@ Alternatively, `signstar-configure-build` can be provided with a custom configur
 
 ## System users
 
+![Graph: Configuring Signstar host during image build](../img/signstar-configuring-signstar-host-during-image-build.svg)
+
 Based on configured user mappings in the configuration file, `signstar-configure-build`:
 
 - creates unlocked system users
