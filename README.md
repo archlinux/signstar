@@ -36,25 +36,7 @@ This signing service host is connected to one or more HSM devices and exposes *s
 
 Clients use *signstar-request-signature* to connect to a Signstar setup and retrieve a signature for a provided payload.
 
-```mermaid
----
-title: Simplified overview of a Signstar setup
----
-sequenceDiagram
-    participant C as Client
-    participant S as Signstar
-    participant H as HSM
-
-    Note over S: pair of Signstar credentials
-    Note over H: pair of HSM credentials
-
-    S ->> H: HSM is configured using *signstar-configure*
-    C ->>+ S: User "A" requests signature using *signstar-request-signature*
-    S ->> S: Host user "A" is mapped to HSM operator user "X" by *signstar-sign*
-    S ->> H: Signature is requested using operator user "X" by *signstar-sign*
-    H ->> S: Raw cryptographic signature is received by *signstar-sign*
-    S ->>- C: Signature for user "A" is returned by *signstar-sign*
-```
+![Graph: OpenPGP signing of artifacts with Signstar](img/signstar-openpgp-signing-of-artifacts-with-signstar.svg)
 
 Further details on the setup, as well as the threat model that the setup operates under can be found in the [design documentation].
 
