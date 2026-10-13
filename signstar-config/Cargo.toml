@@ -17,7 +17,7 @@ nethsm = { workspace = true, optional = true }
 nix.workspace = true
 pgp.workspace = true
 serde.workspace = true
-serde-saphyr = "1.0.0"
+serde-saphyr = "2.0.0"
 signstar-common.workspace = true
 signstar-crypto = { version = "0.1.0", path = "../signstar-crypto" }
 signstar-yubihsm2 = { version = "0.1.0", path = "../signstar-yubihsm2", optional = true }
