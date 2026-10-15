@@ -1,5 +1,10 @@
 # Signstar Sign
 
+> [!WARNING]
+>
+> This crate is deprecated in favor of a more general one.
+> Please visit the [Signstar website] to learn more about the binaries relevant for a Signstar host.
+
 Offers an executable for processing [Signstar signing requests].
 Requests are created using [`signstar-request-signature`] and specify everything that is needed for creating an artifact signature.
 
@@ -45,6 +50,7 @@ Changes to this project - unless stated otherwise - automatically fall under the
 [OpenPGP signatures]: https://openpgp.dev/book/signing_data.html
 [Signstar signing requests]: https://signstar.archlinux.page/signstar-request-signature/request.html
 [Signstar signing response]: https://signstar.archlinux.page/signstar-request-signature/response.html
+[Signstar website]: https://signstar.archlinux.page
 [YubiHSM2]: https://www.yubico.com/de/product/yubihsm-2/
 [`signstar-request-signature`]: https://signstar.archlinux.page/signstar-request-signature/index.html
 [contributing guidelines]: ../CONTRIBUTING.md

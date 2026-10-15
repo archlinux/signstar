@@ -1,5 +1,10 @@
 # Signstar configure
 
+> [!WARNING]
+>
+> This crate is deprecated in favor of a more general one.
+> Please visit the [Signstar website] to learn more about the binaries relevant for a Signstar host.
+
 Runtime configuration for Signstar hosts.
 
 A _Signstar host_ is a Linux host, that has several regular users configured, which allow access to specific credentials on an HSM backend.
@@ -75,5 +80,6 @@ Changes to this project - unless stated otherwise - automatically fall under the
 [Apache-2.0]: https://www.apache.org/licenses/LICENSE-2.0
 [MIT]: https://opensource.org/licenses/MIT
 [NetHSM]: https://www.nitrokey.com/products/nethsm
+[Signstar website]: https://signstar.archlinux.page
 [YubiHSM2]: https://www.yubico.com/products/hardware-security-module/
 [contributing guidelines]: ../CONTRIBUTING.md

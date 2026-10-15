@@ -1,5 +1,10 @@
 # Signstar Download Key Certificates
 
+> [!WARNING]
+>
+> This crate is deprecated in favor of a more general one.
+> Please visit the [Signstar website] to learn more about the binaries relevant for a Signstar host.
+
 Offers a library and executable for returning key certificates stored in backends of a Signstar host.
 
 Currently, only [OpenPGP certificates] are returned.
@@ -42,5 +47,6 @@ Changes to this project - unless stated otherwise - automatically fall under the
 [MIT]: https://opensource.org/licenses/MIT
 [NetHSM]: https://docs.nitrokey.com/nethsm/
 [OpenPGP certificates]: https://openpgp.dev/book/certificates.html
+[Signstar website]: https://signstar.archlinux.page
 [YubiHSM2]: https://www.yubico.com/de/product/yubihsm-2/
 [contributing guidelines]: ../CONTRIBUTING.md
