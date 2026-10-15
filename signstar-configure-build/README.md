@@ -1,5 +1,10 @@
 # Signstar configure build
 
+> [!WARNING]
+>
+> This crate is deprecated in favor of a more general one.
+> Please visit the [Signstar website] to learn more about the binaries relevant for a Signstar host.
+
 A commandline tool to configure a Signstar system during build.
 
 The scope of this project is to read a dedicated configuration file, derive system users and their integration from it and create them.
@@ -97,6 +102,7 @@ Changes to this project - unless stated otherwise - automatically fall under the
 [Apache-2.0]: https://www.apache.org/licenses/LICENSE-2.0
 [ForceCommand]: https://man.archlinux.org/man/sshd_config.5#ForceCommand
 [MIT]: https://opensource.org/licenses/MIT
+[Signstar website]: https://signstar.archlinux.page
 [YubiHSM2]: https://www.yubico.com/de/product/yubihsm-2/
 [authorized_keys]: https://man.archlinux.org/man/sshd.8#AUTHORIZED_KEYS_FILE_FORMAT
 [contributing guidelines]: ../CONTRIBUTING.md
