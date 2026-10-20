@@ -5,7 +5,7 @@ A signing response format for Signstar systems.
 ## Glossary
 
 - *Client*: The application (here: [`signstar-request-signature`]) which computes a file digest and creates a *signing request*,
-- *Server*: The application (currently: [`nethsm-cli`]) which receives a *signing request*, processes it and returns a *signature*,
+- *Server*: The application (currently: [`signstar-sign`]) which receives a *signing request*, processes it and returns a *signature*,
 - *Signing response*: Machine and human-readable description of the data signature.
   The exact format for the signing response is described below.
 - *Signature*: Raw cryptographic signature in a technology-specific framing (e.g. in "packets" for [OpenPGP][9580]).
@@ -47,7 +47,7 @@ Refer to the [design document] for an in-depth discussion of the technical detai
 [9580]: https://www.rfc-editor.org/rfc/rfc9580
 [ARMOR]: https://openpgp.dev/book/armor.html
 [design document]: https://signstar.archlinux.page/signstar-request-signature/design.html
-[`nethsm-cli`]: https://signstar.archlinux.page/nethsm-cli/index.html
+[`signstar-sign`]: https://signstar.archlinux.page/signstar-sign/index.html
 [SD]: https://openpgp.dev/book/signing_data.html
 [`signstar-request-signature`]: https://signstar.archlinux.page/signstar-request-signature/index.html
 [SV]: https://semver.org/
