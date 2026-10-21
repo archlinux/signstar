@@ -207,6 +207,9 @@ pub fn load_certificates() -> Result<Vec<Certificate>, Error> {
                                     &creds,
                                 )?
                             }
+                            Connection::Http { ref url } => {
+                                YubiHsm2SigningKey::new_remote(url.clone(), signing_key_id, &creds)?
+                            }
                         };
 
                         Ok(signer)
