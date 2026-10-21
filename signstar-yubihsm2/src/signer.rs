@@ -9,6 +9,7 @@ use signstar_crypto::{
 };
 use yubihsm::{
     Connector,
+    HttpConfig,
     UsbConfig,
     asymmetric::Algorithm,
     client::Client,
@@ -16,7 +17,11 @@ use yubihsm::{
     object::Id,
 };
 
-use crate::{Credentials, Error};
+use crate::{
+    Credentials,
+    Error,
+    connection::{DEFAULT_HTTP_TIMEOUT_MILLIS, YubiHsmUrl},
+};
 
 /// A signing key stored in the YubiHSM.
 pub struct YubiHsm2SigningKey {
@@ -31,6 +36,11 @@ impl YubiHsm2SigningKey {
             yubihsm: client,
             key_id: id,
         }
+    }
+
+    /// Returns the reference for the inner client instance.
+    pub fn client(&self) -> &Client {
+        &self.yubihsm
     }
 
     /// Closes the session for the [`YubiHsm2SigningKey`]'s [`Client`].
@@ -63,49 +73,18 @@ impl YubiHsm2SigningKey {
     /// This function panics if certificate generation fails.
     #[cfg(feature = "_yubihsm2-mockhsm")]
     pub fn mock(key_id: Id, credentials: &Credentials) -> Result<Self, Error> {
-        use signstar_crypto::{
-            openpgp::{OpenPgpKeyUsageFlags, OpenPgpUserId, OpenPgpVersion},
-            signer::openpgp::{Timestamp, generate_certificate},
-            traits::UserWithPassphrase as _,
-        };
-        use yubihsm::{
-            Capability,
-            Connector,
-            Credentials as YubiCredentials,
-            Domain,
-            asymmetric::Algorithm,
-            authentication,
-            client::Client,
-            opaque,
-        };
+        use signstar_crypto::traits::UserWithPassphrase as _;
+        use yubihsm::{Credentials as YubiCredentials, authentication};
 
-        let connector = Connector::mockhsm();
-        let client =
-            Client::open(connector, Default::default(), true).map_err(|source| Error::Client {
-                context: "connecting to mockhsm",
-                source,
-            })?;
+        use crate::mock::setup_single_key_in_mockhsm;
+
+        let connector = setup_single_key_in_mockhsm(key_id, credentials)?;
+
         let auth_key = authentication::Key::derive_from_password(
             credentials.passphrase().expose_borrowed().as_bytes(),
         );
-        let domain = Domain::DOM1;
-        client
-            .put_authentication_key(
-                credentials.id(),
-                Default::default(),
-                domain,
-                Capability::empty(),
-                Capability::SIGN_EDDSA,
-                authentication::Algorithm::YubicoAes,
-                auth_key.clone(),
-            )
-            .map_err(|source| Error::Client {
-                context: "putting authentication key",
-                source,
-            })?;
-
         let client = Client::open(
-            client.connector().clone(),
+            connector,
             YubiCredentials::new(credentials.id(), auth_key),
             true,
         )
@@ -113,57 +92,36 @@ impl YubiHsm2SigningKey {
             context: "connecting to mockhsm",
             source,
         })?;
+        Ok(Self::new(client, key_id))
+    }
 
-        client
-            .generate_asymmetric_key(
-                key_id,
-                Default::default(),
-                domain,
-                Capability::SIGN_EDDSA,
-                Algorithm::Ed25519,
-            )
-            .map_err(|source| Error::Client {
-                context: "generating asymmetric key",
+    /// Returns a new [`YubiHsm2SigningKey`] backed by a remote YubiHSM2.
+    ///
+    /// The target device is identified by the URL.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error, if creating a client connection to the backend fails.
+    pub fn new_remote(
+        url: YubiHsmUrl,
+        key_id: Id,
+        credentials: &Credentials,
+    ) -> Result<Self, Error> {
+        let connector = Connector::http(&HttpConfig {
+            addr: url.host().into(),
+            port: url.port(),
+            tls: url.scheme() == "https",
+            timeout_ms: DEFAULT_HTTP_TIMEOUT_MILLIS,
+        });
+        let client =
+            Client::open(connector, credentials.into(), true).map_err(|source| Error::Client {
+                context: "connecting to a hardware device",
                 source,
             })?;
-
-        let mut flags = OpenPgpKeyUsageFlags::default();
-        flags.set_sign();
-
-        let signer = Self {
+        Ok(Self {
             yubihsm: client,
             key_id,
-        };
-
-        let cert = generate_certificate(
-            &signer,
-            flags,
-            &[OpenPgpUserId::new("Test".to_owned()).expect("static user ID to be valid")],
-            Default::default(),
-            Timestamp::now(),
-            OpenPgpVersion::V4,
-        )
-        .map_err(|source| Error::CertificateGeneration {
-            context: "generating OpenPGP certificate",
-            source,
-        })?;
-
-        signer
-            .yubihsm
-            .put_opaque(
-                key_id,
-                Default::default(),
-                domain,
-                Capability::empty(),
-                opaque::Algorithm::Data,
-                cert,
-            )
-            .map_err(|source| Error::Client {
-                context: "putting generated certificate on the device",
-                source,
-            })?;
-
-        Ok(signer)
+        })
     }
 
     /// Returns a new [`YubiHsm2SigningKey`] backed by specific YubiHSM2 hardware.

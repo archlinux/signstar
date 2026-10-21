@@ -4,15 +4,68 @@ use log::{debug, error, warn};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 use signstar_common::traits::BackendCheck;
-use yubihsm::{Client, Connector, Credentials, UsbConfig, client::ErrorKind};
+use url::Url;
+use yubihsm::{Client, Connector, Credentials, HttpConfig, UsbConfig, client::ErrorKind};
 
 use crate::yubihsm::SerialNumber;
+
+/// Default timeouts for reading and writing (5 seconds) for HTTP connections
+pub const DEFAULT_HTTP_TIMEOUT_MILLIS: u64 = 5000;
+
+/// Default timeouts for reading and writing (5 seconds) for USB connections
+pub const DEFAULT_USB_TIMEOUT_MILLIS: u64 = 5000;
+
+/// URL pointing at the YubiHSM-connector compatible service.
+#[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+#[cfg_attr(feature = "serde", derive(Serialize))]
+pub struct YubiHsmUrl(Url);
+
+impl YubiHsmUrl {
+    /// Host part of the URL.
+    pub fn host(&self) -> &str {
+        self.0.host_str().unwrap_or_default()
+    }
+
+    /// Scheme of the URL - either `http` or `https`.
+    pub fn scheme(&self) -> &str {
+        self.0.scheme()
+    }
+
+    /// Port of the service.
+    pub fn port(&self) -> u16 {
+        self.0.port_or_known_default().unwrap_or_default()
+    }
+}
+
+#[cfg(feature = "serde")]
+impl<'de> serde::Deserialize<'de> for YubiHsmUrl {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        use serde::de::Error;
+        let url = Url::deserialize(deserializer)?;
+        if url.scheme() != "http" && url.scheme() != "https" {
+            return Err(Error::custom("only http and https schemes are supported"));
+        }
+        if !url.has_host() {
+            return Err(Error::custom("the host in the URL is mandatory"));
+        }
+        Ok(Self(url))
+    }
+}
 
 /// A connection to a YubiHSM2.
 #[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 #[cfg_attr(feature = "serde", serde(rename_all = "lowercase"))]
 pub enum Connection {
+    /// Connection to a device over HTTP(S).
+    Http {
+        /// Address to connect to.
+        url: YubiHsmUrl,
+    },
+
     /// Connection to a Mock HSM.
     #[cfg(feature = "_yubihsm2-mockhsm")]
     Mock,
@@ -34,7 +87,13 @@ impl BackendCheck for Connection {
             Self::Mock => Connector::mockhsm(),
             Self::Usb { serial_number } => Connector::usb(&UsbConfig {
                 serial: Some(*serial_number),
-                timeout_ms: 5000,
+                timeout_ms: DEFAULT_USB_TIMEOUT_MILLIS,
+            }),
+            Connection::Http { url } => Connector::http(&HttpConfig {
+                addr: url.host().into(),
+                port: url.port(),
+                tls: url.scheme() == "https",
+                timeout_ms: DEFAULT_HTTP_TIMEOUT_MILLIS,
             }),
         };
 
@@ -61,6 +120,12 @@ impl BackendCheck for Connection {
             Self::Usb { serial_number } => Connector::usb(&UsbConfig {
                 serial: Some(*serial_number),
                 timeout_ms: 5000,
+            }),
+            Connection::Http { url } => Connector::http(&HttpConfig {
+                addr: url.host().into(),
+                port: url.port(),
+                tls: url.scheme() == "https",
+                timeout_ms: DEFAULT_HTTP_TIMEOUT_MILLIS,
             }),
         };
 
@@ -96,6 +161,12 @@ impl From<&Connection> for Connector {
             Connection::Usb { serial_number } => Connector::usb(&UsbConfig {
                 serial: Some(*serial_number),
                 timeout_ms: UsbConfig::DEFAULT_TIMEOUT_MILLIS,
+            }),
+            Connection::Http { url } => Connector::http(&HttpConfig {
+                addr: url.host().into(),
+                port: url.port(),
+                tls: url.scheme() == "https",
+                timeout_ms: DEFAULT_HTTP_TIMEOUT_MILLIS,
             }),
         }
     }

@@ -4,6 +4,8 @@ pub mod automation;
 pub mod backup;
 mod connection;
 mod error;
+#[cfg(feature = "_yubihsm2-mockhsm")]
+pub mod mock;
 pub mod object;
 mod signer;
 mod user;

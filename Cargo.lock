@@ -5195,7 +5195,9 @@ dependencies = [
  "testresult",
  "thiserror",
  "tokio",
+ "uuid",
  "which",
+ "yubihsm2",
 ]
 
 [[package]]
@@ -5224,6 +5226,7 @@ dependencies = [
  "tempfile",
  "testresult",
  "thiserror",
+ "url",
  "yubihsm2",
  "zeroize",
 ]
@@ -6824,9 +6827,9 @@ dependencies = [
 
 [[package]]
 name = "yubihsm2"
-version = "0.45.0"
+version = "0.45.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0f9fa53fed51c4b7ee596ff42e7975c7c47b4b65e3898db0618b89a302ddc8d5"
+checksum = "f23babdd45945d4334cfe8365fc490109614940f1ab7295117b1ffaead958cce"
 dependencies = [
  "aes 0.9.3",
  "bitflags",

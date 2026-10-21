@@ -29,6 +29,7 @@ signstar-common = { workspace = true, features = ["logging"] }
 signstar-crypto.workspace = true
 strum.workspace = true
 thiserror.workspace = true
+url = "2.5.8"
 yubihsm.workspace = true
 zeroize.workspace = true
 
@@ -42,7 +43,7 @@ testresult.workspace = true
 _yubihsm2-mockhsm = ["yubihsm/mockhsm"]
 cli = ["dep:clap", "dep:clap-verbosity-flag", "serde"]
 default = []
-serde = ["dep:serde", "dep:serde_json", "dep:serde_repr"]
+serde = ["dep:serde", "dep:serde_json", "dep:serde_repr", "url/serde"]
 
 [lints]
 workspace = true
