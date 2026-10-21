@@ -1,12 +1,23 @@
 //! Integration tests for Signstar Sign.
 
+#[cfg(feature = "_yubihsm2-mockhsm")]
+use std::fs::read_to_string;
 use std::{
     collections::HashMap,
     fs::File,
     io::{Cursor, Write},
+    sync::Arc,
 };
 
-use actix_web::{App, HttpRequest, HttpServer, Responder, get, post};
+use actix_web::{
+    App,
+    HttpRequest,
+    HttpServer,
+    Responder,
+    get,
+    post,
+    web::{self, Data},
+};
 use base64ct::{Base64, Encoding as _};
 use change_user_run::{
     COVERAGE_ENV_LIST,
@@ -21,6 +32,8 @@ use pgp::packet::SignatureType;
 use rcgen::{CertifiedKey, generate_simple_self_signed};
 use rstest::rstest;
 use signstar_common::logging::setup_terminal_logging;
+#[cfg(feature = "_yubihsm2-mockhsm")]
+use signstar_common::system_user::get_plaintext_secret_file;
 #[cfg(any(feature = "nethsm", feature = "yubihsm2"))]
 use signstar_config::config::MappingSystemUserId;
 #[cfg(feature = "nethsm")]
@@ -37,10 +50,17 @@ use signstar_config::{
         SystemUserConfig,
     },
 };
+#[cfg(feature = "_yubihsm2-mockhsm")]
+use signstar_crypto::passphrase::Passphrase;
 use signstar_request_signature::Response;
+#[cfg(feature = "_yubihsm2-mockhsm")]
+use signstar_yubihsm2::Credentials;
+#[cfg(feature = "_yubihsm2-mockhsm")]
+use signstar_yubihsm2::mock::setup_single_key_in_mockhsm;
 use tempfile::tempdir;
 use testresult::TestResult;
 use tokio::{spawn, task::yield_now};
+use yubihsm::{Connector, Uuid, connector::RawMessage};
 
 /// The payload executable to run in tests.
 const SIGNSTAR_SIGN_PAYLOAD: &str = "signstar-sign";
@@ -67,6 +87,16 @@ async fn get_cert(_req: HttpRequest) -> impl Responder {
 #[post("//keys/signing1/sign")]
 async fn sign_data(_req: HttpRequest) -> impl Responder {
     r#"{"signature":"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=="}"#
+}
+
+/// API calls for YubiHSM
+#[post("/connector/api")]
+async fn connector_api(request: web::Bytes, connector: Data<Arc<Connector>>) -> Vec<u8> {
+    connector
+        .send_message(Uuid::new_v4(), RawMessage::from(request.to_vec()))
+        .expect("message to succeed")
+        .as_ref()
+        .to_vec()
 }
 
 /// Runs the `signstar-sign` executable as a Unix user configured for signing.
@@ -96,6 +126,20 @@ async fn sign_data(_req: HttpRequest) -> impl Responder {
             signstar_config: ConfigFileConfig {
                 location: Some(ConfigFileLocation::default()),
                 variant: ConfigFileVariant::OnlyYubiHsm2MockHsmBackendAdminPlaintextNonAdminSystemdCreds,
+                system_user_config: Some(SystemUserConfig{ create_secrets: true, create_ssh_authorized_keys: true  })
+            },
+        }
+    )
+)]
+#[cfg_attr(
+    feature = "_yubihsm2-mockhsm",
+    case::yubihsm2_http_plain_admin(
+        SystemPrepareConfig{
+            machine_id: true,
+            credentials_socket: true,
+            signstar_config: ConfigFileConfig {
+                location: Some(ConfigFileLocation::default()),
+                variant: ConfigFileVariant::OnlyYubiHsm2HttpBackendAdminPlaintextNonAdminPlaintext,
                 system_user_config: Some(SystemUserConfig{ create_secrets: true, create_ssh_authorized_keys: true  })
             },
         }
@@ -219,6 +263,46 @@ async fn run_signstar_sign(#[case] prepare_config: SystemPrepareConfig) -> TestR
             };
             system_user_id
         };
+
+        // Start a dummy web server to mock the interface used by the `signstar-sign` executable, if
+        // the YubiHSM HTTP backend is used.
+        #[cfg(feature = "_yubihsm2-mockhsm")]
+        if matches!(
+            prepare_config.signstar_config,
+            ConfigFileConfig {
+                variant: ConfigFileVariant::OnlyYubiHsm2HttpBackendAdminPlaintextNonAdminPlaintext,
+                ..
+            }
+        ) {
+            let connector = setup_single_key_in_mockhsm(
+                1,
+                &Credentials::new(
+                    6,
+                    Passphrase::new(read_to_string(get_plaintext_secret_file(
+                        system_user_id.as_ref(),
+                        &signing_user,
+                    ))?),
+                ),
+            )?;
+            spawn(async move {
+                let connector = Arc::new(connector);
+
+                HttpServer::new(move || {
+                    App::new()
+                        .app_data(Data::new(connector.clone()))
+                        .wrap(actix_web::middleware::Logger::default())
+                        .service(connector_api)
+                })
+                .bind("127.0.0.1:8081")
+                .expect("binding to port 8081 to succeed")
+                .run()
+                .await
+            });
+
+            // run the spawned task before we return from this function
+            // see: https://docs.rs/tokio/latest/tokio/task/index.html#yield_now
+            yield_now().await;
+        }
 
         let CommandOutput {
             status,

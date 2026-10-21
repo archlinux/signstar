@@ -204,6 +204,17 @@ mod impl_any {
                             )?),
                             notations,
                         }),
+                        Connection::Http { url } => Ok(SignerContext {
+                            signer: Box::new(YubiHsm2SigningKey::new_remote(
+                                url,
+                                signing_key_id,
+                                &Credentials::new(
+                                    authentication_key_id,
+                                    creds.passphrase().clone(),
+                                ),
+                            )?),
+                            notations,
+                        }),
                         Connection::Usb { serial_number } => Ok(SignerContext {
                             signer: Box::new(YubiHsm2SigningKey::new_with_serial_number(
                                 serial_number,

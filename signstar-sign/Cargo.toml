@@ -44,7 +44,9 @@ signstar-config = { workspace = true, features = ["_test-helpers"] }
 tempfile.workspace = true
 testresult.workspace = true
 tokio = { workspace = true, features = ["macros", "rt"] }
+uuid = { version = "1", features = ["v4"] }
 which = "8.0.0"
+yubihsm = { features = ["mockhsm"], workspace = true }
 
 [lints]
 workspace = true
