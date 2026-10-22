@@ -1,13 +1,13 @@
 [workspace]
 members = [
     "nethsm",
+    "signstar-client",
     "signstar-common",
     "signstar-config",
     "signstar-configure",
     "signstar-configure-build",
     "signstar-crypto",
     "signstar-download-key-certificates",
-    "signstar-request-signature",
     "signstar-sign",
     "signstar-yubihsm2",
 ]
@@ -44,17 +44,17 @@ rustainers = "0.15"
 serde = { version = "1.0.215", features = ["derive"] }
 serde_json = "1.0.145"
 sha1 = "0.11.0"
-# Updating this dependency directly here is breaking change in signstar-request-signature.
+# Updating this dependency directly here is breaking change in signstar-client.
 # To do it in a non-breaking way the library needs to support the old version too.
 # Cargo.toml allows using two incompatible versions of the library:
 # old_sha2 = { package = "sha2", version = "=0.11.0-pre.1" }
-# Then adjust the tests in signstar-request-signature/src/lib.rs to additionally test
+# Then adjust the tests in signstar-client/src/lib.rs to additionally test
 # inputs that reference the "old_sha2".
 sha2 = "=0.11.0"
+signstar-client = { path = "signstar-client", version = "0.2.1" }
 signstar-common = { path = "signstar-common", version = "0.2.0" }
 signstar-config = { path = "signstar-config", version = "0.3.0" }
 signstar-crypto = { path = "signstar-crypto", version = "0.1.0" }
-signstar-request-signature = { path = "signstar-request-signature", version = "0.2.1" }
 simplelog = "0.12.2"
 strum = { version = "0.28.0", features = ["derive"] }
 tempfile = "3.24.0"

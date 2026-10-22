@@ -18,10 +18,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - *(deps)* Update rustcrypto crates
-- Always require the `user` argument when running `signstar-request-signature send`
+- Always require the `user` argument when running `signstar-client send`
 - Always require `expect` attributes instead of `allow`s
 - Use configuration file when sending signing requests
-- Make executable and related dependencies optional in `signstar-request-signature`
+- Make executable and related dependencies optional in `signstar-client`
 
 ### Fixed
 
@@ -49,7 +49,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Use `digest-io` dependency instead of our own struct
 - *(deps)* Move `sha1` crate to workspace dependencies
 - *(deps)* Move `serde_json` crate to workspace dependencies
-- Use base64ct instead of base64 in `signstar-request-signature`
+- Use base64ct instead of base64 in `signstar-client`
 - *(deps)* Update dependencies
 - *(cargo)* Move crate `clap-verbosity-flag` to workspace dependencies
 - *(cargo)* Use crate `tokio` from workspace dependencies
@@ -59,7 +59,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Add logging with verbosity to `signstar-request-signature`
+- Add logging with verbosity to `signstar-client`
 
 ### Fixed
 
@@ -92,14 +92,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Add `Response::v1` for creating version 1 signing responses
 - Add signing specifications to mdbook
-- Add `signstar-request-signature send` subcommand for sending signing requests
+- Add `signstar-client send` subcommand for sending signing requests
 - Add API to programmatically send signing requests
 
 ### Other
 
 - *(deps)* make `log` a workspace dependency
-- Add documentation and enable strict lints for `signstar-request-signature`
-- Improve code documentation in signstar-request-signature
+- Add documentation and enable strict lints for `signstar-client`
+- Improve code documentation in signstar-client
 - Add documentation for Signing Responses
 - Switch to rustfmt style edition 2024
 

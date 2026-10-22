@@ -245,7 +245,7 @@ impl Request {
     ///
     /// ```
     /// # fn main() -> testresult::TestResult {
-    /// use signstar_request_signature::Request;
+    /// use signstar_client::Request;
     ///
     /// let signing_request = Request::for_file("Cargo.toml")?;
     /// # Ok(()) }
@@ -324,7 +324,7 @@ impl Request {
 ///
 /// The details of the format are documented in the [response specification].
 ///
-/// [response specification]: https://signstar.archlinux.page/signstar-request-signature/resources/docs/response.html
+/// [response specification]: https://signstar.archlinux.page/signstar-client/resources/docs/response.html
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Response {
     /// Version of this signing response.

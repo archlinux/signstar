@@ -50,7 +50,7 @@ use nethsm::{
         UserCommand,
     },
 };
-use signstar_request_signature::{Request, Sha512};
+use signstar_client::{Request, Sha512};
 
 struct FileOrStdout {
     output: Box<dyn Write + Send + Sync>,

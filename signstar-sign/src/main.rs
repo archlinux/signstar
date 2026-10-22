@@ -7,9 +7,9 @@ use std::{
 };
 
 use clap::Parser;
+use signstar_client::{Request, Response, Sha512};
 use signstar_common::logging::{setup_systemd_journal_logging, setup_terminal_logging};
 use signstar_crypto::signer::{openpgp::sign_hasher_state, traits::RawSigningKey};
-use signstar_request_signature::{Request, Response, Sha512};
 use signstar_sign::cli::Cli;
 
 /// Signstar signing error.
@@ -50,7 +50,7 @@ enum Error {
 
     /// Signing request processing error.
     #[error("Signing request error: {0}")]
-    SigningRequest(#[from] signstar_request_signature::Error),
+    SigningRequest(#[from] signstar_client::Error),
 
     /// A signstar-common logging error.
     #[error(transparent)]

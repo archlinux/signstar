@@ -499,7 +499,7 @@ generate-cli-man-pages-and-completions:
         signstar-configure
         signstar-configure-build
         signstar-download-key-certificates
-        signstar-request-signature
+        signstar-client
     )
 
     for executable in "${executables[@]}"; do
@@ -643,7 +643,7 @@ check-rust-derives:
 check-shell-code:
     just check-shell-readme nethsm
     just check-shell-readme signstar-configure-build
-    just check-shell-readme signstar-request-signature
+    just check-shell-readme signstar-client
 
     just check-shell-recipe 'test-readme nethsm'
     just check-shell-recipe check-commits
@@ -1271,7 +1271,7 @@ test-readme project:
                 --attach
             )
         ;;
-        signstar-request-signature)
+        signstar-client)
             podman_create_options+=(
                 --init
                 "--mount=type=bind,source=$project/tests/sshd/10-signstar-sign.conf,destination=/etc/ssh/sshd_config.d/10-signstar-sign.conf,ro=true"
@@ -1293,8 +1293,8 @@ test-readme project:
     install_executables() {
         case "$project" in
             nethsm)
-                printf "Installing executables of signstar-request-signature\n"
-                cargo install --locked --path signstar-request-signature --features cli
+                printf "Installing executables of signstar-client\n"
+                cargo install --locked --path signstar-client --features cli
                 printf "Installing executables of %s...\n" "{{ project }}"
                 cargo install --locked --all-features --path {{ project }}
             ;;
@@ -1356,5 +1356,5 @@ test-readme project:
 test-readmes:
     just test-readme nethsm
     just test-readme signstar-configure-build
-    just test-readme signstar-request-signature
+    just test-readme signstar-client
     just test-readme signstar-yubihsm2

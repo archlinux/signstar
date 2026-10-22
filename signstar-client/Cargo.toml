@@ -1,11 +1,11 @@
 [package]
 authors.workspace = true
-description = "Library and executable for creating, reading and writing of signing requests for files"
+description = "Library and executable for interacting with the Signstar host"
 edition.workspace = true
 homepage.workspace = true
 keywords = ["hsm", "nethsm", "signature", "signing", "signstar"]
 license.workspace = true
-name = "signstar-request-signature"
+name = "signstar-client"
 repository.workspace = true
 version = "0.2.1"
 
@@ -54,6 +54,6 @@ default = ["cli"]
 workspace = true
 
 [[bin]]
-name = "signstar-request-signature"
+name = "signstar-client"
 path = "src/main.rs"
 required-features = ["cli"]

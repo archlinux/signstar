@@ -23,7 +23,7 @@ Signstar consists of several loosely coupled components, some of which are used 
 - [signstar-configure]: An executable, that non-interactively configures a Signstar host, its user's credentials and HSM backends
 - [signstar-crypto]: Common types and functionality for cryptography in Signstar
 - [signstar-download-key-certificates]: Library and executable for returning key certificates stored in backends of a Signstar host
-- [signstar-request-signature]: An executable, run on a client host, that prepares data to be signed and retrieves a signature for it from a Signstar setup
+- [signstar-client]: An executable, run on a client host, that prepares data to be signed and retrieves a signature for it from a Signstar setup
 - [signstar-sign]: An executable, that allows signing of messages with the help of an HSM, based on a configuration
 - [signstar-yubihsm2]: Integration for YubiHSM2 devices as Signstar backend
 
@@ -32,7 +32,7 @@ Signstar consists of several loosely coupled components, some of which are used 
 A Signstar setup requires a [TPM-2.0]-enabled host, allowing to run [Signstar OS] which provides a read-only root filesystem and an encrypted `/var` partition for its state.
 This signing service host is connected to one or more HSM devices and exposes *signstar-sign* to clients of the signing service.
 
-Clients use *signstar-request-signature* to connect to a Signstar setup and retrieve a signature for a provided payload.
+Clients use *signstar-client* to connect to a Signstar setup and retrieve a signature for a provided payload.
 
 ![Graph: OpenPGP signing of artifacts with Signstar](img/signstar-openpgp-signing-of-artifacts-with-signstar.svg)
 
@@ -96,6 +96,6 @@ Changes to this project - unless stated otherwise - automatically fall under the
 [signstar-configure-build]: signstar-configure-build/
 [signstar-crypto]: signstar-crypto/
 [signstar-download-key-certificates]: signstar-download-key-certificates/
-[signstar-request-signature]: signstar-request-signature/
+[signstar-client]: signstar-client/
 [signstar-sign]: signstar-sign/
 [signstar-yubihsm2]: signstar-yubihsm2/

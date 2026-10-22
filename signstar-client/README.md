@@ -1,16 +1,11 @@
-# Signstar Request Signature
+# Signstar Client
 
-> [!WARNING]
->
-> This crate is deprecated in favor of a more general one.
-> Please visit the [Signstar website] to learn more about the binaries relevant for a Signstar client.
-
-This crate offers a library and an executable for creating, reading and writing of signing requests for files.
+Library and executable for interacting with the Signstar host.
 
 ## Documentation
 
-- <https://signstar.archlinux.page/rustdoc/signstar_request_signature/> for development version of the crate
-- <https://docs.rs/signstar_request_signature/> for released versions of the crate
+- <https://signstar.archlinux.page/rustdoc/signstar_client/> for development version of the crate
+- <https://docs.rs/signstar_client/> for released versions of the crate
 - [Design document] and specifications for [requests] and [responses]
 
 ## Preparing signing request
@@ -18,7 +13,7 @@ This crate offers a library and an executable for creating, reading and writing 
 The tool can be used to prepare a raw JSON signing request:
 
 ```bash
-signstar-request-signature prepare Cargo.toml
+signstar-client prepare Cargo.toml
 ```
 
 ## Sending the signing request over SSH
@@ -75,7 +70,7 @@ EOF
 `send` subcommand requires parameters related to SSH session:
 
 ```bash
-signstar-request-signature send --config "$config" --user signstar-sign Cargo.toml | jq
+signstar-client send --config "$config" --user signstar-sign Cargo.toml | jq
 ```
 
 <!--
@@ -102,9 +97,9 @@ Changes to this project - unless stated otherwise - automatically fall under the
 
 [Apache-2.0]: https://www.apache.org/licenses/LICENSE-2.0
 [contributing guidelines]: ../CONTRIBUTING.md
-[Design document]: https://signstar.archlinux.page/signstar-request-signature/design.html
+[Design document]: https://signstar.archlinux.page/signstar-client/design.html
 [MIT]: https://opensource.org/licenses/MIT
 [contributing guidelines]: ../CONTRIBUTING.md
-[requests]: https://signstar.archlinux.page/signstar-request-signature/request.html
-[responses]: https://signstar.archlinux.page/signstar-request-signature/response.html
+[requests]: https://signstar.archlinux.page/signstar-client/request.html
+[responses]: https://signstar.archlinux.page/signstar-client/response.html
 [Signstar website]: https://signstar.archlinux.page

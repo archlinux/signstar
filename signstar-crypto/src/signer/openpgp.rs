@@ -581,7 +581,7 @@ pub fn sign(raw_signer: &dyn RawSigningKey, message: &[u8]) -> Result<Vec<u8>, c
 /// # Note
 ///
 /// rPGP uses a different version of the `digest` crate than the latest (as used by e.g.
-/// `signstar-request-signature`). This adapter exposes the old `digest` 0.10 interface for
+/// `signstar-client`). This adapter exposes the old `digest` 0.10 interface for
 /// the [sha2::Sha512] object which uses digest 0.11.
 ///
 /// When rPGP updates to digest 0.11 this entire struct can be removed.

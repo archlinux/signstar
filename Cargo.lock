@@ -3274,9 +3274,9 @@ dependencies = [
  "serde_json",
  "sha1 0.11.0",
  "sha2 0.11.0",
+ "signstar-client",
  "signstar-common",
  "signstar-crypto",
- "signstar-request-signature",
  "strum",
  "testdir",
  "testresult",
@@ -5178,6 +5178,38 @@ dependencies = [
 ]
 
 [[package]]
+name = "signstar-client"
+version = "0.2.1"
+dependencies = [
+ "base64ct",
+ "clap",
+ "clap-verbosity-flag",
+ "digest-io",
+ "garde",
+ "hmac 0.13.0",
+ "insta",
+ "log",
+ "rand 0.10.3",
+ "rand 0.8.8",
+ "rsa 0.9.10",
+ "rstest",
+ "russh",
+ "semver",
+ "serde",
+ "serde_json",
+ "sha1 0.11.0",
+ "sha2 0.11.0",
+ "signstar-common",
+ "ssh-agent-lib",
+ "tempfile",
+ "testdir",
+ "testresult",
+ "thiserror",
+ "tokio",
+ "toml 1.1.6+spec-1.1.0",
+]
+
+[[package]]
 name = "signstar-common"
 version = "0.2.0"
 dependencies = [
@@ -5324,38 +5356,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "signstar-request-signature"
-version = "0.2.1"
-dependencies = [
- "base64ct",
- "clap",
- "clap-verbosity-flag",
- "digest-io",
- "garde",
- "hmac 0.13.0",
- "insta",
- "log",
- "rand 0.10.3",
- "rand 0.8.8",
- "rsa 0.9.10",
- "rstest",
- "russh",
- "semver",
- "serde",
- "serde_json",
- "sha1 0.11.0",
- "sha2 0.11.0",
- "signstar-common",
- "ssh-agent-lib",
- "tempfile",
- "testdir",
- "testresult",
- "thiserror",
- "tokio",
- "toml 1.1.6+spec-1.1.0",
-]
-
-[[package]]
 name = "signstar-sign"
 version = "0.2.0"
 dependencies = [
@@ -5371,10 +5371,10 @@ dependencies = [
  "pgp",
  "rcgen",
  "rstest",
+ "signstar-client",
  "signstar-common",
  "signstar-config",
  "signstar-crypto",
- "signstar-request-signature",
  "signstar-yubihsm2",
  "tempfile",
  "testresult",

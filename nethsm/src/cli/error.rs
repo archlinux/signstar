@@ -46,7 +46,7 @@ pub enum Error {
 
     /// Request deserialization error
     #[error("Request deserialization failed: {0}")]
-    Request(#[from] Box<signstar_request_signature::Error>),
+    Request(#[from] Box<signstar_client::Error>),
 
     /// Processing a signing request failed.
     #[error("Signing request processing error: {0}")]

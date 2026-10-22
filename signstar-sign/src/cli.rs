@@ -10,10 +10,10 @@ use clap_verbosity_flag::Verbosity;
     long_about = "Sign a signing request and return it as structured data.
 
 Signing requests, following the request specification, are accepted on `stdin`:
-https://signstar.archlinux.page/signstar-request-signature/request.html
+https://signstar.archlinux.page/signstar-client/request.html
 
 The signature is returned on `stdout`, in accordance with the response specification:
-https://signstar.archlinux.page/signstar-request-signature/response.html
+https://signstar.archlinux.page/signstar-client/response.html
 "
 )]
 pub struct Cli {
