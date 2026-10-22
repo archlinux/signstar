@@ -39,7 +39,6 @@ rstest.workspace = true
 signstar-common = { workspace = true, features = ["logging"] }
 simplelog.workspace = true
 tempfile.workspace = true
-testdir.workspace = true
 testresult.workspace = true
 tokio.workspace = true
 

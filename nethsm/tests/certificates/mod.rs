@@ -17,7 +17,6 @@ use rsa::RsaPrivateKey;
 use rsa::pkcs8::EncodePrivateKey;
 use rstest::rstest;
 use rustainers::Container;
-use testdir::testdir;
 use testresult::TestResult;
 
 /// Generate a key and create a CSR with it
@@ -82,8 +81,6 @@ async fn import_key(nethsm: &NetHsm) -> TestResult {
             &mut ChaCha20Rng::from_rng(&mut rng()),
             DEFAULT_RSA_BITS.try_into()?,
         )?;
-        let file = testdir!().join("rsa_private_key.pem");
-        private_key.write_pkcs8_der_file(file.clone())?;
         private_key.to_pkcs8_der()?
     };
 

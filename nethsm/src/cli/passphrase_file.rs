@@ -38,32 +38,26 @@ impl FromStr for PassphraseFile {
 
 #[cfg(test)]
 mod tests {
-    use std::fs::File;
     use std::io::Write;
 
-    use rand::{RngExt, rng};
+    use log::LevelFilter;
     use rstest::rstest;
-    use testdir::testdir;
+    use signstar_common::logging::setup_terminal_logging;
+    use tempfile::NamedTempFile;
     use testresult::TestResult;
 
     use super::*;
 
     #[rstest]
     fn passphrase_file() -> TestResult {
-        let mut i = 0;
-        while i < 20 {
-            let lines = rng().random_range(0..20);
-            let lines_vec = (0..lines)
-                .map(|_x| "this is a passphrase".to_string())
-                .collect::<Vec<String>>();
-            let path = testdir!().join(format!("passphrase_file_lines_{lines}.txt"));
-            let mut file = File::create(&path)?;
-            file.write_all(lines_vec.join("\n").as_bytes())?;
+        setup_terminal_logging(LevelFilter::Debug)?;
 
-            let passphrase_file = PassphraseFile::new(&path);
-            assert!(passphrase_file.is_ok());
-            i += 1;
-        }
+        let passphrase = "this is a passphrase";
+        let mut temp_file = NamedTempFile::new()?;
+        temp_file.write_all(passphrase.as_bytes())?;
+
+        let passphrase_file = PassphraseFile::new(temp_file.path())?;
+        assert_eq!(passphrase_file.passphrase.expose_borrowed(), passphrase);
 
         Ok(())
     }

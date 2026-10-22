@@ -59,7 +59,7 @@ rand = { workspace = true, features = ["chacha"] }
 rsa = { workspace = true, features = ["getrandom", "sha2"] }
 rstest.workspace = true
 rustainers.workspace = true
-testdir.workspace = true
+tempfile.workspace = true
 testresult.workspace = true
 tokio.workspace = true
 uuid.workspace = true

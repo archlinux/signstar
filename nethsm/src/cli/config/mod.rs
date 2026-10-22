@@ -16,6 +16,7 @@
 //!     UserRole,
 //!     cli::{Config, ConfigCredentials, ConfigInteractivity, ConfigSettings},
 //! };
+//! use tempfile::TempDir;
 //!
 //! # fn main() -> testresult::TestResult {
 //! // a configuration for a non-interactive application called "my_app"
@@ -26,7 +27,8 @@
 //! );
 //!
 //! // let's assume a custom configuration file path
-//! let tmpfile = testdir::testdir!().join("my_app.conf");
+//! let temp_dir = TempDir::new()?;
+//! let tmpfile = temp_dir.path().join("my_app.conf");
 //! let config = Config::new(config_settings, Some(&tmpfile))?;
 //!
 //! // add a first device to commnicate with

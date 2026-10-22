@@ -12,36 +12,50 @@
 //!   - the test signing request is sent and a signing response is retrieved, the result is compared
 //!     with static data.
 
-use std::io::Write;
-use std::os::unix::net::UnixStream;
-use std::path::PathBuf;
-use std::sync::Arc;
+use std::{
+    fs::File,
+    io::{Cursor, Write},
+    net::SocketAddr,
+    os::unix::net::UnixStream,
+    path::{Path, PathBuf},
+    sync::Arc,
+};
 
 use base64ct::{Base64, Encoding as _};
 use log::{LevelFilter, debug, info};
 use rand::rng;
-use russh::keys::ssh_key::{PrivateKey, PublicKey, private::Ed25519Keypair};
-use russh::server::{self, ChannelOpenHandle, Msg, Server as _, Session as ServerSession};
-use russh::{Channel, ChannelId};
+use russh::{
+    keys::ssh_key::{PrivateKey, PublicKey, private::Ed25519Keypair},
+    server::{Auth, ChannelOpenHandle, Config, Handler, Msg, Server, Session as ServerSession},
+    {Channel, ChannelId},
+};
 use signstar_common::logging::setup_terminal_logging;
-use signstar_request_signature::Request;
-use signstar_request_signature::ssh::client::ConnectConfig;
-use ssh_agent_lib::ssh_encoding::Encode as _;
+use signstar_request_signature::{Request, ssh::client::ConnectConfig};
+use ssh_agent_lib::{client::connect, ssh_encoding::Encode as _};
+use tempfile::{NamedTempFile, TempDir};
 use testresult::TestResult;
-use tokio::net::TcpListener;
-use tokio::sync::oneshot;
+use tokio::{
+    net::TcpListener,
+    select,
+    spawn,
+    sync::oneshot::{Sender, channel},
+    task::yield_now,
+};
 
 mod agent;
+
+use agent::listen_on_socket;
+use toml::from_str;
 
 struct SshSetup {
     server_host: (String, u16),
     public_key: String,
     agent_socket: PathBuf,
-    close: oneshot::Sender<&'static str>,
+    close: Sender<&'static str>,
 }
 
-async fn start(temp_dir: impl AsRef<std::path::Path>) -> TestResult<SshSetup> {
-    let (tx1, mut rx1) = oneshot::channel();
+async fn start(temp_dir: impl AsRef<Path>) -> TestResult<SshSetup> {
+    let (tx1, mut rx1) = channel();
 
     let m = move |vec: &[u8]| {
         info!(
@@ -52,7 +66,7 @@ async fn start(temp_dir: impl AsRef<std::path::Path>) -> TestResult<SshSetup> {
         r#"{"version":"0.0.3","signature":"aaa"}"#.into()
     };
 
-    let mut sh = Server {
+    let mut sh = SshServer {
         f: m,
         received: vec![],
     };
@@ -64,13 +78,13 @@ async fn start(temp_dir: impl AsRef<std::path::Path>) -> TestResult<SshSetup> {
     let agent_socket_path = temp_dir.as_ref().join("agent.sock");
     let asp = agent_socket_path.clone();
 
-    tokio::spawn(async move {
+    spawn(async move {
         info!("Starting server on {addr}; agent on {agent_socket_path:?}");
-        tokio::select! {
+        select! {
             _ = sh.listen(key_pair, &listener) => {
 
             }
-            _ = agent::listen_on_socket(agent_socket_path) => {
+            _ = listen_on_socket(agent_socket_path) => {
                 info!("Stopping the agent");
             }
             _ = &mut rx1 => {
@@ -80,7 +94,7 @@ async fn start(temp_dir: impl AsRef<std::path::Path>) -> TestResult<SshSetup> {
     });
     // run the spawned task before we return from this function
     // see: https://docs.rs/tokio/latest/tokio/task/index.html#yield_now
-    tokio::task::yield_now().await;
+    yield_now().await;
 
     Ok(SshSetup {
         server_host: (addr.ip().to_string(), addr.port()),
@@ -94,23 +108,20 @@ async fn start(temp_dir: impl AsRef<std::path::Path>) -> TestResult<SshSetup> {
 async fn ssh_roundtrip() -> TestResult {
     setup_terminal_logging(LevelFilter::Info)?;
 
-    let temp_dir = tempfile::tempdir()?;
+    let temp_dir = TempDir::new()?;
     let setup = start(&temp_dir).await?;
 
     info!("Connecting to {:?}", setup.server_host);
 
-    let known_hosts = {
-        let path = testdir::testdir!().join("known_hosts");
-        let mut known_hosts = std::fs::File::create(&path)?;
-        known_hosts
-            .write_all(format!("{} {}", setup.server_host.0, setup.public_key).as_bytes())?;
-        path
+    let (known_hosts_file, _) = {
+        let mut tempfile = NamedTempFile::new()?;
+        tempfile.write_all(format!("{} {}", setup.server_host.0, setup.public_key).as_bytes())?;
+        (tempfile.path().to_path_buf(), tempfile)
     };
 
-    info!("Known hosts file: {known_hosts:?}");
+    info!("Known hosts file: {known_hosts_file:?}");
 
-    let mut session =
-        ssh_agent_lib::client::connect(UnixStream::connect(&setup.agent_socket)?.into())?;
+    let mut session = connect(UnixStream::connect(&setup.agent_socket)?.into())?;
     let ids = session.request_identities().await?;
     assert_eq!(ids.len(), 1);
     let mut agent_key = ids[0]
@@ -148,33 +159,33 @@ agent_socket = "{agent_socket}"
 
     info!("Using config: {config}");
 
-    let config: ConnectConfig = toml::from_str(&config)?;
+    let config: ConnectConfig = from_str(&config)?;
 
     let mut ssh = config.connect("signstar-sign").await?;
     info!("Connected");
 
     // send the first request
     let stdout = ssh
-        .send(&Request::from_reader(std::fs::File::open(
+        .send(&Request::from_reader(File::open(
             "tests/sample-request.json",
         )?)?)
         .await?;
 
     debug!("STDOUT: <{stdout:?}>");
     let mut output = Vec::new();
-    stdout.signature_to_writer(std::io::Cursor::new(&mut output))?;
+    stdout.signature_to_writer(Cursor::new(&mut output))?;
     assert_eq!(output, b"aaa");
 
     // send the second request
     let stdout = ssh
-        .send(&Request::from_reader(std::fs::File::open(
+        .send(&Request::from_reader(File::open(
             "tests/sample-request.json",
         )?)?)
         .await?;
 
     debug!("STDOUT: <{stdout:?}>");
     let mut output = Vec::new();
-    stdout.signature_to_writer(std::io::Cursor::new(&mut output))?;
+    stdout.signature_to_writer(Cursor::new(&mut output))?;
     assert_eq!(output, b"aaa");
 
     ssh.close().await?;
@@ -183,7 +194,7 @@ agent_socket = "{agent_socket}"
 }
 
 #[derive(Clone)]
-struct Server<F>
+struct SshServer<F>
 where
     F: Fn(&[u8]) -> Vec<u8> + Send + Clone,
 {
@@ -191,13 +202,13 @@ where
     received: Vec<u8>,
 }
 
-impl<F: Fn(&[u8]) -> Vec<u8> + Send + Clone + 'static> Server<F> {
+impl<F: Fn(&[u8]) -> Vec<u8> + Send + Clone + 'static> SshServer<F> {
     pub async fn listen(
         &mut self,
         key_pair: PrivateKey,
         listener: &TcpListener,
     ) -> Result<(), std::io::Error> {
-        let config = russh::server::Config {
+        let config = Config {
             keys: vec![key_pair],
             ..Default::default()
         };
@@ -205,15 +216,15 @@ impl<F: Fn(&[u8]) -> Vec<u8> + Send + Clone + 'static> Server<F> {
     }
 }
 
-impl<F: Fn(&[u8]) -> Vec<u8> + Send + Clone + 'static> server::Server for Server<F> {
+impl<F: Fn(&[u8]) -> Vec<u8> + Send + Clone + 'static> Server for SshServer<F> {
     type Handler = Self;
 
-    fn new_client(&mut self, _peer_addr: Option<std::net::SocketAddr>) -> Self {
+    fn new_client(&mut self, _peer_addr: Option<SocketAddr>) -> Self {
         self.clone()
     }
 }
 
-impl<F: Fn(&[u8]) -> Vec<u8> + Send + Clone> server::Handler for Server<F> {
+impl<F: Fn(&[u8]) -> Vec<u8> + Send + Clone> Handler for SshServer<F> {
     type Error = russh::Error;
 
     async fn channel_open_session(
@@ -226,12 +237,8 @@ impl<F: Fn(&[u8]) -> Vec<u8> + Send + Clone> server::Handler for Server<F> {
         Ok(())
     }
 
-    async fn auth_publickey(
-        &mut self,
-        _user: &str,
-        _key: &PublicKey,
-    ) -> Result<server::Auth, Self::Error> {
-        Ok(server::Auth::Accept)
+    async fn auth_publickey(&mut self, _user: &str, _key: &PublicKey) -> Result<Auth, Self::Error> {
+        Ok(Auth::Accept)
     }
 
     async fn data(

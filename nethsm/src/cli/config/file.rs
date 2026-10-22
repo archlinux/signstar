@@ -886,6 +886,7 @@ impl Config {
     ///
     /// ```
     /// use nethsm::cli::{Config, ConfigInteractivity, ConfigSettings};
+    /// use tempfile::TempDir;
     ///
     /// # fn main() -> testresult::TestResult {
     /// let config_settings = ConfigSettings::new(
@@ -893,9 +894,11 @@ impl Config {
     ///     ConfigInteractivity::NonInteractive,
     ///     None,
     /// );
-    /// let config_from_default = Config::new(config_settings.clone(), None)?;
+    /// // NOTE: The following creates a file in the user's config dir.
+    /// // let config_from_default = Config::new(config_settings.clone(), None)?;
     ///
-    /// let tmpfile = testdir::testdir!().join("my_app_new.conf");
+    /// let temp_dir = TempDir::new()?;
+    /// let tmpfile = temp_dir.path().join("my_app_new.conf");
     /// let config_from_file = Config::new(config_settings, Some(&tmpfile))?;
     /// # Ok(())
     /// # }
@@ -964,13 +967,15 @@ impl Config {
     ///     cli::{Config, ConfigInteractivity, ConfigSettings},
     /// };
     /// # fn main() -> testresult::TestResult {
+    /// # let temp_dir = tempfile::TempDir::new()?;
+    /// # let tempfile = temp_dir.path().join("my_app.conf");
     /// # let config = Config::new(
     /// #    ConfigSettings::new(
     /// #        "my_app".to_string(),
     /// #        ConfigInteractivity::NonInteractive,
     /// #        None,
     /// #    ),
-    /// #    Some(&testdir::testdir!().join("my_app_add_device.conf")),
+    /// #    Some(&tempfile),
     /// # )?;
     ///
     /// config.add_device(
@@ -1024,13 +1029,15 @@ impl Config {
     ///     cli::{Config, ConfigInteractivity, ConfigSettings},
     /// };
     /// # fn main() -> testresult::TestResult {
+    /// # let temp_dir = tempfile::TempDir::new()?;
+    /// # let tempfile = temp_dir.path().join("my_app.conf");
     /// # let config = Config::new(
     /// #    ConfigSettings::new(
     /// #        "my_app".to_string(),
     /// #        ConfigInteractivity::NonInteractive,
     /// #        None,
     /// #    ),
-    /// #    Some(&testdir::testdir!().join("my_app_delete_device.conf")),
+    /// #    Some(&tempfile),
     /// # )?;
     ///
     /// config.add_device(
@@ -1077,13 +1084,15 @@ impl Config {
     ///     cli::{Config, ConfigInteractivity, ConfigSettings},
     /// };
     /// # fn main() -> testresult::TestResult {
+    /// # let temp_dir = tempfile::TempDir::new()?;
+    /// # let tempfile = temp_dir.path().join("my_app.conf");
     /// # let config = Config::new(
     /// #    ConfigSettings::new(
     /// #        "my_app".to_string(),
     /// #        ConfigInteractivity::NonInteractive,
     /// #        None,
     /// #    ),
-    /// #    Some(&testdir::testdir!().join("my_app_get_device.conf")),
+    /// #    Some(&tempfile),
     /// # )?;
     ///
     /// config.add_device(
@@ -1150,13 +1159,15 @@ impl Config {
     ///     cli::{Config, ConfigInteractivity, ConfigSettings},
     /// };
     /// # fn main() -> testresult::TestResult {
+    /// # let temp_dir = tempfile::TempDir::new()?;
+    /// # let tempfile = temp_dir.path().join("my_app.conf");
     /// # let config = Config::new(
     /// #    ConfigSettings::new(
     /// #        "my_app".to_string(),
     /// #        ConfigInteractivity::NonInteractive,
     /// #        None,
     /// #    ),
-    /// #    Some(&testdir::testdir!().join("my_app_get_single_device_label.conf")),
+    /// #    Some(&tempfile),
     /// # )?;
     ///
     /// config.add_device(
@@ -1215,13 +1226,15 @@ impl Config {
     ///     cli::{Config, ConfigCredentials, ConfigInteractivity, ConfigSettings},
     /// };
     /// # fn main() -> testresult::TestResult {
+    /// # let temp_dir = tempfile::TempDir::new()?;
+    /// # let tempfile = temp_dir.path().join("my_app.conf");
     /// # let config = Config::new(
     /// #    ConfigSettings::new(
     /// #        "my_app".to_string(),
     /// #        ConfigInteractivity::NonInteractive,
     /// #        None,
     /// #    ),
-    /// #    Some(&testdir::testdir!().join("my_app_add_credentials.conf")),
+    /// #    Some(&tempfile),
     /// # )?;
     ///
     /// // this fails because the targeted device does not yet exist
@@ -1301,13 +1314,15 @@ impl Config {
     ///     cli::{Config, ConfigCredentials, ConfigInteractivity, ConfigSettings},
     /// };
     /// # fn main() -> testresult::TestResult {
+    /// # let temp_dir = tempfile::TempDir::new()?;
+    /// # let tempfile = temp_dir.path().join("my_app.conf");
     /// # let config = Config::new(
     /// #    ConfigSettings::new(
     /// #        "my_app".to_string(),
     /// #        ConfigInteractivity::NonInteractive,
     /// #        None,
     /// #    ),
-    /// #    Some(&testdir::testdir!().join("my_app_delete_credentials.conf")),
+    /// #    Some(&tempfile),
     /// # )?;
     ///
     /// // this fails because the targeted device does not yet exist
@@ -1365,10 +1380,9 @@ impl Config {
     ///     ConfigInteractivity::NonInteractive,
     ///     None,
     /// );
-    /// let config = Config::new(
-    ///     config_settings.clone(),
-    ///     Some(&testdir::testdir!().join("my_app_get_config_settings.conf")),
-    /// )?;
+    /// # let temp_dir = tempfile::TempDir::new()?;
+    /// # let tempfile = temp_dir.path().join("my_app.conf");
+    /// let config = Config::new(config_settings.clone(), Some(&tempfile))?;
     ///
     /// println!("{:?}", config.get_config_settings());
     /// # assert_eq!(config.get_config_settings(), config_settings);
@@ -1390,13 +1404,15 @@ impl Config {
     /// ```
     /// use nethsm::cli::{Config, ConfigInteractivity, ConfigSettings};
     /// # fn main() -> testresult::TestResult {
+    /// # let temp_dir = tempfile::TempDir::new()?;
+    /// # let tempfile = temp_dir.path().join("my_app.conf");
     /// let config = Config::new(
     ///     ConfigSettings::new(
     ///         "my_app".to_string(),
     ///         ConfigInteractivity::NonInteractive,
     ///         None,
     ///     ),
-    ///     Some(&testdir::testdir!().join("my_app_get_default_config_file_path.conf")),
+    ///     Some(&tempfile),
     /// )?;
     ///
     /// println!("{:?}", config.get_default_config_file_path()?);
@@ -1436,26 +1452,25 @@ impl Config {
     /// };
     ///
     /// # fn main() -> testresult::TestResult {
-    /// let config_file = testdir::testdir!().join("my_app_store.conf");
+    /// let temp_dir = tempfile::TempDir::new()?;
+    /// let tempfile = temp_dir.path().join("my_app.conf");
     /// # let config = Config::new(
     /// #    ConfigSettings::new(
     /// #        "my_app".to_string(),
     /// #        ConfigInteractivity::NonInteractive,
     /// #        None,
     /// #    ),
-    /// #    Some(&config_file),
+    /// #    Some(&tempfile),
     /// # )?;
     /// # config.add_device(
     /// #     "device1".to_string(),
     /// #     "https://example.org/api/v1".parse()?,
     /// #     ConnectionSecurity::Unsafe,
     /// # )?;
-    /// config.store(Some(&config_file))?;
+    /// config.store(Some(&tempfile))?;
     ///
     /// // this fails because we can not write the configuration to a directory
-    /// assert!(config.store(Some(&testdir::testdir!())).is_err());
-    /// # // remove the config file again as we otherwise influence other tests
-    /// # std::fs::remove_file(&config_file);
+    /// assert!(config.store(Some(temp_dir.path())).is_err());
     /// # Ok(())
     /// # }
     /// ```
@@ -1472,24 +1487,25 @@ impl Config {
 
 #[cfg(test)]
 mod tests {
-    use std::path::PathBuf;
+    use std::{fs::read_to_string, path::PathBuf};
 
     use rstest::rstest;
-    use testdir::testdir;
+    use tempfile::TempDir;
     use testresult::TestResult;
 
     use super::*;
 
     #[rstest]
     fn create_and_store_empty_config() -> TestResult {
-        let config_file: PathBuf = testdir!().join("empty_config.toml");
+        let temp_dir = TempDir::new()?;
+        let config_file = temp_dir.path().join("empty_config.toml");
         let config = Config::new(
             ConfigSettings::new("test".to_string(), ConfigInteractivity::Interactive, None),
             Some(&config_file),
         )?;
         println!("{config:#?}");
         config.store(Some(&config_file))?;
-        println!("config file:\n{}", std::fs::read_to_string(config_file)?);
+        println!("config file:\n{}", read_to_string(config_file)?);
         Ok(())
     }
 
@@ -1499,7 +1515,8 @@ mod tests {
         #[base_dir = "tests/fixtures/roundtrip-config/"]
         config_file: PathBuf,
     ) -> TestResult {
-        let output_config_file: PathBuf = testdir!().join(
+        let temp_dir = TempDir::new()?;
+        let output_config_file = temp_dir.path().join(
             config_file
                 .file_name()
                 .expect("the input config file should have a file name"),

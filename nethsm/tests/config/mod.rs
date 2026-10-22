@@ -4,6 +4,7 @@ use std::net::Ipv4Addr;
 use std::path::PathBuf;
 
 use chrono::Utc;
+use log::debug;
 use nethsm::test::{
     ADMIN_USER_ID,
     NAMESPACE1_ADMIN_USER_ID,
@@ -24,7 +25,6 @@ use nethsm::{
 };
 use rstest::rstest;
 use rustainers::Container;
-use testdir::testdir;
 use testresult::TestResult;
 
 #[rstest]
@@ -59,10 +59,8 @@ async fn tls_cert(
 
     // get and set TLS cert
     nethsm.use_credentials(&ADMIN_USER_ID.parse()?)?;
-    let initial_cert_file = testdir!().join("initial_cert.pem");
     let initial_cert = nethsm.get_tls_cert()?;
-    println!("initial cert\n{initial_cert}");
-    std::fs::write(initial_cert_file, initial_cert)?;
+    debug!("Initial certificate:\n{initial_cert}");
 
     // N-Administrators can not generate a TLS cert
     nethsm.use_credentials(&NAMESPACE1_ADMIN_USER_ID.parse()?)?;
@@ -75,15 +73,8 @@ async fn tls_cert(
     nethsm.use_credentials(&ADMIN_USER_ID.parse()?)?;
     nethsm.generate_tls_cert(TlsKeyType::Rsa, Some(4096))?;
 
-    let updated_cert_file = testdir!().join("updated_cert.pem");
     let updated_cert = nethsm.get_tls_cert()?;
-    println!("updated cert\n{updated_cert}");
-    std::fs::write(updated_cert_file, updated_cert.clone())?;
-
-    let csr_file = testdir!().join("updated_cert.csr");
-
-    // N-Administrators can not a TLS CSR
-    nethsm.use_credentials(&NAMESPACE1_ADMIN_USER_ID.parse()?)?;
+    debug!("Updated certificate:\n{updated_cert}");
 
     // WARNING: Upstream has decided to set all models non-exhaustive.
     //
@@ -102,12 +93,13 @@ async fn tls_cert(
         distinguished_name
     };
 
+    // N-Administrators can not request a TLS CSR
+    nethsm.use_credentials(&NAMESPACE1_ADMIN_USER_ID.parse()?)?;
     assert!(nethsm.get_tls_csr(distinguished_name.clone()).is_err());
 
     nethsm.use_credentials(&ADMIN_USER_ID.parse()?)?;
     let csr = nethsm.get_tls_csr(distinguished_name)?;
     println!("A TLS CSR for the NetHSM:\n{csr}");
-    std::fs::write(csr_file, csr)?;
 
     // N-Administrators can not set the TLS cert
     nethsm.use_credentials(&NAMESPACE1_ADMIN_USER_ID.parse()?)?;
@@ -302,12 +294,13 @@ async fn fail_upload_update(
     #[future] nethsm_with_users: TestResult<(NetHsm, Container<NetHsmImage>)>,
 ) -> TestResult {
     let (nethsm, _container) = nethsm_with_users.await?;
-    let update_file = testdir!().join("bogus_update.bin");
-    std::fs::write(&update_file, "this is a bogus update file")?;
-    let file = std::fs::read(update_file)?;
 
     // NOTE: this shuts down the container!
-    assert!(nethsm.upload_update(file).is_err());
+    assert!(
+        nethsm
+            .upload_update("this is a bogus update file".as_bytes().to_vec())
+            .is_err()
+    );
 
     Ok(())
 }

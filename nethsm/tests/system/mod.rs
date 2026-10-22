@@ -13,7 +13,6 @@ use nethsm::{Connection, ConnectionSecurity, NetHsm, Passphrase, UserId};
 use rstest::rstest;
 use rustainers::Container;
 use signstar_common::{logging::setup_terminal_logging, traits::BackendCheck};
-use testdir::testdir;
 use testresult::TestResult;
 
 #[rstest]
@@ -22,7 +21,6 @@ async fn create_backup_and_restore(
     #[future] nethsm_with_users: TestResult<(NetHsm, Container<NetHsmImage>)>,
 ) -> TestResult {
     let (nethsm, _container) = nethsm_with_users.await?;
-    let backup_file = testdir!().join("nethsm-backup");
     let initial_passphrase = "";
     let new_backup_passphrase = "just-a-backup-passphrase";
     let admin_user_id: UserId = ADMIN_USER_ID.parse()?;
@@ -43,15 +41,13 @@ async fn create_backup_and_restore(
     nethsm.use_credentials(&backup_user_id)?;
     // write backup file
     let backup = nethsm.backup()?;
-    std::fs::write(&backup_file, backup.clone())?;
-    println!("Written NetHSM backup file: {:?}", backup_file);
 
     // use the admin user again for the restore call
     nethsm.use_credentials(&admin_user_id)?;
     nethsm.restore(
         Passphrase::new(new_backup_passphrase.to_string()),
         Utc::now(),
-        std::fs::read(backup_file)?,
+        backup,
     )?;
 
     Ok(())

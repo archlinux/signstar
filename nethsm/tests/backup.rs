@@ -12,7 +12,6 @@ use nethsm::{
 };
 use rstest::rstest;
 use rustainers::Container;
-use testdir::testdir;
 use testresult::TestResult;
 
 #[rstest]
@@ -21,7 +20,6 @@ async fn create_backup_and_decrypt_it(
     #[future] nethsm_with_users: TestResult<(NetHsm, Container<NetHsmImage>)>,
 ) -> TestResult {
     let (nethsm, _container) = nethsm_with_users.await?;
-    let backup_file = testdir!().join("nethsm-backup");
     let initial_passphrase = "";
     let new_backup_passphrase = "just-a-backup-passphrase";
     let admin_user_id: UserId = ADMIN_USER_ID.parse()?;
@@ -40,18 +38,15 @@ async fn create_backup_and_decrypt_it(
     )?;
 
     nethsm.use_credentials(&backup_user_id)?;
-    // write backup file
     let backup = nethsm.backup()?;
-    std::fs::write(&backup_file, backup.clone())?;
-    println!("Written NetHSM backup file: {:?}", backup_file);
 
     // Validate the backup.
     validate_backup(
-        &mut std::fs::File::open(&backup_file)?,
+        &mut backup.as_slice(),
         Some(Passphrase::new(new_backup_passphrase.to_string())),
     )?;
 
-    let backup = Backup::parse(std::fs::File::open(&backup_file)?)?;
+    let backup = Backup::parse(backup.as_slice())?;
     let backup = backup.decrypt(new_backup_passphrase.as_bytes())?;
 
     assert_eq!(backup.version()?, [0]);
