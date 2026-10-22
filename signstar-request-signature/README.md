@@ -1,5 +1,10 @@
 # Signstar Request Signature
 
+> [!WARNING]
+>
+> This crate is deprecated in favor of a more general one.
+> Please visit the [Signstar website] to learn more about the binaries relevant for a Signstar client.
+
 This crate offers a library and an executable for creating, reading and writing of signing requests for files.
 
 ## Documentation
@@ -102,3 +107,4 @@ Changes to this project - unless stated otherwise - automatically fall under the
 [contributing guidelines]: ../CONTRIBUTING.md
 [requests]: https://signstar.archlinux.page/signstar-request-signature/request.html
 [responses]: https://signstar.archlinux.page/signstar-request-signature/response.html
+[Signstar website]: https://signstar.archlinux.page
