@@ -1,0 +1,1 @@
+../../../../signstar-common/resources/docs/request.md

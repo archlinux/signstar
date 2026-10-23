@@ -31,9 +31,9 @@ use pgp::composed::{Deserializable as _, DetachedSignature};
 use pgp::packet::SignatureType;
 use rcgen::{CertifiedKey, generate_simple_self_signed};
 use rstest::rstest;
-use signstar_common::logging::setup_terminal_logging;
 #[cfg(feature = "_yubihsm2-mockhsm")]
 use signstar_common::system_user::get_plaintext_secret_file;
+use signstar_common::{logging::setup_terminal_logging, request_api::Response};
 #[cfg(any(feature = "nethsm", feature = "yubihsm2"))]
 use signstar_config::config::MappingSystemUserId;
 #[cfg(feature = "nethsm")]
@@ -52,7 +52,6 @@ use signstar_config::{
 };
 #[cfg(feature = "_yubihsm2-mockhsm")]
 use signstar_crypto::passphrase::Passphrase;
-use signstar_request_signature::Response;
 #[cfg(feature = "_yubihsm2-mockhsm")]
 use signstar_yubihsm2::Credentials;
 #[cfg(feature = "_yubihsm2-mockhsm")]
@@ -313,7 +312,7 @@ async fn run_signstar_sign(#[case] prepare_config: SystemPrepareConfig) -> TestR
             SIGNSTAR_SIGN_PAYLOAD,
             &[],
             Some(include_bytes!(
-                "../../../signstar-request-signature/tests/sample-request.json",
+                "../../../fixtures/request/sample-request.json",
             )),
             COVERAGE_ENV_LIST,
             Some(HashMap::from([(

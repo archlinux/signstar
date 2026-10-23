@@ -7,9 +7,11 @@ use std::{
 };
 
 use clap::Parser;
-use signstar_common::logging::{setup_systemd_journal_logging, setup_terminal_logging};
+use signstar_common::{
+    logging::{setup_systemd_journal_logging, setup_terminal_logging},
+    request_api::{Request, Response, Sha512},
+};
 use signstar_crypto::signer::{openpgp::sign_hasher_state, traits::RawSigningKey};
-use signstar_request_signature::{Request, Response, Sha512};
 use signstar_sign::cli::Cli;
 
 /// Signstar signing error.
@@ -40,7 +42,7 @@ enum Error {
     UnsupportedSignerSetup,
 
     /// Configuration error.
-    #[error("Config error")]
+    #[error("Config error: {0}")]
     Config(#[from] signstar_config::Error),
 
     /// NetHSM error.
@@ -48,13 +50,9 @@ enum Error {
     #[error("NetHsm error")]
     NetHsm(#[from] nethsm::Error),
 
-    /// Signing request processing error.
-    #[error("Signing request error: {0}")]
-    SigningRequest(#[from] signstar_request_signature::Error),
-
-    /// A signstar-common logging error.
-    #[error(transparent)]
-    SignstarCommonLogging(#[from] signstar_common::logging::Error),
+    /// A signstar-common error.
+    #[error("Signstar common error: {0}")]
+    SignstarCommon(#[from] signstar_common::Error),
 
     /// A signstar-crypto error.
     #[error(transparent)]

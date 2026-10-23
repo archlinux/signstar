@@ -168,7 +168,7 @@ async fn run_signstar_download_key_certificates(
             SIGNSTAR_DOWNLOAD_KEY_CERTIFICATES_PAYLOAD,
             &[],
             Some(include_bytes!(
-                "../../../signstar-request-signature/tests/sample-request.json",
+                "../../../fixtures/request/sample-request.json",
             )),
             COVERAGE_ENV_LIST,
             Some(HashMap::from([(

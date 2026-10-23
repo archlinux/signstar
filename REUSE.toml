@@ -14,13 +14,13 @@ precedence = "aggregate"
 SPDX-FileCopyrightText = "Signstar Contributors"
 SPDX-License-Identifier = "CC0-1.0"
 path = [
+    "**.json",
     "**.service",
     "**.snap",
     "**.timer",
     "**.toml",
     "**.yaml",
     "**justfile",
-    "*.json",
     ".cargo/runner.sh",
     ".codespellrc",
     ".gitignore",
@@ -33,7 +33,6 @@ path = [
     "resources/docs/src/api-docs/dependency_graph.png",
     "signstar-crypto/tests/fixtures/*.asc",
     "signstar-download-key-certificates/tests/download/*.asc",
-    "signstar-request-signature/tests/*.json",
     "signstar-request-signature/tests/sshd/*",
     "signstar-yubihsm2/tests/backup/*.yhw",
     "signstar-yubihsm2/tests/backup/wrap-key",

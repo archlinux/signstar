@@ -13,7 +13,6 @@
 //!     with static data.
 
 use std::{
-    fs::File,
     io::{Cursor, Write},
     net::SocketAddr,
     os::unix::net::UnixStream,
@@ -29,8 +28,8 @@ use russh::{
     server::{Auth, ChannelOpenHandle, Config, Handler, Msg, Server, Session as ServerSession},
     {Channel, ChannelId},
 };
-use signstar_common::logging::setup_terminal_logging;
-use signstar_request_signature::{Request, ssh::client::ConnectConfig};
+use signstar_common::{logging::setup_terminal_logging, request_api::Request};
+use signstar_request_signature::ssh::client::ConnectConfig;
 use ssh_agent_lib::{client::connect, ssh_encoding::Encode as _};
 use tempfile::{NamedTempFile, TempDir};
 use testresult::TestResult;
@@ -46,6 +45,8 @@ mod agent;
 
 use agent::listen_on_socket;
 use toml::from_str;
+
+const SAMPLE_REQUEST: &str = include_str!("../../fixtures/request/sample-request.json");
 
 struct SshSetup {
     server_host: (String, u16),
@@ -166,9 +167,7 @@ agent_socket = "{agent_socket}"
 
     // send the first request
     let stdout = ssh
-        .send(&Request::from_reader(File::open(
-            "tests/sample-request.json",
-        )?)?)
+        .send(&Request::from_reader(SAMPLE_REQUEST.as_bytes())?)
         .await?;
 
     debug!("STDOUT: <{stdout:?}>");
@@ -178,9 +177,7 @@ agent_socket = "{agent_socket}"
 
     // send the second request
     let stdout = ssh
-        .send(&Request::from_reader(File::open(
-            "tests/sample-request.json",
-        )?)?)
+        .send(&Request::from_reader(SAMPLE_REQUEST.as_bytes())?)
         .await?;
 
     debug!("STDOUT: <{stdout:?}>");
