@@ -270,6 +270,8 @@ This must be one or more of the following strings or objects:
 
 - **usb**: This object describes a **YubiHSM2**[10] device connected over USB.
     - **serial_number**: A ten character long, number-only string, that encodes the unique serial number of a **YubiHSM2**[10] device.
+- **http**: This object describes a **YubiHSM2**[10] device connected over HTTP(S).
+    - **url**: Full URL pointing to the service exposing a **YubiHSM2**[10] device.
 - **mock**: This string enables the use of an emulated, in-memory HSM for testing purposes.
 
   **WARNING**: This option should only be used for testing purposes as it only provides transient data (per request) and it is only available, if YubiHSM2 mockhsm support is compiled in.
