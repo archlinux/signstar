@@ -7,7 +7,7 @@
 //!
 //! ```no_run
 //! # async fn sign() -> testresult::TestResult {
-//! use signstar_request_signature::Request;
+//! use signstar_common::request_api::Request;
 //! use signstar_request_signature::ssh::client::ConnectConfig;
 //!
 //! let options = ConnectConfig::from_first_system_config()?;
@@ -18,26 +18,37 @@
 //! // process response
 //! #     Ok(()) }
 //! ```
-use std::collections::{BTreeMap, HashMap};
-use std::fs::read;
-use std::num::NonZeroU32;
-use std::path::Path;
-use std::str::FromStr;
-use std::{path::PathBuf, sync::Arc, time::Duration};
+use std::{
+    collections::{BTreeMap, HashMap},
+    fs::{File, OpenOptions, read_to_string},
+    io::Read,
+    num::NonZeroU32,
+    path::{Path, PathBuf},
+    str::FromStr,
+    sync::Arc,
+    time::Duration,
+};
 
 use garde::Validate;
-use rand::rng;
-use rand::seq::IndexedRandom;
-use russh::client::AuthResult;
-use russh::keys::PublicKeyOrCertificate;
-use russh::keys::agent::client::AgentClient;
-use russh::keys::ssh_key::known_hosts::Entry;
-use russh::keys::ssh_key::{HashAlg, PublicKey};
-use russh::{ChannelMsg, Disconnect, MethodSet, client};
+use log::{error, info};
+use rand::{rng, seq::IndexedRandom};
+use russh::{
+    ChannelMsg,
+    Disconnect,
+    MethodSet,
+    client::{AuthResult, Config, Handle, Handler, connect},
+    keys::{
+        PublicKeyOrCertificate,
+        agent::client::AgentClient,
+        ssh_key::{
+            known_hosts::Entry,
+            {HashAlg, PublicKey},
+        },
+    },
+};
 use serde::{Deserialize, Deserializer};
+use signstar_common::request_api::{Request, Response};
 use tokio::net::UnixStream;
-
-use crate::{Request, Response};
 
 /// SSH communication error.
 #[derive(Debug, thiserror::Error)]
@@ -103,16 +114,28 @@ pub enum Error {
     #[error("SSH format error: {0}")]
     SshFormat(#[from] russh::keys::Error),
 
+    /// SSH format error.
+    #[error("SSH key error: {0}")]
+    SshKey(#[from] russh::keys::ssh_key::Error),
+
     /// Internal `russh` client agent error.
     #[error("SSH agent error: {0}")]
     Agent(#[from] russh::AgentAuthError),
 
     /// JSON serialization error.
-    #[error("Serde serialization error: {0}")]
-    Serialization(#[from] serde_json::Error),
-}
+    #[error("Serde serialization error: {source}")]
+    Serialization {
+        /// The error source.
+        source: serde_json::Error,
+    },
 
-type Result<T> = std::result::Result<T, Error>;
+    /// JSON deserialization error.
+    #[error("Serde derialization error: {source}")]
+    Deserialization {
+        /// The error source.
+        source: serde_json::Error,
+    },
+}
 
 /// The default config file below "/usr/".
 pub const DEFAULT_CONFIG: &str = "/usr/share/signstar/request-signature.toml";
@@ -195,7 +218,7 @@ impl ConnectConfig {
     /// - the client public key is not recognized by the server,
     /// - the client authentication with the agent fails,
     /// - an SSH protocol error is encountered.
-    pub async fn connect(&self, username: &str) -> Result<Session> {
+    pub async fn connect(&self, username: &str) -> Result<Session, crate::Error> {
         let user = &self.users.get(username).ok_or(Error::InvalidUser {
             user: username.to_string(),
         })?;
@@ -205,25 +228,24 @@ impl ConnectConfig {
                 host: host_id.to_string(),
             })?
         } else {
-            return Err(Error::InvalidOptions(
-                "at least one host must be defined".into(),
-            ));
+            return Err(Error::InvalidOptions("at least one host must be defined".into()).into());
         };
         let client_auth_public_key = &user.user_public_key;
 
-        let config = Arc::new(client::Config {
+        let config = Arc::new(Config {
             inactivity_timeout: Some(Duration::from_secs(5)),
             ..Default::default()
         });
 
         let stream = UnixStream::connect(&user.agent_socket)
             .await
-            .map_err(|source| Error::Io {
-                file: user.agent_socket.clone(),
+            .map_err(|source| crate::Error::IoPath {
+                path: user.agent_socket.clone(),
+                context: "connecting to the Unix socket".to_string(),
                 source,
             })?;
         let mut future = AgentClient::connect(stream);
-        let mut session = client::connect(
+        let mut session = connect(
             config,
             (target.host.clone(), target.port),
             KeyValidator {
@@ -240,7 +262,8 @@ impl ConnectConfig {
                 Some(HashAlg::Sha512),
                 &mut future,
             )
-            .await?;
+            .await
+            .map_err(Error::Agent)?;
 
         if let AuthResult::Failure {
             remaining_methods,
@@ -250,7 +273,8 @@ impl ConnectConfig {
             return Err(Error::AuthFailed {
                 remaining_methods,
                 partial_success,
-            });
+            }
+            .into());
         }
 
         Ok(Session {
@@ -265,19 +289,19 @@ impl ConnectConfig {
     ///
     /// # Errors
     ///
-    /// Returns an error:
-    /// - [`crate::Error::Io`] if checking the config fails
-    /// - [`crate::Error::ConfigMissing`] if no configuration files have been found
-    fn first_existing_system_config() -> std::result::Result<PathBuf, crate::Error> {
-        let candidates = Self::CONFIG_ORDER.iter();
-        for file in candidates {
-            let file = PathBuf::from(file);
-            if std::fs::exists(&file).map_err(|source| crate::Error::Io {
-                file: file.clone(),
-                source,
-            })? {
-                return Ok(file);
-            }
+    /// Returns an error, if no configuration file is found.
+    fn first_existing_system_config() -> Result<(File, PathBuf), crate::Error> {
+        for path in Self::CONFIG_ORDER.iter().map(PathBuf::from) {
+            let Ok(path) = path.canonicalize() else {
+                info!("Unable to canonicalize path for configuration {path:?}. Skipping...");
+                continue;
+            };
+            let Ok(file) = OpenOptions::new().read(true).open(&path) else {
+                error!("Unable to open configuration {path:?}. Skipping...");
+                continue;
+            };
+
+            return Ok((file, path));
         }
         Err(crate::Error::ConfigMissing)
     }
@@ -288,12 +312,22 @@ impl ConnectConfig {
     ///
     /// # Errors
     ///
-    /// Returns an error:
-    /// - [`crate::Error::Io`] if checking the config fails
-    /// - [`crate::Error::ConfigMissing`] if no configuration files have been found
-    /// - [`crate::Error::Validation`] if the config file has invalid contents
-    pub fn from_first_system_config() -> std::result::Result<Self, crate::Error> {
-        Self::from_config_file(Self::first_existing_system_config()?)
+    /// Returns an error, if
+    /// - a configuration file cannot be found
+    /// - the file cannot be read to string
+    /// - the contents are not valid TOML
+    /// - the configuration fails validation
+    pub fn from_first_system_config() -> Result<Self, crate::Error> {
+        let (mut file, path) = Self::first_existing_system_config()?;
+        let mut data = String::new();
+        file.read_to_string(&mut data)
+            .map_err(|source| crate::Error::IoPath {
+                path,
+                context: "reading the config file".to_string(),
+                source,
+            })?;
+
+        Self::from_str(&data)
     }
 
     /// Reads the configuration file, validates it and returns the [`ConnectConfig`].
@@ -303,18 +337,30 @@ impl ConnectConfig {
     /// Returns an error:
     /// - [`crate::Error::Io`] if reading the config file fails
     /// - [`crate::Error::Validation`] if the config file has invalid contents
-    pub fn from_config_file(file: impl AsRef<Path>) -> std::result::Result<Self, crate::Error> {
-        let contents = read(file.as_ref()).map_err(|source| crate::Error::Io {
-            file: file.as_ref().into(),
+    pub fn from_config_file(file: impl AsRef<Path>) -> Result<Self, crate::Error> {
+        let path = file.as_ref();
+        let contents = read_to_string(path).map_err(|source| crate::Error::IoPath {
+            path: path.to_path_buf(),
+            context: "reading a configuration file".to_string(),
             source,
         })?;
-        let config: Self = toml::from_slice(&contents)?;
+
+        Self::from_str(&contents)
+    }
+}
+
+impl FromStr for ConnectConfig {
+    type Err = crate::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let config: ConnectConfig = toml::from_str(s)?;
         config
             .validate()
             .map_err(|source| crate::Error::Validation {
                 context: "reading configuration file".to_owned(),
                 source,
             })?;
+
         Ok(config)
     }
 }
@@ -527,16 +573,22 @@ impl ConnectOptions {
     /// [`authorized_keys` file format].
     ///
     /// [`authorized_keys` file format]: https://man.archlinux.org/man/core/openssh/sshd.8.en#AUTHORIZED_KEYS_FILE_FORMAT.
-    pub fn user_public_key(mut self, user_public_key: impl Into<String>) -> Result<Self> {
+    pub fn user_public_key(
+        mut self,
+        user_public_key: impl Into<String>,
+    ) -> Result<Self, crate::Error> {
         self.user_public_key =
-            PublicKey::from_openssh(&user_public_key.into()).map_err(russh::keys::Error::SshKey)?;
+            PublicKey::from_openssh(&user_public_key.into()).map_err(Error::SshKey)?;
         Ok(self)
     }
 
     /// Constructs a new [`ConnectOptions`] with target host and client public key.
-    pub fn new(host: String, client_auth_public_key: impl AsRef<str>) -> Result<Self> {
-        let client_auth_public_key = PublicKey::from_openssh(client_auth_public_key.as_ref())
-            .map_err(russh::keys::Error::SshKey)?;
+    pub fn new(
+        host: String,
+        client_auth_public_key: impl AsRef<str>,
+    ) -> Result<Self, crate::Error> {
+        let client_auth_public_key =
+            PublicKey::from_openssh(client_auth_public_key.as_ref()).map_err(Error::SshKey)?;
         Ok(Self {
             hosts: vec![host],
             agent_socket: Default::default(),
@@ -545,14 +597,14 @@ impl ConnectOptions {
     }
 }
 
-fn deserialize_entries<'de, D>(deserializer: D) -> std::result::Result<Vec<Entry>, D::Error>
+fn deserialize_entries<'de, D>(deserializer: D) -> Result<Vec<Entry>, D::Error>
 where
     D: Deserializer<'de>,
 {
     Vec::<String>::deserialize(deserializer)?
         .into_iter()
         .map(|entry: String| Entry::from_str(&entry).map_err(serde::de::Error::custom))
-        .collect::<std::result::Result<_, _>>()
+        .collect::<Result<_, _>>()
 }
 
 /// Validator for a host's SSH keys and a list of `known_hosts` entries.
@@ -567,7 +619,7 @@ struct KeyValidator {
     entries: Vec<Entry>,
 }
 
-impl client::Handler for KeyValidator {
+impl Handler for KeyValidator {
     type Error = Error;
 
     /// Checks whether a set of server details can be found in SSH `known_hosts` data.
@@ -579,7 +631,7 @@ impl client::Handler for KeyValidator {
     async fn check_server_key(
         &mut self,
         server_public_key: &PublicKeyOrCertificate,
-    ) -> Result<bool> {
+    ) -> Result<bool, Error> {
         if let PublicKeyOrCertificate::PublicKey { key, .. } = server_public_key {
             Ok(crate::ssh::known_hosts::is_server_known(
                 self.entries.iter(),
@@ -595,7 +647,7 @@ impl client::Handler for KeyValidator {
 
 /// An open session with a host that can be used to send multiple signing requests.
 pub struct Session {
-    session: client::Handle<KeyValidator>,
+    session: Handle<KeyValidator>,
     host: String,
     port: u16,
 }
@@ -617,7 +669,7 @@ impl Session {
     ///
     /// ```no_run
     /// # async fn sign() -> testresult::TestResult {
-    /// use signstar_request_signature::Request;
+    /// use signstar_common::request_api::Request;
     /// use signstar_request_signature::ssh::client::ConnectConfig;
     ///
     /// let options = ConnectConfig::from_first_system_config()?;
@@ -636,15 +688,25 @@ impl Session {
     /// - if the remote application exits unexpectedly,
     /// - the returned data cannot be deserialized into a [`Response`],
     /// - if an SSH protocol error is encountered.
-    pub async fn send(&mut self, data: &Request) -> Result<Response> {
-        let mut channel = self.session.channel_open_session().await?;
+    pub async fn send(&mut self, data: &Request) -> Result<Response, crate::Error> {
+        let mut channel = self
+            .session
+            .channel_open_session()
+            .await
+            .map_err(Error::SshProtocol)?;
         // the command name is empty as it is assumed that the server will
         // pick correct binary anyway
         let command_name = b"";
-        channel.exec(true, command_name).await?;
-        let data = serde_json::to_vec(&data)?;
-        channel.data(data.as_ref()).await?;
-        channel.eof().await?;
+        channel
+            .exec(true, command_name)
+            .await
+            .map_err(Error::SshProtocol)?;
+        let data = serde_json::to_vec(&data).map_err(|source| Error::Serialization { source })?;
+        channel
+            .data(data.as_ref())
+            .await
+            .map_err(Error::SshProtocol)?;
+        channel.eof().await.map_err(Error::SshProtocol)?;
 
         let mut code = None;
         let mut stdout = vec![];
@@ -664,12 +726,13 @@ impl Session {
 
         if let Some(code) = code {
             if let Some(status_code) = NonZeroU32::new(code) {
-                Err(Error::RemoteApplicationFailure { status_code })
+                Err(Error::RemoteApplicationFailure { status_code }.into())
             } else {
-                Ok(serde_json::from_slice(&stdout)?)
+                Ok(serde_json::from_slice(&stdout)
+                    .map_err(|source| Error::Deserialization { source })?)
             }
         } else {
-            Err(Error::UncleanExit)
+            Err(Error::UncleanExit.into())
         }
     }
 
@@ -706,15 +769,16 @@ impl Session {
     /// - if the client public key is not recognized by the server,
     /// - if the client authentication with the agent fails,
     /// - if an SSH protocol error is encountered.
-    pub async fn close(self) -> Result<()> {
-        self.session
+    pub async fn close(self) -> Result<(), crate::Error> {
+        Ok(self
+            .session
             .disconnect(
                 Disconnect::ByApplication,
                 "Client is closing the connection",
                 "en",
             )
-            .await?;
-        Ok(())
+            .await
+            .map_err(Error::SshProtocol)?)
     }
 }
 

@@ -12,18 +12,16 @@ version = "0.2.1"
 [dependencies]
 clap = { optional = true, workspace = true }
 clap-verbosity-flag = { optional = true, workspace = true }
-digest-io = "0.1.0"
 garde.workspace = true
 hmac = { version = "0.13.0" }
 log.workspace = true
 rand.workspace = true
 russh = { version = "0.64.0", features = ["serde"] }
-semver = { version = "1.0.23", features = ["serde"] }
 serde.workspace = true
 serde_json.workspace = true
 sha1.workspace = true
 sha2.workspace = true
-signstar-common = { features = ["logging"], optional = true, workspace = true }
+signstar-common = { features = ["logging", "request-api"], workspace = true }
 thiserror.workspace = true
 tokio = { workspace = true, features = ["full"] }
 toml.workspace = true
@@ -37,7 +35,6 @@ rsa_0_9_for_ssh_agent_lib = { package = "rsa", version = "<0.10", features = [
     "sha2",
 ] }
 rstest.workspace = true
-signstar-common = { features = ["logging"], workspace = true }
 ssh-agent-lib = "0.6.0"
 tempfile.workspace = true
 testresult.workspace = true
@@ -46,7 +43,7 @@ testresult.workspace = true
 
 [features]
 _containerized-integration-test = []
-cli = ["dep:clap", "dep:clap-verbosity-flag", "dep:signstar-common"]
+cli = ["dep:clap", "dep:clap-verbosity-flag"]
 default = ["cli"]
 
 [lints]

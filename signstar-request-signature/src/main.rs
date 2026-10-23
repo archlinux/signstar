@@ -3,11 +3,12 @@
 use std::process::ExitCode;
 
 use clap::Parser;
-use signstar_common::logging::setup_terminal_logging;
+use signstar_common::{
+    logging::setup_terminal_logging,
+    request_api::{Request, Response},
+};
 use signstar_request_signature::{
     Error,
-    Request,
-    Response,
     cli::{Cli, Command, SendCommand},
     ssh::client::ConnectConfig,
 };

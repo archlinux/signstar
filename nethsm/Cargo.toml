@@ -39,7 +39,6 @@ signstar-common = { workspace = true, features = ["logging"] }
 signstar-crypto = { version = "0.1.0", path = "../signstar-crypto", features = [
     "nethsm",
 ] }
-signstar-request-signature = { workspace = true, optional = true }
 strum.workspace = true
 testresult = { optional = true, workspace = true }
 thiserror.workspace = true
@@ -75,8 +74,8 @@ cli = [
     "dep:expression_format",
     "dep:rpassword",
     "dep:rprompt",
-    "dep:signstar-request-signature",
     "dep:zeroize",
+    "signstar-common/request-api",
 ]
 default = []
 

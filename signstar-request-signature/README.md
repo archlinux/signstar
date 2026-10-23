@@ -102,9 +102,9 @@ Changes to this project - unless stated otherwise - automatically fall under the
 
 [Apache-2.0]: https://www.apache.org/licenses/LICENSE-2.0
 [contributing guidelines]: ../CONTRIBUTING.md
-[Design document]: https://signstar.archlinux.page/signstar-request-signature/design.html
+[Design document]: https://signstar.archlinux.page/signing-api/design.html
 [MIT]: https://opensource.org/licenses/MIT
 [contributing guidelines]: ../CONTRIBUTING.md
-[requests]: https://signstar.archlinux.page/signstar-request-signature/request.html
-[responses]: https://signstar.archlinux.page/signstar-request-signature/response.html
+[requests]: https://signstar.archlinux.page/signing-api/request.html
+[responses]: https://signstar.archlinux.page/signing-api/response.html
 [Signstar website]: https://signstar.archlinux.page

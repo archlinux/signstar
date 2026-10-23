@@ -15,4 +15,9 @@ pub enum Error {
     #[cfg(feature = "logging")]
     #[error(transparent)]
     Logging(#[from] crate::logging::Error),
+
+    /// A request/response error occurred.
+    #[cfg(feature = "request-api")]
+    #[error("Request/response error: {0}")]
+    RequestResponse(#[from] crate::request_api::Error),
 }
