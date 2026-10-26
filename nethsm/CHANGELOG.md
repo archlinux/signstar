@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.12.0] - 2026-10-26
+
+### Added
+
+- [**breaking**] Move definition of signing API to signstar-common
+- [**breaking**] Move nethsm-config and nethsm-cli as modules to nethsm
+- Expose the `backup` module error in a variant of the crate's error
+
+### Other
+
+- Remove the use of `testdir`
+- [**breaking**] Move `nethsm_backup` into `nethsm` as a `backup` module
+
 ## [0.11.0] - 2026-09-28
 
 ### Added
