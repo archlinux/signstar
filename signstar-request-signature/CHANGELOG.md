@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-10-26
+
+### Added
+
+- [**breaking**] Move definition of signing API to signstar-common
+
+### Fixed
+
+- *(deps)* Update Rust crate russh to 0.64.0
+
+### Other
+
+- Remove the use of `testdir`
+- Add deprecation warning
+- Use `signstar-sign` as server application in request/response spec
+
 ## [0.2.1] - 2026-09-29
 
 ### Added
