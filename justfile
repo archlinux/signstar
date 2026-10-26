@@ -914,7 +914,7 @@ release package:
     fi
 
     printf "Creating tag %s...\n" "$tag"
-    git tag -s "$tag" -m "$tag"
+    git -c gpg.format=openpgp tag -s "$tag" -m "$tag"
     printf "Pushing tag %s...\n" "$tag"
     git push origin refs/tags/"$tag"
 
