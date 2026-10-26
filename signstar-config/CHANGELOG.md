@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-10-26
+
+### Fixed
+
+- *(deps)* Update Rust crate serde-saphyr to v2
+- Specifically set timeout for reconnection to a reset YubiHSM2
+
+### Other
+
+- Upgrade signstar-yubihsm2 crate to 0.2.0
+- Describe `http` connection for YubiHSM2 in configuration file
+- Add YubiHSM2 HTTP backend fixture
+- Remove the use of `testdir`
+
 ## [0.3.0] - 2026-09-29
 
 ### Added
