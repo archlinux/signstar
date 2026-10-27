@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-10-27
+
+### Fixed
+
+- *(systemd)* Allow access to Unix sockets for direct journald access
+
+### Other
+
+- Deprecate crate in favor of a future, more generic one
+- Add graph for the Signstar user and backend configuration
+
 ## [0.1.1] - 2026-09-29
 
 ### Added
