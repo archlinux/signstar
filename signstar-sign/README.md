@@ -6,7 +6,7 @@
 > Please visit the [Signstar website] to learn more about the binaries relevant for a Signstar host.
 
 Offers an executable for processing [Signstar signing requests].
-Requests are created using [`signstar-request-signature`] and specify everything that is needed for creating an artifact signature.
+Requests are created using [`signstar-client`] and specify everything that is needed for creating an artifact signature.
 
 The `signstar-sign` executable provided by this crate returns a [Signstar signing response] which contains a signature in protocol-specific framing.
 
@@ -24,7 +24,7 @@ The following command takes a signing request, encoded in JSON, and produces a J
 The JSON response contains a `signature` field, which is an armored OpenPGP signature.
 
 ```bash no_run
-signstar-sign < ../signstar-request-signature/tests/sample-request.json | jq --raw-output .signature | rsop dearmor | rpacket dump
+signstar-sign < ../signstar-client/tests/sample-request.json | jq --raw-output .signature | rsop dearmor | rpacket dump
 ```
 
 ## Features
@@ -52,5 +52,5 @@ Changes to this project - unless stated otherwise - automatically fall under the
 [Signstar signing response]: https://signstar.archlinux.page/signing-api/response.html
 [Signstar website]: https://signstar.archlinux.page
 [YubiHSM2]: https://www.yubico.com/de/product/yubihsm-2/
-[`signstar-request-signature`]: https://signstar.archlinux.page/signstar-request-signature/index.html
+[`signstar-client`]: https://signstar.archlinux.page/signstar-client/index.html
 [contributing guidelines]: ../CONTRIBUTING.md

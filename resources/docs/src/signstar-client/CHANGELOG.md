@@ -1,0 +1,1 @@
+../../../../signstar-client/CHANGELOG.md

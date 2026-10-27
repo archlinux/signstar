@@ -7,8 +7,8 @@
 //!
 //! ```no_run
 //! # async fn sign() -> testresult::TestResult {
+//! use signstar_client::ssh::client::ConnectConfig;
 //! use signstar_common::request_api::Request;
-//! use signstar_request_signature::ssh::client::ConnectConfig;
 //!
 //! let options = ConnectConfig::from_first_system_config()?;
 //!
@@ -201,7 +201,7 @@ impl ConnectConfig {
     ///
     /// ```no_run
     /// # async fn sign() -> testresult::TestResult {
-    /// use signstar_request_signature::ssh::client::ConnectConfig;
+    /// use signstar_client::ssh::client::ConnectConfig;
     ///
     /// let options = ConnectConfig::from_first_system_config()?;
     ///
@@ -523,7 +523,7 @@ fn validate_host_ids(config: &ConnectConfig, _context: &()) -> garde::Result {
 ///
 /// ```no_run
 /// # fn main() -> testresult::TestResult {
-/// use signstar_request_signature::ssh::client::ConnectOptions;
+/// use signstar_client::ssh::client::ConnectOptions;
 ///
 /// let options = ConnectOptions::new("localhost".into(), "ssh-ed25519 ...")?
 ///     .agent_socket(std::env::var("SSH_AUTH_SOCK")?);
@@ -558,7 +558,7 @@ impl ConnectOptions {
     ///
     /// ```
     /// # fn main() -> testresult::TestResult {
-    /// use signstar_request_signature::ssh::client::ConnectOptions;
+    /// use signstar_client::ssh::client::ConnectOptions;
     ///
     /// let client_pk =
     ///     "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILHCXBJYlPPkrt2WYyP3SZoMx43lDBB5QALjE762EQlc";
@@ -669,8 +669,8 @@ impl Session {
     ///
     /// ```no_run
     /// # async fn sign() -> testresult::TestResult {
+    /// use signstar_client::ssh::client::ConnectConfig;
     /// use signstar_common::request_api::Request;
-    /// use signstar_request_signature::ssh::client::ConnectConfig;
     ///
     /// let options = ConnectConfig::from_first_system_config()?;
     ///
@@ -748,7 +748,7 @@ impl Session {
     ///
     /// ```compile_fail
     /// # async fn sign() -> testresult::TestResult {
-    /// use signstar_request_signature::ssh::client::ConnectConfig;
+    /// use signstar_client::ssh::client::ConnectConfig;
     ///
     /// let options = ConnectConfig::from_first_system_config();
     ///

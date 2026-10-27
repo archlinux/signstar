@@ -1,4 +1,4 @@
-//! Containerized integration tests for [`signstar-request-signature`].
+//! Containerized integration tests for [`signstar-client`].
 
 #![cfg(feature = "_containerized-integration-test")]
 
@@ -7,7 +7,7 @@ mod containerized {
     use std::{assert_matches, fs::write, path::PathBuf};
 
     use rstest::rstest;
-    use signstar_request_signature::ssh::client::{
+    use signstar_client::ssh::client::{
         ConnectConfig,
         DEFAULT_CONFIG,
         ETC_OVERRIDE_CONFIG,
@@ -42,7 +42,7 @@ mod containerized {
     #[case::usr(DEFAULT_CONFIG)]
     #[case::run(RUN_OVERRIDE_CONFIG)]
     fn reading_single_location_config(#[case] subdir: &str) -> TestResult {
-        use signstar_request_signature::ssh::client::ConnectConfig;
+        use signstar_client::ssh::client::ConnectConfig;
 
         create_test_hierarchy()?;
         let config_file = PathBuf::from(subdir);
@@ -162,7 +162,7 @@ hosts = ["run"]
         // but the targets field is required so it returns an error
         assert_matches!(
             ConnectConfig::from_first_system_config(),
-            Err(signstar_request_signature::Error::Toml(_))
+            Err(signstar_client::Error::Toml(_))
         );
         Ok(())
     }
@@ -194,7 +194,7 @@ hosts = ["run"]
         // but the targets field is required so it returns an error
         assert_matches!(
             ConnectConfig::from_first_system_config(),
-            Err(signstar_request_signature::Error::Toml(_))
+            Err(signstar_client::Error::Toml(_))
         );
         Ok(())
     }

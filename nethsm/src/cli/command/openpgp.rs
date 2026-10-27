@@ -145,7 +145,7 @@ pub struct OpenPgpSignCommand {
     about = "Create an OpenPGP signature for a hasher state",
     long_about = ex_format!("Create an OpenPGP signature for a hasher's state
 
-Requires a valid hasher state payload on stdin as produced by the `signstar-request-signature` binary.
+Requires a valid hasher state payload on stdin as produced by the `signstar-client` binary.
 
 The signature is written to stdout, unless a specific path to a file is provided.
 

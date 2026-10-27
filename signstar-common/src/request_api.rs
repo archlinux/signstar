@@ -359,7 +359,7 @@ impl Request {
 ///
 /// The details of the format are documented in the [response specification].
 ///
-/// [response specification]: https://signstar.archlinux.page/signstar-request-signature/resources/docs/response.html
+/// [response specification]: https://signstar.archlinux.page/signing-api/response.html
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Response {
     /// Version of this signing response.

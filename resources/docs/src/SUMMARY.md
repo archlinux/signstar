@@ -6,6 +6,8 @@
 
 - [nethsm](./nethsm/README.md)
     - [CHANGELOG](./nethsm/CHANGELOG.md)
+- [signstar-client](./signstar-client/README.md)
+    - [CHANGELOG](./signstar-client/CHANGELOG.md)
 - [signstar-common](./signstar-common/README.md)
     - [CHANGELOG](./signstar-common/CHANGELOG.md)
 - [signstar-config](./signstar-config/README.md)
@@ -20,8 +22,6 @@
     - [CHANGELOG](./signstar-crypto/CHANGELOG.md)
 - [signstar-download-key-certificates](./signstar-download-key-certificates/README.md)
     - [CHANGELOG](./signstar-download-key-certificates/CHANGELOG.md)
-- [signstar-request-signature](./signstar-request-signature/README.md)
-    - [CHANGELOG](./signstar-request-signature/CHANGELOG.md)
 - [signstar-sign](./signstar-sign/README.md)
     - [CHANGELOG](./signstar-sign/CHANGELOG.md)
 - [signstar-yubihsm2](./signstar-yubihsm2/README.md)

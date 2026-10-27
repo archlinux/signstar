@@ -5,9 +5,9 @@ edition.workspace = true
 homepage.workspace = true
 keywords = ["hsm", "nethsm", "signature", "signing", "signstar"]
 license.workspace = true
-name = "signstar-request-signature"
+name = "signstar-client"
 repository.workspace = true
-version = "0.3.0"
+version = "0.1.0"
 
 [dependencies]
 clap = { optional = true, workspace = true }
@@ -50,6 +50,6 @@ default = ["cli"]
 workspace = true
 
 [[bin]]
-name = "signstar-request-signature"
+name = "signstar-client"
 path = "src/main.rs"
 required-features = ["cli"]

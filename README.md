@@ -17,13 +17,13 @@ The project documentation for the Signstar project can be found at <https://sign
 Signstar consists of several loosely coupled components, some of which are used in conjunction with one another.
 
 - [nethsm]: A library and command-line interface to provide interaction with the [Nitrokey NetHSM] to applications
+- [signstar-client]: An executable, run on a client host, that prepares data to be signed and retrieves a signature for it from a Signstar setup
 - [signstar-common]: Shared components and data types for Signstar tools and libraries
 - [signstar-config]: Configuration file handling for Signstar hosts
 - [signstar-configure-build]: A commandline interface for the configuration of Signstar system during build-time
 - [signstar-configure]: An executable, that non-interactively configures a Signstar host, its user's credentials and HSM backends
 - [signstar-crypto]: Common types and functionality for cryptography in Signstar
 - [signstar-download-key-certificates]: Library and executable for returning key certificates stored in backends of a Signstar host
-- [signstar-request-signature]: An executable, run on a client host, that prepares data to be signed and retrieves a signature for it from a Signstar setup
 - [signstar-sign]: An executable, that allows signing of messages with the help of an HSM, based on a configuration
 - [signstar-yubihsm2]: Integration for YubiHSM2 devices as Signstar backend
 
@@ -32,7 +32,7 @@ Signstar consists of several loosely coupled components, some of which are used 
 A Signstar setup requires a [TPM-2.0]-enabled host, allowing to run [Signstar OS] which provides a read-only root filesystem and an encrypted `/var` partition for its state.
 This signing service host is connected to one or more HSM devices and exposes *signstar-sign* to clients of the signing service.
 
-Clients use *signstar-request-signature* to connect to a Signstar setup and retrieve a signature for a provided payload.
+Clients use *signstar-client* to connect to a Signstar setup and retrieve a signature for a provided payload.
 
 ![Graph: OpenPGP signing of artifacts with Signstar](img/signstar-openpgp-signing-of-artifacts-with-signstar.svg)
 
@@ -90,12 +90,12 @@ Changes to this project - unless stated otherwise - automatically fall under the
 [main signing keys]: https://archlinux.org/master-keys/
 [nethsm]: nethsm/
 [pynitrokey]: https://github.com/Nitrokey/pynitrokey
+[signstar-client]: signstar-client/
 [signstar-common]: signstar-common/
 [signstar-config]: signstar-config/
 [signstar-configure]: signstar-configure/
 [signstar-configure-build]: signstar-configure-build/
 [signstar-crypto]: signstar-crypto/
 [signstar-download-key-certificates]: signstar-download-key-certificates/
-[signstar-request-signature]: signstar-request-signature/
 [signstar-sign]: signstar-sign/
 [signstar-yubihsm2]: signstar-yubihsm2/

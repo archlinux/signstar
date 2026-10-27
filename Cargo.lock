@@ -4996,6 +4996,35 @@ dependencies = [
 ]
 
 [[package]]
+name = "signstar-client"
+version = "0.1.0"
+dependencies = [
+ "base64ct",
+ "clap",
+ "clap-verbosity-flag",
+ "garde",
+ "hmac 0.13.0",
+ "insta",
+ "log",
+ "rand 0.10.3",
+ "rand 0.8.8",
+ "rsa 0.9.10",
+ "rstest",
+ "russh",
+ "serde",
+ "serde_json",
+ "sha1 0.11.0",
+ "sha2 0.11.0",
+ "signstar-common",
+ "ssh-agent-lib",
+ "tempfile",
+ "testresult",
+ "thiserror",
+ "tokio",
+ "toml 1.1.8+spec-1.1.0",
+]
+
+[[package]]
 name = "signstar-common"
 version = "0.3.0"
 dependencies = [
@@ -5144,35 +5173,6 @@ dependencies = [
  "thiserror",
  "tokio",
  "which",
-]
-
-[[package]]
-name = "signstar-request-signature"
-version = "0.3.0"
-dependencies = [
- "base64ct",
- "clap",
- "clap-verbosity-flag",
- "garde",
- "hmac 0.13.0",
- "insta",
- "log",
- "rand 0.10.3",
- "rand 0.8.8",
- "rsa 0.9.10",
- "rstest",
- "russh",
- "serde",
- "serde_json",
- "sha1 0.11.0",
- "sha2 0.11.0",
- "signstar-common",
- "ssh-agent-lib",
- "tempfile",
- "testresult",
- "thiserror",
- "tokio",
- "toml 1.1.8+spec-1.1.0",
 ]
 
 [[package]]

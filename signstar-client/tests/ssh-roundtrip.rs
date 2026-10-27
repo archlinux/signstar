@@ -38,8 +38,8 @@ use russh::{
         VerifiedPublicKey,
     },
 };
+use signstar_client::ssh::client::ConnectConfig;
 use signstar_common::{logging::setup_terminal_logging, request_api::Request};
-use signstar_request_signature::ssh::client::ConnectConfig;
 use ssh_agent_lib::{client::connect, ssh_encoding::Encode as _};
 use tempfile::{NamedTempFile, TempDir};
 use testresult::TestResult;

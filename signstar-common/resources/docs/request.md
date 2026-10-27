@@ -4,7 +4,7 @@ A signing request format for Signstar systems.
 
 ## Glossary
 
-- *Client*: The application (here: [`signstar-request-signature`]) which computes a file digest and creates a *signing request*
+- *Client*: The application (here: [`signstar-client`]) which computes a file digest and creates a *signing request*
 - *Server*: The application (currently: [`signstar-sign`]) which receives a *signing request*, processes it and returns a *signature*
 - *Signing request*: Machine and human-readable description of the data that will be signed.
   The exact format for the signing request is described below.
@@ -102,4 +102,4 @@ Refer to the [design document] for an in-depth discussion of the technical detai
 
 [design document]: https://signstar.archlinux.page/signing-api/design.html
 [`signstar-sign`]: https://signstar.archlinux.page/signstar-sign/
-[`signstar-request-signature`]: https://signstar.archlinux.page/signstar-request-signature/index.html
+[`signstar-client`]: https://signstar.archlinux.page/signstar-client/index.html

@@ -496,10 +496,10 @@ generate-cli-man-pages-and-completions:
 
     readonly executables=(
         nethsm
+        signstar-client
         signstar-configure
         signstar-configure-build
         signstar-download-key-certificates
-        signstar-request-signature
     )
 
     for executable in "${executables[@]}"; do
@@ -642,8 +642,8 @@ check-rust-derives:
 [group('check')]
 check-shell-code:
     just check-shell-readme nethsm
+    just check-shell-readme signstar-client
     just check-shell-readme signstar-configure-build
-    just check-shell-readme signstar-request-signature
 
     just check-shell-recipe 'test-readme nethsm'
     just check-shell-recipe check-commits
@@ -1256,6 +1256,16 @@ test-readme project:
     podman_start_options=()
 
     case "$project" in
+        signstar-client)
+            podman_create_options+=(
+                --init
+                "--mount=type=bind,source=$project/tests/sshd/10-signstar-sign.conf,destination=/etc/ssh/sshd_config.d/10-signstar-sign.conf,ro=true"
+                "--mount=type=bind,source=$project/tests/sshd,destination=/home/signstar-sign/.ssh,ro=true"
+                "--mount=type=bind,source=$project/tests/sshd/signstar-sign,destination=/usr/local/bin/signstar-sign,ro=true"
+                "$arch_container"
+                sh -c "pacman-key --init && pacman -Sy --needed --noconfirm archlinux-keyring && pacman -Syu --needed --noconfirm openssh && useradd signstar-sign && ssh-keygen -A && /usr/bin/sshd -p 2222 -e -D"
+                )
+        ;;
         signstar-configure-build)
             podman_create_options+=(
                 --interactive
@@ -1271,16 +1281,6 @@ test-readme project:
                 --attach
             )
         ;;
-        signstar-request-signature)
-            podman_create_options+=(
-                --init
-                "--mount=type=bind,source=$project/tests/sshd/10-signstar-sign.conf,destination=/etc/ssh/sshd_config.d/10-signstar-sign.conf,ro=true"
-                "--mount=type=bind,source=$project/tests/sshd,destination=/home/signstar-sign/.ssh,ro=true"
-                "--mount=type=bind,source=$project/tests/sshd/signstar-sign,destination=/usr/local/bin/signstar-sign,ro=true"
-                "$arch_container"
-                sh -c "pacman-key --init && pacman -Sy --needed --noconfirm archlinux-keyring && pacman -Syu --needed --noconfirm openssh && useradd signstar-sign && ssh-keygen -A && /usr/bin/sshd -p 2222 -e -D"
-                )
-        ;;
         *)
             podman_create_options+=(
                 "docker.io/nitrokey/nethsm:$nethsm_image_tag"
@@ -1293,8 +1293,8 @@ test-readme project:
     install_executables() {
         case "$project" in
             nethsm)
-                printf "Installing executables of signstar-request-signature\n"
-                cargo install --locked --path signstar-request-signature --features cli
+                printf "Installing executables of signstar-client\n"
+                cargo install --locked --path signstar-client --features cli
                 printf "Installing executables of %s...\n" "{{ project }}"
                 cargo install --locked --all-features --path {{ project }}
             ;;
@@ -1355,6 +1355,6 @@ test-readme project:
 [group('test')]
 test-readmes:
     just test-readme nethsm
+    just test-readme signstar-client
     just test-readme signstar-configure-build
-    just test-readme signstar-request-signature
     just test-readme signstar-yubihsm2
