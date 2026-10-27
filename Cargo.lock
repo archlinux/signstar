@@ -5061,7 +5061,7 @@ dependencies = [
 
 [[package]]
 name = "signstar-configure-build"
-version = "0.4.0"
+version = "0.4.1"
 dependencies = [
  "clap",
  "clap-verbosity-flag",

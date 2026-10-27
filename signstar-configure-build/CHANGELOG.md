@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-10-27
+
+### Other
+
+- Deprecate crate in favor of a future, more generic one
+- Add graph for the SSH configuration done for Signstar host users
+
 ## [0.4.0] - 2026-09-29
 
 ### Added
