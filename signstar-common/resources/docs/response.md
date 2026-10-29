@@ -46,7 +46,7 @@ Refer to the [design document] for an in-depth discussion of the technical detai
 
 [9580]: https://www.rfc-editor.org/rfc/rfc9580
 [ARMOR]: https://openpgp.dev/book/armor.html
-[design document]: https://signstar.archlinux.page/signstar-request-signature/design.html
+[design document]: https://signstar.archlinux.page/signing-api/design.html
 [`signstar-sign`]: https://signstar.archlinux.page/signstar-sign/
 [SD]: https://openpgp.dev/book/signing_data.html
 [`signstar-request-signature`]: https://signstar.archlinux.page/signstar-request-signature/index.html

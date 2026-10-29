@@ -48,8 +48,8 @@ Changes to this project - unless stated otherwise - automatically fall under the
 [Apache-2.0]: https://www.apache.org/licenses/LICENSE-2.0
 [MIT]: https://opensource.org/licenses/MIT
 [OpenPGP signatures]: https://openpgp.dev/book/signing_data.html
-[Signstar signing requests]: https://signstar.archlinux.page/signstar-request-signature/request.html
-[Signstar signing response]: https://signstar.archlinux.page/signstar-request-signature/response.html
+[Signstar signing requests]: https://signstar.archlinux.page/signing-api/request.html
+[Signstar signing response]: https://signstar.archlinux.page/signing-api/response.html
 [Signstar website]: https://signstar.archlinux.page
 [YubiHSM2]: https://www.yubico.com/de/product/yubihsm-2/
 [`signstar-request-signature`]: https://signstar.archlinux.page/signstar-request-signature/index.html
