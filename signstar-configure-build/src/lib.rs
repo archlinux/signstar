@@ -273,6 +273,18 @@ pub enum Error {
     #[error("The string {0} could not be converted to a \"sysinfo::Uid\"")]
     SysUidFromStr(String),
 
+    /// System initialization error
+    #[error("System initialization failed while {context}: {source}")]
+    SystemInitializationFailed {
+        /// The context in which the error occurred.
+        ///
+        /// This is meant to complete the sentence "System initialization failed while ".
+        context: &'static str,
+
+        /// The source error.
+        source: sysinfo::Error,
+    },
+
     /// A `Path` value for a tmpfiles.d integration is not valid.
     #[error(
         "The Path value {path} for the tmpfiles.d integration for {user} is not valid:\n{reason}"
@@ -711,7 +723,10 @@ pub fn ensure_root() -> Result<(), Error> {
         .try_into()
         .map_err(|_| Error::FailedU32ToUsizeConversion)?;
 
-    let system = System::new_all();
+    let system = System::new_all().map_err(|source| Error::SystemInitializationFailed {
+        context: "checking whether the current process is ran by root",
+        source,
+    })?;
     let Some(process) = system.process(Pid::from(pid)) else {
         return Err(Error::NoProcess);
     };
