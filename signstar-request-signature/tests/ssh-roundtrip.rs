@@ -24,9 +24,19 @@ use base64ct::{Base64, Encoding as _};
 use log::{LevelFilter, debug, info};
 use rand::rng;
 use russh::{
-    keys::ssh_key::{PrivateKey, PublicKey, private::Ed25519Keypair},
-    server::{Auth, ChannelOpenHandle, Config, Handler, Msg, Server, Session as ServerSession},
-    {Channel, ChannelId},
+    Channel,
+    ChannelId,
+    keys::ssh_key::{PrivateKey, private::Ed25519Keypair},
+    server::{
+        Auth,
+        ChannelOpenHandle,
+        Config,
+        Handler,
+        Msg,
+        Server,
+        Session as ServerSession,
+        VerifiedPublicKey,
+    },
 };
 use signstar_common::{logging::setup_terminal_logging, request_api::Request};
 use signstar_request_signature::ssh::client::ConnectConfig;
@@ -234,7 +244,11 @@ impl<F: Fn(&[u8]) -> Vec<u8> + Send + Clone> Handler for SshServer<F> {
         Ok(())
     }
 
-    async fn auth_publickey(&mut self, _user: &str, _key: &PublicKey) -> Result<Auth, Self::Error> {
+    async fn auth_publickey(
+        &mut self,
+        _user: &str,
+        _key: VerifiedPublicKey<'_>,
+    ) -> Result<Auth, Self::Error> {
         Ok(Auth::Accept)
     }
 
