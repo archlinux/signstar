@@ -2,7 +2,7 @@
 exclude = ["MD007"]
 output-format = "concise"
 quiet = false
-respect-gitignore = true
+respect-gitignore = "repository-only"
 respect-ignore = true
 rules = [
     "MD001",
