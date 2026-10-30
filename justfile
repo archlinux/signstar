@@ -888,7 +888,7 @@ prepare-release package version="":
 
     git add Cargo.* "$package_name"/{Cargo.toml,CHANGELOG.md}
     git commit --gpg-sign --signoff --message "chore: Upgrade $package_name crate to $updated_package_version"
-    git push --set-upstream origin "$branch_name"
+    git push --push-option=merge_request.create --push-option=merge_request.merge_when_pipeline_succeeds --set-upstream origin "$branch_name"
 
 # Creates a release of a crate in the workspace by creating a tag and pushing it
 [group('release')]
