@@ -1,11 +1,7 @@
-# Signstar Request Signature
+# Signstar Client
 
-> [!WARNING]
->
-> This crate is deprecated in favor of a more general one.
-> Please visit the [Signstar website] to learn more about the binaries relevant for a Signstar client.
-
-This crate offers a library and an executable for creating, reading and writing of signing requests for files.
+This crate offers a library and an executable for interacting with the Signstar host.
+Creating, reading and writing of signing requests for files is one of its features.
 
 ## Documentation
 

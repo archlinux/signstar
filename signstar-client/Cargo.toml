@@ -1,6 +1,6 @@
 [package]
 authors.workspace = true
-description = "Library and executable for creating, reading and writing of signing requests for files"
+description = "Library and executable for interacting with the Signstar host"
 edition.workspace = true
 homepage.workspace = true
 keywords = ["hsm", "nethsm", "signature", "signing", "signstar"]
