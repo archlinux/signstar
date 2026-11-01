@@ -37,9 +37,10 @@ render-script := '''
     //! ```
 
     fn main() -> Result<(), Box<dyn std::error::Error>> {
-        clap_allgen::render_KIND::<pkg::cli::Cli>(
-            &std::env::args().collect::<Vec<_>>()[1],
-        )?;
+        let output_dir = &std::env::args().collect::<Vec<_>>()[1];
+
+        clap_allgen::render_KIND::<pkgMODULE::cli::Cli>(&output_dir)?;
+
         Ok(())
     }
 '''
@@ -443,6 +444,8 @@ generate kind pkg:
 
     case "$kind" in
         manpages|shell_completions)
+            modules=()
+
             just ensure-command rust-script sed
 
             script="$(mktemp --suffix=.rs)"
@@ -463,13 +466,22 @@ generate kind pkg:
             case "$pkg" in
                 nethsm)
                     readonly features=', features = ["cli"]'
+                    modules+=("")
+                ;;
+                signstar-host)
+                    readonly features=''
+                    modules+=("::configure" "::configure_build" "::download_key_certificates" "::sign")
                 ;;
                 *)
                     readonly features=''
+                    modules+=("")
                 ;;
             esac
-            sed "s/PKG/$pkg/;s#PATH#$PWD/$pkg#g;s/KIND/$kind/g;s/FEATURES/$features/g" > "$script" <<< '{{ render-script }}'
-            rust-script "$script" "$output_dir/$kind"
+
+            for module in "${modules[@]}"; do
+                sed "s/PKG/$pkg/;s#PATH#$PWD/$pkg#g;s/KIND/$kind/g;s/FEATURES/$features/g;s/MODULE/$module/g" > "$script" <<< '{{ render-script }}'
+                rust-script "$script" "$output_dir/$kind"
+            done
         ;;
         specifications)
             just ensure-command lowdown
@@ -497,9 +509,7 @@ generate-cli-man-pages-and-completions:
     readonly executables=(
         nethsm
         signstar-client
-        signstar-configure
-        signstar-configure-build
-        signstar-download-key-certificates
+        signstar-host
     )
 
     for executable in "${executables[@]}"; do
@@ -643,7 +653,7 @@ check-rust-derives:
 check-shell-code:
     just check-shell-readme nethsm
     just check-shell-readme signstar-client
-    just check-shell-readme signstar-configure-build
+    just check-shell-readme signstar-host
 
     just check-shell-recipe 'test-readme nethsm'
     just check-shell-recipe check-commits
@@ -960,21 +970,15 @@ containerized-integration-tests-all:
     just clean_coverage_workspace=false build_bins_and_examples=false containerized-integration-tests --locked --no-default-features --package signstar-config --features yubihsm2
     printf 'Run containerized integration tests for signstar-config with nethsm,yubihsm2 feature...\n'
     just clean_coverage_workspace=false build_bins_and_examples=false containerized-integration-tests --locked --no-default-features --package signstar-config --features nethsm,yubihsm2
-    printf 'Run containerized integration tests for signstar-configure with _yubihsm2-mockhsm feature...\n'
-    just clean_coverage_workspace=false build_bins_and_examples=false containerized-integration-tests --locked --no-default-features --package signstar-configure
-    just clean_coverage_workspace=false build_bins_and_examples=false containerized-integration-tests --locked --no-default-features --package signstar-configure --features _yubihsm2-mockhsm,cli,yubihsm2
-    just clean_coverage_workspace=false build_bins_and_examples=false containerized-integration-tests --locked --no-default-features --package signstar-configure --features cli,nethsm
-    just clean_coverage_workspace=false build_bins_and_examples=false containerized-integration-tests --locked --no-default-features --package signstar-configure --features _yubihsm2-mockhsm,cli,nethsm,yubihsm2
     printf 'Run containerized integration tests for signstar-crypto without default features...\n'
     just clean_coverage_workspace=false build_bins_and_examples=false containerized-integration-tests --locked --no-default-features --package signstar-crypto
     printf 'Run containerized integration tests for signstar-crypto with nethsm features...\n'
     just clean_coverage_workspace=false build_bins_and_examples=false containerized-integration-tests --locked --no-default-features --package signstar-crypto --features nethsm
-    printf 'Run containerized integration tests for signstar-download-key-certificates with all backends...\n'
-    just clean_coverage_workspace=false build_bins_and_examples=false containerized-integration-tests --locked --no-default-features --package signstar-download-key-certificates --features _yubihsm2-mockhsm,nethsm,yubihsm2
-    printf 'Run containerized integration tests for signstar-sign with nethsm feature...\n'
-    just clean_coverage_workspace=false build_bins_and_examples=false containerized-integration-tests --locked --no-default-features --package signstar-sign --features nethsm
-    printf 'Run containerized integration tests for signstar-sign with _yubihsm2-mockhsm feature...\n'
-    just clean_coverage_workspace=false build_bins_and_examples=false containerized-integration-tests --locked --no-default-features --package signstar-sign --features _yubihsm2-mockhsm
+    printf 'Run containerized integration tests for signstar-host...\n'
+    just clean_coverage_workspace=false build_bins_and_examples=false containerized-integration-tests --locked --no-default-features --package signstar-host
+    just clean_coverage_workspace=false build_bins_and_examples=false containerized-integration-tests --locked --no-default-features --package signstar-host --features _yubihsm2-mockhsm,cli,yubihsm2
+    just clean_coverage_workspace=false build_bins_and_examples=false containerized-integration-tests --locked --no-default-features --package signstar-host --features cli,nethsm
+    just clean_coverage_workspace=false build_bins_and_examples=false containerized-integration-tests --locked --no-default-features --package signstar-host --features _yubihsm2-mockhsm,cli,nethsm,yubihsm2
 
 [doc('Creates code coverage report for all projects from all available sources.
 When providing `with-docs` to the `mode` parameter, this also includes doc test coverage in the report (requires nightly).
@@ -1266,7 +1270,7 @@ test-readme project:
                 sh -c "pacman-key --init && pacman -Sy --needed --noconfirm archlinux-keyring && pacman -Syu --needed --noconfirm openssh && useradd signstar-sign && ssh-keygen -A && /usr/bin/sshd -p 2222 -e -D"
                 )
         ;;
-        signstar-configure-build)
+        signstar-host)
             podman_create_options+=(
                 --interactive
                 --tty
@@ -1334,7 +1338,7 @@ test-readme project:
     run_test() {
         start_container
         case "$project" in
-            signstar-configure-build)
+            signstar-host)
                 # NOTE: the test is run by starting the container
                 exit 0
             ;;
@@ -1356,5 +1360,5 @@ test-readme project:
 test-readmes:
     just test-readme nethsm
     just test-readme signstar-client
-    just test-readme signstar-configure-build
+    just test-readme signstar-host
     just test-readme signstar-yubihsm2

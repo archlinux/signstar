@@ -1,0 +1,1 @@
+../../../../signstar-host/ARCHITECTURE.md

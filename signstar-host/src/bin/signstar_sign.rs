@@ -1,0 +1,279 @@
+//! Application for the creation of signatures from signing requests.
+
+use std::{
+    collections::BTreeMap,
+    io::{Read, Write, stdin, stdout},
+    process::ExitCode,
+};
+
+use clap::Parser;
+use signstar_common::{
+    logging::{setup_systemd_journal_logging, setup_terminal_logging},
+    request_api::{Request, Response, Sha512},
+};
+use signstar_crypto::signer::{openpgp::sign_hasher_state, traits::RawSigningKey};
+use signstar_host::{
+    Error,
+    sign::{Error as SignError, cli::Cli},
+};
+
+/// Raw signing key with additional signature context.
+struct SignerContext {
+    /// Raw signing key for creating signatures.
+    signer: Box<dyn RawSigningKey>,
+
+    /// Notations that will be appended to the signature.
+    notations: BTreeMap<String, String>,
+}
+
+#[cfg(any(feature = "nethsm", feature = "yubihsm2"))]
+mod impl_any {
+    #[cfg(feature = "nethsm")]
+    use nethsm::{NetHsm, signer::OwnedNetHsmKey};
+    #[cfg(any(feature = "nethsm", feature = "yubihsm2"))]
+    use signstar_config::config::UserBackendConnection;
+    use signstar_config::config::{
+        NonAdminBackendUserIdFilter,
+        NonAdminBackendUserIdKind,
+        SystemUserId,
+    };
+    #[cfg(feature = "nethsm")]
+    use signstar_config::nethsm::NetHsmUserMapping;
+    #[cfg(feature = "yubihsm2")]
+    use signstar_config::yubihsm2::YubiHsm2UserMapping;
+    use signstar_crypto::key::CryptographicKeyContext;
+    use signstar_host::config::load_config;
+    #[cfg(feature = "yubihsm2")]
+    use signstar_yubihsm2::{Connection, Credentials, YubiHsm2SigningKey};
+
+    use super::*;
+
+    /// Creates a new [`RawSigningKey`] implementation from the system's Signstar config and current
+    /// user.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if configuration:
+    /// - loading encounters errors
+    /// - does not contain any key settings
+    /// - does not contain valid connections
+    /// - does not contain credentials with a passphrase
+    pub fn load_signer() -> Result<SignerContext, Error> {
+        let current_system_user = SystemUserId::from_current_unix_user().map_err(Box::new)?;
+        let config = load_config()?;
+        let Some(user_backend_connection) = config.user_backend_connection(&current_system_user)
+        else {
+            return Err(SignError::NoCredentials.into());
+        };
+
+        // Load credentials for a signing user of the backend.
+        // Here, we _know_ that there always is at least one connection, and we take the first one.
+        let creds = user_backend_connection
+            .load_non_admin_backend_user_secrets(NonAdminBackendUserIdFilter {
+                backend_user_id_kind: NonAdminBackendUserIdKind::Signing,
+            })
+            .map_err(Box::new)?
+            .ok_or(Error::Sign(SignError::NoCredentials))?
+            .remove(0);
+
+        match user_backend_connection {
+            #[cfg(feature = "nethsm")]
+            UserBackendConnection::NetHsm {
+                admin_secret_handling: _,
+                non_admin_secret_handling: _,
+                connections,
+                mapping,
+            } => match mapping {
+                NetHsmUserMapping::Signing {
+                    backend_user,
+                    signing_key_id,
+                    key_setup,
+                    ..
+                } => {
+                    let notations = if let CryptographicKeyContext::OpenPgp { notations, .. } =
+                        key_setup.key_context()
+                    {
+                        notations.clone()
+                    } else {
+                        return Err(SignError::UnsupportedSignerSetup.into());
+                    };
+
+                    let connection = connections
+                        .first()
+                        .cloned()
+                        .ok_or(Error::Sign(SignError::NoConnection))?;
+
+                    Ok(SignerContext {
+                        signer: Box::new(OwnedNetHsmKey::new(
+                            NetHsm::new(
+                                connection,
+                                Some(nethsm::Credentials::new(
+                                    backend_user,
+                                    Some(creds.passphrase().clone()),
+                                )),
+                                None,
+                                None,
+                            )?,
+                            signing_key_id,
+                        )?),
+                        notations,
+                    })
+                }
+                NetHsmUserMapping::Admin(_)
+                | NetHsmUserMapping::Backup { .. }
+                | NetHsmUserMapping::CertificateRetrieval { .. }
+                | NetHsmUserMapping::HermeticMetrics { .. }
+                | NetHsmUserMapping::Metrics { .. } => Err(SignError::NoCredentials.into()),
+            },
+            #[cfg(feature = "yubihsm2")]
+            UserBackendConnection::YubiHsm2 {
+                admin_secret_handling: _,
+                non_admin_secret_handling: _,
+                connections,
+                mapping,
+            } => match mapping {
+                YubiHsm2UserMapping::Signing {
+                    authentication_key_id,
+                    key_setup,
+                    signing_key_id,
+                    ..
+                } => {
+                    let notations = if let CryptographicKeyContext::OpenPgp { notations, .. } =
+                        key_setup.key_context()
+                    {
+                        notations.clone()
+                    } else {
+                        return Err(SignError::UnsupportedSignerSetup.into());
+                    };
+
+                    let connection = connections
+                        .first()
+                        .cloned()
+                        .ok_or(Error::Sign(SignError::NoConnection))?;
+                    match connection {
+                        #[cfg(feature = "_yubihsm2-mockhsm")]
+                        Connection::Mock => Ok(SignerContext {
+                            signer: Box::new(YubiHsm2SigningKey::mock(
+                                signing_key_id,
+                                &Credentials::new(
+                                    authentication_key_id,
+                                    creds.passphrase().clone(),
+                                ),
+                            )?),
+                            notations,
+                        }),
+                        Connection::Http { url } => Ok(SignerContext {
+                            signer: Box::new(YubiHsm2SigningKey::new_remote(
+                                url,
+                                signing_key_id,
+                                &Credentials::new(
+                                    authentication_key_id,
+                                    creds.passphrase().clone(),
+                                ),
+                            )?),
+                            notations,
+                        }),
+                        Connection::Usb { serial_number } => Ok(SignerContext {
+                            signer: Box::new(YubiHsm2SigningKey::new_with_serial_number(
+                                serial_number,
+                                signing_key_id,
+                                &Credentials::new(
+                                    authentication_key_id,
+                                    creds.passphrase().clone(),
+                                ),
+                            )?),
+                            notations,
+                        }),
+                    }
+                }
+                YubiHsm2UserMapping::Admin { .. }
+                | YubiHsm2UserMapping::Backup { .. }
+                | YubiHsm2UserMapping::CertificateRetrieval { .. }
+                | YubiHsm2UserMapping::AuditLog { .. }
+                | YubiHsm2UserMapping::HermeticAuditLog { .. } => {
+                    Err(SignError::NoCredentials.into())
+                }
+            },
+        }
+    }
+}
+
+#[cfg(not(any(feature = "nethsm", feature = "yubihsm2")))]
+mod impl_none {
+    use super::*;
+
+    /// Creates a new [`RawSigningKey`] implementation from the system's Signstar config and current
+    /// user.
+    ///
+    /// # Errors
+    ///
+    /// Always returns an error, because no HSM backend support is compiled in.
+    pub fn load_signer() -> Result<SignerContext, Error> {
+        Err(SignError::NoBackend.into())
+    }
+}
+
+#[cfg(any(feature = "nethsm", feature = "yubihsm2"))]
+use impl_any::load_signer;
+#[cfg(not(any(feature = "nethsm", feature = "yubihsm2")))]
+use impl_none::load_signer;
+
+/// Signs the signing request in `reader` and write the response to the `writer`.
+///
+/// # Errors
+///
+/// Returns an error if:
+///
+/// - logging cannot be set up,
+/// - a [`Request`] cannot be created from `reader`,
+/// - the [`Request`] does not use OpenPGP v4,
+/// - the [`Request`] is not version 1,
+/// - a [`Sha512`] hasher state can not be created from the [`Request`],
+/// - no HSM and key data can be retrieved for the calling user,
+/// - a signature can not be created over the hasher state,
+/// - or the [`Response`] can not be written to the `writer`.
+fn sign_request(reader: impl Read, writer: impl Write) -> Result<(), Error> {
+    let req = Request::from_reader(reader)?;
+
+    if !req.required.output.is_openpgp_v4() {
+        return Err(SignError::UnsupportedParameters.into());
+    }
+
+    if req.version.major != 1 {
+        return Err(SignError::UnsupportedParameters.into());
+    }
+
+    let hasher: Sha512 = req.required.input.try_into()?;
+
+    let signer_context = load_signer()?;
+
+    let signature = sign_hasher_state(&*signer_context.signer, hasher, signer_context.notations)?;
+
+    Response::v1(signature).to_writer(writer)?;
+
+    Ok(())
+}
+
+/// Signs the signing request on standard input and returns a signing response on standard output.
+fn main() -> ExitCode {
+    let args = Cli::parse();
+
+    if let Err(error) = setup_systemd_journal_logging(args.verbosity) {
+        eprintln!(
+            "Unable to log output to systemd journal: {error}\nFalling back to logging to terminal..."
+        );
+        if let Err(error) = setup_terminal_logging(args.verbosity) {
+            eprintln!("Unable to log output to terminal: {error}");
+            return ExitCode::FAILURE;
+        };
+    }
+
+    let result = sign_request(stdin(), stdout());
+
+    if let Err(error) = result {
+        log::error!(error:err; "Processing signing request failed: {error:#?}");
+        ExitCode::FAILURE
+    } else {
+        ExitCode::SUCCESS
+    }
+}

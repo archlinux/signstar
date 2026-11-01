@@ -4,12 +4,8 @@ members = [
     "signstar-client",
     "signstar-common",
     "signstar-config",
-    "signstar-configure",
-    "signstar-configure-build",
     "signstar-crypto",
-    "signstar-download-key-certificates",
     "signstar-host",
-    "signstar-sign",
     "signstar-yubihsm2",
 ]
 resolver = "3"
@@ -56,6 +52,7 @@ signstar-client = { path = "signstar-client", version = "0.1.0" }
 signstar-common = { path = "signstar-common", version = "0.3.0" }
 signstar-config = { path = "signstar-config", version = "0.3.1" }
 signstar-crypto = { path = "signstar-crypto", version = "0.1.1" }
+signstar-yubihsm2 = { path = "signstar-yubihsm2", version = "0.2.0" }
 simplelog = "0.12.2"
 strum = { version = "0.28.0", features = ["derive"] }
 tempfile = "3.24.0"

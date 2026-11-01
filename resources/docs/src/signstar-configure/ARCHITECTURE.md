@@ -1,1 +1,0 @@
-../../../../signstar-configure/ARCHITECTURE.md

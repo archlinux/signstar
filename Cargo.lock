@@ -459,16 +459,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "assert-json-diff"
-version = "2.0.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "47e4f2b81832e72834d7518d8487a0396a28cc408186a2e8854c0f98011faf12"
-dependencies = [
- "serde",
- "serde_json",
-]
-
-[[package]]
 name = "assert_cmd"
 version = "2.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -782,9 +772,6 @@ name = "bytes"
 version = "1.12.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fc652a48c352aef3ea3aed32080501cf3ef6ed5da78602a020c991775b0aff04"
-dependencies = [
- "serde",
-]
 
 [[package]]
 name = "bytestring"
@@ -2303,30 +2290,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ed5909b6e89a2db4456e54cd5f673791d7eca6732202bbf2a9cc504fe2f9b84a"
 
 [[package]]
-name = "headers"
-version = "0.4.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fc2700e3fe555c3310aa7286cac6167449f2c87e0eb58769c9208a1c58a1d106"
-dependencies = [
- "base64 0.22.1",
- "bytes",
- "headers-core",
- "http 1.5.0",
- "httpdate",
- "mime",
- "sha1 0.10.7",
-]
-
-[[package]]
-name = "headers-core"
-version = "0.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "54b4a22553d4242c49fddb9ba998a99962b5cc6f22cb5a3482bec22522403ce4"
-dependencies = [
- "http 1.5.0",
-]
-
-[[package]]
 name = "heck"
 version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2449,32 +2412,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "df3b46402a9d5adb4c86a0cf463f42e19994e3ee891101b1841f30a545cb49a9"
 
 [[package]]
-name = "httpmock"
-version = "0.9.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "654f72e90ee9871781fd37154c1c0049ef20f988f8a2931887dc285170e682ab"
-dependencies = [
- "assert-json-diff",
- "base64 0.23.1",
- "bytes",
- "form_urlencoded",
- "futures-timer",
- "headers",
- "http 1.5.0",
- "http-body-util",
- "hyper",
- "hyper-util",
- "path-tree",
- "regex",
- "serde",
- "serde_json",
- "similar 3.2.1",
- "thiserror",
- "tokio",
- "tracing",
-]
-
-[[package]]
 name = "hybrid-array"
 version = "0.4.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2501,7 +2438,6 @@ dependencies = [
  "http 1.5.0",
  "http-body",
  "httparse",
- "httpdate",
  "itoa",
  "pin-project-lite",
  "smallvec",
@@ -2753,7 +2689,7 @@ dependencies = [
  "console",
  "once_cell",
  "regex",
- "similar 2.7.0",
+ "similar",
  "strip-ansi-escapes",
  "tempfile",
 ]
@@ -2943,9 +2879,9 @@ dependencies = [
 
 [[package]]
 name = "local-waker"
-version = "0.1.4"
+version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4d873d7c67ce09b42110d801813efbc9364414e356be9935700d368351657487"
+checksum = "88bab6b3971cb9cda8a370672a73e59a442b87552f005fb60ec07b67fa658f13"
 
 [[package]]
 name = "lock_api"
@@ -3639,15 +3575,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "07ba0ad7e047712414213ff67533e6dd477af0a4e1d14fb52343e53d30ea9397"
 dependencies = [
  "once_cell",
-]
-
-[[package]]
-name = "path-tree"
-version = "0.8.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c2a97453bc21a968f722df730bfe11bd08745cb50d1300b0df2bda131dece136"
-dependencies = [
- "smallvec",
 ]
 
 [[package]]
@@ -5075,37 +5002,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "signstar-configure"
-version = "0.1.2"
-dependencies = [
- "assert_cmd",
- "clap",
- "clap-verbosity-flag",
- "log",
- "signstar-common",
- "signstar-config",
- "testresult",
- "thiserror",
-]
-
-[[package]]
-name = "signstar-configure-build"
-version = "0.4.1"
-dependencies = [
- "clap",
- "clap-verbosity-flag",
- "log",
- "nix",
- "rand 0.10.3",
- "signstar-common",
- "signstar-config",
- "strum",
- "sysinfo",
- "thiserror",
- "yescrypt",
-]
-
-[[package]]
 name = "signstar-crypto"
 version = "0.1.1"
 dependencies = [
@@ -5148,19 +5044,21 @@ dependencies = [
 ]
 
 [[package]]
-name = "signstar-download-key-certificates"
-version = "0.2.0"
+name = "signstar-host"
+version = "0.1.0"
 dependencies = [
  "actix-web",
+ "assert_cmd",
  "base64ct",
  "change-user-run",
  "clap",
  "clap-verbosity-flag",
- "httpmock",
  "log",
  "nethsm",
+ "nix",
  "openssl",
  "pgp",
+ "rand 0.10.3",
  "rcgen",
  "rstest",
  "serde_json",
@@ -5168,43 +5066,15 @@ dependencies = [
  "signstar-config",
  "signstar-crypto",
  "signstar-yubihsm2",
- "tempfile",
- "testresult",
- "thiserror",
- "tokio",
- "which",
-]
-
-[[package]]
-name = "signstar-host"
-version = "0.1.0"
-
-[[package]]
-name = "signstar-sign"
-version = "0.3.0"
-dependencies = [
- "actix-web",
- "base64ct",
- "change-user-run",
- "clap",
- "clap-verbosity-flag",
- "httpmock",
- "log",
- "nethsm",
- "openssl",
- "pgp",
- "rcgen",
- "rstest",
- "signstar-common",
- "signstar-config",
- "signstar-crypto",
- "signstar-yubihsm2",
+ "strum",
+ "sysinfo",
  "tempfile",
  "testresult",
  "thiserror",
  "tokio",
  "uuid",
  "which",
+ "yescrypt",
  "yubihsm2",
 ]
 
@@ -5256,15 +5126,6 @@ name = "similar"
 version = "2.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bbbb5d9659141646ae647b42fe094daf6c6192d1620870b449d9557f748b2daa"
-
-[[package]]
-name = "similar"
-version = "3.2.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d2f8bec09ae8fae0f4f265a4559a9334be3929d8504e9b536df0a41302bd1733"
-dependencies = [
- "bstr",
-]
 
 [[package]]
 name = "simplelog"

@@ -1,1 +1,0 @@
-../../../../signstar-sign/README.md

@@ -10,7 +10,79 @@ repository.workspace = true
 rust-version.workspace = true
 version = "0.1.0"
 
+[[bin]]
+name = "signstar-configure"
+path = "src/bin/signstar_configure.rs"
+required-features = ["cli"]
+
+[[bin]]
+name = "signstar-configure-build"
+path = "src/bin/signstar_configure_build.rs"
+required-features = ["cli"]
+
+[[bin]]
+name = "signstar-download-key-certificates"
+path = "src/bin/signstar_download_key_certificates.rs"
+required-features = ["cli"]
+
+[[bin]]
+name = "signstar-sign"
+path = "src/bin/signstar_sign.rs"
+required-features = ["cli"]
+
 [dependencies]
+clap = { features = [
+    "cargo",
+    "derive",
+    "env",
+], optional = true, workspace = true }
+clap-verbosity-flag = { optional = true, workspace = true }
+log.workspace = true
+nethsm = { workspace = true, optional = true }
+nix.workspace = true
+rand.workspace = true
+serde_json.workspace = true
+signstar-common = { features = [
+    "logging",
+    "request-api",
+    "serde",
+], workspace = true }
+signstar-config.workspace = true
+signstar-crypto.workspace = true
+signstar-yubihsm2 = { optional = true, workspace = true }
+strum.workspace = true
+sysinfo = "0.40.0"
+thiserror.workspace = true
+yescrypt = { version = "0.1.0", features = ["rand_core"] }
+
+[dev-dependencies]
+actix-web = { version = "4.10.2", features = ["openssl"] }
+assert_cmd = "2.2.2"
+base64ct.workspace = true
+change-user-run.workspace = true
+log.workspace = true
+openssl = "0.10.71"
+pgp.workspace = true
+rcgen = "0.14.0"
+rstest.workspace = true
+signstar-config = { workspace = true, features = ["_test-helpers"] }
+tempfile.workspace = true
+testresult.workspace = true
+tokio = { workspace = true, features = ["macros", "rt"] }
+uuid = { version = "1", features = ["v4"] }
+which = "8.0.0"
+yubihsm = { features = ["mockhsm"], workspace = true }
+
+[features]
+_containerized-integration-test = [
+    "signstar-common/logging",
+    "signstar-config/_test-helpers",
+]
+_yubihsm2-mockhsm = ["signstar-yubihsm2/_yubihsm2-mockhsm", "yubihsm2"]
+cli = ["dep:clap", "dep:clap-verbosity-flag", "signstar-common/logging"]
+default = ["cli", "nethsm", "yubihsm2"]
+nethsm = ["dep:nethsm", "signstar-config/nethsm"]
+yubihsm2 = ["dep:signstar-yubihsm2", "signstar-config/yubihsm2"]
 
 [lints]
 workspace = true
