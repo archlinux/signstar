@@ -8,6 +8,7 @@ members = [
     "signstar-configure-build",
     "signstar-crypto",
     "signstar-download-key-certificates",
+    "signstar-host",
     "signstar-sign",
     "signstar-yubihsm2",
 ]
