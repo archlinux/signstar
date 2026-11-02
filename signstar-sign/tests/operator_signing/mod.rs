@@ -48,6 +48,7 @@ use signstar_config::{
         ConfigFileVariant,
         SystemPrepareConfig,
         SystemUserConfig,
+        SystemUserConfigSettings,
     },
 };
 #[cfg(feature = "_yubihsm2-mockhsm")]
@@ -111,7 +112,7 @@ async fn connector_api(request: web::Bytes, connector: Data<Arc<Connector>>) -> 
             signstar_config: ConfigFileConfig {
                 location: Some(ConfigFileLocation::default()),
                 variant: ConfigFileVariant::OnlyNetHsmBackendAdminPlaintextNonAdminSystemdCreds,
-                system_user_config: Some(SystemUserConfig{ create_secrets: true, create_ssh_authorized_keys: true })
+                system_user_config: Some(SystemUserConfig::new(SystemUserConfigSettings { create_secrets: true, create_ssh_authorized_keys: true }))
             },
         }
     )
@@ -125,7 +126,7 @@ async fn connector_api(request: web::Bytes, connector: Data<Arc<Connector>>) -> 
             signstar_config: ConfigFileConfig {
                 location: Some(ConfigFileLocation::default()),
                 variant: ConfigFileVariant::OnlyYubiHsm2MockHsmBackendAdminPlaintextNonAdminSystemdCreds,
-                system_user_config: Some(SystemUserConfig{ create_secrets: true, create_ssh_authorized_keys: true  })
+                system_user_config: Some(SystemUserConfig::new(SystemUserConfigSettings { create_secrets: true, create_ssh_authorized_keys: true }))
             },
         }
     )
@@ -139,13 +140,13 @@ async fn connector_api(request: web::Bytes, connector: Data<Arc<Connector>>) -> 
             signstar_config: ConfigFileConfig {
                 location: Some(ConfigFileLocation::default()),
                 variant: ConfigFileVariant::OnlyYubiHsm2HttpBackendAdminPlaintextNonAdminPlaintext,
-                system_user_config: Some(SystemUserConfig{ create_secrets: true, create_ssh_authorized_keys: true  })
+                system_user_config: Some(SystemUserConfig::new(SystemUserConfigSettings { create_secrets: true, create_ssh_authorized_keys: true }))
             },
         }
     )
 )]
 #[tokio::test]
-async fn run_signstar_sign(#[case] prepare_config: SystemPrepareConfig) -> TestResult {
+async fn run_signstar_sign(#[case] mut prepare_config: SystemPrepareConfig) -> TestResult {
     setup_terminal_logging(LevelFilter::Info)?;
     let _credentials_socket = prepare_config.apply()?;
     let config = Config::from_system_path()?;

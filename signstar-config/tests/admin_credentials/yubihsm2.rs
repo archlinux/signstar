@@ -85,7 +85,7 @@ fn store_to_and_load_from_default_location(
 ) -> TestResult {
     setup_terminal_logging(LevelFilter::Debug)?;
     // Prepare the environment.
-    let config = SystemPrepareConfig {
+    let mut config = SystemPrepareConfig {
         machine_id: true,
         credentials_socket: true,
         signstar_config: ConfigFileConfig {

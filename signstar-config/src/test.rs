@@ -1,5 +1,7 @@
 //! Utilities used for test setups.
 
+#[cfg(any(feature = "nethsm", feature = "yubihsm2"))]
+use std::collections::HashMap;
 use std::{
     fs::{File, Permissions, create_dir_all, read_dir, set_permissions, write},
     io::Write,
@@ -18,7 +20,7 @@ use nethsm::{FullCredentials, UserId};
 use signstar_common::{backend::BackendType, system_user::get_home_base_dir_path};
 #[cfg(feature = "nethsm")]
 use signstar_crypto::AdministrativeSecretHandling;
-#[cfg(feature = "nethsm")]
+#[cfg(any(feature = "nethsm", feature = "yubihsm2"))]
 use signstar_crypto::passphrase::Passphrase;
 use tempfile::NamedTempFile;
 
@@ -32,19 +34,39 @@ pub mod impl_any {
     use crate::config::UserBackendConnectionFilter;
 
     impl SystemUserConfig {
+        /// Creates a new [`SystemUserConfig`].
+        pub fn new(settings: SystemUserConfigSettings) -> Self {
+            Self {
+                backend_credentials: None,
+                create_secrets: settings.create_secrets,
+                create_ssh_authorized_keys: settings.create_ssh_authorized_keys,
+            }
+        }
+
         /// Applies the chosen system user configuration items based on a [`Config`].
         ///
         /// # Errors
         ///
         /// Returns an error if secrets for a non-administrative backend user cannot be created.
-        pub fn apply(&self, config: &Config) -> Result<(), crate::Error> {
+        pub fn apply(&mut self, config: &Config) -> Result<(), crate::Error> {
             if self.create_secrets {
                 let user_backend_connections =
                     config.user_backend_connections(&[UserBackendConnectionFilter::NonAdmin]);
 
+                let mut creds = HashMap::new();
                 for user_backend_connection in user_backend_connections {
-                    user_backend_connection.create_non_admin_backend_user_secrets()?;
+                    let Some(user_creds) =
+                        user_backend_connection.create_non_admin_backend_user_secrets()?
+                    else {
+                        continue;
+                    };
+
+                    for user_cred in user_creds.iter() {
+                        creds.insert(user_cred.user(), user_cred.passphrase().clone());
+                    }
                 }
+
+                self.backend_credentials = Some(creds);
             }
 
             if self.create_ssh_authorized_keys {
@@ -61,6 +83,60 @@ pub mod impl_any {
 
             Ok(())
         }
+
+        /// Returns a reference to the optional map of backend credentials.
+        ///
+        /// # Note
+        ///
+        /// This method returns [`None`] until [`Self::apply`] has run successfully.
+        pub fn backend_credentials(&self) -> Option<&HashMap<String, Passphrase>> {
+            self.backend_credentials.as_ref()
+        }
+    }
+
+    impl SystemPrepareConfig {
+        /// Applies the chosen system configuration items.
+        ///
+        /// Optionally returns the [`BackgroundProcess`] tracking an `io.systemd.Credentials`
+        /// socket.
+        ///
+        /// # Errors
+        ///
+        /// Returns an error if
+        ///
+        /// - an `/etc/machine-id` file should be written, but [`write_machine_id`] fails
+        /// - an `io.systemd.Credentials` socket should be created, but [`start_credentials_socket`]
+        ///   fails
+        /// - a configuration file should be created, but writing it fails
+        /// - the creation of system users and/or their home directories fails
+        /// - the creation of backend user secrets fails
+        pub fn apply(&mut self) -> Result<Option<BackgroundProcess>, crate::Error> {
+            if self.machine_id {
+                write_machine_id()?;
+            }
+
+            let background_process = if self.credentials_socket {
+                Some(start_credentials_socket()?)
+            } else {
+                None
+            };
+
+            if let Some(config_file_location) = self.signstar_config.location {
+                create_config(config_file_location, self.signstar_config.variant)?;
+
+                if let Some(mut system_user_config) = self.signstar_config.system_user_config.take()
+                {
+                    let config = Config::from_str(&String::from_utf8_lossy(
+                        self.signstar_config.variant.as_config_bytes(),
+                    ))?;
+                    create_unix_users_and_homes(&config)?;
+                    system_user_config.apply(&config)?;
+                    self.signstar_config.system_user_config = Some(system_user_config.clone())
+                }
+            }
+
+            Ok(background_process)
+        }
     }
 }
 
@@ -70,6 +146,13 @@ mod impl_none {
     use super::*;
 
     impl SystemUserConfig {
+        /// Creates a new [`SystemUserConfig`].
+        pub fn new(settings: SystemUserConfigSettings) -> Self {
+            Self {
+                create_ssh_authorized_keys: settings.create_ssh_authorized_keys,
+            }
+        }
+
         /// Applies the chosen system user configuration items based on a [`Config`].
         ///
         /// # Note
@@ -87,6 +170,49 @@ mod impl_none {
             }
 
             Ok(())
+        }
+    }
+
+    impl SystemPrepareConfig {
+        /// Applies the chosen system configuration items.
+        ///
+        /// Optionally returns the [`BackgroundProcess`] tracking an `io.systemd.Credentials`
+        /// socket.
+        ///
+        /// # Errors
+        ///
+        /// Returns an error if
+        ///
+        /// - an `/etc/machine-id` file should be written, but [`write_machine_id`] fails
+        /// - an `io.systemd.Credentials` socket should be created, but [`start_credentials_socket`]
+        ///   fails
+        /// - a configuration file should be created, but writing it fails
+        /// - the creation of system users and/or their home directories fails
+        /// - the creation of backend user secrets fails
+        pub fn apply(&self) -> Result<Option<BackgroundProcess>, crate::Error> {
+            if self.machine_id {
+                write_machine_id()?;
+            }
+
+            let background_process = if self.credentials_socket {
+                Some(start_credentials_socket()?)
+            } else {
+                None
+            };
+
+            if let Some(config_file_location) = self.signstar_config.location {
+                create_config(config_file_location, self.signstar_config.variant)?;
+
+                if let Some(system_user_config) = self.signstar_config.system_user_config.as_ref() {
+                    let config = Config::from_str(&String::from_utf8_lossy(
+                        self.signstar_config.variant.as_config_bytes(),
+                    ))?;
+                    create_unix_users_and_homes(&config)?;
+                    system_user_config.apply(&config)?;
+                }
+            }
+
+            Ok(background_process)
         }
     }
 }
@@ -747,9 +873,9 @@ impl ConfigFileVariant {
     }
 }
 
-/// Configuration for the creation of system users.
+/// Settings for configuring a [`SystemUserConfig`].
 #[derive(Clone, Copy, Debug, Default)]
-pub struct SystemUserConfig {
+pub struct SystemUserConfigSettings {
     /// Whether to create the secrets for each system user with at least one backend user.
     #[cfg(any(feature = "nethsm", feature = "yubihsm2"))]
     pub create_secrets: bool,
@@ -758,8 +884,23 @@ pub struct SystemUserConfig {
     pub create_ssh_authorized_keys: bool,
 }
 
+/// Configuration for the creation of system users.
+#[derive(Clone, Debug, Default)]
+pub struct SystemUserConfig {
+    /// The optional backend credentials.
+    #[cfg(any(feature = "nethsm", feature = "yubihsm2"))]
+    backend_credentials: Option<HashMap<String, Passphrase>>,
+
+    /// Whether to create the secrets for each system user with at least one backend user.
+    #[cfg(any(feature = "nethsm", feature = "yubihsm2"))]
+    create_secrets: bool,
+
+    /// Whether to create the SSH authorized keys file for system users.
+    create_ssh_authorized_keys: bool,
+}
+
 /// Configuration for how and where to provide a Signstar configuration file.
-#[derive(Clone, Copy, Debug, Default)]
+#[derive(Clone, Debug, Default)]
 pub struct ConfigFileConfig {
     /// The optional location in which the Signstar config is placed.
     ///
@@ -832,7 +973,7 @@ fn create_unix_users_and_homes(config: &Config) -> Result<(), crate::Error> {
 }
 
 /// Configuration on how to prepare a system for a test setup.
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Debug)]
 pub struct SystemPrepareConfig {
     /// Whether to write an `/etc/machine-id`.
     pub machine_id: bool,
@@ -842,49 +983,6 @@ pub struct SystemPrepareConfig {
 
     /// How to handle the Signstar config file.
     pub signstar_config: ConfigFileConfig,
-}
-
-impl SystemPrepareConfig {
-    /// Applies the chosen system configuration items.
-    ///
-    /// Optionally returns the [`BackgroundProcess`] tracking an `io.systemd.Credentials`
-    /// socket.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if
-    ///
-    /// - an `/etc/machine-id` file should be written, but [`write_machine_id`] fails
-    /// - an `io.systemd.Credentials` socket should be created, but [`start_credentials_socket`]
-    ///   fails
-    /// - a configuration file should be created, but writing it fails
-    /// - the creation of system users and/or their home directories fails
-    /// - the creation of backend user secrets fails
-    pub fn apply(&self) -> Result<Option<BackgroundProcess>, crate::Error> {
-        if self.machine_id {
-            write_machine_id()?;
-        }
-
-        let background_process = if self.credentials_socket {
-            Some(start_credentials_socket()?)
-        } else {
-            None
-        };
-
-        if let Some(config_file_location) = self.signstar_config.location {
-            create_config(config_file_location, self.signstar_config.variant)?;
-
-            if let Some(system_user_config) = self.signstar_config.system_user_config {
-                let config = Config::from_str(&String::from_utf8_lossy(
-                    self.signstar_config.variant.as_config_bytes(),
-                ))?;
-                create_unix_users_and_homes(&config)?;
-                system_user_config.apply(&config)?;
-            }
-        }
-
-        Ok(background_process)
-    }
 }
 
 impl Default for SystemPrepareConfig {

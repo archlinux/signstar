@@ -33,6 +33,7 @@ use signstar_config::{
         ConfigFileVariant,
         SystemPrepareConfig,
         SystemUserConfig,
+        SystemUserConfigSettings,
     },
 };
 use tempfile::tempdir;
@@ -69,7 +70,10 @@ async fn get_cert(_req: HttpRequest) -> impl Responder {
             signstar_config: ConfigFileConfig {
                 location: Some(ConfigFileLocation::default()),
                 variant: ConfigFileVariant::OnlyNetHsmBackendAdminPlaintextNonAdminSystemdCredsSingleConnection,
-                system_user_config: Some(SystemUserConfig{ create_secrets: true, create_ssh_authorized_keys: true })
+                system_user_config: Some(SystemUserConfig::new(SystemUserConfigSettings {
+                    create_secrets: true,
+                    create_ssh_authorized_keys: true,
+                }))
             },
         }
     )
@@ -83,14 +87,17 @@ async fn get_cert(_req: HttpRequest) -> impl Responder {
             signstar_config: ConfigFileConfig {
                 location: Some(ConfigFileLocation::default()),
                 variant: ConfigFileVariant::OnlyYubiHsm2MockHsmBackendAdminPlaintextNonAdminSystemdCreds,
-                system_user_config: Some(SystemUserConfig{ create_secrets: true, create_ssh_authorized_keys: true  })
+                system_user_config: Some(SystemUserConfig::new(SystemUserConfigSettings {
+                    create_secrets: true,
+                    create_ssh_authorized_keys: true,
+                }))
             },
         }
     )
 )]
 #[tokio::test]
 async fn run_signstar_download_key_certificates(
-    #[case] prepare_config: SystemPrepareConfig,
+    #[case] mut prepare_config: SystemPrepareConfig,
 ) -> TestResult {
     setup_terminal_logging(LevelFilter::Info)?;
     let _credentials_socket = prepare_config.apply()?;

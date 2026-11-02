@@ -69,6 +69,7 @@ mod no_backend {
             ConfigFileVariant,
             SystemPrepareConfig,
             SystemUserConfig,
+            SystemUserConfigSettings,
         },
     };
 
@@ -86,9 +87,9 @@ mod no_backend {
             signstar_config: ConfigFileConfig {
                 location: Some(ConfigFileLocation::UsrShare),
                 variant: ConfigFileVariant::NoBackendAdminPlaintextNonAdminPlaintext,
-                system_user_config: Some(SystemUserConfig {
+                system_user_config: Some(SystemUserConfig::new(SystemUserConfigSettings {
                     create_ssh_authorized_keys: true,
-                }),
+                })),
             },
         };
         config.apply()?;
@@ -123,9 +124,9 @@ mod no_backend {
             signstar_config: ConfigFileConfig {
                 location: Some(ConfigFileLocation::UsrShare),
                 variant: ConfigFileVariant::NoBackendAdminPlaintextNonAdminPlaintext,
-                system_user_config: Some(SystemUserConfig {
+                system_user_config: Some(SystemUserConfig::new(SystemUserConfigSettings {
                     create_ssh_authorized_keys: true,
-                }),
+                })),
             },
         };
         prepare_config.apply()?;
@@ -225,6 +226,7 @@ mod nethsm_backend {
             ConfigFileVariant,
             SystemPrepareConfig,
             SystemUserConfig,
+            SystemUserConfigSettings,
         },
     };
 
@@ -245,10 +247,10 @@ mod nethsm_backend {
         signstar_config: ConfigFileConfig {
             location: Some(ConfigFileLocation::UsrShare),
             variant: ConfigFileVariant::OnlyNetHsmBackendAdminPlaintextNonAdminPlaintext,
-            system_user_config: Some(SystemUserConfig {
-                create_secrets: true,
-                create_ssh_authorized_keys: true,
-            }),
+            system_user_config: Some(SystemUserConfig::new(SystemUserConfigSettings {
+                        create_secrets: true,
+                        create_ssh_authorized_keys: true,
+                    })),
         },
     })]
     #[case::admin_plaintext_non_admin_systemd_creds(SystemPrepareConfig {
@@ -257,10 +259,10 @@ mod nethsm_backend {
         signstar_config: ConfigFileConfig {
             location: Some(ConfigFileLocation::UsrShare),
             variant: ConfigFileVariant::OnlyNetHsmBackendAdminPlaintextNonAdminSystemdCreds,
-            system_user_config: Some(SystemUserConfig {
-                create_secrets: true,
-                create_ssh_authorized_keys: true,
-            }),
+            system_user_config: Some(SystemUserConfig::new(SystemUserConfigSettings {
+                        create_secrets: true,
+                        create_ssh_authorized_keys: true,
+                    })),
         },
     })]
     #[case::admin_systemd_creds_non_admin_plaintext(SystemPrepareConfig {
@@ -269,10 +271,10 @@ mod nethsm_backend {
         signstar_config: ConfigFileConfig {
             location: Some(ConfigFileLocation::UsrShare),
             variant: ConfigFileVariant::OnlyNetHsmBackendAdminSystemdCredsNonAdminPlaintext,
-            system_user_config: Some(SystemUserConfig {
-                create_secrets: true,
-                create_ssh_authorized_keys: true,
-            }),
+            system_user_config: Some(SystemUserConfig::new(SystemUserConfigSettings {
+                        create_secrets: true,
+                        create_ssh_authorized_keys: true,
+                    })),
         },
     })]
     #[case::admin_systemd_creds_non_admin_systemd_creds(SystemPrepareConfig {
@@ -281,14 +283,14 @@ mod nethsm_backend {
         signstar_config: ConfigFileConfig {
             location: Some(ConfigFileLocation::UsrShare),
             variant: ConfigFileVariant::OnlyNetHsmBackendAdminSystemdCredsNonAdminSystemdCreds,
-            system_user_config: Some(SystemUserConfig {
-                create_secrets: true,
-                create_ssh_authorized_keys: true,
-            }),
+            system_user_config: Some(SystemUserConfig::new(SystemUserConfigSettings {
+                        create_secrets: true,
+                        create_ssh_authorized_keys: true,
+                    })),
         },
     })]
     fn create_and_load_non_admin_secrets(
-        #[case] system_prepare_config: SystemPrepareConfig,
+        #[case] mut system_prepare_config: SystemPrepareConfig,
     ) -> TestResult {
         setup_terminal_logging(LevelFilter::Debug)?;
         let _socket = system_prepare_config.apply()?;
@@ -388,6 +390,7 @@ mod yubihsm2_backend {
             ConfigFileVariant,
             SystemPrepareConfig,
             SystemUserConfig,
+            SystemUserConfigSettings,
         },
     };
 
@@ -408,10 +411,10 @@ mod yubihsm2_backend {
         signstar_config: ConfigFileConfig {
             location: Some(ConfigFileLocation::UsrShare),
             variant: ConfigFileVariant::OnlyYubiHsm2BackendAdminPlaintextNonAdminPlaintext,
-            system_user_config: Some(SystemUserConfig {
-                create_secrets: true,
-                create_ssh_authorized_keys: true,
-            }),
+            system_user_config: Some(SystemUserConfig::new(SystemUserConfigSettings {
+                        create_secrets: true,
+                        create_ssh_authorized_keys: true,
+                    })),
         },
     })]
     #[case::admin_plaintext_non_admin_systemd_creds(SystemPrepareConfig {
@@ -420,10 +423,10 @@ mod yubihsm2_backend {
         signstar_config: ConfigFileConfig {
             location: Some(ConfigFileLocation::UsrShare),
             variant: ConfigFileVariant::OnlyYubiHsm2BackendAdminPlaintextNonAdminSystemdCreds,
-            system_user_config: Some(SystemUserConfig {
-                create_secrets: true,
-                create_ssh_authorized_keys: true,
-            }),
+            system_user_config: Some(SystemUserConfig::new(SystemUserConfigSettings {
+                        create_secrets: true,
+                        create_ssh_authorized_keys: true,
+                    })),
         },
     })]
     #[case::admin_systemd_creds_non_admin_plaintext(SystemPrepareConfig {
@@ -432,10 +435,10 @@ mod yubihsm2_backend {
         signstar_config: ConfigFileConfig {
             location: Some(ConfigFileLocation::UsrShare),
             variant: ConfigFileVariant::OnlyYubiHsm2BackendAdminSystemdCredsNonAdminPlaintext,
-            system_user_config: Some(SystemUserConfig {
-                create_secrets: true,
-                create_ssh_authorized_keys: true,
-            }),
+            system_user_config: Some(SystemUserConfig::new(SystemUserConfigSettings {
+                        create_secrets: true,
+                        create_ssh_authorized_keys: true,
+                    })),
         },
     })]
     #[case::admin_systemd_creds_non_admin_systemd_creds(SystemPrepareConfig {
@@ -444,14 +447,14 @@ mod yubihsm2_backend {
         signstar_config: ConfigFileConfig {
             location: Some(ConfigFileLocation::UsrShare),
             variant: ConfigFileVariant::OnlyYubiHsm2BackendAdminSystemdCredsNonAdminSystemdCreds,
-            system_user_config: Some(SystemUserConfig {
-                create_secrets: true,
-                create_ssh_authorized_keys: true,
-            }),
+            system_user_config: Some(SystemUserConfig::new(SystemUserConfigSettings {
+                        create_secrets: true,
+                        create_ssh_authorized_keys: true,
+                    })),
         },
     })]
     fn create_and_load_non_admin_secrets(
-        #[case] system_prepare_config: SystemPrepareConfig,
+        #[case] mut system_prepare_config: SystemPrepareConfig,
     ) -> TestResult {
         setup_terminal_logging(LevelFilter::Debug)?;
         let _socket = system_prepare_config.apply()?;
@@ -552,6 +555,7 @@ mod all_backends {
             ConfigFileVariant,
             SystemPrepareConfig,
             SystemUserConfig,
+            SystemUserConfigSettings,
         },
     };
 
@@ -572,10 +576,7 @@ mod all_backends {
         signstar_config: ConfigFileConfig {
             location: Some(ConfigFileLocation::UsrShare),
             variant: ConfigFileVariant::AllBackendsAdminPlaintextNonAdminPlaintext,
-            system_user_config: Some(SystemUserConfig {
-                create_secrets: true,
-                create_ssh_authorized_keys: true,
-            }),
+            system_user_config: Some(SystemUserConfig::new(SystemUserConfigSettings { create_secrets: true, create_ssh_authorized_keys: true })),
         },
     })]
     #[case::admin_plaintext_non_admin_systemd_creds(SystemPrepareConfig {
@@ -584,10 +585,7 @@ mod all_backends {
         signstar_config: ConfigFileConfig {
             location: Some(ConfigFileLocation::UsrShare),
             variant: ConfigFileVariant::AllBackendsAdminPlaintextNonAdminSystemdCreds,
-            system_user_config: Some(SystemUserConfig {
-                create_secrets: true,
-                create_ssh_authorized_keys: true,
-            }),
+            system_user_config: Some(SystemUserConfig::new(SystemUserConfigSettings { create_secrets: true, create_ssh_authorized_keys: true })),
         },
     })]
     #[case::admin_systemd_creds_non_admin_plaintext(SystemPrepareConfig {
@@ -596,10 +594,7 @@ mod all_backends {
         signstar_config: ConfigFileConfig {
             location: Some(ConfigFileLocation::UsrShare),
             variant: ConfigFileVariant::AllBackendsAdminSystemdCredsNonAdminPlaintext,
-            system_user_config: Some(SystemUserConfig {
-                create_secrets: true,
-                create_ssh_authorized_keys: true,
-            }),
+            system_user_config: Some(SystemUserConfig::new(SystemUserConfigSettings { create_secrets: true, create_ssh_authorized_keys: true })),
         },
     })]
     #[case::admin_systemd_creds_non_admin_systemd_creds(SystemPrepareConfig {
@@ -608,14 +603,11 @@ mod all_backends {
         signstar_config: ConfigFileConfig {
             location: Some(ConfigFileLocation::UsrShare),
             variant: ConfigFileVariant::AllBackendsAdminSystemdCredsNonAdminSystemdCreds,
-            system_user_config: Some(SystemUserConfig {
-                create_secrets: true,
-                create_ssh_authorized_keys: true,
-            }),
+            system_user_config: Some(SystemUserConfig::new(SystemUserConfigSettings { create_secrets: true, create_ssh_authorized_keys: true })),
         },
     })]
     fn create_and_load_non_admin_secrets(
-        #[case] system_prepare_config: SystemPrepareConfig,
+        #[case] mut system_prepare_config: SystemPrepareConfig,
     ) -> TestResult {
         setup_terminal_logging(LevelFilter::Debug)?;
         let _socket = system_prepare_config.apply()?;
@@ -703,16 +695,16 @@ mod all_backends {
         setup_terminal_logging(LevelFilter::Debug)?;
 
         // setup the system with one backend...
-        let prepare_config = SystemPrepareConfig {
+        let mut prepare_config = SystemPrepareConfig {
             machine_id: false,
             credentials_socket: false,
             signstar_config: ConfigFileConfig {
                 location: Some(ConfigFileLocation::UsrShare),
                 variant: ConfigFileVariant::OnlyNetHsmBackendAdminPlaintextNonAdminPlaintext,
-                system_user_config: Some(SystemUserConfig {
+                system_user_config: Some(SystemUserConfig::new(SystemUserConfigSettings {
                     create_secrets: false,
                     create_ssh_authorized_keys: true,
-                }),
+                })),
             },
         };
         prepare_config.apply()?;

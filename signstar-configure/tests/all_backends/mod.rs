@@ -13,12 +13,14 @@ use signstar_config::test::{
     ConfigFileVariant,
     SystemPrepareConfig,
     SystemUserConfig,
+    SystemUserConfigSettings,
 };
 use signstar_configure::{ConfigurationResult, HostConfiguration, load_config};
 use testresult::TestResult;
 
 /// Tests against all available backend types.
 mod all {
+
     use super::*;
 
     /// Ensures, that [`HostConfiguration::sync`] aborts if a Signstar configuration file is present
@@ -28,16 +30,16 @@ mod all {
     fn host_configuration_sync_aborts_on_unavailable_backend_connections() -> TestResult {
         setup_terminal_logging(LevelFilter::Debug)?;
 
-        let system_prepare_config = SystemPrepareConfig {
+        let mut system_prepare_config = SystemPrepareConfig {
             machine_id: false,
             credentials_socket: false,
             signstar_config: ConfigFileConfig {
                 location: Some(ConfigFileLocation::UsrShare),
                 variant: ConfigFileVariant::AllBackendsAdminPlaintextNonAdminPlaintext,
-                system_user_config: Some(SystemUserConfig {
+                system_user_config: Some(SystemUserConfig::new(SystemUserConfigSettings {
                     create_secrets: false,
                     create_ssh_authorized_keys: true,
-                }),
+                })),
             },
         };
         system_prepare_config.apply()?;
@@ -68,16 +70,16 @@ mod all {
         fn abort_on_unavailable_backend_connections() -> TestResult {
             setup_terminal_logging(LevelFilter::Debug)?;
 
-            let system_prepare_config = SystemPrepareConfig {
+            let mut system_prepare_config = SystemPrepareConfig {
                 machine_id: false,
                 credentials_socket: false,
                 signstar_config: ConfigFileConfig {
                     location: Some(ConfigFileLocation::UsrShare),
                     variant: ConfigFileVariant::AllBackendsAdminPlaintextNonAdminPlaintext,
-                    system_user_config: Some(SystemUserConfig {
+                    system_user_config: Some(SystemUserConfig::new(SystemUserConfigSettings {
                         create_secrets: false,
                         create_ssh_authorized_keys: true,
-                    }),
+                    })),
                 },
             };
             system_prepare_config.apply()?;
@@ -109,16 +111,16 @@ mod all {
         fn abort_on_no_config_item_form_backends() -> TestResult {
             setup_terminal_logging(LevelFilter::Debug)?;
 
-            let system_prepare_config = SystemPrepareConfig {
+            let mut system_prepare_config = SystemPrepareConfig {
                 machine_id: false,
                 credentials_socket: false,
                 signstar_config: ConfigFileConfig {
                     location: Some(ConfigFileLocation::UsrShare),
                     variant: ConfigFileVariant::NoBackendAdminPlaintextNonAdminPlaintext,
-                    system_user_config: Some(SystemUserConfig {
+                    system_user_config: Some(SystemUserConfig::new(SystemUserConfigSettings {
                         create_secrets: false,
                         create_ssh_authorized_keys: true,
-                    }),
+                    })),
                 },
             };
             system_prepare_config.apply()?;
@@ -149,16 +151,16 @@ mod all {
         fn fail_on_no_configuration_file() -> TestResult {
             setup_terminal_logging(LevelFilter::Debug)?;
 
-            let system_prepare_config = SystemPrepareConfig {
+            let mut system_prepare_config = SystemPrepareConfig {
                 machine_id: false,
                 credentials_socket: false,
                 signstar_config: ConfigFileConfig {
                     location: None,
                     variant: ConfigFileVariant::NoBackendAdminPlaintextNonAdminPlaintext,
-                    system_user_config: Some(SystemUserConfig {
+                    system_user_config: Some(SystemUserConfig::new(SystemUserConfigSettings {
                         create_secrets: false,
                         create_ssh_authorized_keys: true,
-                    }),
+                    })),
                 },
             };
             system_prepare_config.apply()?;
@@ -193,16 +195,16 @@ mod nethsm {
     fn host_configuration_sync_aborts_on_unavailable_connections() -> TestResult {
         setup_terminal_logging(LevelFilter::Debug)?;
 
-        let system_prepare_config = SystemPrepareConfig {
+        let mut system_prepare_config = SystemPrepareConfig {
             machine_id: false,
             credentials_socket: false,
             signstar_config: ConfigFileConfig {
                 location: Some(ConfigFileLocation::UsrShare),
                 variant: ConfigFileVariant::OnlyNetHsmBackendAdminPlaintextNonAdminPlaintext,
-                system_user_config: Some(SystemUserConfig {
+                system_user_config: Some(SystemUserConfig::new(SystemUserConfigSettings {
                     create_secrets: false,
                     create_ssh_authorized_keys: true,
-                }),
+                })),
             },
         };
         system_prepare_config.apply()?;
@@ -233,16 +235,16 @@ mod nethsm {
         fn abort_on_unavailable_backend_connections() -> TestResult {
             setup_terminal_logging(LevelFilter::Debug)?;
 
-            let system_prepare_config = SystemPrepareConfig {
+            let mut system_prepare_config = SystemPrepareConfig {
                 machine_id: false,
                 credentials_socket: false,
                 signstar_config: ConfigFileConfig {
                     location: Some(ConfigFileLocation::UsrShare),
                     variant: ConfigFileVariant::OnlyNetHsmBackendAdminPlaintextNonAdminPlaintext,
-                    system_user_config: Some(SystemUserConfig {
+                    system_user_config: Some(SystemUserConfig::new(SystemUserConfigSettings {
                         create_secrets: false,
                         create_ssh_authorized_keys: true,
-                    }),
+                    })),
                 },
             };
             system_prepare_config.apply()?;
@@ -281,17 +283,17 @@ mod yubihsm {
     fn host_configuration_sync_succeeds_on_host_without_admin_creds_and_mockhsm() -> TestResult {
         setup_terminal_logging(LevelFilter::Debug)?;
 
-        let system_prepare_config = SystemPrepareConfig {
+        let mut system_prepare_config = SystemPrepareConfig {
             machine_id: false,
             credentials_socket: false,
             signstar_config: ConfigFileConfig {
                 location: Some(ConfigFileLocation::UsrShare),
                 variant:
                     ConfigFileVariant::OnlyYubiHsm2MockHsmBackendAdminPlaintextNonAdminPlaintext,
-                system_user_config: Some(SystemUserConfig {
+                system_user_config: Some(SystemUserConfig::new(SystemUserConfigSettings {
                     create_secrets: false,
                     create_ssh_authorized_keys: true,
-                }),
+                })),
             },
         };
         system_prepare_config.apply()?;
@@ -311,16 +313,16 @@ mod yubihsm {
     fn host_configuration_sync_aborts_on_unavailable_yubihsm2_connections() -> TestResult {
         setup_terminal_logging(LevelFilter::Debug)?;
 
-        let system_prepare_config = SystemPrepareConfig {
+        let mut system_prepare_config = SystemPrepareConfig {
             machine_id: false,
             credentials_socket: false,
             signstar_config: ConfigFileConfig {
                 location: Some(ConfigFileLocation::UsrShare),
                 variant: ConfigFileVariant::OnlyYubiHsm2BackendAdminPlaintextNonAdminPlaintext,
-                system_user_config: Some(SystemUserConfig {
+                system_user_config: Some(SystemUserConfig::new(SystemUserConfigSettings {
                     create_secrets: false,
                     create_ssh_authorized_keys: true,
-                }),
+                })),
             },
         };
         system_prepare_config.apply()?;
@@ -353,17 +355,17 @@ mod yubihsm {
         fn succeeds_on_host_without_admin_creds_and_mockhsm() -> TestResult {
             setup_terminal_logging(LevelFilter::Debug)?;
 
-            let system_prepare_config = SystemPrepareConfig {
+            let mut system_prepare_config = SystemPrepareConfig {
                 machine_id: false,
                 credentials_socket: false,
                 signstar_config: ConfigFileConfig {
                     location: Some(ConfigFileLocation::UsrShare),
                     variant:
                         ConfigFileVariant::OnlyYubiHsm2MockHsmBackendAdminPlaintextNonAdminPlaintext,
-                    system_user_config: Some(SystemUserConfig {
+                    system_user_config: Some(SystemUserConfig::new(SystemUserConfigSettings {
                         create_secrets: false,
                         create_ssh_authorized_keys: true,
-                    }),
+                    })),
                 },
             };
             system_prepare_config.apply()?;
@@ -392,16 +394,16 @@ mod yubihsm {
         fn abort_on_unavailable_backend_connections() -> TestResult {
             setup_terminal_logging(LevelFilter::Debug)?;
 
-            let system_prepare_config = SystemPrepareConfig {
+            let mut system_prepare_config = SystemPrepareConfig {
                 machine_id: false,
                 credentials_socket: false,
                 signstar_config: ConfigFileConfig {
                     location: Some(ConfigFileLocation::UsrShare),
                     variant: ConfigFileVariant::OnlyYubiHsm2BackendAdminPlaintextNonAdminPlaintext,
-                    system_user_config: Some(SystemUserConfig {
+                    system_user_config: Some(SystemUserConfig::new(SystemUserConfigSettings {
                         create_secrets: false,
                         create_ssh_authorized_keys: true,
-                    }),
+                    })),
                 },
             };
             system_prepare_config.apply()?;
