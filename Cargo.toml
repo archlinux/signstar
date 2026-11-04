@@ -49,7 +49,7 @@ sha1 = "0.11.0"
 # inputs that reference the "old_sha2".
 sha2 = "=0.11.0"
 signstar-client = { path = "signstar-client", version = "0.1.0" }
-signstar-common = { path = "signstar-common", version = "0.3.0" }
+signstar-common = { path = "signstar-common", version = "0.3.1" }
 signstar-config = { path = "signstar-config", version = "0.3.1" }
 signstar-crypto = { path = "signstar-crypto", version = "0.1.1" }
 signstar-yubihsm2 = { path = "signstar-yubihsm2", version = "0.2.0" }
