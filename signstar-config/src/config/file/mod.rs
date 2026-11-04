@@ -477,7 +477,6 @@ impl Config {
         let options = ser_options! {
             compact_list_indent: false,
             prefer_block_scalars: false,
-            empty_as_braces: true,
             indent_step: 2,
         };
 
