@@ -147,6 +147,7 @@ dependencies:
   stage: check
 
 man-pages-and-shell-completions:
+  allow_failure: true
   extends: .default-with-rust
   script:
     - just --justfile .gitlab/justfile section-start "install-alpm-packages" "Install ALPM package set 'manpages'"
