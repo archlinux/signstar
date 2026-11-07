@@ -101,5 +101,5 @@ Each change in the protocol must be documented in this specification.
 Refer to the [design document] for an in-depth discussion of the technical details.
 
 [design document]: https://signstar.archlinux.page/signing-api/design.html
-[`signstar-sign`]: https://signstar.archlinux.page/signstar-sign/
+[`signstar-sign`]: https://signstar.archlinux.page/signstar-host/
 [`signstar-client`]: https://signstar.archlinux.page/signstar-client/index.html

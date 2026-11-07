@@ -98,7 +98,7 @@ Functions for the creation of secrets must be called by root.
 
 ---
 
-NOTE: For the creation of system users based on a Signstar config refer to [signstar-configure-build].
+NOTE: For the creation of system users based on a Signstar config refer to [`signstar-configure-build`].
 
 ---
 
@@ -200,4 +200,4 @@ Changes to this project - unless stated otherwise - automatically fall under the
 [YubiHSM2]: https://www.yubico.com/de/product/yubihsm-2/
 [`systemd-creds`]: https://man.archlinux.org/man/systemd-creds.1
 [contributing guidelines]: ../CONTRIBUTING.md
-[signstar-configure-build]: https://signstar.archlinux.page/signstar-configure-build/index.html
+[`signstar-configure-build`]: https://signstar.archlinux.page/signstar-host/
