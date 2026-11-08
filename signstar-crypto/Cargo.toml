@@ -35,7 +35,7 @@ pgp.workspace = true
 rand = { workspace = true, features = ["chacha"] }
 rand_0_8_for_rpgp = { version = "<0.9", package = "rand" }
 rsa.workspace = true
-rsa_0_9_for_rpgp = { version = "<0.10", package = "rsa" }
+rsa_0_9_for_rpgp = { version = "<0.11", package = "rsa" }
 secrecy = { version = "0.10.3", features = ["serde"] }
 serde.workspace = true
 sha2.workspace = true
