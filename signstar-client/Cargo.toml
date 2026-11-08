@@ -30,7 +30,7 @@ toml.workspace = true
 base64ct.workspace = true
 insta.workspace = true
 rand_0_8_for_ssh_agent_lib = { package = "rand", version = "<0.9" }
-rsa_0_9_for_ssh_agent_lib = { package = "rsa", version = "<0.10", features = [
+rsa_0_9_for_ssh_agent_lib = { package = "rsa", version = "<0.11", features = [
     "sha1",
     "sha2",
 ] }
