@@ -25,7 +25,7 @@ insta = "1.46.1"
 log = { version = "0.4.27", features = ["kv_std"] }
 nethsm = { path = "nethsm", version = "0.12.1" }
 nethsm-sdk-rs = "4"
-nix = { version = "0.31.0", features = ["user"] }
+nix = { version = "0.32.0", features = ["user"] }
 num_enum = "0.7.6"
 p224 = "0.14.0-rc.15"
 p256 = "0.14.0"
