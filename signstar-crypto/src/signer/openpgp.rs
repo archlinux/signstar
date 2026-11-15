@@ -450,7 +450,7 @@ pub fn tsk_to_private_key_import(
                 Some(public.key.n().to_bytes_be().len() as u32 * 8),
             )?;
 
-            let (_d, p, q, _u) = secret.to_bytes();
+            let (_d, p, q, _u) = secret.to_bytes().map_err(Error::Pgp)?;
 
             (
                 PrivateKeyImport::from_rsa(p, q, public.key.e().to_bytes_be().to_vec()),
