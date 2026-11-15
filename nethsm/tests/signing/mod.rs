@@ -22,7 +22,7 @@ use nethsm::{
     },
 };
 use rsa::{
-    RsaPublicKey,
+    PublicKey,
     pkcs1v15::{Signature as Pkcs1v15Signature, VerifyingKey as Pkcs1v15VerifyingKey},
     pkcs8::DecodePublicKey,
     sha2::Sha256,
@@ -77,7 +77,7 @@ async fn signing(
     let pubkey = nethsm.get_public_key(&OTHER_KEY_ID.parse()?)?;
     println!("The public key of another key on the NetHSM: {pubkey}");
 
-    let pubkey = RsaPublicKey::from_public_key_pem(&pubkey)?;
+    let pubkey = PublicKey::from_public_key_pem(&pubkey)?;
     let verifying_key: Pkcs1v15VerifyingKey<Sha256> = Pkcs1v15VerifyingKey::new_unprefixed(pubkey);
     let signature_parsed = Pkcs1v15Signature::try_from(signature.as_slice())?;
     println!(

@@ -21,7 +21,7 @@ use nethsm::{
     },
 };
 use rand::{SeedableRng, rng, rngs::ChaCha20Rng};
-use rsa::{RsaPrivateKey, pkcs8::EncodePrivateKey};
+use rsa::{PrivateKey, pkcs8::EncodePrivateKey};
 use rstest::rstest;
 use rustainers::Container;
 use testresult::TestResult;
@@ -84,7 +84,7 @@ async fn generate_signing_key(nethsm: &NetHsm) -> TestResult {
 /// Import a pre-generated RSA key
 async fn import_key(nethsm: &NetHsm) -> TestResult {
     let private_key = {
-        let private_key = RsaPrivateKey::new(
+        let private_key = PrivateKey::new(
             &mut ChaCha20Rng::from_rng(&mut rng()),
             DEFAULT_RSA_BITS.try_into()?,
         )?;

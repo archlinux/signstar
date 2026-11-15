@@ -26,6 +26,7 @@ use p256::{SecretKey as P256SecretKey, elliptic_curve::Generate};
 use p384::SecretKey as P384SecretKey;
 use p521::SecretKey as P521SecretKey;
 use rand::{SeedableRng, rng, rngs::ChaCha20Rng};
+use rsa::PrivateKey;
 use rstest::{fixture, rstest};
 use rustainers::Container;
 use testresult::TestResult;
@@ -254,7 +255,7 @@ fn ecp521_key() -> TestResult<PrivateKeyImport> {
 
 #[fixture]
 fn rsa_key() -> TestResult<PrivateKeyImport> {
-    let private_key = rsa::RsaPrivateKey::new(
+    let private_key = PrivateKey::new(
         &mut ChaCha20Rng::from_rng(&mut rng()),
         DEFAULT_RSA_BITS.try_into()?,
     )?;

@@ -6,7 +6,7 @@ pub mod nethsm;
 use std::fmt::Debug;
 
 use rsa::{
-    RsaPrivateKey,
+    PrivateKey,
     pkcs8::DecodePrivateKey as _,
     traits::PrivateKeyParts,
     traits::PublicKeyParts,
@@ -214,7 +214,7 @@ impl PrivateKeyImport {
             }
             KeyType::Generic => return Err(Error::UnsupportedKeyType(KeyType::Generic).into()),
             KeyType::Rsa => {
-                let private_key = RsaPrivateKey::from_pkcs8_der(key_data).map_err(Error::Pkcs8)?;
+                let private_key = PrivateKey::from_pkcs8_der(key_data).map_err(Error::Pkcs8)?;
                 // ensure, that we have sufficient bit length
                 key_type_matches_length(key_type, Some(private_key.size() as u32 * 8))?;
                 Self {
@@ -333,7 +333,7 @@ impl PrivateKeyImport {
             }
             KeyType::Generic => return Err(Error::UnsupportedKeyType(KeyType::Generic).into()),
             KeyType::Rsa => {
-                let private_key = RsaPrivateKey::from_pkcs8_pem(key_data).map_err(Error::Pkcs8)?;
+                let private_key = PrivateKey::from_pkcs8_pem(key_data).map_err(Error::Pkcs8)?;
                 // ensure, that we have sufficient bit length
                 key_type_matches_length(key_type, Some(private_key.size() as u32 * 8))?;
                 Self {
@@ -428,7 +428,7 @@ impl PrivateKeyImport {
 mod tests {
     use k256::elliptic_curve::Generate;
     use rand::{SeedableRng, rng, rngs::ChaCha20Rng};
-    use rsa::RsaPrivateKey;
+    use rsa::PrivateKey;
     use rsa::pkcs8::EncodePrivateKey;
     use rstest::rstest;
     use testresult::TestResult;
@@ -485,7 +485,7 @@ mod tests {
 
     fn rsa_private_key() -> TestResult<Vec<u8>> {
         let private_key =
-            RsaPrivateKey::new(&mut ChaCha20Rng::from_rng(&mut rng()), 2048.try_into()?)?;
+            PrivateKey::new(&mut ChaCha20Rng::from_rng(&mut rng()), 2048.try_into()?)?;
         Ok(private_key.to_pkcs8_der()?.as_bytes().to_vec())
     }
 

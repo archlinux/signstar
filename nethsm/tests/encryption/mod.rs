@@ -18,7 +18,7 @@ use nethsm::{
     },
 };
 use rand::{SeedableRng, rng, rngs::ChaCha20Rng};
-use rsa::{Pkcs1v15Encrypt, RsaPublicKey, pkcs8::DecodePublicKey};
+use rsa::{Pkcs1v15Encrypt, PublicKey, pkcs8::DecodePublicKey};
 use rstest::rstest;
 use rustainers::Container;
 use testresult::TestResult;
@@ -87,8 +87,7 @@ async fn asymmetric_decryption(
     ));
     nethsm.use_credentials(&OTHER_OPERATOR_USER_ID.parse()?)?;
 
-    let pubkey =
-        RsaPublicKey::from_public_key_pem(&nethsm.get_public_key(&OTHER_KEY_ID.parse()?)?)?;
+    let pubkey = PublicKey::from_public_key_pem(&nethsm.get_public_key(&OTHER_KEY_ID.parse()?)?)?;
     let encrypted_message = pubkey.encrypt(
         &mut ChaCha20Rng::from_rng(&mut rng()),
         Pkcs1v15Encrypt,
