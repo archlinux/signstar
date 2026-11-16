@@ -16,9 +16,7 @@ garde.workspace = true
 hmac = { version = "0.13.0" }
 log.workspace = true
 rand.workspace = true
-russh = { git = "https://github.com/Eugeny/russh", rev = "b541663a88381aab9f6af1af7bbadb02e155058a", features = [
-    "serde",
-] }
+russh = { version = "0.65.2", features = ["serde"] }
 serde.workspace = true
 serde_json.workspace = true
 sha1.workspace = true
