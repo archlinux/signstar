@@ -1,12 +1,16 @@
 //! Tests of random number generator of NetHSM.
 
-use nethsm::Credentials;
-use nethsm::NetHsm;
-use nethsm::Passphrase;
-use nethsm::test::DEFAULT_OPERATOR_USER_ID;
-use nethsm::test::DEFAULT_OPERATOR_USER_PASSPHRASE;
-use nethsm::test::NetHsmImage;
-use nethsm::test::nethsm_with_users;
+use nethsm::{
+    Credentials,
+    NetHsm,
+    Passphrase,
+    test::{
+        DEFAULT_OPERATOR_USER_ID,
+        DEFAULT_OPERATOR_USER_PASSPHRASE,
+        NetHsmImage,
+        nethsm_with_users,
+    },
+};
 use rstest::rstest;
 use rustainers::Container;
 use testresult::TestResult;

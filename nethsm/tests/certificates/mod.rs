@@ -1,20 +1,27 @@
 //! Tests for cryptographic certificates.
 
-use nethsm::test::DEFAULT_AES_BITS;
-use nethsm::test::DEFAULT_KEY_ID;
-use nethsm::test::DEFAULT_OPERATOR_USER_ID;
-use nethsm::test::DEFAULT_RSA_BITS;
-use nethsm::test::DEFAULT_TAG;
-use nethsm::test::ENC_KEY_ID;
-use nethsm::test::NetHsmImage;
-use nethsm::test::OTHER_KEY_ID;
-use nethsm::test::OTHER_OPERATOR_USER_ID;
-use nethsm::test::OTHER_TAG;
-use nethsm::test::nethsm_with_users;
-use nethsm::{DistinguishedName, KeyMechanism, KeyType, NetHsm, PrivateKeyImport};
+use nethsm::{
+    DistinguishedName,
+    KeyMechanism,
+    KeyType,
+    NetHsm,
+    PrivateKeyImport,
+    test::{
+        DEFAULT_AES_BITS,
+        DEFAULT_KEY_ID,
+        DEFAULT_OPERATOR_USER_ID,
+        DEFAULT_RSA_BITS,
+        DEFAULT_TAG,
+        ENC_KEY_ID,
+        NetHsmImage,
+        OTHER_KEY_ID,
+        OTHER_OPERATOR_USER_ID,
+        OTHER_TAG,
+        nethsm_with_users,
+    },
+};
 use rand::{SeedableRng, rng, rngs::ChaCha20Rng};
-use rsa::RsaPrivateKey;
-use rsa::pkcs8::EncodePrivateKey;
+use rsa::{RsaPrivateKey, pkcs8::EncodePrivateKey};
 use rstest::rstest;
 use rustainers::Container;
 use testresult::TestResult;

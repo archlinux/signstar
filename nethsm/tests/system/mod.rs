@@ -2,14 +2,14 @@
 
 use chrono::Utc;
 use log::LevelFilter;
-use nethsm::test::{
-    ADMIN_USER_ID,
-    BACKUP_USER_ID,
-    NetHsmImage,
-    nethsm_with_users,
-    unprovisioned_nethsm,
+use nethsm::{
+    Connection,
+    ConnectionSecurity,
+    NetHsm,
+    Passphrase,
+    UserId,
+    test::{ADMIN_USER_ID, BACKUP_USER_ID, NetHsmImage, nethsm_with_users, unprovisioned_nethsm},
 };
-use nethsm::{Connection, ConnectionSecurity, NetHsm, Passphrase, UserId};
 use rstest::rstest;
 use rustainers::Container;
 use signstar_common::{logging::setup_terminal_logging, traits::BackendCheck};

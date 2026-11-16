@@ -1,7 +1,10 @@
 //! Tests related to NetHSM health and readiness.
 
-use nethsm::test::{NetHsmImage, nethsm_with_users, unprovisioned_nethsm};
-use nethsm::{NetHsm, SystemState};
+use nethsm::{
+    NetHsm,
+    SystemState,
+    test::{NetHsmImage, nethsm_with_users, unprovisioned_nethsm},
+};
 use rstest::rstest;
 use rustainers::Container;
 use testresult::TestResult;

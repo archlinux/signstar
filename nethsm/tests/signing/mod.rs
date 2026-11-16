@@ -1,21 +1,33 @@
 //! Tests for cryptographic signatures.
 
-use nethsm::Credentials;
-use nethsm::Passphrase;
-use nethsm::test::DEFAULT_KEY_ID;
-use nethsm::test::DEFAULT_OPERATOR_USER_ID;
-use nethsm::test::DEFAULT_OPERATOR_USER_PASSPHRASE;
-use nethsm::test::NetHsmImage;
-use nethsm::test::OTHER_KEY_ID;
-use nethsm::test::OTHER_OPERATOR_USER_ID;
-use nethsm::test::OTHER_OPERATOR_USER_PASSPHRASE;
-use nethsm::test::nethsm_with_keys;
-use nethsm::{NetHsm, SignatureType};
-use rsa::RsaPublicKey;
-use rsa::pkcs1v15::VerifyingKey;
-use rsa::pkcs8::DecodePublicKey;
-use rsa::sha2::Sha256;
-use rsa::signature::Verifier;
+use ed25519_dalek::{
+    Signature as Ed25519Signature,
+    VerifyingKey as Ed25519VerifyingKey,
+    pkcs8::PublicKeyBytes,
+};
+use nethsm::{
+    Credentials,
+    NetHsm,
+    Passphrase,
+    SignatureType,
+    test::{
+        DEFAULT_KEY_ID,
+        DEFAULT_OPERATOR_USER_ID,
+        DEFAULT_OPERATOR_USER_PASSPHRASE,
+        NetHsmImage,
+        OTHER_KEY_ID,
+        OTHER_OPERATOR_USER_ID,
+        OTHER_OPERATOR_USER_PASSPHRASE,
+        nethsm_with_keys,
+    },
+};
+use rsa::{
+    RsaPublicKey,
+    pkcs1v15::{Signature as Pkcs1v15Signature, VerifyingKey as Pkcs1v15VerifyingKey},
+    pkcs8::DecodePublicKey,
+    sha2::Sha256,
+    signature::Verifier,
+};
 use rstest::rstest;
 use rustainers::Container;
 use testresult::TestResult;
@@ -44,9 +56,9 @@ async fn signing(
     // verify the ed25519 signature
     let pubkey = nethsm.get_public_key(&DEFAULT_KEY_ID.parse()?)?;
     println!("The default key on the NetHSM: {pubkey}");
-    let pubkey_bytes = ed25519_dalek::pkcs8::PublicKeyBytes::from_public_key_pem(&pubkey)?;
-    let pubkey_verifier = ed25519_dalek::VerifyingKey::from_bytes(&pubkey_bytes.to_bytes())?;
-    let signature_parsed = ed25519_dalek::Signature::from_slice(&signature)?;
+    let pubkey_bytes = PublicKeyBytes::from_public_key_pem(&pubkey)?;
+    let pubkey_verifier = Ed25519VerifyingKey::from_bytes(&pubkey_bytes.to_bytes())?;
+    let signature_parsed = Ed25519Signature::from_slice(&signature)?;
     pubkey_verifier.verify(MESSAGE, &signature_parsed)?;
 
     // use nethsm as another operator user
@@ -66,8 +78,8 @@ async fn signing(
     println!("The public key of another key on the NetHSM: {pubkey}");
 
     let pubkey = RsaPublicKey::from_public_key_pem(&pubkey)?;
-    let verifying_key: VerifyingKey<Sha256> = VerifyingKey::new_unprefixed(pubkey);
-    let signature_parsed = rsa::pkcs1v15::Signature::try_from(signature.as_slice())?;
+    let verifying_key: Pkcs1v15VerifyingKey<Sha256> = Pkcs1v15VerifyingKey::new_unprefixed(pubkey);
+    let signature_parsed = Pkcs1v15Signature::try_from(signature.as_slice())?;
     println!(
         "A signature created using an RSA pubkey for which the NetHSM provides the private key: {signature_parsed:?}"
     );

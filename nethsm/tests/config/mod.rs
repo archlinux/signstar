@@ -1,19 +1,9 @@
 //! Tests checking the NetHSM configuration.
 
-use std::net::Ipv4Addr;
-use std::path::PathBuf;
+use std::{net::Ipv4Addr, path::PathBuf};
 
 use chrono::Utc;
 use log::debug;
-use nethsm::test::{
-    ADMIN_USER_ID,
-    NAMESPACE1_ADMIN_USER_ID,
-    NetHsmImage,
-    UNLOCK_PASSPHRASE,
-    nethsm_with_users,
-    unprovisioned_nethsm,
-    update_file,
-};
 use nethsm::{
     BootMode,
     DistinguishedName,
@@ -22,6 +12,15 @@ use nethsm::{
     NetworkConfigInput,
     Passphrase,
     TlsKeyType,
+    test::{
+        ADMIN_USER_ID,
+        NAMESPACE1_ADMIN_USER_ID,
+        NetHsmImage,
+        UNLOCK_PASSPHRASE,
+        nethsm_with_users,
+        unprovisioned_nethsm,
+        update_file,
+    },
 };
 use rstest::rstest;
 use rustainers::Container;

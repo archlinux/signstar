@@ -3,14 +3,19 @@
 use std::time::Duration;
 
 use chrono::Utc;
-use nethsm::Credentials;
-use nethsm::Passphrase;
-use nethsm::test::ADMIN_USER_ID;
-use nethsm::test::ADMIN_USER_PASSPHRASE;
-use nethsm::test::NetHsmImage;
-use nethsm::test::UNLOCK_PASSPHRASE;
-use nethsm::test::unprovisioned_nethsm;
-use nethsm::{NetHsm, SystemState};
+use nethsm::{
+    Credentials,
+    NetHsm,
+    Passphrase,
+    SystemState,
+    test::{
+        ADMIN_USER_ID,
+        ADMIN_USER_PASSPHRASE,
+        NetHsmImage,
+        UNLOCK_PASSPHRASE,
+        unprovisioned_nethsm,
+    },
+};
 use rstest::rstest;
 use rustainers::Container;
 use testresult::TestResult;

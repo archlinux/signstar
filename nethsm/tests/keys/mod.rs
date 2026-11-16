@@ -1,22 +1,30 @@
 //! Tests checking functions for key manipulation and usage.
 
-use ed25519_dalek::pkcs8::EncodePrivateKey;
-use nethsm::NamespaceId;
-use nethsm::PrivateKeyImport;
-use nethsm::UserId;
-use nethsm::test::ADMIN_USER_ID;
-use nethsm::test::DEFAULT_AES_BITS;
-use nethsm::test::DEFAULT_OPERATOR_USER_ID;
-use nethsm::test::DEFAULT_RSA_BITS;
-use nethsm::test::NAMESPACE1;
-use nethsm::test::NAMESPACE1_ADMIN_USER_ID;
-use nethsm::test::NAMESPACE1_OPERATOR_USER_ID;
-use nethsm::test::NAMESPACE2_ADMIN_USER_ID;
-use nethsm::test::NAMESPACE2_OPERATOR_USER_ID;
-use nethsm::test::NetHsmImage;
-use nethsm::test::nethsm_with_users;
-use nethsm::{KeyMechanism, KeyType, NetHsm};
-use p256::elliptic_curve::Generate;
+use ed25519_dalek::{SigningKey, pkcs8::EncodePrivateKey};
+use nethsm::{
+    KeyMechanism,
+    KeyType,
+    NamespaceId,
+    NetHsm,
+    PrivateKeyImport,
+    UserId,
+    test::{
+        ADMIN_USER_ID,
+        DEFAULT_AES_BITS,
+        DEFAULT_OPERATOR_USER_ID,
+        DEFAULT_RSA_BITS,
+        NAMESPACE1,
+        NAMESPACE1_ADMIN_USER_ID,
+        NAMESPACE1_OPERATOR_USER_ID,
+        NAMESPACE2_ADMIN_USER_ID,
+        NAMESPACE2_OPERATOR_USER_ID,
+        NetHsmImage,
+        nethsm_with_users,
+    },
+};
+use p256::{SecretKey as P256SecretKey, elliptic_curve::Generate};
+use p384::SecretKey as P384SecretKey;
+use p521::SecretKey as P521SecretKey;
 use rand::{SeedableRng, rng, rngs::ChaCha20Rng};
 use rstest::{fixture, rstest};
 use rustainers::Container;
@@ -206,7 +214,7 @@ async fn generate_keys(
 
 #[fixture]
 fn ed25519_key() -> TestResult<PrivateKeyImport> {
-    let private_key = ed25519_dalek::SigningKey::generate(&mut ChaCha20Rng::from_rng(&mut rng()));
+    let private_key = SigningKey::generate(&mut ChaCha20Rng::from_rng(&mut rng()));
 
     Ok(PrivateKeyImport::new(
         KeyType::Curve25519,
@@ -216,7 +224,7 @@ fn ed25519_key() -> TestResult<PrivateKeyImport> {
 
 #[fixture]
 fn ecp256_key() -> TestResult<PrivateKeyImport> {
-    let private_key = p256::SecretKey::generate_from_rng(&mut ChaCha20Rng::from_rng(&mut rng()));
+    let private_key = P256SecretKey::generate_from_rng(&mut ChaCha20Rng::from_rng(&mut rng()));
 
     Ok(PrivateKeyImport::new(
         KeyType::EcP256,
@@ -226,7 +234,7 @@ fn ecp256_key() -> TestResult<PrivateKeyImport> {
 
 #[fixture]
 fn ecp384_key() -> TestResult<PrivateKeyImport> {
-    let private_key = p384::SecretKey::generate_from_rng(&mut ChaCha20Rng::from_rng(&mut rng()));
+    let private_key = P384SecretKey::generate_from_rng(&mut ChaCha20Rng::from_rng(&mut rng()));
 
     Ok(PrivateKeyImport::new(
         KeyType::EcP384,
@@ -236,7 +244,7 @@ fn ecp384_key() -> TestResult<PrivateKeyImport> {
 
 #[fixture]
 fn ecp521_key() -> TestResult<PrivateKeyImport> {
-    let private_key = p521::SecretKey::generate_from_rng(&mut ChaCha20Rng::from_rng(&mut rng()));
+    let private_key = P521SecretKey::generate_from_rng(&mut ChaCha20Rng::from_rng(&mut rng()));
 
     Ok(PrivateKeyImport::new(
         KeyType::EcP521,

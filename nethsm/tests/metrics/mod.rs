@@ -1,7 +1,9 @@
 //! Tests related to metrics.
 
-use nethsm::NetHsm;
-use nethsm::test::{METRICS_USER_ID, NetHsmImage, nethsm_with_users};
+use nethsm::{
+    NetHsm,
+    test::{METRICS_USER_ID, NetHsmImage, nethsm_with_users},
+};
 use rstest::rstest;
 use rustainers::Container;
 use testresult::TestResult;
