@@ -3509,7 +3509,7 @@ dependencies = [
 [[package]]
 name = "pageant"
 version = "0.2.5"
-source = "git+https://github.com/Eugeny/russh?rev=b541663a88381aab9f6af1af7bbadb02e155058a#b541663a88381aab9f6af1af7bbadb02e155058a"
+source = "git+https://github.com/Eugeny/russh?rev=56a999871aa134072e4f2a7395fe2de313870e21#56a999871aa134072e4f2a7395fe2de313870e21"
 dependencies = [
  "base16ct 1.0.0",
  "byteorder",
@@ -4360,8 +4360,8 @@ dependencies = [
 
 [[package]]
 name = "russh"
-version = "0.65.1"
-source = "git+https://github.com/Eugeny/russh?rev=b541663a88381aab9f6af1af7bbadb02e155058a#b541663a88381aab9f6af1af7bbadb02e155058a"
+version = "0.65.2"
+source = "git+https://github.com/Eugeny/russh?rev=56a999871aa134072e4f2a7395fe2de313870e21#56a999871aa134072e4f2a7395fe2de313870e21"
 dependencies = [
  "aes 0.9.4",
  "aws-lc-rs",
@@ -4431,7 +4431,7 @@ dependencies = [
 [[package]]
 name = "russh-cryptovec"
 version = "0.62.0"
-source = "git+https://github.com/Eugeny/russh?rev=b541663a88381aab9f6af1af7bbadb02e155058a#b541663a88381aab9f6af1af7bbadb02e155058a"
+source = "git+https://github.com/Eugeny/russh?rev=56a999871aa134072e4f2a7395fe2de313870e21#56a999871aa134072e4f2a7395fe2de313870e21"
 dependencies = [
  "log",
  "nix 0.31.3",
@@ -4442,7 +4442,7 @@ dependencies = [
 [[package]]
 name = "russh-util"
 version = "0.52.0"
-source = "git+https://github.com/Eugeny/russh?rev=b541663a88381aab9f6af1af7bbadb02e155058a#b541663a88381aab9f6af1af7bbadb02e155058a"
+source = "git+https://github.com/Eugeny/russh?rev=56a999871aa134072e4f2a7395fe2de313870e21#56a999871aa134072e4f2a7395fe2de313870e21"
 dependencies = [
  "chrono",
  "tokio",
