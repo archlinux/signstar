@@ -36,9 +36,7 @@ serde_json.workspace = true
 sha1.workspace = true
 sha2.workspace = true
 signstar-common = { workspace = true, features = ["logging"] }
-signstar-crypto = { version = "0.1.0", path = "../signstar-crypto", features = [
-    "nethsm",
-] }
+signstar-crypto = { workspace = true, features = ["nethsm"] }
 strum.workspace = true
 testresult = { optional = true, workspace = true }
 thiserror.workspace = true
