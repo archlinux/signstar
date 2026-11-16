@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.2] - 2026-11-16
+
+### Other
+
+- Point documentation to signstar-host crate for host binaries
+
 ## [0.3.1] - 2026-11-04
 
 ### Added
