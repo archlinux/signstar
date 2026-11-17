@@ -7,7 +7,7 @@ keywords = ["host", "hsm", "signstar"]
 license.workspace = true
 name = "signstar-config"
 repository.workspace = true
-version = "0.3.2"
+version = "0.3.3"
 
 [dependencies]
 change-user-run.workspace = true
