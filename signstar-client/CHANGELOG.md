@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-11-17
+
+### Added
+
+- *(deps)* Update crate russh to 0.65.2
+- *(deps)* Update crate rsa to 0.10.0
+
 ## [0.1.1] - 2026-11-04
 
 ### Fixed
