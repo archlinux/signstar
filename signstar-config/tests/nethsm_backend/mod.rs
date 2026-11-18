@@ -100,7 +100,7 @@ async fn sync_unprovisioned_backend(
         }
     }
 
-    let container = create_container().await?;
+    let container = create_container(Default::default()).await?;
     let url = container.url().await?;
     let non_admin_users = nethsm_config
         .mappings()
@@ -247,7 +247,7 @@ async fn nethsm_diff_diff_fails_on_discrepancies() -> TestResult {
     )?;
     let nethsm_config_state = NetHsmConfigState::from(nethsm_config);
 
-    let container = create_container().await?;
+    let container = create_container(Default::default()).await?;
     let url = container.url().await?;
     let non_admin_users = nethsm_config
         .mappings()

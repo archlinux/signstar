@@ -4,22 +4,20 @@
 #![cfg(all(feature = "_nethsm-integration-test", feature = "backup"))]
 
 use nethsm::{
-    NetHsm,
     Passphrase,
     UserId,
     backup::{Backup, validate_backup},
-    test::{ADMIN_USER_ID, BACKUP_USER_ID, NetHsmImage, nethsm_with_users},
+    test::{ADMIN_USER_ID, BACKUP_USER_ID, create_nethsm_with_users},
 };
 use rstest::rstest;
-use rustainers::Container;
 use testresult::TestResult;
 
 #[rstest]
+#[case::backup_v0("3e45f2f3")]
+#[case::backup_v1("caba2375")]
 #[tokio::test]
-async fn create_backup_and_decrypt_it(
-    #[future] nethsm_with_users: TestResult<(NetHsm, Container<NetHsmImage>)>,
-) -> TestResult {
-    let (nethsm, _container) = nethsm_with_users.await?;
+async fn create_backup_and_decrypt_it(#[case] image_tag: &str) -> TestResult {
+    let (nethsm, _container) = create_nethsm_with_users(image_tag).await?;
     let initial_passphrase = "";
     let new_backup_passphrase = "just-a-backup-passphrase";
     let admin_user_id: UserId = ADMIN_USER_ID.parse()?;

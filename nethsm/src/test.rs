@@ -148,9 +148,8 @@ mod container;
 pub use container::NetHsmImage;
 
 /// Creates and starts a new NetHSM container.
-pub async fn create_container() -> TestResult<Container<NetHsmImage>> {
+pub async fn create_container(image: NetHsmImage) -> TestResult<Container<NetHsmImage>> {
     let runner = Runner::podman()?;
-    let image = NetHsmImage::default();
     println!("image: {:#?}", image.image);
     let run_options = RunOption::builder().with_remove(true).build();
     let container = runner.start_with_options(image, run_options).await?;
@@ -174,7 +173,7 @@ pub fn create_nethsm(url: Url) -> TestResult<NetHsm> {
 /// Returns a new [NetHsm] object pointing to an unprovisioned NetHSM.
 #[fixture]
 pub async fn unprovisioned_nethsm() -> TestResult<(NetHsm, rustainers::Container<NetHsmImage>)> {
-    let container = create_container().await?;
+    let container = create_container(Default::default()).await?;
 
     Ok((create_nethsm(container.url().await?)?, container))
 }
@@ -327,7 +326,7 @@ fn add_keys_to_nethsm(nethsm: &NetHsm) -> TestResult {
 /// Creates a new [NetHsm] object pointing at a provisioned NetHSM container.
 #[fixture]
 pub async fn provisioned_nethsm() -> TestResult<(NetHsm, Container<NetHsmImage>)> {
-    let container = create_container().await?;
+    let container = create_container(Default::default()).await?;
     let nethsm = create_nethsm(container.url().await?)?;
     println!("Provisioning container...");
     provision_nethsm(&nethsm)?;
@@ -336,9 +335,27 @@ pub async fn provisioned_nethsm() -> TestResult<(NetHsm, Container<NetHsmImage>)
 }
 
 /// Creates a new [NetHsm] object pointing at a NetHSM container with users.
+///
+/// `image_tag` specifies the image tag to be used when creating the container.
+pub async fn create_nethsm_with_users(
+    image_tag: &str,
+) -> TestResult<(NetHsm, Container<NetHsmImage>)> {
+    let mut image = NetHsmImage::default();
+    image.image.set_tag(image_tag);
+    let container = create_container(image).await?;
+    let nethsm = create_nethsm(container.url().await?)?;
+    println!("Provisioning container...");
+    provision_nethsm(&nethsm)?;
+    println!("Adding users to container...");
+    add_users_to_nethsm(&nethsm)?;
+
+    Ok((nethsm, container))
+}
+
+/// Creates a new [NetHsm] object pointing at a NetHSM container with users.
 #[fixture]
 pub async fn nethsm_with_users() -> TestResult<(NetHsm, Container<NetHsmImage>)> {
-    let container = create_container().await?;
+    let container = create_container(Default::default()).await?;
     let nethsm = create_nethsm(container.url().await?)?;
     println!("Provisioning container...");
     provision_nethsm(&nethsm)?;
