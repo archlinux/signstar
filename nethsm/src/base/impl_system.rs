@@ -3,7 +3,7 @@
 use std::{collections::HashMap, io::Read, net::Ipv4Addr};
 
 use base64ct::{Base64, Encoding};
-use chrono::{DateTime, Utc};
+use jiff::Timestamp;
 use log::debug;
 use nethsm_sdk_rs::{
     apis::{
@@ -97,8 +97,7 @@ impl NetHsm {
     /// # Examples
     ///
     /// ```no_run
-    /// use chrono::Utc;
-    /// use nethsm::{Connection, ConnectionSecurity, NetHsm, Passphrase};
+    /// use nethsm::{Connection, ConnectionSecurity, JiffTimestamp, NetHsm, Passphrase};
     ///
     /// # fn main() -> testresult::TestResult {
     /// // no initial credentials are required
@@ -116,7 +115,7 @@ impl NetHsm {
     /// nethsm.provision(
     ///     Passphrase::new("unlock-the-device".to_string()),
     ///     Passphrase::new("admin-passphrase".to_string()),
-    ///     Utc::now(),
+    ///     JiffTimestamp::now(),
     /// )?;
     /// # Ok(())
     /// # }
@@ -127,7 +126,7 @@ impl NetHsm {
         &self,
         unlock_passphrase: Passphrase,
         admin_passphrase: Passphrase,
-        system_time: DateTime<Utc>,
+        system_time: Timestamp,
     ) -> Result<(), Error> {
         debug!("Provision the NetHSM at {}", self.url.borrow());
 
@@ -137,7 +136,7 @@ impl NetHsm {
             ProvisionRequestData::new(
                 unlock_passphrase.expose_owned(),
                 admin_passphrase.expose_owned(),
-                system_time.to_rfc3339_opts(chrono::SecondsFormat::Secs, true),
+                system_time.to_string(),
             ),
         )
         .map_err(|error| {
@@ -1273,8 +1272,15 @@ impl NetHsm {
     /// # Examples
     ///
     /// ```no_run
-    /// use chrono::Utc;
-    /// use nethsm::{Connection, ConnectionSecurity, Credentials, NetHsm, Passphrase, UserRole};
+    /// use nethsm::{
+    ///     Connection,
+    ///     ConnectionSecurity,
+    ///     Credentials,
+    ///     JiffTimestamp,
+    ///     NetHsm,
+    ///     Passphrase,
+    ///     UserRole,
+    /// };
     ///
     /// # fn main() -> testresult::TestResult {
     /// // create a connection with a system-wide user in the Administrator role (R-Administrator)
@@ -1301,18 +1307,18 @@ impl NetHsm {
     /// nethsm.add_namespace(&"namespace1".parse()?)?;
     ///
     /// // R-Administrators can set the time
-    /// nethsm.set_time(Utc::now())?;
+    /// nethsm.set_time(JiffTimestamp::now())?;
     ///
     /// // N-Administrators can not set the time
     /// nethsm.use_credentials(&"namespace1~admin1".parse()?)?;
-    /// assert!(nethsm.set_time(Utc::now()).is_err());
+    /// assert!(nethsm.set_time(JiffTimestamp::now()).is_err());
     /// # Ok(())
     /// # }
     /// ```
     /// [time]: https://docs.nitrokey.com/nethsm/administration#time
     /// [role]: https://docs.nitrokey.com/nethsm/administration#roles
     /// [state]: https://docs.nitrokey.com/nethsm/administration#state
-    pub fn set_time(&self, time: DateTime<Utc>) -> Result<(), Error> {
+    pub fn set_time(&self, time: Timestamp) -> Result<(), Error> {
         debug!(
             "Set the system time to {time} for the NetHSM at {} using {}",
             self.url.borrow(),
@@ -1322,7 +1328,7 @@ impl NetHsm {
         self.validate_namespace_access(NamespaceSupport::Unsupported, None, None)?;
         config_time_put(
             &self.create_connection_config(),
-            TimeConfig::new(time.to_rfc3339_opts(chrono::SecondsFormat::Secs, true)),
+            TimeConfig::new(time.to_string()),
         )
         .map_err(|error| {
             Error::Api(format!(
@@ -1782,8 +1788,15 @@ impl NetHsm {
     /// # Examples
     ///
     /// ```no_run
-    /// use chrono::Utc;
-    /// use nethsm::{Connection, ConnectionSecurity, Credentials, NetHsm, Passphrase, UserRole};
+    /// use nethsm::{
+    ///     Connection,
+    ///     ConnectionSecurity,
+    ///     Credentials,
+    ///     JiffTimestamp,
+    ///     NetHsm,
+    ///     Passphrase,
+    ///     UserRole,
+    /// };
     ///
     /// #
     /// # fn main() -> testresult::TestResult {
@@ -1816,7 +1829,7 @@ impl NetHsm {
     ///     nethsm
     ///         .restore(
     ///             Passphrase::new("backup-passphrase".to_string()),
-    ///             Utc::now(),
+    ///             JiffTimestamp::now(),
     ///             std::fs::read("nethsm.bkp")?,
     ///         )
     ///         .is_err()
@@ -1826,7 +1839,7 @@ impl NetHsm {
     /// nethsm.use_credentials(&"admin".parse()?)?;
     /// nethsm.restore(
     ///     Passphrase::new("backup-passphrase".to_string()),
-    ///     Utc::now(),
+    ///     JiffTimestamp::now(),
     ///     std::fs::read("nethsm.bkp")?,
     /// )?;
     /// # Ok(())
@@ -1839,7 +1852,7 @@ impl NetHsm {
     pub fn restore(
         &self,
         backup_passphrase: Passphrase,
-        system_time: DateTime<Utc>,
+        system_time: Timestamp,
         backup: Vec<u8>,
     ) -> Result<(), Error> {
         debug!(
@@ -1857,8 +1870,7 @@ impl NetHsm {
         let restore_request_arguments = {
             let mut restore_request_arguments = RestoreRequestArguments::default();
             restore_request_arguments.backup_passphrase = Some(backup_passphrase.expose_owned());
-            restore_request_arguments.system_time =
-                Some(system_time.to_rfc3339_opts(chrono::SecondsFormat::Secs, true));
+            restore_request_arguments.system_time = Some(system_time.to_string());
             restore_request_arguments
         };
 

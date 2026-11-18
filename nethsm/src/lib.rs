@@ -14,13 +14,12 @@ pub mod signer;
 pub mod test;
 mod tls;
 mod user;
-
 pub use base::NetHsm;
 pub use base::impl_openpgp::{extract_openpgp_certificate, tsk_to_private_key_import};
-// Publicly re-export chrono facilities used in the API of NetHsm.
-pub use chrono::{DateTime, Utc};
 pub use connection::{Connection, Url};
 pub use error::Error;
+// Publicly re-export jiff facilities used in the API of NetHsm.
+pub use jiff::Timestamp as JiffTimestamp;
 pub use key::{Error as KeyError, KeyId, tls_key_type_matches_length};
 pub use nethsm_sdk::{BootMode, LogLevel, TlsKeyType, UserRole};
 // Publicly re-export nethsm_sdk_rs types that are used in return values of the NetHsm API.

@@ -2,7 +2,7 @@
 
 use std::path::PathBuf;
 
-use chrono::{DateTime, Utc};
+use jiff::Timestamp;
 
 use crate::SystemState;
 
@@ -54,7 +54,7 @@ pub enum Error {
 
     /// Given time cannot be represented in OpenPGP.
     #[error("Given time cannot be represented in OpenPGP: {0}")]
-    InvalidTime(DateTime<Utc>),
+    InvalidTime(Timestamp),
 
     /// An option is missing
     #[error(

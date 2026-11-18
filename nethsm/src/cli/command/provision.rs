@@ -1,6 +1,6 @@
-use chrono::{DateTime, Utc};
 use clap::Parser;
 use expression_format::ex_format;
+use jiff::Timestamp;
 
 use crate::{SystemState::Unprovisioned, cli::PassphraseFile};
 
@@ -38,7 +38,7 @@ Must be provided as an ISO 8601 formatted UTC timestamp.",
         long,
         short
     )]
-    pub system_time: Option<DateTime<Utc>>,
+    pub system_time: Option<Timestamp>,
 
     /// The optional path to a file containing the unlock passphrase.
     #[arg(

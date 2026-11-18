@@ -2,7 +2,7 @@
 
 use std::time::Duration;
 
-use chrono::Utc;
+use jiff::Timestamp;
 use nethsm::{
     Credentials,
     NetHsm,
@@ -37,7 +37,7 @@ async fn initial_provisioning(
     nethsm.provision(
         Passphrase::new(UNLOCK_PASSPHRASE.to_string()),
         Passphrase::new(ADMIN_USER_PASSPHRASE.to_string()),
-        Utc::now(),
+        Timestamp::now(),
     )?;
 
     // poll every 200ms if system is operational, until timeout of 1s is reached
