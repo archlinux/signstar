@@ -52,8 +52,7 @@ This crate relies on a set of external crates in its own public API.
 
 Re-exports ensure that the respective dependencies do not have to be relied upon directly by consumers:
 
-- [`chrono::DateTime`]
-- [`chrono::Utc`]
+- [`jiff::Timestamp`] as `JiffTimestamp`
 - [`nethsm_sdk_rs::models::DistinguishedName`]
 - [`nethsm_sdk_rs::models::InfoData`]
 - [`nethsm_sdk_rs::models::LoggingConfig`]

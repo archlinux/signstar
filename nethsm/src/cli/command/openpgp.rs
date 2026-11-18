@@ -1,8 +1,8 @@
 use std::path::PathBuf;
 
-use chrono::{DateTime, Utc};
 use clap::{Parser, Subcommand};
 use expression_format::ex_format;
+use jiff::Timestamp;
 use strum::IntoEnumIterator;
 
 use super::BIN_NAME;
@@ -62,7 +62,7 @@ pub struct OpenPgpAddCommand {
         long,
         short
     )]
-    pub time: Option<DateTime<Utc>>,
+    pub time: Option<Timestamp>,
 
     #[arg(
         env = "NETHSM_OPENPGP_VERSION",

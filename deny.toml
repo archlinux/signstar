@@ -6,7 +6,7 @@ ignore = [
     # Constant time issues do not affect our use-case, as we target HSM backends.
     # However, rpgp currently depends on the older set of rustcrypto releases, because that ecosystem is stuck in endless release mode (see also https://github.com/rpgp/rpgp/pull/573)
     "RUSTSEC-2026-0387",
-    "RUSTSEC-2026-0543", # The chrono crate is unmaintained and currently only used by the russh-util crate. We will remove it from nethsm: https://gitlab.archlinux.org/archlinux/signstar/-/work_items/478
+    "RUSTSEC-2026-0543", # The chrono crate is unmaintained and currently only used by the russh-util crate
 ]
 version = 2
 yanked = "deny"

@@ -1,8 +1,8 @@
 use std::{net::Ipv4Addr, path::PathBuf};
 
-use chrono::{DateTime, Utc};
 use clap::{Parser, Subcommand};
 use expression_format::ex_format;
+use jiff::Timestamp;
 use strum::IntoEnumIterator;
 
 use crate::{
@@ -432,7 +432,7 @@ pub struct SetTimeCommand {
 
 If no timestamp is provided, the caller's current system time is used."
     )]
-    pub system_time: Option<DateTime<Utc>>,
+    pub system_time: Option<Timestamp>,
 }
 
 #[derive(Debug, Parser)]

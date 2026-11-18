@@ -1,6 +1,6 @@
 //! Tests for system features such as backups.
 
-use chrono::Utc;
+use jiff::Timestamp;
 use log::LevelFilter;
 use nethsm::{
     Connection,
@@ -46,7 +46,7 @@ async fn create_backup_and_restore(
     nethsm.use_credentials(&admin_user_id)?;
     nethsm.restore(
         Passphrase::new(new_backup_passphrase.to_string()),
-        Utc::now(),
+        Timestamp::now(),
         backup,
     )?;
 

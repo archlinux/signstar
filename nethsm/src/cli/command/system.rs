@@ -1,8 +1,8 @@
 use std::path::PathBuf;
 
-use chrono::{DateTime, Utc};
 use clap::{Parser, Subcommand};
 use expression_format::ex_format;
+use jiff::Timestamp;
 
 use super::BIN_NAME;
 use crate::{
@@ -141,7 +141,7 @@ Must be provided as an ISO 8601 formatted UTC timestamp.",
         long,
         short
     )]
-    pub system_time: Option<DateTime<Utc>>,
+    pub system_time: Option<Timestamp>,
 }
 
 #[derive(Debug, Parser)]

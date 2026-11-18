@@ -6,8 +6,8 @@ use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 use std::time::SystemTime;
 
-use chrono::Utc;
 use clap::Parser;
+use jiff::Timestamp as JiffTimestamp;
 use nethsm::{
     Deserializable as _,
     DistinguishedName,
@@ -287,7 +287,7 @@ fn run_command(cli: Cli) -> Result<(), Error> {
                             &auth_passphrases,
                         )?;
 
-                    nethsm.set_time(command.system_time.unwrap_or_else(Utc::now))?;
+                    nethsm.set_time(command.system_time.unwrap_or_else(jiff::Timestamp::now))?;
                 }
                 ConfigSetCommand::TlsCertificate(command) => {
                     let nethsm = config
@@ -818,10 +818,13 @@ fn run_command(cli: Cli) -> Result<(), Error> {
                         &auth_passphrases.clone(),
                     )?;
 
-                let created_at = command.time.unwrap_or_else(Utc::now);
-                let created_at: SystemTime = created_at.into();
-                let created_at = Timestamp::try_from(created_at)
-                    .map_err(|_| CliError::InvalidTime(command.time.unwrap_or_else(Utc::now)))?;
+                let created_at = command.time.unwrap_or_else(JiffTimestamp::now);
+                let created_at: SystemTime = created_at
+                    .try_into()
+                    .map_err(|_| CliError::InvalidTime(created_at))?;
+                let created_at = Timestamp::try_from(created_at).map_err(|_| {
+                    CliError::InvalidTime(command.time.unwrap_or_else(JiffTimestamp::now))
+                })?;
                 let cert = nethsm.create_openpgp_cert(
                     &command.key_id,
                     flags,
@@ -961,7 +964,7 @@ fn run_command(cli: Cli) -> Result<(), Error> {
             nethsm.provision(
                 unlock_passphrase,
                 admin_passphrase,
-                command.system_time.unwrap_or_else(Utc::now),
+                command.system_time.unwrap_or_else(JiffTimestamp::now),
             )?
         }
         Command::Random(command) => {
@@ -992,11 +995,7 @@ fn run_command(cli: Cli) -> Result<(), Error> {
                 )?;
                 let output = FileOrStdout::new(
                     Some(command.output.unwrap_or_else(|| {
-                        PathBuf::from(format!(
-                            "{}-{}.bkp",
-                            label,
-                            Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Secs, true)
-                        ))
+                        PathBuf::from(format!("{}-{}.bkp", label, JiffTimestamp::now()))
                     }))
                     .as_deref(),
                     command.force,
@@ -1101,7 +1100,7 @@ fn run_command(cli: Cli) -> Result<(), Error> {
 
                 nethsm.restore(
                     backup_passphrase,
-                    command.system_time.unwrap_or_else(Utc::now),
+                    command.system_time.unwrap_or_else(JiffTimestamp::now),
                     read(command.input).map_err(CliError::Io)?,
                 )?;
             }

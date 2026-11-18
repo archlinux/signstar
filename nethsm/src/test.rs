@@ -3,7 +3,7 @@
 use std::fs::File;
 use std::path::PathBuf;
 
-use chrono::Utc;
+use jiff::Timestamp;
 use nethsm_sdk_rs::ureq::get;
 use rstest::fixture;
 // Publicly re-export, so that consumers do not have to rely on rustainers directly .
@@ -183,7 +183,7 @@ fn provision_nethsm(nethsm: &NetHsm) -> TestResult {
     nethsm.provision(
         Passphrase::new(UNLOCK_PASSPHRASE.to_string()),
         Passphrase::new(ADMIN_USER_PASSPHRASE.to_string()),
-        Utc::now(),
+        Timestamp::now(),
     )?;
     Ok(())
 }

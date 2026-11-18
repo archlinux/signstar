@@ -2,7 +2,7 @@
 
 use std::{net::Ipv4Addr, path::PathBuf};
 
-use chrono::Utc;
+use jiff::Timestamp;
 use log::debug;
 use nethsm::{
     BootMode,
@@ -161,14 +161,14 @@ async fn time(
     // N-Administrators can neither get nor set system time
     nethsm.use_credentials(&NAMESPACE1_ADMIN_USER_ID.parse()?)?;
     assert!(nethsm.get_time().is_err());
-    assert!(nethsm.set_time(Utc::now()).is_err());
+    assert!(nethsm.set_time(Timestamp::now()).is_err());
 
     // R-Administrators can get and set system time
     nethsm.use_credentials(&ADMIN_USER_ID.parse()?)?;
     let time = nethsm.get_time()?;
     println!("NetHSM time: {time}");
 
-    let time = Utc::now();
+    let time = Timestamp::now();
     println!("The current time: {time}");
     nethsm.set_time(time)?;
 
