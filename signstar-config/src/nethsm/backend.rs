@@ -1750,7 +1750,7 @@ impl<'a, 'b> NetHsmBackend<'a, 'b> {
                         .default_administrator()?
                         .passphrase
                         .clone(),
-                    nethsm::Utc::now(),
+                    nethsm::JiffTimestamp::now(),
                 )?;
             }
             SystemState::Locked => {
