@@ -5,9 +5,9 @@
 //! ## Format
 //!
 //! The backup format is an [internal detail of the NetHSM][INT].
-//! This library implements the version `0` format which should be supported even on newer devices.
+//! This library implements the version `0` and `1` backup formats.
 //!
-//! The backup file consists of two formats: one outer, which contains unencrypted magic values and
+//! The backup file consists of two layers: one outer, which contains unencrypted magic values and
 //! framing for the inner format. The inner format can be accessed after decrypting values within
 //! the outer one. Both of them are using similar primitives such as length-prefixed byte vectors.
 //!
@@ -19,8 +19,8 @@
 //! The outer format contains, in order, the header:
 //!
 //! - magic value: 15 bytes consisting of: `_NETHSM_BACKUP_`,
-//! - version tag: 1 byte, currently there's only one version which is stored as a `NUL` byte
-//!   (`0x00`).
+//! - version tag: 1 byte, currently there are two versions: v0 used on NetHSM <4.0 which is stored
+//!   as a `NUL` byte (`0x00`) or newer v1 (`0x01`) which is used since NetHSM 4.0.
 //!
 //! and several length-prefixed values:
 //!
@@ -28,6 +28,9 @@
 //! - encrypted inner version,
 //! - encrypted domain key,
 //! - variable number of encrypted items.
+//!
+//! The version 1 backup is followed by a trailer: `_NETHSM_BACKUP_END_` which never appears in
+//! version 0 backups.
 //!
 //! ### Inner format
 //!
@@ -42,6 +45,12 @@
 //! - domain key: decrypted inner domain key with `domain-key` as AAD,
 //! - items: decrypted key/values with the `backup` AAD, they are stored as a length-prefixed string
 //!   for a key and a value which is stored as a rest of the decrypted value.
+//!
+//! Version 1 backups have two special fields that always appear first and must be decrypted with
+//! their corresponding AAD values:
+//!
+//! - device id,
+//! - config store key.
 //!
 //! Sample list of inner format keys:
 //!
@@ -131,6 +140,9 @@ use log::error;
 use scrypt::{Params, scrypt};
 use signstar_crypto::passphrase::Passphrase;
 
+/// The trailer of a backup since version 1.
+const BACKUP_TRAILER_V1: &[u8] = b"_NETHSM_BACKUP_END_";
+
 /// Backup processing error.
 #[derive(Debug, thiserror::Error)]
 #[non_exhaustive]
@@ -173,6 +185,17 @@ pub enum Error {
 
         /// The version of the backup file.
         backup_version: Vec<u8>,
+    },
+
+    /// Unexpected zero-length field in a v0 backup.
+    #[error("Unexpected zero-length field in a v0 backup")]
+    ZeroLengthField,
+
+    /// Backup trailer is incorrect.
+    #[error("Backup trailer is incorrect: {trailer:?}. Expected {BACKUP_TRAILER_V1:?}")]
+    IncorrectTrailer {
+        /// The trailer that was found in the backup file.
+        trailer: Vec<u8>,
     },
 }
 
@@ -218,24 +241,24 @@ fn check_magic(reader: &mut impl Read) -> Result<()> {
     Ok(())
 }
 
-/// Check if the reader contains version number that is understood.
+/// Returns the backup version number.
 ///
 /// # Errors
 ///
 /// Returns:
 /// * [Error::BadVersion] if an unrecognized version value is found.
 /// * [Error::Io] if an I/O error occurs.
-fn check_version(reader: &mut impl Read) -> Result<()> {
+fn read_version(reader: &mut impl Read) -> Result<u8> {
     let mut version = [0; 1];
     reader.read_exact(&mut version)?;
     let version = version[0];
-    if version != 0 {
+    if version > 1 {
         return Err(Error::BadVersion {
-            highest_supported_version: 0,
+            highest_supported_version: 1,
             backup_version: vec![version],
         });
     }
-    Ok(())
+    Ok(version)
 }
 
 /// Data of a NetHSM backup.
@@ -246,6 +269,8 @@ pub struct Backup {
     salt: Vec<u8>,
     encrypted_version: Vec<u8>,
     encrypted_domain_key: Vec<u8>,
+    encrypted_device_id: Option<Vec<u8>>,
+    encrypted_config_store_key: Option<Vec<u8>>,
     items: Vec<Vec<u8>>,
 }
 
@@ -262,8 +287,8 @@ impl Backup {
     /// * [Error::Io] if an I/O error occurs when reading the backup.
     pub fn parse(mut reader: impl Read) -> Result<Self> {
         check_magic(&mut reader)?;
-        check_version(&mut reader)?;
 
+        let version = read_version(&mut reader)?;
         let salt = read_field(&mut reader)?;
         let encrypted_version = read_field(&mut reader)?;
         let encrypted_domain_key = read_field(&mut reader)?;
@@ -271,6 +296,10 @@ impl Backup {
         let mut items = vec![];
         loop {
             match read_usize(&mut reader) {
+                Ok(len) if len == 0 && version == 0 => {
+                    return Err(Error::ZeroLengthField);
+                }
+                Ok(len) if len == 0 && version == 1 => break,
                 Ok(len) => {
                     let mut field = vec![0; len];
                     reader.read_exact(&mut field)?;
@@ -285,10 +314,30 @@ impl Backup {
             }
         }
 
+        let (encrypted_device_id, encrypted_config_store_key) = if version == 1 {
+            // V1 backups always have a fixed trailer
+            let mut trailer = vec![];
+            reader.read_to_end(&mut trailer)?;
+
+            if trailer != BACKUP_TRAILER_V1 {
+                return Err(Error::IncorrectTrailer { trailer });
+            }
+
+            let device_id = items.remove(0);
+            let config_store_id = items.remove(0);
+
+            (Some(device_id), Some(config_store_id))
+        } else {
+            // V0 backups do not have the trailer
+            (None, None)
+        };
+
         Ok(Self {
             salt,
             encrypted_version,
             encrypted_domain_key,
+            encrypted_device_id,
+            encrypted_config_store_key,
             items,
         })
     }
@@ -394,6 +443,46 @@ impl<'a> BackupDecryptor<'a> {
     ///   is impersonating the domain key).
     pub fn domain_key(&self) -> Result<Vec<u8>> {
         self.decrypt(&self.backup.encrypted_domain_key, b"domain-key")
+    }
+
+    /// Optional device ID.
+    ///
+    /// Version 0 backups never have this value ([`None`]) while version 1 backups do.
+    ///
+    /// # Errors
+    ///
+    /// Returns:
+    /// * [Error::Decryption] if a decryption error is encountered, for example the encrypted device
+    ///   id is of incorrect length, has been tampered with, the decryption passphrase is wrong or
+    ///   the additional authenticated data is incorrect (e.g. a different encrypted piece of data
+    ///   is impersonating the device id).
+    pub fn device_id(&self) -> Result<Option<Vec<u8>>> {
+        self.backup
+            .encrypted_device_id
+            .as_ref()
+            .map(|encrypted_device_id| self.decrypt(encrypted_device_id, b"backup-device-id"))
+            .transpose()
+    }
+
+    /// Optional config store key.
+    ///
+    /// Version 0 backups never have this value ([`None`]) while version 1 backups do.
+    ///
+    /// # Errors
+    ///
+    /// Returns:
+    /// * [Error::Decryption] if a decryption error is encountered, for example the encrypted config
+    ///   store key is of incorrect length, has been tampered with, the decryption passphrase is
+    ///   wrong or the additional authenticated data is incorrect (e.g. a different encrypted piece
+    ///   of data is impersonating the config store key).
+    pub fn config_store_key(&self) -> Result<Option<Vec<u8>>> {
+        self.backup
+            .encrypted_config_store_key
+            .as_ref()
+            .map(|encrypted_config_store_key| {
+                self.decrypt(encrypted_config_store_key, b"backup-config-store-key")
+            })
+            .transpose()
     }
 
     /// Returns an iterator over backup entries.
@@ -513,9 +602,9 @@ pub fn validate_backup(
     if let Some(passphrase) = passphrase {
         let decryptor = backup.decrypt(passphrase.expose_borrowed().as_bytes())?;
         let version = decryptor.version()?;
-        if version.len() != 1 || version[0] != 0 {
+        if version.len() != 1 || version[0] > 1 {
             return Err(Error::BadVersion {
-                highest_supported_version: 0,
+                highest_supported_version: 1,
                 backup_version: version,
             });
         }

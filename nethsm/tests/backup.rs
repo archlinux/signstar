@@ -49,12 +49,18 @@ async fn create_backup_and_decrypt_it(
     let backup = Backup::parse(backup.as_slice())?;
     let backup = backup.decrypt(new_backup_passphrase.as_bytes())?;
 
-    assert_eq!(backup.version()?, [0]);
+    let version = backup.version()?;
+    assert_ne!(version.len(), 0);
+    assert!(version[0] <= 1);
 
     for item in backup.items_iter() {
-        let key = item?.0;
-        println!("{key}");
+        let item = item?;
+        let (key, value) = (item.0, item.1);
+        println!("{key} = {value:?}");
     }
+
+    println!("Device ID = {:?}", backup.device_id()?);
+    println!("Config Store Key = {:?}", backup.config_store_key()?);
 
     Ok(())
 }
