@@ -36,7 +36,7 @@ pretty_assertions = "1.4.1"
 rand = "0.10.2"
 rsa = "0.10"
 # Upgrading rstest may mean the lint suppression in `nethsm/src/test.rs` could be removed
-rstest = "0.28.0"
+rstest = "0.29.0"
 rustainers = "0.15"
 serde = { version = "1.0.215", features = ["derive"] }
 serde_json = "1.0.145"
