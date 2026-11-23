@@ -56,7 +56,10 @@ thiserror.workspace = true
 yescrypt = { version = "0.1.0", features = ["rand_core"] }
 
 [dev-dependencies]
-actix-web = { version = "4.10.2", features = ["openssl"] }
+actix-web = { version = "4.10.2", features = [
+    "macros",
+    "openssl",
+], default-features = false }
 assert_cmd = "2.2.2"
 base64ct.workspace = true
 change-user-run.workspace = true
