@@ -1,7 +1,7 @@
 //! Command line interface for `signstar-sign`.
 
 use clap::Parser;
-use clap_verbosity_flag::Verbosity;
+use clap_verbosity_flag::{InfoLevel, Verbosity};
 
 /// Command line arguments for signing.
 #[derive(Debug, Parser)]
@@ -21,5 +21,5 @@ https://signstar.archlinux.page/signstar-client/response.html
 pub struct Cli {
     /// Global processing log verbosity.
     #[command(flatten)]
-    pub verbosity: Verbosity,
+    pub verbosity: Verbosity<InfoLevel>,
 }

@@ -1,7 +1,7 @@
 //! Command line interface for `signstar-configure`.
 
 use clap::Parser;
-use clap_verbosity_flag::Verbosity;
+use clap_verbosity_flag::{InfoLevel, Verbosity};
 
 /// Command line arguments for configuring Signstar hosts.
 #[derive(Debug, Parser)]
@@ -20,5 +20,5 @@ Returns a non-zero exit code and an error message on stderr if any of the above 
 pub struct Cli {
     /// Global processing log verbosity.
     #[command(flatten)]
-    pub verbosity: Verbosity,
+    pub verbosity: Verbosity<InfoLevel>,
 }

@@ -1,7 +1,7 @@
 //! Command line interface handling for the "signstar-configure-build" executable.
 
 use clap::Parser;
-use clap_verbosity_flag::Verbosity;
+use clap_verbosity_flag::{InfoLevel, Verbosity};
 use signstar_common::{
     config::{
         get_default_config_file_path,
@@ -93,5 +93,5 @@ If none of the above are found, the default location {:?} is used.",
 
     /// Global processing log verbosity.
     #[command(flatten)]
-    pub verbosity: Verbosity,
+    pub verbosity: Verbosity<InfoLevel>,
 }

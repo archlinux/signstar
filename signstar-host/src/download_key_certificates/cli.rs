@@ -1,7 +1,7 @@
 //! Command line interface for `signstar-download-key-certificates`.
 
 use clap::Parser;
-use clap_verbosity_flag::Verbosity;
+use clap_verbosity_flag::{InfoLevel, Verbosity};
 
 /// Command line arguments for certificate retrieval.
 #[derive(Debug, Parser)]
@@ -13,5 +13,5 @@ use clap_verbosity_flag::Verbosity;
 pub struct Cli {
     /// Global processing log verbosity.
     #[command(flatten)]
-    pub verbosity: Verbosity,
+    pub verbosity: Verbosity<InfoLevel>,
 }
