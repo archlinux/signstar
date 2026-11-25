@@ -7,6 +7,7 @@ ignore = [
     "RUSTSEC-2026-0387",
     "RUSTSEC-2026-0543", # The chrono crate is unmaintained and currently only used by the russh-util crate
 ]
+unmaintained = "all"
 unused-ignored-advisory = "deny"
 version = 2
 yanked = "deny"
